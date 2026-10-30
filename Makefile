@@ -11,8 +11,12 @@ install: ## Sync the environment and install the git hooks
 	uv sync --locked
 	uv run prek install
 
+# Extra hook ids to skip, e.g. `make lint SKIP=gitleaks` (prek's --skip flag
+# replaces the SKIP environment variable, so lint forwards it explicitly).
+SKIP ?=
+
 lint: ## Run every hook except pytest on all files
-	uv run prek run --all-files --skip pytest --show-diff-on-failure
+	uv run prek run --all-files --skip pytest $(addprefix --skip ,$(SKIP)) --show-diff-on-failure
 
 test: ## Run the fast tests with coverage
 	uv run prek run pytest --all-files --show-diff-on-failure
