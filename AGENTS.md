@@ -22,6 +22,8 @@ Run everything through `uv`.
 
 ## Code conventions
 
+- Start every Python file with `# SPDX-License-Identifier: Apache-2.0` as the
+  first line (second after a shebang). Ruff enforces it (`CPY001`).
 - Annotate everything, tests included. Run `pyrefly` before declaring done.
 - Write a Google-style docstring for every module, class and function, private
   helpers too. Ruff enforces it only for public names.
