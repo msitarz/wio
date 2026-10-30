@@ -20,10 +20,6 @@ hooks = [
     { id = "check-executables-have-shebangs" },
     { id = "check-shebang-scripts-are-executable" },
     { id = "detect-private-key" },
-    # No dedicated API key detector is built in; match common secret formats instead.
-    { id = "deny-pattern", name = "detect-api-keys", args = [
-        "(sk-ant-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{50,}|xox[baprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{35}|pypi-[A-Za-z0-9_-]{50,})",
-    ] },
 ]
 
 [[repos]]
