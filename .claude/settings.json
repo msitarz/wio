@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r \".tool_response.filePath // .tool_input.file_path\" | { read -r f; case \"$f\" in *.py|*.pyi) uv run ruff check --fix --quiet \"$f\"; uv run ruff format --quiet \"$f\";; *.md) uv run rumdl check --fix --quiet \"$f\";; esac; } >/dev/null 2>&1 || true",
+            "timeout": 60,
+            "statusMessage": "Formatting edited file..."
+          }
+        ]
+      }
+    ]
+  }
+}
