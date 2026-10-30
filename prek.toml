@@ -56,3 +56,9 @@ hooks = [{ id = "complexipy" }]
 repo = "https://github.com/kucherenko/jscpd"
 rev = "v5.4.2"
 hooks = [{ id = "jscpd" }]
+
+[[repos]]
+repo = "local"
+hooks = [
+    { id = "pytest", name = "pytest (coverage)", entry = "uv run pytest --cov", language = "system", types_or = ["python", "pyi"], pass_filenames = false },
+]

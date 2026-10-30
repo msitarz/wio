@@ -34,14 +34,17 @@ python_version = "3.15"
 preset = "strict"
 
 [tool.pytest]
-pythonpath = [".", "src"]
+minversion = "9.0"
+strict = true  # strict config, markers, xfail and parametrization ids
+pythonpath = ["."]
 testpaths = ["tests"]
+filterwarnings = ["error"]
 markers = [
     "channels(*channels): run once per listed Channel",
     "slow: spawns the real CLI",
 ]
 addopts = [
-  "--strict-markers",
+  "-ra",
   "--tb=short",
   "--import-mode=importlib",
 ]
