@@ -16,19 +16,17 @@ description = "A new capability delivered as one coherent outcome."
 <!--
 - Replace the heading with the Work name.
 - Remove these instruction comments and the `wio:` directives before publishing. Keep the `wio` metadata block at the top.
-- Keep only the relevant headings unless the section has a `wio: required` directive.
+- Keep only the relevant headings unless the heading has a `wio: required` directive.
 - Follow the shared [writing standard](README.md#writing).
 - Use relative Markdown links.
 -->
 
-## Purpose
+## Purpose <!-- wio: required -->
 
-<!-- wio: required -->
 <!-- Write one sentence stating **why** this change is needed. -->
 
-## Goals
+## Goals <!-- wio: required, items>=1 -->
 
-<!-- wio: required, items>=1 -->
 <!--
 This section is meant to summarize intended capabilities.
 
@@ -51,9 +49,8 @@ Example:
 
 <!-- List non-goals of this Work contract, each in one sentence. -->
 
-## Assumptions
+## Assumptions <!-- wio: required -->
 
-<!-- wio: required -->
 <!-- Write "None." when there are none.
 
 - List what this Work takes as true without having confirmed it, each in one sentence.
@@ -120,9 +117,8 @@ Example: A parent requires p95 response time below 200 ms for a named request mi
 Passing rendering does not establish acceptance or GitHub/browser parity.
 -->
 
-## Acceptance criteria
+## Acceptance criteria <!-- wio: required, items>=1, pattern=AC-\d+ -->
 
-<!-- wio: required, items>=1, pattern=AC-\d+ -->
 <!-- List of acceptance criteria.
 
 A Work owns one coherent outcome. Acceptance criteria state independently assessable conditions or behaviors that establish it; together, they fulfill the Work’s purpose and goals without a target number of criteria.
