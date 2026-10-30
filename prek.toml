@@ -47,14 +47,11 @@ repo = "https://github.com/rohaquinlop/complexipy-pre-commit"
 rev = "v8.3.0"
 hooks = [{ id = "complexipy" }]
 
-[[repos]]
-repo = "https://github.com/kucherenko/jscpd"
-rev = "v5.4.2"
-hooks = [{ id = "jscpd" }]
 
 [[repos]]
 repo = "local"
 hooks = [
+    { id = "jscpd", name = "jscpd (duplicate code)", entry = "uv run jscpd src tests", language = "system", types_or = ["python"], pass_filenames = false },
     { id = "pyrefly", name = "pyrefly check", entry = "uv run pyrefly check", language = "system", types_or = ["python", "pyi"], pass_filenames = false },
     { id = "pytest", name = "pytest (coverage)", entry = "uv run pytest --cov", language = "system", types_or = ["python", "pyi"], pass_filenames = false },
 ]
