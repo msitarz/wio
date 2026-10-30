@@ -33,9 +33,10 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = "wio"
-# uv_build ignores .gitignore: keep editor backups and dotfiles out of artifacts.
-source-exclude = ["*\\~", ".*"]
-wheel-exclude = ["*\\~", ".*"]
+# uv_build ignores .gitignore: keep editor files out of artifacts (backups ~,
+# dotfiles incl. emacs .# locks, emacs #autosave# files).
+source-exclude = ["*\\~", ".*", "\\#*\\#"]
+wheel-exclude = ["*\\~", ".*", "\\#*\\#"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
