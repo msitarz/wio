@@ -7,7 +7,9 @@ authors = [
     { name = "Michal Sitarz", email = "28092472+msitarz@users.noreply.github.com" }
 ]
 requires-python = ">=3.15"
-dependencies = []
+dependencies = [
+    "rumdl>=0.3.2",
+]
 
 [build-system]
 requires = ["uv_build>=0.13.5,<0.14.0"]
@@ -117,6 +119,15 @@ known-first-party = ["wio"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "D", "PLR2004"]
 "*.pyi" = ["PYI048", "PIE790"]  # stubs carry a docstring plus `...`
+
+[tool.rumdl]
+line-length = 80
+respect-gitignore = true
+
+[tool.rumdl.MD013]
+reflow = true
+code_blocks = false  # code is formatted by ruff, not rumdl
+tables = false
 
 [tool.complexipy]
 max-complexity-allowed = 7
