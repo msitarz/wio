@@ -118,7 +118,7 @@ A Work owns one coherent outcome. Acceptance criteria state independently assess
 
 <!-- AC code outcome example:
 
-### **AC-1 TODO** Executed purchases update cash and positions correctly
+### **AC-1** Executed purchases update cash and positions correctly
 
 Applying a valid purchase fill produces a successor portfolio reflecting the purchased quantity, execution price, and fees.
 
@@ -137,45 +137,12 @@ Applying a valid purchase fill produces a successor portfolio reflecting the pur
 
 <!-- AC guidance outcome example:
 
-### **AC-2 TODO** Complete record validation
+### **AC-2** Complete record validation
 
 Engineering guidance requires constructors to validate every consumed field and cross-field invariant before returning a domain value. Rejection may stop at the first error; successful construction guarantees all invariants hold. A compact example shows valid construction and rejection of an invalid field combination. If a child implements a particular constructor, it links to this shared invariant and states its own observable acceptance conditions separately.
 
 For constraint inheritance and system-level verification examples, see [Inherited constraints](#inherited-constraints).
 -->
-
-## Dependencies
-
-<!--
-- List prerequisite Works, their purpose, and prerequisite explanation.
-- Do **NOT** include direct children.
-- Use `STATUS [Work title](path/to/README.md): purpose.`
-- Ordinary guidance links have no Work status.
-- Keep purpose text aligned with the linked Work.
-- See [Work lifecycle](workflow.md#lifecycle) for status and retention rules.
-
-Example:
-
-- TODO [Dependency Work name](link/to/work/README.md): Dependency purpose from its Work contract.
-    It provides API or mechanism that this Work consumes.
--->
-
-## Children
-
-<!--
-- List direct child Works and their purpose.
-- Use `STATUS [Work title](path/to/README.md): purpose.`
-- Keep purpose text aligned with the child Work.
-- See [Work lifecycle](workflow.md#lifecycle) for status and retention rules.
-
-Example:
-
-- TODO [Child Work name](child/README.md): Child purpose.
--->
-
-## Links
-
-<!-- List of other relevant links, e.g. to previously closed Investigation or Evaluation Works with one sentence description of why are they relevant to this Work. -->
 
 ## Additional context
 
@@ -185,4 +152,5 @@ Example:
 - Keep shared context in the parent.
 - Keep local detail in the affected leaf.
 - Link instead of copying diagrams or API descriptions.
+- Link to outside or earlier material the Work needs, with one sentence on why it matters.
 -->
