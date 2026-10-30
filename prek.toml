@@ -1,0 +1,58 @@
+# Configuration file for `prek`, a git hook framework written in Rust.
+# See https://prek.j178.dev for more information.
+#:schema https://www.schemastore.org/prek.json
+
+[[repos]]
+repo = "builtin"
+hooks = [
+    { id = "trailing-whitespace" },
+    { id = "end-of-file-fixer" },
+    { id = "mixed-line-ending" },
+    { id = "fix-byte-order-marker" },
+    { id = "check-added-large-files" },
+    { id = "check-case-conflict" },
+    { id = "check-merge-conflict" },
+    { id = "check-toml" },
+    { id = "check-yaml" },
+    { id = "check-json" },
+    { id = "check-symlinks" },
+    { id = "destroyed-symlinks" },
+    { id = "check-executables-have-shebangs" },
+    { id = "check-shebang-scripts-are-executable" },
+    { id = "detect-private-key" },
+    # No dedicated API key detector is built in; match common secret formats instead.
+    { id = "deny-pattern", name = "detect-api-keys", args = [
+        "(sk-ant-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{50,}|xox[baprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{35}|pypi-[A-Za-z0-9_-]{50,})",
+    ] },
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.17.3"
+hooks = [
+    { id = "ruff-check", args = ["--fix"] },
+    { id = "ruff-format" },
+]
+
+[[repos]]
+repo = "https://github.com/commitizen-tools/commitizen"
+rev = "v4.19.3"
+hooks = [
+    { id = "commitizen" },        # commit-msg stage
+    { id = "commitizen-branch" }, # pre-push stage
+]
+
+[[repos]]
+repo = "https://github.com/facebook/pyrefly-pre-commit"
+rev = "1.4.0"
+hooks = [{ id = "pyrefly-check" }]
+
+[[repos]]
+repo = "https://github.com/rohaquinlop/complexipy-pre-commit"
+rev = "v8.3.0"
+hooks = [{ id = "complexipy" }]
+
+[[repos]]
+repo = "https://github.com/kucherenko/jscpd"
+rev = "v5.4.2"
+hooks = [{ id = "jscpd" }]

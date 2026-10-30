@@ -1,0 +1,38 @@
+[project]
+name = "work-it-out"
+version = "0.0.1"
+readme = "README.md"
+description = "Work It Out! Agentic Workflow"
+authors = [
+    { name = "Michal Sitarz", email = "28092472+msitarz@users.noreply.github.com" }
+]
+requires-python = ">=3.15"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "wio"
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_scheme = "pep440"
+version_provider = "uv"
+update_changelog_on_bump = true
+major_version_zero = true
+
+[dependency-groups]
+dev = [
+    "commitizen>=4.19.3",
+    "complexipy>=8.3.0",
+    "debugpy>=1.8.22",
+    "jscpd>=5.4.2",
+    "prek>=0.5.9",
+    "pyrefly>=1.4.0",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.3",
+]
