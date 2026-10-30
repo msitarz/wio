@@ -63,12 +63,13 @@ testpaths = ["tests"]
 filterwarnings = ["error"]
 markers = [
     "channels(*channels): run once per listed Channel",
-    "slow: spawns the real CLI",
+    "slow: spawns the real CLI or builds the package",
 ]
 addopts = [
   "-ra",
   "--tb=short",
   "--import-mode=importlib",
+  "-m", "not slow",  # `pytest -m slow` runs the slow tests (builds, real CLI)
 ]
 
 [tool.coverage.run]
