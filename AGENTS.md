@@ -10,8 +10,8 @@ test strategy.
 Run everything through `uv`.
 
 - `uv sync`: create or update the environment.
-- `uv run prek install`: install the git hooks (pre-commit, commit-msg and
-  pre-push). Run it once per clone.
+- `uv run prek install`: install the git hooks (pre-commit and commit-msg). Run
+  it once per clone.
 - `uv run prek run -a`: run every check on every file (same as the commit
   hooks).
 - `uv run pytest`: run tests in random order. Add `-p no:randomly` to debug.
