@@ -1,4 +1,4 @@
-+++
+<!-- wio
 # Replaced by `wio contract new`; do not write ids by hand.
 id = ""
 type = "feature"
@@ -9,7 +9,7 @@ roots = []
 [template]
 name = "Feature"
 description = "A new capability delivered as one coherent outcome."
-+++
+-->
 
 # <Work name>
 
