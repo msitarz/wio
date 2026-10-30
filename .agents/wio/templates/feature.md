@@ -1,3 +1,16 @@
++++
+# Replaced by `wio contract new`; do not write ids by hand.
+id = ""
+type = "feature"
+# REQUIRED. A leaf touches exactly one root, e.g. roots = ["src"].
+roots = []
+
+# Describes this template. `wio contract new` removes this table.
+[template]
+name = "Feature"
+description = "A new capability delivered as one coherent outcome."
++++
+
 # <Work name>
 
 <!--
@@ -36,6 +49,19 @@ Example:
 ## Non-Goals
 
 <!-- List non-goals of this Work contract, each in one sentence. -->
+
+## Assumptions
+
+<!-- REQUIRED. Write "None." when there are none.
+
+- List what this Work takes as true without having confirmed it, each in one sentence.
+- Give each an id (A-1, A-2, ...) so a later amendment can refer to it.
+- An assumption is not a requirement: when one proves false, amend the contract instead of working around it in the code.
+
+Example:
+
+- **A-1** The existing `Portfolio` model is immutable.
+-->
 
 ## Mechanisms
 
