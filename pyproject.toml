@@ -19,7 +19,7 @@ classifiers = [
 ]
 requires-python = ">=3.15"
 dependencies = [
-    "rumdl>=0.3.2",
+    "rumdl>=0.3.0",
 ]
 
 [project.urls]
@@ -30,6 +30,10 @@ Issues = "https://github.com/msitarz/wio/issues"
 [build-system]
 requires = ["uv_build>=0.13.5,<0.14.0"]
 build-backend = "uv_build"
+
+[tool.uv]
+# Supply-chain guard: ignore any release uploaded in the last 7 days.
+exclude-newer = "7 days"
 
 [tool.uv.build-backend]
 module-name = "wio"
@@ -171,17 +175,17 @@ max-complexity-allowed = 7
 [dependency-groups]
 dev = [
     "actionlint-py>=1.7.12.25",
-    "commitizen>=4.19.3",
-    "complexipy>=8.3.0",
+    "commitizen>=4.19.2",
+    "complexipy>=8.1.0",
     "debugpy>=1.8.22",
     "deptry>=0.25.1",
     "jscpd>=5.4.2",
-    "prek>=0.5.9",
+    "prek>=0.5.7",
     "pyrefly>=1.4.0",
-    "pytest>=9.2.0",
+    "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "pytest-randomly>=5.0.0",
-    "ruff>=0.17.3",
+    "ruff>=0.17.2",
     "tach>=0.35.3",
     "typos>=1.51.1",
     "zizmor>=1.31.1",
