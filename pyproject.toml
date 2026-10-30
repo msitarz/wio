@@ -169,6 +169,7 @@ max-complexity-allowed = 7
 
 [dependency-groups]
 dev = [
+    "actionlint-py>=1.7.12.25",
     "commitizen>=4.19.3",
     "complexipy>=8.3.0",
     "debugpy>=1.8.22",
@@ -182,4 +183,5 @@ dev = [
     "ruff>=0.17.3",
     "tach>=0.35.3",
     "typos>=1.51.1",
+    "zizmor>=1.31.1",
 ]
