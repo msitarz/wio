@@ -66,6 +66,58 @@ exclude_lines = [
   "\\.\\.\\.\\s*$",           # ellipsis stub bodies (Protocols, overloads)
 ]
 
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+preview = true
+explicit-preview-rules = true  # preview only enables rules selected by exact code
+unfixable = ["ERA001"]  # --fix must not delete commented-out code
+extend-select = [
+    "ANN",   # annotations everywhere, tests included
+    "ARG",   # unused arguments
+    "A",     # builtin shadowing
+    "B",     # bugbear
+    "C901",  # McCabe complexity (default limit 10); complexipy covers cognitive complexity
+    "D",     # docstrings (google convention below)
+    "EM",    # exception message style
+    "ERA",   # commented-out code
+    "FBT",   # boolean positional arguments
+    "I",     # import sorting
+    "N",     # pep8-naming
+    "PERF",  # performance anti-patterns
+    "PT",    # pytest style
+    "PTH",   # pathlib over os / os.path
+    "RET",   # return consistency
+    "SIM",   # simplifications
+    "PLR0916",  # too many boolean expressions in an if (preview rule)
+    "SLF",   # private member access
+    "TC",    # typing-only imports under TYPE_CHECKING
+    "T20",   # print / pprint: write to sys.stdout instead
+    "TID",   # banned / relative imports
+    "UP",    # pyupgrade
+]
+
+[tool.ruff.lint.pylint]
+max-statements = 20
+max-bool-expr = 3
+
+[tool.ruff.lint.flake8-annotations]
+suppress-none-returning = true  # test_* and other None-returning functions need no `-> None`
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["wio"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "D", "PLR2004"]
+"*.pyi" = ["PYI048", "PIE790"]  # stubs carry a docstring plus `...`
+
+[tool.complexipy]
+max-complexity-allowed = 7
+
 [dependency-groups]
 dev = [
     "commitizen>=4.19.3",
