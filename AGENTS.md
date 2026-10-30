@@ -1,7 +1,9 @@
 # AGENTS.md
 
-wio (work-it-out) is a skill-based engine for coding agents: contract, types,
-skeleton, implementation. See `tests/README.md` for the test strategy.
+wio (work-it-out) is a configurable, stage-gated workflow engine for coding
+agents. Use the terms defined in [GLOSSARY.md](GLOSSARY.md) in code, docs and
+commit messages. See `README.md` for the overview and `tests/README.md` for the
+test strategy.
 
 ## Commands
 
