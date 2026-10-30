@@ -107,11 +107,11 @@ The first release is the engine only: no shipped stages, presets or rulesets.
 You need [uv](https://docs.astral.sh/uv/).
 
 ```sh
-uv sync
-uv run prek install
-uv run prek run -a
-uv run pytest
+make install   # sync the environment and install the git hooks
+make check     # run every check and the fast tests
 ```
+
+`make help` lists the other targets.
 
 `AGENTS.md` lists the commands and the code conventions for people and agents
 working in this repo, and `tests/README.md` describes the test strategy. Commit

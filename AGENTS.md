@@ -7,15 +7,24 @@ test strategy.
 
 ## Commands
 
-Run everything through `uv`.
+Use `make` for whole-project work (`make help` lists the targets) and `uv run`
+for single tools. The checks are defined in `prek.toml` (hooks) and
+`pyproject.toml` (tool settings), and the `make` targets only call them.
 
-- `uv sync`: create or update the environment.
-- `uv run prek install`: install the git hooks (pre-commit and commit-msg). Run
-  it once per clone.
-- `uv run prek run -a`: run every check on every file (same as the commit
-  hooks).
-- `uv run pytest`: run tests in random order. Add `-p no:randomly` to debug.
-- `uv run pytest --cov`: run tests with the coverage gate (95%).
+- `make install`: sync the environment (`uv sync --locked`) and install the git
+  hooks (pre-commit and commit-msg). Run it once per clone.
+- `make check`: run every hook and the fast tests on all files. Run it before
+  declaring work done.
+- `make lint`: every hook except pytest.
+- `make test`: the fast tests, with the coverage gate (95%).
+- `make build`: the slow packaging tests, which build the wheel and sdist and
+  verify them.
+- `make secrets`: scan the full git history with gitleaks.
+
+Single tools, for quick feedback:
+
+- `uv run pytest`: the fast tests in random order. Add `-p no:randomly` to
+  debug, `-k name` to select, and `-m slow` to run the slow tests instead.
 - `uv run ruff check --fix` and `uv run ruff format`: lint and format Python.
 - `uv run pyrefly check`: strict type check of `src` and `tests`.
 - `uv run complexipy src tests`: cognitive complexity.
