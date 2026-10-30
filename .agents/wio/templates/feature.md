@@ -2,7 +2,7 @@
 # Replaced by `wio contract new`; do not write ids by hand.
 id = ""
 type = "feature"
-# REQUIRED. A leaf touches exactly one root, e.g. roots = ["src"].
+# A leaf touches exactly one root, e.g. roots = ["src"].
 roots = []
 
 # Describes this template. `wio contract new` removes this table.
@@ -15,20 +15,21 @@ description = "A new capability delivered as one coherent outcome."
 
 <!--
 - Replace the heading with the Work name.
-- Remove all instruction comments before publishing.
-- Keep only the relevant headings unless instruction comment says REQUIRED.
+- Remove these instruction comments and the `wio:` directives before publishing. Keep the `wio` metadata block at the top.
+- Keep only the relevant headings unless the section has a `wio: required` directive.
 - Follow the shared [writing standard](README.md#writing).
 - Use relative Markdown links.
 -->
 
 ## Purpose
 
-<!-- Write one sentence stating **why** this change is needed. REQUIRED. -->
+<!-- wio: required -->
+<!-- Write one sentence stating **why** this change is needed. -->
 
 ## Goals
 
-<!-- REQUIRED.
-
+<!-- wio: required, items>=1 -->
+<!--
 This section is meant to summarize intended capabilities.
 
 - List goals of this Work contract, each in one sentence.
@@ -52,7 +53,8 @@ Example:
 
 ## Assumptions
 
-<!-- REQUIRED. Write "None." when there are none.
+<!-- wio: required -->
+<!-- Write "None." when there are none.
 
 - List what this Work takes as true without having confirmed it, each in one sentence.
 - Give each an id (A-1, A-2, ...) so a later amendment can refer to it.
@@ -120,7 +122,8 @@ Passing rendering does not establish acceptance or GitHub/browser parity.
 
 ## Acceptance criteria
 
-<!-- List of acceptance criteria. REQUIRED.
+<!-- wio: required, items>=1, pattern=AC-\d+ -->
+<!-- List of acceptance criteria.
 
 A Work owns one coherent outcome. Acceptance criteria state independently assessable conditions or behaviors that establish it; together, they fulfill the Work’s purpose and goals without a target number of criteria.
 
