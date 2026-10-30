@@ -129,6 +129,9 @@ reflow = true
 code_blocks = false  # code is formatted by ruff, not rumdl
 tables = false
 
+[tool.deptry.per_rule_ignores]
+DEP002 = ["rumdl"]  # run as a CLI by wio check commands, never imported
+
 [tool.complexipy]
 max-complexity-allowed = 7
 
@@ -137,6 +140,7 @@ dev = [
     "commitizen>=4.19.3",
     "complexipy>=8.3.0",
     "debugpy>=1.8.22",
+    "deptry>=0.25.1",
     "jscpd>=5.4.2",
     "prek>=0.5.9",
     "pyrefly>=1.4.0",
