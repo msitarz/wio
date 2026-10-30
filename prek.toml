@@ -52,6 +52,7 @@ hooks = [{ id = "complexipy" }]
 repo = "local"
 hooks = [
     { id = "uv-lock", name = "uv lock --check", entry = "uv lock --check", language = "system", files = '^(pyproject\.toml|uv\.lock)$', pass_filenames = false },
+    { id = "typos", name = "typos (spell check)", entry = "uv run typos", language = "system", types = ["text"] },
     { id = "rumdl", name = "rumdl (markdown)", entry = "uv run rumdl check --fix", language = "system", types = ["markdown"] },
     { id = "jscpd", name = "jscpd (duplicate code)", entry = "uv run jscpd src tests", language = "system", types_or = ["python"], pass_filenames = false },
     { id = "pyrefly", name = "pyrefly check", entry = "uv run pyrefly check", language = "system", types_or = ["python", "pyi"], pass_filenames = false },
