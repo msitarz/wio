@@ -17,7 +17,6 @@ description = "A capability delivered by child Works, with constraints they shar
 - Replace the heading with the Work name.
 - Remove these instruction comments and the `wio:` directives before publishing. Keep the `wio` metadata block at the top.
 - Keep only the relevant headings unless the heading has a `wio: required` directive.
-- Follow the shared [writing standard](README.md#writing).
 - Use relative Markdown links.
 -->
 
@@ -111,7 +110,6 @@ Example: A parent requires p95 response time below 200 ms for a named request mi
 - Correct the proposal when verified implementation differs.
 - Show only affected context.
 - Check diagram accuracy against source and contracts.
-- Use real Mermaid fences so `make doc-check` validates rendering syntax.
 
 Passing rendering does not establish acceptance or GitHub/browser parity.
 -->
