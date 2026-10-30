@@ -24,6 +24,39 @@ version_provider = "uv"
 update_changelog_on_bump = true
 major_version_zero = true
 
+[tool.pytest]
+pythonpath = [".", "src"]
+testpaths = ["tests"]
+markers = [
+    "channels(*channels): run once per listed Channel",
+    "slow: spawns the real CLI",
+]
+addopts = [
+  "--strict-markers",
+  "--tb=short",
+  "--import-mode=importlib",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/wio"]
+omit = [
+  "src/wio/__init__.py",
+]
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true
+skip_covered = false
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+  "@(abc\\.)?abstractmethod",
+  "raise NotImplementedError",
+  "\\.\\.\\.\\s*$",           # ellipsis stub bodies (Protocols, overloads)
+]
+
 [dependency-groups]
 dev = [
     "commitizen>=4.19.3",
