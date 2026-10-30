@@ -57,3 +57,9 @@ Single tools, for quick feedback:
 - Commit when a step is done and checks pass. Keep commits small, one concern
   each.
 - Changes with no design decisions need no Work contract. When in doubt, ask.
+- Push and open pull requests only when asked. Never push to `main`: work on a
+  branch, run `make check`, push the branch and use `gh pr create`.
+- The pull request title is a Conventional Commit. Squash merging makes it the
+  commit on `main`, and CI checks it.
+- Fill in `.github/PULL_REQUEST_TEMPLATE.md`. Name the Work, the stage and the
+  acceptance criteria addressed instead of restating the contract.
