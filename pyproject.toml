@@ -146,6 +146,7 @@ dev = [
     "pyrefly>=1.4.0",
     "pytest>=9.2.0",
     "pytest-cov>=7.1.0",
+    "pytest-randomly>=5.0.0",
     "ruff>=0.17.3",
     "tach>=0.35.3",
     "typos>=1.51.1",
