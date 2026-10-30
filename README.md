@@ -108,8 +108,7 @@ You need [uv](https://docs.astral.sh/uv/).
 
 ```sh
 uv sync
-uv run prek install --hook-type pre-commit --hook-type commit-msg \
-  --hook-type pre-push
+uv run prek install
 uv run prek run -a
 uv run pytest
 ```

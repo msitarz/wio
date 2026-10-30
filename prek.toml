@@ -2,6 +2,10 @@
 # See https://prek.j178.dev for more information.
 #:schema https://www.schemastore.org/prek.json
 
+# `prek install` sets up every stage the hooks below use (commitizen runs at
+# commit-msg), not only pre-commit.
+default_install_hook_types = ["pre-commit", "commit-msg", "pre-push"]
+
 [[repos]]
 repo = "builtin"
 hooks = [
