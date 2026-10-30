@@ -2,13 +2,14 @@
 # Replaced by `wio contract new`; do not write ids by hand.
 id = ""
 type = "feature"
-# A leaf touches exactly one root, e.g. roots = ["src"].
-roots = []
+# A leaf touches exactly one root, e.g. root = "src".
+root = ""
 
 # Describes this template. `wio contract new` removes this table.
 [template]
 name = "Feature"
-description = "A new capability delivered as one coherent outcome."
+level = "leaf"
+description = "A capability delivered directly as one coherent outcome."
 -->
 
 # <Work name>
@@ -76,18 +77,13 @@ Example:
 - `git worktree`: provide separate checkout directory to prevent concurrent edits issues.
 -->
 
-## Inherited constraints
+## Constraints
 
 <!-- Optional.
 
-- Link to the parent-owned constraints that apply to this Work.
-- State any local constraints it adds.
+- State the constraints this Work adds beyond those it inherits.
 
-A parent owns these shared constraints without predefining every signature:
-- Concepts and invariants.
-- Responsibilities, dependency direction, and effect limits.
-
-Children inherit parent constraints without restating or weakening them.
+Inherit parent constraints without restating or weakening them.
 
 For every non-functional requirement:
 - State whether the local Work, an architectural integration, or the full system verifies it.
@@ -132,7 +128,7 @@ A Work owns one coherent outcome. Acceptance criteria state independently assess
 - Given/When/Then is optional.
 - Use Given/When/Then when it makes a condition easier to assess.
 - State measurement thresholds and the workload and measurement conditions needed to interpret them when they define success.
-- Put inherited constraints in the optional [Inherited constraints](#inherited-constraints) section, separately from local acceptance criteria.
+- Put constraints this Work adds in the optional [Constraints](#constraints) section, separately from local acceptance criteria.
 - A child may add constraints but cannot weaken a parent's shared guarantees.
 - Describe the delivered result rather than listing implementation tasks or instructions to the executor.
 - Keep each requirement at one owner.
@@ -166,7 +162,7 @@ Applying a valid purchase fill produces a successor portfolio reflecting the pur
 
 Engineering guidance requires constructors to validate every consumed field and cross-field invariant before returning a domain value. Rejection may stop at the first error; successful construction guarantees all invariants hold. A compact example shows valid construction and rejection of an invalid field combination. If a child implements a particular constructor, it links to this shared invariant and states its own observable acceptance conditions separately.
 
-For constraint inheritance and system-level verification examples, see [Inherited constraints](#inherited-constraints).
+For constraint inheritance and system-level verification examples, see [Constraints](#constraints).
 -->
 
 ## Additional context
