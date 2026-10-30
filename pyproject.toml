@@ -24,6 +24,15 @@ version_provider = "uv"
 update_changelog_on_bump = true
 major_version_zero = true
 
+[tool.pyrefly]
+project_includes = [
+  "src",
+  "tests",
+]
+search_path = ["src", "."]
+python_version = "3.15"
+preset = "strict"
+
 [tool.pytest]
 pythonpath = [".", "src"]
 testpaths = ["tests"]
