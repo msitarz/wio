@@ -20,6 +20,8 @@ for single tools. The checks are defined in `prek.toml` (hooks) and
 - `make build`: the slow packaging tests, which build the wheel and sdist and
   verify them.
 - `make secrets`: scan the full git history with gitleaks.
+- `make audit`: check the locked dependencies for known vulnerabilities (needs
+  network; uv's `audit` command is experimental).
 
 Single tools, for quick feedback:
 
