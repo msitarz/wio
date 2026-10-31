@@ -61,5 +61,6 @@ Single tools, for quick feedback:
   branch, run `make check`, push the branch and use `gh pr create`.
 - The pull request title is a Conventional Commit. Squash merging makes it the
   commit on `main`, and CI checks it.
-- Fill in `.github/PULL_REQUEST_TEMPLATE.md`. Name the Work, the stage and the
-  acceptance criteria addressed instead of restating the contract.
+- Fill in `.github/PULL_REQUEST_TEMPLATE.md`. Fill in the `ID:`, `Stage:` and
+  `Criteria:` lines instead of restating the contract, and delete every HTML
+  comment from the body.

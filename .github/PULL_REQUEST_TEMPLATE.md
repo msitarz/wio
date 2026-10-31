@@ -1,4 +1,5 @@
-<!-- Title: a Conventional Commit, e.g. `feat(config): read config.toml`.
+<!-- Delete every HTML comment, including this one, before you submit.
+     Title: a Conventional Commit, e.g. `feat(config): read config.toml`.
      It becomes the commit on main (squash merge). -->
 
 ## Outcome
@@ -8,9 +9,15 @@
 
 ## Work
 
-<!-- The Work's id and a link to its contract, plus the stage this PR delivers
-     and the acceptance criteria it addresses, e.g. AC-1, AC-3. No Work (a
-     change with no design decisions)? Write one sentence of purpose instead. -->
+ID:
+Stage:
+Criteria:
+
+<!-- Keep these three lines; tools read them from the commit on main.
+     ID: the Work's id, or `none` for a change with no design decisions (then
+     add one sentence of purpose after these lines).
+     Stage: the stage this PR delivers.
+     Criteria: the acceptance criteria it addresses, e.g. AC-1, AC-3. -->
 
 ## Contract changes
 
