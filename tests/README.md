@@ -77,7 +77,7 @@ package only when a second consumer (for example `wio-eval`) needs it.
 `wio.toml`, contract frontmatter, rule files, templates and roots are fixtures
 that interact. Without builders every test hand-writes TOML and markdown, and
 any format change breaks every test. The `Wio` facade starts from a minimal
-valid repo (one root, one stage, one work type with a template) and each
+valid repo (one root, one stage, one template) and each
 scenario changes only the parts it tests.
 
 ```python
