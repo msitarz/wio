@@ -4,10 +4,8 @@ This document explains the engine of wio: the few concepts everything else is
 built from. It does not describe a particular process. The contract-to-
 implementation flow (typed architecture, wired skeleton, implementation) is one
 preset that can run on this engine, and it appears only as an example at the
-end. Terms are defined in the [glossary](../GLOSSARY.md).
-
-Status: design, as of 2026-10-31. Where the design is still open, the text says
-so.
+end. Terms are defined in the [glossary](../GLOSSARY.md). Open points are
+listed in section 12.
 
 ## 1. What the engine is for
 
@@ -176,10 +174,9 @@ is a signal to split, not to widen the scope.
 
 A child often needs constraints that its parent states. Instead of copying them
 into each child, a parent template marks sections as **inheritable** with the
-`inherit` directive: its Glossary and its Constraints. `wio contract show <id>
---resolved` then prints the leaf together with the inheritable sections of its
-ancestors. The agent reads one resolved view and never needs to open whole
-parent contracts.
+`inherit` directive: its Glossary and its Constraints. `wio contract show` can
+then print the leaf together with the inheritable sections of its ancestors. The
+agent reads one resolved view and never needs to open whole parent contracts.
 
 A leaf's own Constraints section holds only the constraints the leaf adds. The
 inherited ones are not restated, so they cannot drift.
@@ -238,8 +235,8 @@ Nobody records it. "Which stage is the Work at" is a decision, not a fact that
 the repository can answer. A stage may have produced a valid artifact that is
 nevertheless not approved, and with back-and-forth the answer is not even
 monotonic. So the **driver** names the stage: the human in v0.1, an
-orchestrator later. The command that starts a session (`wio context --work-id X
---stage Y`) is the declaration.
+orchestrator later. The command that starts a session (`wio context`, given the
+Work and the stage) is the declaration.
 
 ### Sessions
 
@@ -421,7 +418,8 @@ Properties that matter:
 - **Loud failures**: an unknown Work, stage or root is an error. An empty bundle
   looks like success, so it is never produced by mistake. Zero matching rules is
   valid, and the header says so.
-- **Explainable**: `--explain` lists why each rule was included or excluded.
+- **Explainable**: `wio context` can list why each rule was included or
+  excluded.
 - **Once per session**: the bundle is injected at session start. If the
   contract is amended afterwards, the session runs the command again.
 
