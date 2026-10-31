@@ -51,7 +51,8 @@ flowchart LR
 
 - **Work contract.** A markdown file that states one outcome, the assumptions
   behind it and the behaviors that show it was achieved. It records intent, not
-  progress. Each work type has a template, so projects add their own types.
+  progress. A contract follows a template, and each template belongs to a type,
+  so projects add their own types.
 - **Nesting.** A Work is either a leaf (one coherent outcome, one root) or a
   parent delivered by its children. Children, scope and inherited sections are
   computed, never stored.
