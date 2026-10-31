@@ -1,13 +1,14 @@
 # wio: an intent-based, stage-gated workflow engine for coding agents
 
 **Work It Out** (`wio`) is a small, fully configurable engine for coding
-agents. You state the outcome you want in a **Work contract**. The work then
-runs in **stages** separated by **gates**, and at each stage the agent sees only
-the **rules** that apply to it.
+agents. You state the outcome you want in a **Work contract**, written from a
+**template**. wio runs **actions** on it, such as defining the outcome and
+delivering it. An action is a list of **stages** separated by **gates**, and at
+each stage the agent sees only the **rules** that apply to it.
 
 wio does not prescribe a process. The engine provides the building blocks, and
-a project (or a shared preset) decides which stages exist and what each one
-produces.
+a project (or a shared preset) decides which stages exist, how they are ordered
+and what each one produces.
 
 ## Status
 
@@ -30,32 +31,48 @@ A coding agent does better work when three things are true:
 
 | Need | Concept |
 | --- | --- |
-| Know the intended outcome | **Work contract** |
+| Know the intended outcome | **Work contract**, written from a **template** |
 | Break big outcomes into small ones | **Nesting** (parent and leaf Works) |
-| Do the work in separate steps | **Stage** |
+| Name the kinds of work done on an outcome | **Action** (define, deliver) |
+| Do an action in separate steps | **Stage** |
 | Stop and decide between steps | **Gate** |
 | Give each step only its own guidance | **Rules**, selected by tags |
 
+In one sentence: wio runs **actions** on an **outcome**. An action is a
+**preset**, an ordered list of stages, some of them gates. A **template** binds
+a type of outcome to its actions, rules are selected for every stage, and every
+step is logged.
+
 ```mermaid
 flowchart LR
-    C[Work contract] --> S[Stage]
+    T[Template] -->|shapes| C[Work contract]
+    T -->|default actions| A[Action]
+    C -->|may replace| A
+    A --> S[Stage]
     S --> G[Gate]
     G -->|approved| S2[Next stage]
     G -->|gap found| S
     G -->|intent wrong| C
     R[Rules] -->|selected by tags and root| X[wio context]
+    T -->|when defining| X
     C --> X
     S --> X
-    X --> A[Agent session]
+    X --> AG[Agent session]
 ```
 
 - **Work contract.** A markdown file that states one outcome, the assumptions
   behind it and the behaviors that show it was achieved. It records intent, not
   progress. A contract follows a template, and each template belongs to a type,
-  so projects add their own types.
+  so projects add their own types. The template carries the default actions,
+  and a contract can replace them with its own.
 - **Nesting.** A Work is either a leaf (one coherent outcome, one root) or a
   parent delivered by its children. Children, scope and inherited sections are
   computed, never stored.
+- **Action.** A named kind of work done on a Work. wio has two built in:
+  `define` turns an intent into a contract, splitting it if needed, and
+  `deliver` builds what the contract says. An action's pipeline is a preset or
+  a list of stages. Splitting, promoting and demoting are procedures that
+  stages and skills own; wio checks the invariants afterwards.
 - **Stage.** One named step with a goal (or a skill), tags that select its
   rules, and optional approval and session policy. A project defines its own
   stages, and a single stage is valid.
@@ -68,14 +85,16 @@ flowchart LR
   every one of the rule's tags is among the stage's tags.
 - **Context compiler.** `wio context` joins the contract, the stage and the
   matching rules into one deterministic bundle that the agent reads first in
-  each session.
+  each session. While a Work is being defined, it also brings the template and
+  the parent Works.
 
 Terms are defined in [GLOSSARY.md](GLOSSARY.md), and the design is described
 in [docs/](docs/README.md).
 
-On top of the engine, a **preset** is a named, ordered list of stages. A typed
-flow (contract, typed boundaries, wired skeleton, implementation, with a review
-after each step) is one example. A single `implement` stage is another.
+On top of the engine, a **preset** is a named, ordered list of stages, and it
+can be the pipeline of an action. A typed flow (contract, typed boundaries,
+wired skeleton, implementation, with a review after each step) is one example.
+A single `implement` stage is another.
 
 ## Principles
 
@@ -86,8 +105,9 @@ after each step) is one example. A single `implement` stage is another.
   tree are derived.
 - **Deterministic context.** A script picks the rules for a stage; nothing
   depends on a model guessing which guidance applies.
-- **The driver decides.** Which stage is current is a decision by the human (or
-  a later orchestrator), not a recorded fact.
+- **The driver decides.** Which action and stage is current is a decision by the
+  human (or a later orchestrator), not a recorded fact. wio can propose the next
+  step, but it never blocks one.
 - **Skills are procedures, rules are atoms, tools are checks.** Only text that
   nearly every task needs is always loaded.
 
