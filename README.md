@@ -69,7 +69,8 @@ flowchart LR
   matching rules into one deterministic bundle that the agent reads first in
   each session.
 
-Terms are defined in [GLOSSARY.md](GLOSSARY.md).
+Terms are defined in [GLOSSARY.md](GLOSSARY.md), and the design is described
+in [docs/](docs/README.md).
 
 On top of the engine, a **preset** is a named, ordered list of stages. A typed
 flow (contract, typed boundaries, wired skeleton, implementation, with a review
