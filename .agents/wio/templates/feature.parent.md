@@ -1,14 +1,12 @@
 <!-- wio
-# Replaced by `wio contract new`; do not write ids by hand.
-id = ""
+name = "feature.parent"
 type = "feature"
-# A parent has no roots field: its scope is derived from its children.
-
-# Describes this template. `wio contract new` removes this table.
-[template]
-name = "Feature"
-level = "parent"
 description = "A capability delivered by child Works, with constraints they share."
+
+[contract]
+# wio sets id and template itself.
+# A Work with children has no root: its scope comes from its children.
+depends_on = []
 -->
 
 # <Work name>
