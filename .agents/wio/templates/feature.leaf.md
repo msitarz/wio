@@ -1,15 +1,13 @@
 <!-- wio
-# Replaced by `wio contract new`; do not write ids by hand.
-id = ""
+name = "feature.leaf"
 type = "feature"
-# A leaf touches exactly one root, e.g. root = "src".
-root = ""
-
-# Describes this template. `wio contract new` removes this table.
-[template]
-name = "Feature"
-level = "leaf"
 description = "A capability delivered directly as one coherent outcome."
+
+[contract]
+# wio sets id and template itself.
+# A Work without children has exactly one root, e.g. root = "src".
+root = ""
+depends_on = []
 -->
 
 # <Work name>
