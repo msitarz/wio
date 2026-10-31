@@ -203,9 +203,24 @@ Marking individual acceptance criteria as inheritable is possible later.
 
 ### Ordering
 
-Ordering between sibling Works is not stored for now. Dependencies are implied
-by the Work tree, and the v0.1 scope is bounded and known. A `depends_on`
-mechanism may return when an orchestrator needs it for scheduling.
+A Work can depend on other Works. Its metadata has an optional `depends_on`, an
+array of Work ids:
+
+```toml
+depends_on = ["a7b2c4", "k3m9xq"]
+```
+
+- Dependencies are ids, never paths, so moving or renaming a Work's directory
+  breaks nothing. The tree gives the hierarchy, and `depends_on` adds an
+  ordering graph on top of it.
+- `wio contract check` verifies that every id exists and that there are no
+  cycles.
+- A dependency means the other Work must be delivered first. Whether it also
+  holds back the dependent's definition, and whether a parent's dependencies
+  also apply to its descendants, are open points.
+- `wio-split` generates the ids of all child Works before it fills in the
+  dependencies between them. That is why a child Work exists as a stub with a
+  metadata block before it is defined.
 
 ## 4. Stage
 
