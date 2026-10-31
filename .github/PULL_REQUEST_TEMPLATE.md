@@ -10,12 +10,14 @@
 ## Work
 
 ID:
+Action:
 Stage:
 Criteria:
 
-<!-- Keep these three lines; tools read them from the commit on main.
+<!-- Keep these four lines; tools read them from the commit on main.
      ID: the Work's id, or `none` for a change with no design decisions (then
      add one sentence of purpose after these lines).
+     Action: the action this PR belongs to, such as `define` or `deliver`.
      Stage: the stage this PR delivers.
      Criteria: the acceptance criteria it addresses, e.g. AC-1, AC-3. -->
 
