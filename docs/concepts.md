@@ -45,14 +45,16 @@ warns about inconsistencies, but it never blocks a choice.
 
 ```mermaid
 flowchart LR
-    T[Template] --> C[Work contract]
-    C --> A[Action]
+    T[Template] -->|shapes| C[Work contract]
+    T -->|default actions| A[Action]
+    C -->|may replace| A
     A --> S[Stage]
     S --> G[Gate]
     G -->|approved| S2[Next stage]
     G -->|gap found| S
     G -->|intent wrong| C
     R[Rules] -->|selected by tags and root| X[wio context]
+    T -->|when defining| X
     C --> X
     S --> X
     X --> AG[Agent session]
