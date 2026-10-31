@@ -2,7 +2,7 @@
 # pyproject.toml (tool settings), so local runs and CI use the same commands.
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint test check build secrets clean
+.PHONY: help install lint test check build audit secrets clean
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*## "} /^[a-z-]+:.*## / {printf "  %-8s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -25,6 +25,9 @@ check: lint test ## Run lint and tests
 
 build: ## Build the package and verify the artifacts
 	uv run pytest -m slow tests/packaging
+
+audit: ## Check the locked dependencies for known vulnerabilities
+	uv audit --locked --preview-features audit-command
 
 secrets: ## Scan the full git history for secrets (needs gitleaks)
 	@command -v gitleaks >/dev/null || { echo "gitleaks not found: brew install gitleaks"; exit 1; }
