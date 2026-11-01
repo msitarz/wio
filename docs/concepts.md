@@ -161,7 +161,10 @@ and the human decides. The decision has three outcomes:
 
 - **Abandon**: stop this Work by deleting its directory. Git keeps its history.
   Every Work that depends on it must be updated in the same change (see
-  section 4).
+  section 4). Abandoning is a change of intent, so the deleting commit carries
+  a record of the define action. A Work that is retired once it is done is
+  deleted by the commit of the last stage it belongs to, and carries that
+  stage's record.
 - **Amend**: change the acceptance criteria or assumptions, then rework whatever
   depended on them. In this repository's config an amendment runs through the
   `define` action, and because `deliver` comes `after` it, the delivered stages
@@ -274,7 +277,11 @@ comments on the heading they govern, for example
 template is rendered, readable in the source, and parseable by a markdown
 parser. The grammar is small: `required`, `items` and `pattern`, and `inherit`.
 Sections are **optional until marked required**, so the agent can choose
-sections based on the intent it gathered.
+sections based on the intent it gathered. `required` means the heading is
+present; it says nothing about what is under it, and authoring comments do not
+count as content. `items` and `pattern` check the content. So a Work fresh
+from its template passes a check that only requires headings, and a template
+that wants content says so with `items`.
 
 A contract created from a template keeps the template's authoring comments in
 its body, because they are the guidance the agent follows while it fills each
@@ -346,9 +353,11 @@ config gives them.
 
 - A leaf's roots are the ones it declares.
 - A parent's roots are the ones it declares, if its `roots` list is not empty.
-  Otherwise they are the union of the roots of its descendant leaves, computed.
-  Declared roots replace the union, so a parent can name a root that none of
-  its children touch, for example one for end-to-end tests.
+  Otherwise they are the union of its children's roots, computed recursively: a
+  child that is a parent contributes its own roots, declared or computed. So a
+  root declared by a parent in the middle of the tree, for example one for
+  end-to-end tests, reaches every parent above it. Declared roots replace the
+  union, so a parent can name a root that none of its children touch.
 - An empty `roots` list and a missing one mean the same: nothing is declared.
   Templates can therefore keep `roots = []` as a placeholder, and a draft that
   becomes a parent needs no change to get the union.
@@ -794,7 +803,7 @@ select the contract root.
 Rules are selected by the root the stage edits:
 
 - A stage without `roots` uses the Work's roots: the declared ones, or for a
-  parent without declared roots, the union of its leaves' roots (section 4).
+  parent without declared roots, the union of its children's roots (section 4).
 - A stage with `roots` uses exactly those. The entry `@work` stands for the
   Work's roots, so a contract review that checks criteria against real modules
   can use `roots = ["contract", "@work"]`. Root names cannot contain `@`.
@@ -997,7 +1006,8 @@ That is valid, and it is how a project states a rule that is always on within
 its roots. `wio rule list` marks such rules, and `wio rule check` reports them
 as a note that does not change its exit code, so the driver can review them.
 
-A rule whose tags no stage has, so that it can never be selected, is a warning
+A rule whose tags no single stage has all of, so that it can never be selected,
+is a warning
 in `wio rule check`.
 
 ### What else filters a rule
@@ -1068,8 +1078,10 @@ Properties that matter:
 - **Loud failures**: an unknown Work, action, stage or root is an error, and so
   is a stage that selects the Work's roots when the Work has none. An empty
   bundle looks like success, so it is never produced by mistake. Zero matching
-  rules is valid, and the header says so. A stage that is not in the Work's
-  actions is only a warning, because the driver decides.
+  rules is valid, and the header says so. A stage that is not in the pipeline
+  of the given action for this Work is only a warning, because the driver
+  decides. wio checks the pair: `deliver` with the stage `define` warns even
+  though `define` is one of the Work's stages.
 - **Explainable**: `wio context` can list why each rule was included or
   excluded.
 - **Sized**: harnesses truncate long command output, and a truncated bundle

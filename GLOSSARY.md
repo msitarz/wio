@@ -8,7 +8,7 @@ commit messages.
 | Work | One outcome with its behaviors, described by a contract. A directory whose `README.md` has a `wio` metadata block. |
 | Work contract | The markdown file, with a metadata block, that states a Work's intent. It follows a template. |
 | Leaf | A Work without child Works. |
-| Parent | A Work with child Works. Unless it declares its own roots, its roots are the union of its leaves' roots. |
+| Parent | A Work with child Works. Unless it declares its own roots, its roots are the union of its children's roots, computed recursively. |
 | Template | A markdown file that shapes a contract: sections, directives and a metadata block with the template's name, type, optional shape (leaf or parent) and default actions. |
 | Type | A kind of outcome, such as `feature`, declared in the config with its entry template. A type groups templates. |
 | Entry template | The template of a type that new Works of that type start from. Declared in the config. |
@@ -16,7 +16,7 @@ commit messages.
 | Directive | A `wio:` instruction in an HTML comment on a template heading, such as `required` or `inherit`. |
 | Dependency | A Work id in `depends_on`: that Work must be delivered first. |
 | Action | A named kind of work done on a Work, such as `define` or `deliver`. Declared in the config with a description, the actions it comes after, and whether it is on demand; none are built in. Its pipeline is a preset or a list of stages. |
-| Config | The `.agents/wio/config.toml` file: types, actions, roots, stages, presets, tags, results and the trailer reader. |
+| Config | The `.agents/wio/config.toml` file: types, actions, roots, stages, presets, tags, results, the rules chosen from each ruleset, skill directories, the trailer reader, and bundle settings. |
 | Root | A named set of directories (its `paths`) bound to one toolchain and its rulesets. Works and stages refer to it by name. |
 | Ruleset | A reusable collection of rule files with a `ruleset.toml` manifest. Bound to roots, and its rules chosen, by the repo's config. |
 | Stage | A named step: a goal or a skill, tags, optional roots and a session policy. |
