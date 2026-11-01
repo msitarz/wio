@@ -23,8 +23,8 @@ metadata.
   the template's.
 - A new Work starts from its type's entry template. Define stages select the
   `contract` root, so they get the rules for writing contracts.
-- A leaf names its roots. A parent without declared roots uses the union of its
-  leaves' roots.
+- A Work lists its roots. A parent lists `@descendants` to include the union of
+  its descendants' roots.
 - Parents pass their Glossary and Constraints to their children.
 - Every commit of a stage carries a record of `Wio-*` trailers.
 

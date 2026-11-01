@@ -377,7 +377,9 @@ config gives them.
   A template sets the default: this repository's parent template uses
   `roots = ["@descendants"]`. A parent whose roots leave out a root that one of
   its descendants uses gets a note from `wio contract check`, not a warning,
-  because a narrower list may be intended.
+  because a narrower list may be intended. A Work without children that lists
+  `@descendants` gets a warning, because the token resolves to nothing there,
+  for example after a parent is demoted to a leaf.
 - An empty `roots` list and a missing one mean the same: no roots. Templates can
   therefore keep `roots = []` as a placeholder.
 - `roots` may be empty. That is not an error in `wio contract check`. It fails
@@ -1244,11 +1246,13 @@ commit is the artifact. So every call of a gate that takes several commits finds
 the same commit, and a gate records its result on each of its commits, because
 only the latest record counts. `--reviewed <sha>` overrides the rule, for
 example for a review of an older commit. `wio trailers --result` warns when the
-commit it works out differs from the one recorded by this session's first
-`context` event for the gate, which is where the review started,
-recorded, because then the artifact changed while it was under review, and
-when the review started on a tree with uncommitted changes, because then no
-commit holds all of what was judged.
+commit it works out differs from the one recorded by the gate's `context`
+event, because then the artifact changed while it was under review, and when the
+review started on a tree with uncommitted changes, because then no commit holds
+all of what was judged. The event it compares with is this session's first
+`context` event for the gate, where the review started. When wio cannot see the
+session id, it is the latest `context` event for the same Work, action and stage
+from the same working directory.
 
 `wio trailers check` reads a commit message or a pull request body and checks
 the shape of every record in it: the keys, the id's form, action and stage names
@@ -1260,8 +1264,9 @@ unknown ids for the same reason. A message without a record passes, because
 that is often right: a pull request whose commits all belong to no Work has
 none in its body. `wio trailers check --require` also fails a message without a
 record, except a message whose subject starts with `Merge `, `Revert `,
-`fixup! `, `squash!` or `amend! `, git's own forms for commits that are merged,
-reverted or squashed away. A project calls `--require` from a commit-msg hook
+`Reapply `, `fixup! `, `squash!` or `amend! `, git's own forms for commits that
+are merged, reverted (git writes `Reapply` for a revert of a revert) or squashed
+away. A project calls `--require` from a commit-msg hook
 and the plain check from CI.
 
 Writing and checking records is part of v0.1. Reading them from the history
@@ -1305,19 +1310,24 @@ third reader, later.
 ### The event log
 
 An append-only JSONL file stored in the user's data directory, one file per
-repo. It holds ids, hashes, codes, times and the working directory, and no
-prompts, no code and no free text. It is personal to one machine, so the history
-answers "what was done" for everyone, and the log answers "what I started".
-Writing it never blocks a command, a failure is only a warning, and it can be
-turned off. In v0.1 it records two events:
+repository. A repository is identified by its git common directory, so the
+worktrees of one clone share a log, and each event is written as one line in a
+single append, so sessions that run at the same time do not interleave. It holds
+ids, hashes, codes, times and the working directory, and no prompts, no code and
+no free text. It is personal to one machine, so the history answers "what was
+done" for everyone, and the log answers "what I started". Writing it never
+blocks a command, a failure is only a warning, and it can be turned off. In v0.1
+it records two events:
 
-- `context`: a session started a stage, with the Work, action, stage, bundle
-  id, size, rule codes, the harness and the session id. For a gate, it also
-  records `HEAD` and whether the working tree had uncommitted changes: the
-  commit the review starts from. A second event with the
-  same session, Work, action and stage is the bundle being injected again, after
-  a compaction or an amendment, not a new stage. Its bundle id says whether the
-  context changed.
+- `context`: a session started a stage, with the Work, action, stage, bundle id,
+  size, rule codes, the harness and the session id. For a gate, it also records
+  the commit the review starts from, found with the same rule as the reviewed
+  commit (skipping the gate's own commits), and whether the working tree had
+  uncommitted changes. A second review of the same artifact, after an `unknown`
+  or for a second opinion, therefore records the same commit. A second event
+  with the same session, Work, action and stage is the bundle being injected
+  again, after a compaction or an amendment, not a new stage. Its bundle id says
+  whether the context changed.
 - `review`: a gate finished, with the Work, action, stage, the reviewed commit,
   the overall result, and a result for each cited item, a rule code or a
   criterion id (`ARC001=fail`, `AC-2=pass`). What is not cited was not judged.
