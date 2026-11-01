@@ -11,6 +11,8 @@ Commands:
 
 - `check FILE`: check one commit message (the commit-msg hook).
 - `commits RANGE`: check the commits in a revision range (CI).
+- `block RANGE`: print the paragraphs that `body` would put at the end of a pull
+  request body, for a contributor to paste when the workflow cannot edit it.
 - `body RANGE`: read a pull request body on standard input and print it with the
   records of the range's commits at its end, after the revert lines of commits
   that revert work outside the range, or nothing when it already has them
@@ -34,7 +36,14 @@ CRITERIA = re.compile(r"^AC-\d+(, AC-\d+)*$")
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 RESULT = re.compile(r"^(pass|fail|unknown)$")
 KEYS = frozenset({"Wio-Work", "Wio-Action", "Wio-Stage", "Wio-Criteria", "Wio-Result"})
-SKIPPED_SUBJECTS = ("Merge ", "Revert ", "fixup! ", "squash! ", "amend! ")
+SKIPPED_SUBJECTS = (
+    "Merge ",
+    "Revert ",
+    "Reapply ",
+    "fixup! ",
+    "squash! ",
+    "amend! ",
+)
 REVERT_LINE = re.compile(r"^This reverts commit [0-9a-f]{7,40}\.?$")
 REVERTS = re.compile(r"^This reverts commit (?P<sha>[0-9a-f]{7,40})\b", re.MULTILINE)
 NO_WORK = "none"
@@ -422,6 +431,20 @@ def _body(revision_range: str) -> int:
     return 0
 
 
+def _block(revision_range: str) -> int:
+    """Print the record and revert paragraphs of a range's commits.
+
+    Args:
+        revision_range: A range such as `main..HEAD`.
+
+    Returns:
+        The exit code, always 0.
+    """
+    commits = commits_in(revision_range)
+    sys.stdout.write(with_records("", collect(commits), outside_reverts(commits)))
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run one command.
 
@@ -435,6 +458,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("check").add_argument("path")
     commands.add_parser("commits").add_argument("revision_range")
+    commands.add_parser("block").add_argument("revision_range")
     commands.add_parser("body").add_argument("revision_range")
     arguments = parser.parse_args(argv)
     match arguments.command:
@@ -442,6 +466,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _check(arguments.path)
         case "commits":
             return _commits(arguments.revision_range)
+        case "block":
+            return _block(arguments.revision_range)
         case _:
             return _body(arguments.revision_range)
 

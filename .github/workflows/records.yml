@@ -57,3 +57,26 @@ jobs:
           if [ -s "$RUNNER_TEMP/new.md" ]; then
             gh pr edit "$NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/new.md"
           fi
+      - name: Ask a fork to add the records to the body
+        # The workflow cannot edit a fork's pull request, so it checks the body
+        # instead and shows the paragraphs to paste at its end.
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$BODY" > "$RUNNER_TEMP/old.md"
+          uv run python scripts/records.py body "$BASE..$HEAD" \
+            < "$RUNNER_TEMP/old.md" > "$RUNNER_TEMP/new.md"
+          if [ -s "$RUNNER_TEMP/new.md" ]; then
+            {
+              echo "Add these paragraphs to the end of the pull request body:"
+              echo
+              echo '```text'
+              uv run python scripts/records.py block "$BASE..$HEAD"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::The body lacks the commits' records; see the job summary."
+            exit 1
+          fi

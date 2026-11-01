@@ -91,4 +91,6 @@ Single tools, for quick feedback:
   commit on `main`, and CI checks it.
 - Fill in `.github/PULL_REQUEST_TEMPLATE.md` and delete every HTML comment
   from the body. Do not add records to the body: the Records workflow copies
-  them from the commits to its end, so they survive the squash merge.
+  them from the commits to its end, so they survive the squash merge. A pull
+  request from a fork is the exception, because the workflow cannot edit it:
+  the job then fails and its summary shows the paragraphs to paste.
