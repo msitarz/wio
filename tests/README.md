@@ -146,8 +146,8 @@ polling helper such as `eventually(...)`, since a bare `assert` cannot wait.
 ## 5. Channels
 
 wio already has the split needed: a pure function core
-(`compile(rules, config, contract_metadata, action, stage) -> (bundle, trace)`)
-with a thin shell for file IO.
+(`compile(rules, config, contract, ancestors, action, stage) -> (bundle, trace)`,
+where `contract` is the parsed metadata and body) with a thin shell for file IO.
 
 | Channel | What it does | Used for |
 |---|---|---|

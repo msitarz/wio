@@ -14,8 +14,8 @@ metadata.
 
 - A Work is a directory with a contract. The tree is the hierarchy, and a Work
   with child Works is a parent.
-- `depends_on` is an array of Work ids. Together with an implicit edge from each
-  child to its parent, it forms a graph for delivery.
+- `depends_on` is an array of Work ids. Together with an implicit dependency of
+  each parent on its children, it forms a graph for delivery.
 - Defining runs top-down. Delivering runs bottom-up, in batches that can run in
   parallel.
 - The project declares the actions `define` and `deliver`. A contract inherits
