@@ -56,6 +56,13 @@ name = "wio"
 paths = ["src", "tests", "scripts"]
 rulesets = []
 
+# Everything else in the repository: docs, CI, the Makefile, skills. It
+# overlaps the other roots, which is allowed: roots select rules by name.
+[[roots]]
+name = "repo"
+paths = ["."]
+rulesets = []
+
 # Stages. A review stage records a result. `session = "fresh"` asks for a new
 # agent session, so the reviewer does not share the author's context. The
 # deliver stages also select the contract root, so the few contract rules

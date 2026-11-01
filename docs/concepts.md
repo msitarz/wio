@@ -256,8 +256,12 @@ parser. The grammar is small: `required`, `items` and `pattern`, and `inherit`.
 Sections are **optional until marked required**, so the agent can choose
 sections based on the intent it gathered.
 
-Authoring comments and directives are removed when a contract is written. The
-`wio` metadata block stays.
+A contract created from a template keeps the template's authoring comments in
+its body, because they are the guidance the agent follows while it fills each
+section in. Directives are removed at creation, because `wio contract check`
+reads them from the template. The agent deletes each authoring comment once its
+section is written, and deletes the sections it leaves empty, unless they are
+required. The `wio` metadata block stays.
 
 ### Checking a contract against its template
 
@@ -365,7 +369,8 @@ depends_on = ["a7b2c4", "k3m9xq"]
   ordering graph on top of it. Nesting only decides what is inherited;
   `depends_on` works the same for nested and flat Works.
 - `wio contract check` verifies that every id exists and that there are no
-  cycles, counting the implicit edge from each child to its parent for delivery.
+  cycles. For delivery, each parent implicitly depends on its children, and
+  that edge counts too.
 - A `depends_on` id that no longer exists is an error. Whoever removes a Work,
   because it was abandoned or because the project retires finished Works,
   updates its dependents in the same change: drop the edge when the work is
@@ -544,6 +549,8 @@ on, and they do not judge how a workflow is built:
   exists.
 - Every root a contract or a stage names is a root in the config.
 - Every `depends_on` id exists, and there are no cycles.
+- No stage appears twice in one pipeline. Records key on the Work, the action
+  and the stage, so two positions of one stage could not be told apart.
 - Required sections are present, as the template's directives say. A `##`
   heading the template does not have is a warning.
 
@@ -747,9 +754,10 @@ path, so paths are used for three things:
 - the scope that `wio contract tree` shows;
 - `wio rule list --path <file>`, which answers "which rules apply to this
   file?": every root whose paths contain the file, then the rules of their
-  rulesets, optionally narrowed by a stage's tags. An agent can ask it about a
-  file it is about to change, and a driver can ask it when auditing the rules
-  of a large repo.
+  rulesets, optionally narrowed by a stage's tags. No Work is given, so rules
+  restricted by `types` are listed with their types marked rather than
+  filtered. An agent can ask it about a file it is about to change, and a
+  driver can ask it when auditing the rules of a large repo.
 
 Paths are plain directories, without globs, relative to the repo root.
 `wio config check` verifies that they are normalized and stay inside the repo,
@@ -844,7 +852,7 @@ in `.agents/wio/rules/`, one directory each:
   contracts/
     ruleset.toml
     CON001-purpose-says-why.md
-    ACC004-state-the-boundaries.md
+    ACC003-state-the-boundaries.md
 ```
 
 ```toml
@@ -874,6 +882,9 @@ exclude = ["TSX012"]                    # taken out of an included family
 [rulesets.mattpocock.tags]              # override the ruleset author's tags
 TSX = ["implementation"]                # for a whole family
 ERR003 = ["implementation", "review"]   # for one rule; wins over its family
+
+[rulesets.mattpocock.types]             # override the ruleset author's types
+ERR = ["fix"]                           # the author's `bugfix` is our `fix`
 ```
 
 - A ruleset without a table is used whole, with the tags its rules declare.
@@ -881,9 +892,14 @@ ERR003 = ["implementation", "review"]   # for one rule; wins over its family
   family's, else the tags in its own file. Everything that matches tags works
   on the effective tags: selection for a stage, the vocabulary check, the note
   about always-on rules and the warning about rules that reach no stage.
-- A selected rule whose effective tags are not all in the vocabulary is an
-  error that names the rule, so a copied rule never goes missing silently. It
-  is mapped or excluded.
+- A rule's **effective types** work the same way, through the `types` table:
+  a code's override, else its family's, else the `types` in its own file. Type
+  names are a repository's own, like tags, so a copied rule needs the same way
+  to map them.
+- A selected rule whose effective tags or types are not all declared in the
+  config is an error that names the rule, so a copied rule never goes missing
+  silently. It is mapped or excluded. Rules that are not selected are not
+  checked against the config at all.
 - Including a family includes the rules added to it later, when the ruleset is
   copied again. Rules included by code stay as they are. Codes are stable, so
   the lists survive renames.
@@ -976,12 +992,14 @@ Properties that matter:
 - **Deterministic**: the same inputs produce the same bytes. This makes it
   testable with golden files and lets two evaluation runs be compared by bundle
   id ("these saw identical context").
-- **Pull, not push**: the agent runs `wio context` itself as the first step of
-  a stage. That works with any harness that can run a command, it makes the
-  command the session's own declaration of its stage, and it lets the `context`
-  event be written from inside the session, with the session's id. A wrong stage
-  is caught by reading the header, which shows the Work, action, stage and goal
-  first.
+- **Pull, not push**: the agent runs `wio context` itself as the first step of a
+  stage. For a new intent the Work must exist first, so the first step of its
+  definition is `wio contract new`, run by the driver or by the define skill,
+  and `wio context` follows. That works with any harness that can run a command,
+  it makes the command the session's own declaration of its stage, and it lets
+  the `context` event be written from inside the session, with the session's id.
+  A wrong stage is caught by reading the header, which shows the Work, action,
+  stage and goal first.
 - **Loud failures**: an unknown Work, action, stage or root is an error, and so
   is a stage that selects the Work's roots when the Work has none. An empty
   bundle looks like success, so it is never produced by mistake. Zero matching
@@ -1077,7 +1095,11 @@ actions (a warning, as in `wio context`). With `--result` it also writes the
 `review` event to the event log, with the items `--cite` names (such as
 `--cite ARC001=fail --cite AC-2=pass`) and `HEAD` as the reviewed commit,
 because the review's own commit does not exist yet. A reviewer records
-everything with one command.
+everything with one command. That relies on two things: the artifact under
+review is committed, and the gate's result is recorded in its first commit. So
+`wio trailers --result` warns when the working tree has uncommitted changes, and
+when `HEAD` already carries a record of the same gate, because then `HEAD` is
+the reviewer's own commit and not the artifact.
 
 `wio trailers check` reads a commit message or a pull request body and checks
 every record in it. A message without a record passes, because that is often
@@ -1280,6 +1302,10 @@ goal or skill. How well it produces it comes from the rules its tags select.
   `pattern` count. Criteria are `### **AC-1** ...` subheadings in the templates,
   not list items, so the directive grammar must be able to apply to
   subheadings. The directive-grammar Work settles it.
+- How the resolved view renders inherited sections: their heading levels,
+  their order relative to the Work's own sections, and how each names the
+  ancestor it comes from. The contract Work settles it before golden tests fix
+  it.
 - Whether all-of tag matching is enough. It is the simplest rule that works, and
   it can be replaced later without changing the file formats.
 - Recipes for harness hooks that inject the bundle again after compaction.

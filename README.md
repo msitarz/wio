@@ -125,7 +125,7 @@ The first release is the engine only: no shipped stages, presets or rulesets.
 | --- | --- |
 | `wio config` | Read, show and validate `.agents/wio/config.toml` |
 | `wio contract` | Create, list, check and show Work contracts |
-| `wio rule` | Validate and list rule files, also for a given path |
+| `wio rule` | Create, check and list rule files, also for a given path |
 | `wio context` | Compile the contract and rules for a stage |
 | `wio trailers` | Write and check the records that tie commits to stages |
 | `wio log` | Record context and review events |
