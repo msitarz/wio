@@ -67,7 +67,8 @@ flowchart LR
   template. The template carries the default actions, and a contract can
   replace them with its own.
 - **Nesting.** A Work is either a leaf or a parent delivered by its children.
-  Children, a parent's roots and inherited sections are computed, never stored.
+  Children and inherited sections are computed, never stored, and a parent can
+  compute its roots from its descendants with `@descendants`.
 - **Action.** A named kind of work done on a Work, such as `define` or
   `deliver`. The project declares its actions, each with a description that
   helps an agent choose one; none are built in. An action's pipeline is a

@@ -86,7 +86,8 @@ def test_a_message_without_a_record_is_reported() -> None:
 
 
 @pytest.mark.parametrize(
-    "subject", ["Merge branch 'x'", 'Revert "docs: x"', "fixup! docs: x"]
+    "subject",
+    ["Merge branch 'x'", 'Revert "docs: x"', 'Reapply "docs: x"', "fixup! docs: x"],
 )
 def test_merge_revert_and_fixup_commits_need_no_record(subject: str) -> None:
     """Commits that are merged, reverted or squashed away are not checked."""
@@ -350,3 +351,19 @@ def test_body_command_prints_nothing_when_the_body_is_current(
     # Then it prints nothing, so the workflow does not edit the pull request
     assert code == 0
     assert not capsys.readouterr().out
+
+
+@pytest.mark.slow
+def test_block_command_prints_the_paragraphs_to_paste(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A contributor from a fork gets exactly the paragraphs to add to the body."""
+    # Given a commit with a record
+    _commit(repo, _message("docs: a", RECORD))
+
+    # When the block command prints the paragraphs for the range
+    code = records.main(["block", "HEAD~1..HEAD"])
+
+    # Then it prints the record alone
+    assert code == 0
+    assert capsys.readouterr().out == f"{RECORD}\n"

@@ -1,7 +1,8 @@
 <!-- Delete every HTML comment, including this one, before you submit.
      Title: a Conventional Commit, e.g. `feat(config): read config.toml`.
      It becomes the commit on main (squash merge). Do not add Wio-* records:
-     a workflow copies them from the commits to the end of this body. -->
+     a workflow copies them from the commits to the end of this body. From a
+     fork, paste the paragraphs the Records job summary shows. -->
 
 ## Outcome
 
