@@ -197,8 +197,10 @@ and a new overarching outcome appears. wio does not care which.
 
 ### Gaps to close later
 
-- Parent constraints and criteria do not trace to the child criteria that
-  establish them (v0.2 or v0.3).
+- Parent criteria do not trace to the child criteria that establish them (v0.2
+  or v0.3). The proposal is in
+  [concepts](concepts.md#tracking-criteria-planned). Parent constraints are not
+  covered.
 - Sibling contracts are not injected into context.
 - A flat split has no channel for shared constraints.
 - A helper that lists the dependents of an id.
