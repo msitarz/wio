@@ -8,7 +8,7 @@ description = "A capability delivered directly as one coherent outcome."
 define = "define-feature"
 deliver = "typed-boundary"
 amend = "amend-contract"
-ratify = ["ratify"]
+ratify = "ratify-contract"
 
 [contract]
 roots = []

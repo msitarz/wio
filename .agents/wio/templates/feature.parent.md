@@ -8,9 +8,10 @@ description = "A capability delivered by child Works, with constraints they shar
 define = "define-feature"
 deliver = "integrate"
 amend = "amend-contract"
-ratify = ["ratify"]
+ratify = "ratify-contract"
 
 [contract]
+roots = ["@descendants"]
 depends_on = []
 -->
 

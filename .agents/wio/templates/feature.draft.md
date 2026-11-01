@@ -14,8 +14,9 @@ depends_on = []
 # <Work name>
 
 <!--
-A draft holds an intent in a few lines. Its define stage turns it into a
-feature.leaf or a feature.parent contract and switches `template`.
+A draft is working space while an intent is captured. Its define stage
+shapes the intent into a feature.leaf or a feature.parent contract and switches
+`template`; the Intent section does not carry over.
 -->
 
 ## Purpose <!-- wio: required -->
@@ -24,4 +25,5 @@ feature.leaf or a feature.parent contract and switches `template`.
 
 ## Intent
 
-<!-- What the driver asked for, in their words, and anything already known. -->
+<!-- Notes on what the driver asked for and anything already known, such as a
+     split child's seed sentence. Removed when the contract takes its shape. -->
