@@ -19,6 +19,9 @@ for single tools. The checks are defined in `prek.toml` (hooks) and
 - `make test`: the fast tests, with the coverage gate (95%).
 - `make build`: the slow packaging tests, which build the wheel and sdist and
   verify them.
+- `make slow`: every slow test, the packaging tests included. A test is slow
+  when it spawns a subprocess (git, the CLI) or builds the package. CI runs
+  this target.
 - `make secrets`: scan the full git history with gitleaks.
 - `make audit`: check the locked dependencies for known vulnerabilities (needs
   network; uv's `audit` command is experimental).
@@ -28,7 +31,7 @@ Single tools, for quick feedback:
 - `uv run pytest`: the fast tests in random order. Add `-p no:randomly` to
   debug, `-k name` to select, and `-m slow` to run the slow tests instead.
 - `uv run ruff check --fix` and `uv run ruff format`: lint and format Python.
-- `uv run pyrefly check`: strict type check of `src` and `tests`.
+- `uv run pyrefly check`: strict type check of `scripts`, `src` and `tests`.
 - `uv run complexipy src tests`: cognitive complexity.
 - `uv run jscpd src tests`: duplicate code.
 - `uv run rumdl check --fix`: lint and format Markdown.
@@ -40,6 +43,8 @@ Single tools, for quick feedback:
 - Start every Python file with `# SPDX-License-Identifier: Apache-2.0` as the
   first line (second after a shebang). Ruff enforces it (`CPY001`).
 - Annotate everything, tests included. Run `pyrefly` before declaring done.
+- Give every test `# Given`, `# When` and `# Then` comments, in that order, each
+  describing its section (see `tests/README.md`).
 - Write a Google-style docstring for every module, class and function, private
   helpers too. Ruff enforces it only for public names.
 - A `.pyi` stub carries a docstring for each item. Stubs are the architecture
@@ -55,6 +60,27 @@ Single tools, for quick feedback:
 ## Workflow
 
 - Commit messages follow Conventional Commits. The commitizen hook checks them.
+- End every commit message with a record: a paragraph of `Wio-*` trailers that
+  says which Work and stage the commit belongs to (see "Records" in
+  [docs/concepts.md](docs/concepts.md#records)). Write `Wio-Work: none` when
+  it belongs to no Work. Once `wio trailers` exists, append its output instead
+  of writing the record by hand. The commit-msg hook checks the record.
+
+  ```text
+  Wio-Work: k3m9xq
+  Wio-Action: deliver
+  Wio-Stage: architecture
+  Wio-Criteria: AC-1, AC-3
+  ```
+
+  | Trailer | Meaning |
+  | --- | --- |
+  | `Wio-Work` | The Work's id, or `none`. |
+  | `Wio-Action` | The action, such as `define` or `deliver`. |
+  | `Wio-Stage` | The stage the commit finishes. |
+  | `Wio-Criteria` | Optional: the acceptance criteria it addresses. |
+  | `Wio-Result` | Only for a review stage: `pass`, `fail` or `unknown`. |
+
 - Never skip hooks (`--no-verify`).
 - Commit when a step is done and checks pass. Keep commits small, one concern
   each.
@@ -63,6 +89,6 @@ Single tools, for quick feedback:
   branch, run `make check`, push the branch and use `gh pr create`.
 - The pull request title is a Conventional Commit. Squash merging makes it the
   commit on `main`, and CI checks it.
-- Fill in `.github/PULL_REQUEST_TEMPLATE.md`. Fill in the `ID:`, `Action:`,
-  `Stage:` and `Criteria:` lines instead of restating the contract, and delete
-  every HTML comment from the body.
+- Fill in `.github/PULL_REQUEST_TEMPLATE.md` and delete every HTML comment
+  from the body. Do not add records to the body: the Records workflow copies
+  them from the commits to its end, so they survive the squash merge.

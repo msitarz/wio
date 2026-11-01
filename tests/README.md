@@ -53,6 +53,8 @@ tests/
 │   │   └── cli.py          # subprocess; parses --json; reads exit codes
 │   └── config/ contract/ rule/ context/ trailers/ log/   # one folder per v0.1 feature
 ├── golden/                 # expected bundle bytes
+├── packaging/              # build the wheel and sdist and inspect them (slow)
+├── scripts/                # the repository's own scripts, such as records.py
 └── fixtures/               # static sample repos, example templates, rulesets
 ```
 
@@ -219,6 +221,28 @@ markers = [
 
 - Test names state the behaviour:
   `test_reviewer_only_rules_never_reach_the_author_stage`.
+- Every test has `# Given`, `# When` and `# Then` comments, in that order. Each
+  comment describes its section in the domain's terms ("When its problems are
+  computed"), not the code ("When calling `message_problems`"), so it stays
+  true when names change. Assign the result in the When section and assert on
+  it in the Then section, rather than computing inside the `assert`. A section
+  may be empty only when there is nothing to put in it, and its comment stays
+  (`# Given no setup`).
+
+  ```python
+  def test_a_message_without_a_record_is_reported() -> None:
+      # Given a commit message with prose and no record
+      message = _message("docs: x", "Body.")
+
+      # When its problems are computed
+      problems = records.message_problems(message)
+
+      # Then the only problem says how to add a record
+      assert problems == ["no Wio-* record; add one, or `Wio-Work: none`"]
+  ```
+
+- A test that spawns a subprocess (git, the CLI) or builds the package is
+  marked `slow`. `make slow` runs those tests, and CI runs that target.
 - Use `tmp_path` for every repo; never write outside it. Set `HOME` and the
   XDG data dir inside `tmp_path` so tests never touch the real
   log or config.
