@@ -12,8 +12,9 @@ Commands:
 - `check FILE`: check one commit message (the commit-msg hook).
 - `commits RANGE`: check the commits in a revision range (CI).
 - `body RANGE`: read a pull request body on standard input and print it with the
-  records of the range's commits at its end, or nothing when it already has
-  them (CI).
+  records of the range's commits at its end, after the revert lines of commits
+  that revert work outside the range, or nothing when it already has them
+  (CI).
 """
 
 import argparse
@@ -34,6 +35,7 @@ NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 RESULT = re.compile(r"^(pass|fail|unknown)$")
 KEYS = frozenset({"Wio-Work", "Wio-Action", "Wio-Stage", "Wio-Criteria", "Wio-Result"})
 SKIPPED_SUBJECTS = ("Merge ", "Revert ", "fixup! ", "squash! ", "amend! ")
+REVERT_LINE = re.compile(r"^This reverts commit [0-9a-f]{7,40}\.?$")
 REVERTS = re.compile(r"^This reverts commit (?P<sha>[0-9a-f]{7,40})\b", re.MULTILINE)
 NO_WORK = "none"
 FORMATS = (
@@ -262,20 +264,61 @@ def collect(commits: Sequence[Commit]) -> list[str]:
     ]
 
 
-def with_records(body: str, rendered: Sequence[str]) -> str:
-    """Replace the records at the end of a pull request body.
+def outside_reverts(commits: Sequence[Commit]) -> list[str]:
+    """List the revert lines of commits that revert work outside the list.
+
+    A squash merge drops the commits' messages, so these lines are copied into
+    the pull request body, where a reader still sees which earlier commit the
+    merged change reverts.
+
+    Args:
+        commits: Commits as (sha, message), oldest first.
+
+    Returns:
+        One `This reverts commit <sha>.` line per such revert, in commit order.
+    """
+    shas = [sha for sha, _ in commits]
+    return [
+        f"This reverts commit {match['sha']}."
+        for _, message in _kept(commits)
+        for match in REVERTS.finditer(message)
+        if not any(sha.startswith(match["sha"]) for sha in shas)
+    ]
+
+
+def _is_managed(block: str) -> bool:
+    """Tell whether a body paragraph is one this script writes.
+
+    Args:
+        block: One paragraph of a pull request body.
+
+    Returns:
+        True for a record and for a paragraph of revert lines.
+    """
+    lines = block.strip().split("\n")
+    is_reverts = all(REVERT_LINE.match(line) for line in lines)
+    return is_reverts or as_record(lines) is not None
+
+
+def with_records(
+    body: str, rendered: Sequence[str], reverts: Sequence[str] = ()
+) -> str:
+    """Replace the records and revert lines at the end of a pull request body.
 
     Args:
         body: The current body.
         rendered: The records to put at its end.
+        reverts: Revert lines to put before the records, as one paragraph.
 
     Returns:
-        The body without its trailing record paragraphs, followed by `rendered`.
+        The body without its trailing managed paragraphs, followed by the
+        revert lines and `rendered`.
     """
     blocks = body.replace("\r\n", "\n").strip().split("\n\n")
-    while blocks and as_record(blocks[-1].strip().split("\n")) is not None:
+    while blocks and _is_managed(blocks[-1]):
         blocks.pop()
-    return "\n\n".join([*blocks, *rendered]).strip() + "\n"
+    extra = ["\n".join(reverts)] if reverts else []
+    return "\n\n".join([*blocks, *extra, *rendered]).strip() + "\n"
 
 
 def commits_in(revision_range: str) -> list[Commit]:
@@ -372,7 +415,8 @@ def _body(revision_range: str) -> int:
         The exit code, always 0.
     """
     body = sys.stdin.read()
-    updated = with_records(body, collect(commits_in(revision_range)))
+    commits = commits_in(revision_range)
+    updated = with_records(body, collect(commits), outside_reverts(commits))
     if updated.strip() != body.replace("\r\n", "\n").strip():
         sys.stdout.write(updated)
     return 0

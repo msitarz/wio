@@ -183,6 +183,37 @@ def test_collect_restores_a_commit_whose_revert_is_reverted() -> None:
     assert collected == [RECORD]
 
 
+def test_outside_reverts_keeps_only_reverts_of_earlier_work() -> None:
+    """A revert of a commit outside the range keeps its revert line."""
+    # Given a revert of a commit from an earlier pull request, and a commit
+    # reverted inside the range
+    commits = [
+        ("c0ffee1234", _message("docs: a", RECORD)),
+        ("deadbeef56", _message('Revert "docs: a"', "This reverts commit c0ffee1234.")),
+        ("f00dcafe78", _message('Revert "#28"', "This reverts commit 8a8ee78abc.")),
+    ]
+
+    # When the revert lines to copy are listed
+    lines = records.outside_reverts(commits)
+
+    # Then only the revert of the earlier work is kept
+    assert lines == ["This reverts commit 8a8ee78abc."]
+
+
+def test_with_records_keeps_revert_lines_once() -> None:
+    """Revert lines go before the records and are not added twice."""
+    # Given a body and a revert line to copy
+    revert = "This reverts commit 8a8ee78abc."
+
+    # When the records and revert lines are put at its end, once and again
+    updated = records.with_records("## Outcome\n\nText.", [RECORD], [revert])
+    again = records.with_records(updated, [RECORD], [revert])
+
+    # Then the revert line comes once, before the record
+    assert updated == f"## Outcome\n\nText.\n\n{revert}\n\n{RECORD}\n"
+    assert again == updated
+
+
 def test_with_records_replaces_the_records_at_the_end_of_a_body() -> None:
     """The body keeps its prose and gets exactly the given records."""
     # Given a pull request body with Windows line ends and an outdated record

@@ -83,8 +83,8 @@ Wio-Criteria: AC-1, AC-2, AC-3
    Defining could hold back on dependencies while independent children are
    defined in parallel.
 3. The parent's Constraints are written before the children exist. A leaf that
-   finds one wrong sends the work back to the parent's define action, where it
-   is amended. Which siblings to redo is the driver's call.
+   finds one wrong asks for the parent to be amended, through the parent's
+   amend action. Which siblings to redo is the driver's call.
 4. Nothing links a parent's criterion to the child criteria that establish it.
 
 ### Architecture comes from a designated leaf
@@ -223,7 +223,7 @@ leaf, so the outcome becomes a parent with two leaves.
 | 3 | Define L1; the stage sets `roots = ["api"]` | `contract` | writing contracts |
 | 4 | Deliver L1's `architecture` | the Work's roots: `api` | Python and FastAPI |
 | 5 | Deliver P's `integration` | the Work's roots: the union of `api` and `web` | both, grouped by root |
-| 6 | Amend L1 with its define action | `contract` | writing contracts |
+| 6 | Amend L1 with its amend action | `contract` | writing contracts |
 | 7 | Deliver a leaf that was never defined | the Work's roots, which are empty | none: a loud error |
 
 ### What exercise 4 showed
