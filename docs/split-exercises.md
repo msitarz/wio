@@ -19,13 +19,14 @@ metadata.
 - Defining runs top-down. Delivering runs bottom-up, in batches that can run in
   parallel.
 - The project declares the actions `define` and `deliver`. A contract inherits
-  its template's actions, and its own `[actions]` replace them in full.
+  its template's actions, and each action its own `[actions]` names replaces
+  the template's.
 - A new Work starts from its type's entry template. Define stages select the
   `contract` root, so they get the rules for writing contracts.
 - A leaf names its roots. A parent without declared roots uses the union of its
   leaves' roots.
 - Parents pass their Glossary and Constraints to their children.
-- A finished stage leaves a record of `Wio-*` trailers in its commit.
+- Every commit of a stage carries a record of `Wio-*` trailers.
 
 ## Exercise 1: a nested split
 

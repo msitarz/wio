@@ -33,7 +33,7 @@ concepts:
 In one sentence: wio runs **actions** on an **outcome**. An action is a
 **preset**, an ordered list of stages, some of them gates. A **template** gives
 a contract its shape and its default actions, rules are selected for every
-stage, and every finished stage leaves a **record** in the git history.
+stage, and every commit of a stage carries a **record** in the git history.
 Everything else (skills, presets, rulesets, the event log) plugs into these.
 
 The engine prepares and describes the work; it does not move it forward. That is
@@ -103,8 +103,8 @@ deliver = ["implementation"]
   empty, for example while a Work is still being defined.
 - `depends_on`: an optional array of Work ids that must be delivered first (see
   section 4).
-- `[actions]`: optional. When present it replaces, in full, the actions the
-  template defines (see section 5).
+- `[actions]`: optional. Each action it names replaces that action of the
+  template, and the others are inherited (see section 5).
 
 Contract metadata carries no comments. Explanations belong to the template.
 
@@ -148,6 +148,10 @@ writer (using a safe load) and change the templates.
   configurable. Humans navigate by slug and scripts key on the id.
 - Anything else in a Work's directory (notes, diagrams, stage artifacts) is
   ignored. Only a subdirectory that is itself a Work makes a child.
+- `wio contract new` creates a Work in the Works directory, or inside a parent
+  given by id with `--parent`. Its directory is named by `--slug`, or by a slug
+  derived from `--title`, and an existing directory of that name is an error,
+  so a Work is never overwritten.
 
 ### Changing a contract
 
@@ -317,11 +321,13 @@ A **root** is a set of directories bound to one toolchain and its rulesets
 config gives them.
 
 - A leaf's roots are the ones it declares.
-- A parent's roots are the ones it declares, if any. Otherwise they are the
-  union of the roots of its descendant leaves, computed. Declared roots replace
-  the union, as a contract's `[actions]` replace the template's, so a parent can
-  name a root that none of its children touch, for example one for end-to-end
-  tests.
+- A parent's roots are the ones it declares, if its `roots` list is not empty.
+  Otherwise they are the union of the roots of its descendant leaves, computed.
+  Declared roots replace the union, so a parent can name a root that none of
+  its children touch, for example one for end-to-end tests.
+- An empty `roots` list and a missing one mean the same: nothing is declared.
+  Templates can therefore keep `roots = []` as a placeholder, and a draft that
+  becomes a parent needs no change to get the union.
 - `roots` may be empty. That is not an error in `wio contract check`. It fails
   only when a stage selects rules by the Work's roots (section 6), and then
   loudly.
@@ -433,17 +439,20 @@ preset id) or a list of **stage names**. In both, some stages may be gates.
 ### Where the pipeline comes from
 
 A contract follows a template, and the template's `[actions]` give the default
-pipeline of each action. A contract may carry its own `[actions]`, and then it
-**replaces all of the template's actions**, not only the ones it names:
+pipeline of each action. A contract may carry its own `[actions]`, and **each
+action it names replaces that action of the template**. The actions it does not
+name are inherited:
 
 ```toml
 [actions]
 deliver = ["implementation"]
 ```
 
-This is how a small leaf skips the stages a large parent needs. Because the
-block replaces everything, an action that is left out does not apply to the
-Work. A contract's `[actions]` customizes its pipelines and has no other
+This is how a small leaf skips the stages a large parent needs: its delivery is
+shorter, and its `define` action, used to amend it, is still the template's. An
+empty list removes an action from the Work, such as `define = []`, and a
+contract can add an action the template does not have, as long as the config
+declares it. A contract's `[actions]` customizes its pipelines and has no other
 meaning.
 
 A string value is a preset id and an array is a list of stage names, so a
@@ -452,8 +461,10 @@ ids must exist in the config. A contract that names stages is free to skip any
 of them, including gates. Hygiene is the project's business, and guidance and
 presets can encourage good practice.
 
-wio does not update a contract that has its own `[actions]` when the template or
-the config changes. `wio contract check` reports names that no longer exist.
+Inherited actions follow the template when it changes. The actions a contract
+overrides stay as the contract states them, and wio does not update them when
+the template or the config changes. `wio contract check` reports names that no
+longer exist.
 
 ### Procedures belong to stages
 
@@ -481,6 +492,24 @@ else. Every proposal says so in one fixed line.
   than the latest record of every earlier stage in the same pipeline. When an
   earlier stage is done again after a back-edge, the stages after it stop being
   current, and `wio next` proposes them again.
+- A record says that a commit is work on a stage, not that the stage is
+  finished (section 11). So after the first commit of a stage, `wio next`
+  proposes the stage after it. Whether the work is really done is the driver's
+  call, and the next gate's result is the only judgement the history holds.
+- An action can declare that it comes **after** others:
+
+  ```toml
+  [actions.deliver]
+  after = ["define"]
+  ```
+
+  A stage of such an action is current only if its latest record is also newer
+  than the latest record of every action in `after`. An amendment through
+  `define` therefore makes every `deliver` stage stale, and `wio next` proposes
+  delivery again from its first stage. This is coarse: it cannot tell which
+  stages an amendment really affects, and the driver can skip ahead. Tracking
+  criteria could make it finer later. Without `after`, actions do not affect
+  each other.
 - Only stages in the Work's current pipeline count. Records of a stage that the
   pipeline no longer contains are ignored, for example after a leaf is promoted
   to a parent with a different pipeline.
@@ -508,8 +537,9 @@ on, and they do not judge how a workflow is built:
 - No two contracts share an id, and every directory between the Works directory
   and a Work is itself a Work.
 - The actions a contract resolves to are not empty, and each pipeline has at
-  least one stage. An outcome with nothing to deliver belongs in the ticketing
-  system, not in the repository.
+  least one stage. An empty list in a contract's `[actions]` removes that
+  action; it is not an empty pipeline. An outcome with nothing to deliver
+  belongs in the ticketing system, not in the repository.
 - Every action name, preset id and stage name in a template or a contract
   exists.
 - Every root a contract or a stage names is a root in the config.
@@ -699,9 +729,13 @@ Rules are selected by the root the stage edits:
 - A stage with `roots` uses exactly those. The entry `@work` stands for the
   Work's roots, so a contract review that checks criteria against real modules
   can use `roots = ["contract", "@work"]`. Root names cannot contain `@`.
-- If the stage selects the Work's roots and the Work has none, `wio context`
-  fails loudly. A Work that skipped its definition fails the moment it is
-  delivered, and a Work being defined never reaches this case.
+- If the stage selects the Work's roots, without `roots` or through `@work`,
+  and the Work has none, `wio context` fails loudly, whatever other roots the
+  list names. A Work that skipped its definition fails the moment it is
+  delivered, and a Work being defined never reaches this case. An empty `@work`
+  that adds nothing would hide exactly that mistake behind the other roots'
+  rules. A form for "the Work's roots, if any" can come later if a stage needs
+  one.
 
 ### Paths
 
@@ -997,8 +1031,8 @@ and the event log, which is personal.
 
 ### Records
 
-A **record** says that a stage of a Work was done. It is a paragraph of git
-trailers in a commit message:
+A **record** says that a commit is work on a stage of a Work. It is a paragraph
+of git trailers in the commit's message:
 
 ```text
 Wio-Work: k3m9xq
@@ -1012,15 +1046,18 @@ Wio-Result: pass
 | --- | --- |
 | `Wio-Work` | The Work's id, or `none` for a commit that belongs to no Work. Required. |
 | `Wio-Action` | The action the stage belongs to. Required unless the Work is `none`. |
-| `Wio-Stage` | The stage that was done. Required unless the Work is `none`. |
+| `Wio-Stage` | The stage the commit works on. Required unless the Work is `none`. |
 | `Wio-Criteria` | The acceptance criteria the stage addresses, separated by commas. Optional. |
 | `Wio-Result` | The gate's result, one of the `results` in the config. Only for stages that judge an artifact. |
 
 - **One record is one paragraph.** A commit message can hold several records,
   each in its own paragraph. Repeating keys inside one paragraph would lose
   which criteria belong to which stage, so a record never does.
-- **Every finished stage leaves a record.** A stage that changes no files, such
-  as a review, records itself in an empty commit.
+- **Every commit of a stage carries the stage's record.** A stage that takes
+  four commits has four records, and only the latest counts. No record says
+  that a stage is finished: that is a judgement, and the next gate's result
+  records it. A stage that changes no files, such as a review, records itself
+  in an empty commit.
 - **wio reads every record reachable from `HEAD`.** It does not assume a
   workflow: a squash-merged `main`, the commits of the current branch, and a
   repository without branches are read the same way. A branch that was
@@ -1033,13 +1070,25 @@ Wio-Result: pass
 - **Unknown ids are ignored.** A record of a Work that was deleted refers to
   nothing and does no harm.
 
-`wio trailers <work> <action> <stage> [--criteria ...] [--result ...]` prints a
-checked record: the Work exists, the criteria exist in its contract, the result
-is in the vocabulary, and the stage is in the Work's actions (a warning, as in
-`wio context`). `wio trailers check` reads a commit message or a pull request
-body and checks every record in it. A project can call it from a commit-msg
-hook and from CI. Writing and checking records is part of v0.1. Reading them
-from the history comes with `wio next` in v0.2.
+`wio trailers <work> <action> <stage> [--criteria ...] [--result ...]
+[--cite ...]` prints a checked record: the Work exists, the criteria exist in
+its contract, the result is in the vocabulary, and the stage is in the Work's
+actions (a warning, as in `wio context`). With `--result` it also writes the
+`review` event to the event log, with the items `--cite` names (such as
+`--cite ARC001=fail --cite AC-2=pass`) and `HEAD` as the reviewed commit,
+because the review's own commit does not exist yet. A reviewer records
+everything with one command.
+
+`wio trailers check` reads a commit message or a pull request body and checks
+every record in it. A message without a record passes, because that is often
+right: a pull request whose commits all belong to no Work has none in its body.
+`wio trailers check --require` also fails a message without a record, except a
+message whose subject starts with `Merge `, `fixup! `, `squash!` or `amend! `,
+git's own forms for commits that are merged or squashed away. A project calls
+`--require` from a commit-msg hook and the plain check from CI.
+
+Writing and checking records is part of v0.1. Reading them from the history
+comes with `wio next` in v0.2.
 
 ### Reading records
 
@@ -1088,6 +1137,8 @@ records two events:
 - `review`: a gate finished, with the Work, action, stage, the reviewed commit,
   the overall result, and a result for each cited item, a rule code or a
   criterion id (`ARC001=fail`, `AC-2=pass`). What is not cited was not judged.
+  `wio trailers --result` writes it, and `wio log review`, with the same
+  arguments, writes it for workflows that do not use records.
 
 Results come from a vocabulary that the config declares, as tags do, so a
 misspelled result is an error:
