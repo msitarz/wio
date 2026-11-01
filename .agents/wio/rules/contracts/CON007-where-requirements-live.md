@@ -1,5 +1,5 @@
 <!-- wio
-code = "CON008"
+code = "CON007"
 name = "where-requirements-live"
 tags = ["contract"]
 -->

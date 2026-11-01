@@ -1,5 +1,5 @@
 <!-- wio
-code = "CON009"
+code = "CON008"
 name = "link-instead-of-copying"
 tags = ["contract"]
 -->
