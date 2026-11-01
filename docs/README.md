@@ -6,7 +6,7 @@
   trailers wio reads and writes.
 - [Scope of v0.1](v0.1-scope.md): the components of the first release, and what
   each is for, delivers and how it is used.
-- [Split exercises](split-exercises.md): three paper exercises that split an
+- [Split exercises](split-exercises.md): four paper exercises that split an
   outcome into Works, and what they showed about the v0.1 design.
 - [Glossary](../GLOSSARY.md): the terms used across the project.
 - [Test strategy](../tests/README.md): test layers, the acceptance-test DSL and

@@ -2,8 +2,8 @@
 
 These exercises split an outcome into Works on paper. They test whether the
 pieces planned for v0.1 (the Work tree, `depends_on`, inherited sections,
-actions and rules) fit real workflows, and they collect what they showed. The
-Works, ids and paths are invented for illustration. Terms are in the
+actions, roots and rules) fit real workflows, and they collect what they showed.
+The Works, ids and paths are invented for illustration. Terms are in the
 [glossary](../GLOSSARY.md) and the model is in [concepts](concepts.md).
 
 The split procedure itself is a skill, a candidate for a later version, and not
@@ -13,14 +13,19 @@ metadata.
 ## The model the exercises use
 
 - A Work is a directory with a contract. The tree is the hierarchy, and a Work
-  with child directories is a parent.
+  with child Works is a parent.
 - `depends_on` is an array of Work ids. Together with an implicit edge from each
   child to its parent, it forms a graph for delivery.
 - Defining runs top-down. Delivering runs bottom-up, in batches that can run in
   parallel.
-- A contract inherits its template's actions, and its own `[actions]` replace
-  them in full.
+- The project declares the actions `define` and `deliver`. A contract inherits
+  its template's actions, and its own `[actions]` replace them in full.
+- A new Work starts from its type's entry template. Define stages select the
+  `contract` root, so they get the rules for writing contracts.
+- A leaf names its roots. A parent without declared roots uses the union of its
+  leaves' roots.
 - Parents pass their Glossary and Constraints to their children.
+- A finished stage leaves a record of `Wio-*` trailers in its commit.
 
 ## Exercise 1: a nested split
 
@@ -31,14 +36,16 @@ has five child Works:
 .agents/wio/works/context/                (parent, id c4n7xt)
   bundle-model/      id b2m5qa   types only: the bundle's sections and header
   rule-files/        id r7f3kd   read and validate rule files
-  rule-selection/    id s9t2wy   select by root, type, stage tags  depends_on r7f3kd
-  bundle-render/     id d4r8hz   deterministic text output         depends_on b2m5qa
-  context-command/   id x6c1ne   wires inputs to a printed bundle  depends_on s9t2wy, d4r8hz
+  rule-selection/    id s9t2wy   select by roots, type, stage tags  depends_on r7f3kd
+  bundle-render/     id d4r8hz   deterministic text output          depends_on b2m5qa
+  context-command/   id x6c1ne   wires inputs to a printed bundle   depends_on s9t2wy, d4r8hz
 ```
 
-After the parent is defined and split, each child starts as a stub: an id, a
-template, a title, a seed sentence and an `[actions]` block with only `define`.
-The parent has no root, and the leaves have one.
+After the parent is defined and split, each child is created from the entry
+template: an id, a template, a title and a seed sentence, and the roots when the
+split already knows them. The entry template requires little, so the children
+pass `wio contract check` before they are defined. The parent declares no
+roots, so its roots are the union of its leaves' roots.
 
 **Inherited by every leaf:** the parent's Constraints (the same inputs give
 identical bytes; an unknown Work or stage fails loudly and never yields an empty
@@ -49,25 +56,31 @@ bundle) and its Glossary (bundle, stage, rule code).
 - The parent's criteria are system-level: the command prints the right bundle
   for a Work and stage on real files; two runs give identical bytes; an unknown
   Work or stage exits non-zero with no bundle.
-- The leaves' criteria are local: `rule-selection` filters by root, by type and
+- The leaves' criteria are local: `rule-selection` filters by roots, by type and
   by all-of tags; `bundle-render` fixes the order of sections and builds the
   bundle id from the text; `context-command` wires the pieces and exits non-zero
   for unknown input.
 - Determinism is established by two leaves and verified only at the parent.
 
-**Order.** Define: the parent, then its five stubs. Deliver, as batches:
+**Order.** Define: the parent, then its five children. Deliver, as batches:
 `(bundle-model, rule-files)`, `(rule-selection, bundle-render)`,
 `(context-command)`, and then the parent, whose pipeline is integration and a
-system-level review. Its pull request reads `ID: c4n7xt`, `Action: deliver`,
-`Stage: integration`, `Criteria: AC-1, AC-2, AC-3`.
+system-level review. Its integration commit carries the record:
+
+```text
+Wio-Work: c4n7xt
+Wio-Action: deliver
+Wio-Stage: integration
+Wio-Criteria: AC-1, AC-2, AC-3
+```
 
 ### What exercise 1 showed
 
 1. A boundary shared by several leaves needs an owner. Making it a leaf of its
    own (`bundle-model`), delivered first, keeps ordering at the level of Works.
 2. A dependent's definition wants the dependency's contract as context.
-   Defining could hold back on dependencies while independent stubs are defined
-   in parallel.
+   Defining could hold back on dependencies while independent children are
+   defined in parallel.
 3. The parent's Constraints are written before the children exist. A leaf that
    finds one wrong sends the work back to the parent's define action, where it
    is amended. Which siblings to redo is the driver's call.
@@ -82,8 +95,8 @@ whole outcome, and the other leaves depend on it. In the example that is
 - Its contract states **invariants, not signatures**: every public boundary is
   typed, dependencies point inward. The artifact is the stubs (`.pyi` or the
   equivalent in another language), in the proper directories.
-- Later leaves change those files in their own pull requests, so they never
-  amend the first leaf's contract. The architecture evolves with each leaf.
+- Later leaves change those files in their own commits, so they never amend the
+  first leaf's contract. The architecture evolves with each leaf.
 - The procedure can limit itself to constraints and boundaries and leave each
   leaf to architect its own part.
 - It fits the overrides: the boundary leaf can use
@@ -92,7 +105,7 @@ whole outcome, and the other leaves depend on it. In the example that is
 - The driver's preferences become written constraints. If a leaf finds one
   unworkable (say asyncio does not suit the outcome), that is a signal to the
   driver that the choice was wrong, and the answer ranges from an amendment to
-  resetting everything to stubs.
+  resetting everything to fresh Works.
 - A review rule can ask that a change to boundary files owned by another Work be
   justified against the parent's constraints.
 - The boundary leaf should see its siblings' contracts. For now the stage goal
@@ -112,7 +125,7 @@ no parent:
   rule-families/       id f3a9kx   a ruleset declares families and prefixes
   rule-codes/          id c8d2mq   rule files carry code and name, validated     depends_on f3a9kx
   rule-new/            id n5w7ze   assigns the next free code in a family         depends_on c8d2mq
-  code-in-bundle/      id g2h6vb   bundles and verdicts show code and name        depends_on c8d2mq
+  code-in-bundle/      id g2h6vb   bundles and reviews show code and name         depends_on c8d2mq
   stable-rule-codes/   id s1x4pr   the original outcome, kept as the last Work     depends_on n5w7ze, g2h6vb
 ```
 
@@ -123,8 +136,8 @@ needed.
 ### What exercise 2 showed
 
 - The original Work can become the last one, carrying the end-to-end criteria
-  with `deliver = ["integration", "system-review"]`, or it can be abandoned.
-  Nothing in wio requires either.
+  with `deliver = ["integration", "system-review"]`, or it can be abandoned by
+  deleting it, after its dependents are updated. Nothing in wio requires either.
 - Inheritance is lost. The slices are not under the original, so its
   Constraints and Glossary do not reach them. They would be copied into each
   slice, where they drift, or linked by hand.
@@ -134,54 +147,86 @@ needed.
 
 ## Exercise 3: a split found during delivery
 
-`rule-selection` (id `s9t2wy`) is a leaf whose `architecture` pull request is
-merged and whose review is under way. The agent finds two independent pieces:
-filtering by root and type, and matching tags. `context-command` depends on it.
+`rule-selection` (id `s9t2wy`) is a leaf whose `architecture` stage has a
+record and whose review is under way. The agent finds two independent pieces:
+filtering by roots and type, and matching tags. `context-command` depends on it.
 
 **Procedure A, promote in place.** The Work keeps its id and becomes a parent:
 
 ```text
 before:  context/rule-selection/                  (leaf s9t2wy)
 after:   context/rule-selection/                  (parent, still s9t2wy)
-           scope-filtering/   id v6k2jd           (stub)
-           tag-matching/      id m3p8cu           (stub)
+           scope-filtering/   id v6k2jd           (new, from the entry template)
+           tag-matching/      id m3p8cu           (new, from the entry template)
 ```
 
 - The leaf's criteria were already the outcome, so they become the parent's
-  system-level criteria. The skill adds Constraints and Visuals, removes `root`
-  and switches `template` to the parent template. Each child starts as a stub.
+  system-level criteria. The skill adds Constraints and Visuals, removes the
+  leaf's `roots` so the parent uses its children's union, and switches
+  `template` to the parent template. Each child starts from the entry template.
 - Dependents need no change: `context-command` depends on `s9t2wy`, which still
   means the whole outcome.
-- The merged `architecture` lines for `s9t2wy` stay in the history. The
-  parent's pipeline is `["integration", "system-review"]`, which does not
-  contain `architecture`, so `wio next` ignores them.
+- The `architecture` record for `s9t2wy` stays in the history. The parent's
+  pipeline is `["integration", "system-review"]`, which does not contain
+  `architecture`, so `wio next` ignores it.
 - The parent now waits for its children. A child whose artifact already exists
   can override its pipeline to skip `architecture`.
 
 **Procedure B, wrap.** A new parent goes above, the old leaf is narrowed to one
-piece, and the other piece becomes a stub. The dependents have to be re-pointed,
-because the old id now means something narrower, and the new parent's contract
-is written from scratch.
+piece, and the other piece becomes a new Work. The dependents have to be
+re-pointed, because the old id now means something narrower, and the new
+parent's contract is written from scratch.
 
 Use A when one outcome turns out to be several. Use B when the scope grew upward
 and a new overarching outcome appears. wio does not care which.
 
 ### What exercise 3 showed
 
-1. Define and deliver are enough. The restructuring pull request is
-   `Action: define`, with the split stage.
+1. Define and deliver are enough. The restructuring commit records
+   `Wio-Action: define` with `Wio-Stage: split`.
 2. Invariants do the work afterwards: the new template's sections are present,
    dependency ids exist, and there are no cycles. A child that depends on its
    own parent is a cycle, because the parent waits for its children.
-3. A merged stage counts only if it belongs to the Work's current pipeline for
+3. A record counts only if its stage belongs to the Work's current pipeline for
    that action. That is enough when the parent's and the leaf's pipelines use
    different stage names, so `integration` for parents and `implementation` for
-   leaves is a convention worth following. The reset needed otherwise belongs to
-   the custom actions that come after v0.1.
-4. A way to list the dependents of an id would help any restructuring. It can
-   be computed from the existing metadata.
+   leaves is a convention worth following. When the names coincide, the old
+   records count, and the driver decides whether to redo the stages. Because
+   the latest record wins, redoing an earlier stage makes the later ones stop
+   being current.
+4. Restructuring needs the dependents of an id. `wio contract show` lists them,
+   computed from the metadata.
 5. A review session in progress is recorded in the local event log, which is
    personal and not authoritative.
+
+## Exercise 4: rules across a Work's life
+
+The outcome: users can log in. It touches a FastAPI backend and a Next.js
+frontend. The config has three roots, `api`, `web` and `contract`, and every
+define stage has `roots = ["contract"]`. The workflow asks for one root per
+leaf, so the outcome becomes a parent with two leaves.
+
+| # | Session | Roots the stage selects | Rules |
+| --- | --- | --- | --- |
+| 1 | Define the new Work, which has no roots yet | `contract` | writing contracts |
+| 2 | Split it into parent P with leaves L1 and L2 | `contract` | writing contracts |
+| 3 | Define L1; the stage sets `roots = ["api"]` | `contract` | writing contracts |
+| 4 | Deliver L1's `architecture` | the Work's roots: `api` | Python and FastAPI |
+| 5 | Deliver P's `integration` | the Work's roots: the union of `api` and `web` | both, grouped by root |
+| 6 | Amend L1 with its define action | `contract` | writing contracts |
+| 7 | Deliver a leaf that was never defined | the Work's roots, which are empty | none: a loud error |
+
+### What exercise 4 showed
+
+- The root a stage edits decides its rules, not the Work alone. Storing
+  `roots = ["contract"]` on the contract while it is defined would give session
+  6 the code rules, and session 7 the contract rules without an error.
+- A Work's `roots` stays pure intent: where its code lives. It can be empty
+  until definition decides it, and no check fails until a stage needs it.
+- A parent's bundle mixes toolchains. Grouping the rules under a line that names
+  each root and its paths tells the agent which files each rule is for.
+- One root per leaf is the workflow's choice. A parent that declares
+  `roots = ["api", "web", "e2e"]` for its integration stage is equally valid.
 
 ## Summary
 
@@ -194,6 +239,8 @@ and a new overarching outcome appears. wio does not care which.
 - Define and deliver cover splitting and restructuring.
 - Promote in place when one outcome turns out to be several.
 - Use different stage names for parent and leaf pipelines.
+- Define stages select the `contract` root. Other stages select the Work's
+  roots.
 
 ### Gaps to close later
 
@@ -203,5 +250,5 @@ and a new overarching outcome appears. wio does not care which.
   covered.
 - Sibling contracts are not injected into context.
 - A flat split has no channel for shared constraints.
-- A helper that lists the dependents of an id.
-- Leaves in a batch can touch the same files.
+- Leaves in a batch can touch the same files. The scope check planned for v0.2
+  shows when a leaf touches files outside its roots.
