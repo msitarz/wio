@@ -8,6 +8,8 @@
 # its tags is among the stage's tags.
 tags = [
     "contract",        # writing and reviewing Work contracts
+    "amend",           # amending a defined contract
+    "ratify",          # ratifying a contract to what was built
     "delivery",        # every stage of the deliver action
     "review",          # judging another stage's artifact
     "architecture",    # typed boundaries and test stubs
@@ -31,26 +33,35 @@ reader = "scan"
 feature = "feature.draft"
 
 # `wio next` proposes actions in the order that `after` gives, ties by name, and
-# never proposes an action marked `on_demand`.
+# never proposes an action marked `on_demand`. `invalidated_by` says which
+# newer records make an action's stages stale; it implies no order.
 [actions.define]
 description = """\
 Turn an intent into a Work contract: interview the driver, write the contract \
-from a template, review it, and split it into child Works when it holds \
-several outcomes. Also used to amend a contract that later work showed to be \
-wrong."""
+in the leaf or parent template, split it into child Works when it holds \
+several outcomes, and review it."""
 
 [actions.deliver]
-# Amending a contract through `define` makes every deliver stage stale, and
-# `deliver` is proposed after `define`.
+# Proposed once the Work is defined. Redefining or amending it, or delivering
+# one of its children again, makes its delivery stale.
 after = ["define"]
+invalidated_by = ["define", "amend", "@children:deliver"]
 description = """\
 Build what a Work contract says, one stage at a time, with a review after each \
 stage. A leaf goes from typed boundaries through wiring to implementation; a \
 parent integrates its delivered children."""
 
+[actions.amend]
+# Only when the driver asks for it. `deliver` lists it in `invalidated_by`.
+on_demand = true
+description = """\
+Change a defined contract's criteria, assumptions or constraints as the driver \
+decided, keeping its template, and review the change. The delivered stages \
+become stale and are redone."""
+
 [actions.ratify]
 # Only when the driver asks for it. A ratify needs no rework, so `deliver` does
-# not list it in `after`.
+# not list it in `invalidated_by`.
 on_demand = true
 description = """\
 Update a contract to match what was built, without reworking anything, such as \
@@ -82,31 +93,30 @@ rulesets = ["contract-upkeep"]
 # contract true.
 
 [stages.define]
-goal = """\
-Interview the driver about the intent, and capture it in the draft's Purpose \
-and Intent."""
+# The wio-define skill: interview the driver, capture the intent in the draft,
+# choose leaf or parent, rewrite the contract in that template with
+# `wio contract template <name> --work <id>`, create a parent's children, check.
+skill = "wio-define"
 tags = ["contract"]
 roots = ["contract"]
 
 [stages.review-contract]
 gate = true
 goal = """\
-Judge the contract, in its final shape after the split, against the driver's \
+Judge the contract, in its final template, against the driver's \
 intent and the rules: is the outcome clear, are the assumptions stated, can \
 every criterion be assessed? Record the result with `wio trailers --result`."""
 tags = ["contract", "review"]
 roots = ["contract"]
 session = "fresh"
 
-[stages.split]
+[stages.amend]
 goal = """\
-Decide whether the Work is one outcome or several. Print that template with \
-`wio contract template feature.leaf` or `feature.parent`, rewrite the contract \
-in its shape from the captured intent, and ask the driver for anything still \
-missing. For a parent, create its child Works with \
-`wio contract new feature --parent <id> --title <title>`. Check the result \
-with `wio contract check`."""
-tags = ["contract"]
+Change the contract's criteria, assumptions or constraints as the driver \
+decided, keep its template, and name the changed ids in the commit message. \
+For a parent, list the children the change affects. Check the result with \
+`wio contract check`."""
+tags = ["contract", "amend"]
 roots = ["contract"]
 
 [stages.architecture]
@@ -163,11 +173,12 @@ session = "fresh"
 goal = """\
 Update the contract to match what was built, without changing its intent, and \
 check it with `wio contract check`."""
-tags = ["contract"]
+tags = ["contract", "ratify"]
 roots = ["contract"]
 
 [presets]
-define-feature = ["define", "split", "review-contract"]
+define-feature = ["define", "review-contract"]
+amend-contract = ["amend", "review-contract"]
 typed-boundary = [
     "architecture",
     "architecture-review",

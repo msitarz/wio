@@ -7,6 +7,7 @@ description = "A capability delivered by child Works, with constraints they shar
 [actions]
 define = "define-feature"
 deliver = "integrate"
+amend = "amend-contract"
 ratify = ["ratify"]
 
 [contract]
