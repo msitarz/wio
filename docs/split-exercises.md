@@ -179,6 +179,11 @@ after:   context/rule-selection/                  (parent, still s9t2wy)
   the draft has no place for them.
 - Dependents need no change: `context-command` depends on `s9t2wy`, which still
   means the whole outcome.
+- The leaf's own dependencies need a change. `s9t2wy` depended on `r7f3kd`
+  (`rule-files`), and a parent's dependency holds back only its integration. The
+  children that take over the work also take over the dependency they need:
+  `scope-filtering` and `tag-matching` list `r7f3kd`, or they would be delivered
+  next to `rule-files` instead of after it.
 - The `architecture` record for `s9t2wy` stays in the history. The parent's
   pipeline is `["integration", "system-review"]`, which does not contain
   `architecture`, so `wio next` ignores it.
