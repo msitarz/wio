@@ -3,171 +3,75 @@ name = "feature.leaf"
 type = "feature"
 description = "A capability delivered directly as one coherent outcome."
 
+[actions]
+define = "define-feature"
+deliver = "typed-boundary"
+
 [contract]
-# wio sets id and template itself.
-# A Work without children has exactly one root, e.g. root = "src".
-root = ""
+roots = []
 depends_on = []
 -->
 
 # <Work name>
 
 <!--
-- Replace the heading with the Work name.
-- Remove these instruction comments and the `wio:` directives before publishing. Keep the `wio` metadata block at the top.
-- Keep only the relevant headings unless the heading has a `wio: required` directive.
-- Use relative Markdown links.
+Write each section for the rules this stage's bundle lists.
+Delete a section that has nothing to say, unless it is required.
 -->
 
 ## Purpose <!-- wio: required -->
 
-<!-- Write one sentence stating **why** this change is needed. -->
+<!-- Why this change is needed. -->
 
 ## Goals <!-- wio: required, items>=1 -->
 
-<!--
-This section is meant to summarize intended capabilities.
-
-- List goals of this Work contract, each in one sentence.
--->
+<!-- The capabilities this Work makes possible. -->
 
 ## Glossary
 
-<!--
-- Define terms whose meaning could be ambiguous in this Work.
-- Reuse established repository meanings.
-- Link to shared definitions where useful.
-- Omit this section when unnecessary.
-
-Example:
-- Model: a data structure whose constructor establishes its field and cross-field invariants.
--->
+<!-- Terms whose meaning in this Work could be read more than one way. -->
 
 ## Non-Goals
 
-<!-- List non-goals of this Work contract, each in one sentence. -->
+<!-- What this Work deliberately does not do. -->
 
 ## Assumptions <!-- wio: required -->
 
-<!-- Write "None." when there are none.
-
-- List what this Work takes as true without having confirmed it, each in one sentence.
-- Give each an id (A-1, A-2, ...) so a later amendment can refer to it.
-- An assumption is not a requirement: when one proves false, amend the contract instead of working around it in the code.
-
-Example:
-
-- **A-1** The existing `Portfolio` model is immutable.
--->
+<!-- What this Work takes as true without having confirmed it, with ids
+     (A-1, A-2, ...), or "None." -->
 
 ## Mechanisms
 
-<!--
-- Use an unordered list with one sentence per mechanism, naming the tool, package, module, or data structure central to the solution and explaining its role.
-- Be specific—for example, `codex sandbox` rather than `codex`.
-- Put acceptance requirements in the relevant AC.
-- Keep necessary shared contracts in clearly named subsections, using single-sentence bullets for parallel rules.
-
-Example:
-
-- `codex sandbox`: runs child commands with restricted filesystem access.
-- `git worktree`: provide separate checkout directory to prevent concurrent edits issues.
--->
+<!-- The tools, packages, modules or data structures central to the
+     solution, and their roles. -->
 
 ## Constraints
 
-<!-- Optional.
-
-- State the constraints this Work adds beyond those it inherits.
-
-Inherit parent constraints without restating or weakening them.
-
-For every non-functional requirement:
-- State whether the local Work, an architectural integration, or the full system verifies it.
-- Name the responsible verifier.
-- For a quantitative requirement, specify its threshold and the workload and measurement conditions needed to interpret it.
-- For a qualitative constraint, name an appropriate verification method and scope; do not require a numeric target.
-
-A child can verify its local portion and complete its own outcome while the parent's system-level guarantee remains unverified. The parent verifies that guarantee across the integrated result.
-
-Example: A parent requires p95 response time below 200 ms for a named request mix, concurrency, and deployment class. A child links to that constraint and verifies its route locally. The parent verifies the integrated service under the stated workload; the child's local completion does not claim system-level proof.
--->
+<!-- The constraints this Work adds to the ones it inherits. -->
 
 ## Visuals
 
-<!--
-- For meaningful architecture, module relationships, interactions, or lifecycle changes, show proportionate before/after visuals using a suitable GitHub-supported Mermaid type.
-- Tiny changes may use clear before/after prose.
-- Inspect current source or contracts.
-- Identify the verified before revision.
-- Distinguish proposed additions, changes, and removals.
-- Label historical or illustrative designs.
-- Correct the proposal when verified implementation differs.
-- Show only affected context.
-- Check diagram accuracy against source and contracts.
-
-Passing rendering does not establish acceptance or GitHub/browser parity.
--->
+<!-- Before and after diagrams of what the Work changes. -->
 
 ## Acceptance criteria <!-- wio: required, items>=1, pattern=AC-\d+ -->
 
-<!-- List of acceptance criteria.
+<!-- The independently assessable conditions that establish the outcome. -->
 
-A Work owns one coherent outcome. Acceptance criteria state independently assessable conditions or behaviors that establish it; together, they fulfill the Work’s purpose and goals without a target number of criteria.
-
-- Name each guarantee in the heading.
-- Start its criterion with a short sentence stating what becomes possible or changes when it is delivered.
-- Include preconditions, expected results, relevant success, failure, refusal, preservation, and compatibility boundaries, and affected interfaces with useful signatures and types needed to determine completion.
-- Keep multiple scenarios that establish the same guarantee together.
-- Use separate criteria for guarantees that can be assessed independently.
-- A condition need not describe runtime behavior when the outcome is guidance, an Investigation, or an Evaluation.
-- Given/When/Then is optional.
-- Use Given/When/Then when it makes a condition easier to assess.
-- State measurement thresholds and the workload and measurement conditions needed to interpret them when they define success.
-- Put constraints this Work adds in the optional [Constraints](#constraints) section, separately from local acceptance criteria.
-- A child may add constraints but cannot weaken a parent's shared guarantees.
-- Describe the delivered result rather than listing implementation tasks or instructions to the executor.
-- Keep each requirement at one owner.
-- Link to each requirement elsewhere.
-- Leave implementation details owned by child Works in those contracts.
-- Omit empty criterion subheadings.
--->
-
-<!-- AC code outcome example:
+<!-- Example:
 
 ### **AC-1** Executed purchases update cash and positions correctly
 
-Applying a valid purchase fill produces a successor portfolio reflecting the purchased quantity, execution price, and fees.
-
-#### Purchase without fees
-
-- **Given** a portfolio with USD 1,000 cash and no positions.
-- **When** a fill purchases two shares of XYZ at USD 100 each, with no fees.
-- **Then** the successor portfolio contains USD 800 cash and two shares of XYZ.
+Applying a valid purchase fill produces a successor portfolio reflecting the
+purchased quantity, execution price, and fees.
 
 #### Purchase with fees
 
 - **Given** a portfolio with USD 1,000 cash and no positions.
-- **When** a fill purchases two shares of XYZ at USD 100 each, with a total fee of USD 5.
+- **When** a fill purchases two shares of XYZ at USD 100 each, with a total fee
+  of USD 5.
 - **Then** the successor portfolio contains USD 795 cash and two shares of XYZ.
--->
-
-<!-- AC guidance outcome example:
-
-### **AC-2** Complete record validation
-
-Engineering guidance requires constructors to validate every consumed field and cross-field invariant before returning a domain value. Rejection may stop at the first error; successful construction guarantees all invariants hold. A compact example shows valid construction and rejection of an invalid field combination. If a child implements a particular constructor, it links to this shared invariant and states its own observable acceptance conditions separately.
-
-For constraint inheritance and system-level verification examples, see [Constraints](#constraints).
 -->
 
 ## Additional context
 
-<!--
-- Include useful context not covered above, including assumptions and open risks that affect the Work.
-- Distinguish required contracts from provisional design.
-- Keep shared context in the parent.
-- Keep local detail in the affected leaf.
-- Link instead of copying diagrams or API descriptions.
-- Link to outside or earlier material the Work needs, with one sentence on why it matters.
--->
+<!-- Context, risks and links the Work needs that fit nowhere above. -->
