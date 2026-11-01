@@ -52,6 +52,7 @@ major_version_zero = true
 
 [tool.pyrefly]
 project_includes = [
+  "scripts",
   "src",
   "tests",
 ]

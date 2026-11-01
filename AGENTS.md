@@ -55,6 +55,27 @@ Single tools, for quick feedback:
 ## Workflow
 
 - Commit messages follow Conventional Commits. The commitizen hook checks them.
+- End every commit message with a record: a paragraph of `Wio-*` trailers that
+  says which Work and stage the commit belongs to (see "Records" in
+  [docs/concepts.md](docs/concepts.md#records)). Write `Wio-Work: none` when
+  it belongs to no Work. Once `wio trailers` exists, append its output instead
+  of writing the record by hand. The commit-msg hook checks the record.
+
+  ```text
+  Wio-Work: k3m9xq
+  Wio-Action: deliver
+  Wio-Stage: architecture
+  Wio-Criteria: AC-1, AC-3
+  ```
+
+  | Trailer | Meaning |
+  | --- | --- |
+  | `Wio-Work` | The Work's id, or `none`. |
+  | `Wio-Action` | The action, such as `define` or `deliver`. |
+  | `Wio-Stage` | The stage the commit finishes. |
+  | `Wio-Criteria` | Optional: the acceptance criteria it addresses. |
+  | `Wio-Result` | Only for a review stage: `pass`, `fail` or `unknown`. |
+
 - Never skip hooks (`--no-verify`).
 - Commit when a step is done and checks pass. Keep commits small, one concern
   each.
@@ -63,6 +84,6 @@ Single tools, for quick feedback:
   branch, run `make check`, push the branch and use `gh pr create`.
 - The pull request title is a Conventional Commit. Squash merging makes it the
   commit on `main`, and CI checks it.
-- Fill in `.github/PULL_REQUEST_TEMPLATE.md`. Fill in the `ID:`, `Action:`,
-  `Stage:` and `Criteria:` lines instead of restating the contract, and delete
-  every HTML comment from the body.
+- Fill in `.github/PULL_REQUEST_TEMPLATE.md` and delete every HTML comment
+  from the body. Do not add records to the body: the Records workflow copies
+  them from the commits to its end, so they survive the squash merge.
