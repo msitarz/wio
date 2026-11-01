@@ -651,7 +651,7 @@ single-language repo the code is one root. In a monorepo with a backend, a
 frontend and Terraform, there are three roots with three different toolchains
 and three different sets of guidance.
 
-A **ruleset** is a reusable bundle of rule files, for example "python" or
+A **ruleset** is a reusable collection of rule files, for example "python" or
 "fastapi". The repo's config **binds** rulesets to roots:
 
 ```toml
@@ -744,11 +744,25 @@ types = ["feature"]            # optional
 Adapters return typed results, not raw dicts.
 
 Why: a dict hides the contract from the type checker, so drift appears at runtime.
+
+Example: `fetch_user(id) -> User | NotFound`, not `fetch_user(id) -> dict`.
 ```
 
-The first paragraph of the body is the rule's summary, and the rest is its
-reason. A paragraph rather than a line, so Markdown formatters can wrap a long
-summary.
+Everything after the metadata block is the rule's **body**, and the bundle
+shows it exactly as written (section 10). wio does not parse it, so the author
+controls its formatting. A convention keeps rules alike:
+
+- The first paragraph is the instruction. `wio rule list` shows it as the
+  rule's summary.
+- A paragraph that starts with `Why:` gives the reason. An agent that knows why
+  a rule exists applies it sensibly at its edges instead of literally.
+- An optional paragraph that starts with `Example:`, which may be followed by a
+  short code block, shows the rule applied. An example that needs steps or
+  several files is a sign that the guidance is a skill.
+- The body has no Markdown headings, because they would break the structure of
+  the bundle it is injected into.
+
+`wio rule check` checks the metadata, not the body.
 
 Rules are atomic so they can be combined freely. A long guidance document cannot
 be filtered, but forty small rules can be filtered down to the seven that matter
@@ -768,8 +782,8 @@ sessions for its roots, not everyone who opens the repository with an agent.
 ### Codes and families
 
 Rules are identified the way linter rules are. A rule has a **code**, such as
-`ARC001`, a **name**, such as `adapters-return-typed-results`, and a one-line
-summary (the first paragraph of its body). The letters of the code are its
+`ARC001`, a **name**, such as `adapters-return-typed-results`, and a summary
+(the first paragraph of its body). The letters of the code are its
 **family**, which groups rules by topic.
 
 - A ruleset declares its families and owns their prefixes. `wio rule new`
@@ -785,12 +799,67 @@ summary (the first paragraph of its body). The letters of the code are its
 Family and tags are independent: a family groups rules by topic, and tags select
 rules for a stage.
 
+### Rulesets on disk
+
+A ruleset is a directory of rule files with a `ruleset.toml` manifest, which
+names the ruleset and declares its families. The rulesets of a repository live
+in `.agents/wio/rules/`, one directory each:
+
+```text
+.agents/wio/rules/
+  contracts/
+    ruleset.toml
+    CON001-purpose-says-why.md
+    ACC004-state-the-boundaries.md
+```
+
+```toml
+name = "contracts"
+description = "How to write and review Work contracts."
+
+[families]
+CON = "Contract sections"
+ACC = "Acceptance criteria"
+```
+
+A ruleset is data: it can be copied from another repository, and copied again
+when it is updated. So nothing that a repository decides about a ruleset lives
+in the ruleset's own files.
+
+### Choosing rules from a ruleset
+
+A repository rarely wants all of a ruleset written by someone else, and that
+ruleset's tags rarely match the repository's vocabulary. The config chooses
+the rules and maps their tags, in a table per ruleset:
+
+```toml
+[rulesets.mattpocock]
+include = ["TSX", "ERR003", "ERR007"]   # families or codes; omitted = everything
+exclude = ["TSX012"]                    # taken out of an included family
+
+[rulesets.mattpocock.tags]              # override the ruleset author's tags
+TSX = ["implementation"]                # for a whole family
+ERR003 = ["implementation", "review"]   # for one rule; wins over its family
+```
+
+- A ruleset without a table is used whole, with the tags its rules declare.
+- A rule's **effective tags** are its code's override if there is one, else its
+  family's, else the tags in its own file. Everything that matches tags works
+  on the effective tags: selection for a stage, the vocabulary check, the note
+  about always-on rules and the warning about rules that reach no stage.
+- A selected rule whose effective tags are not all in the vocabulary is an
+  error that names the rule, so a copied rule never goes missing silently. It
+  is mapped or excluded.
+- Including a family includes the rules added to it later, when the ruleset is
+  copied again. Rules included by code stay as they are. Codes are stable, so
+  the lists survive renames.
+
 ### Tags
 
 Tags connect rules to stages. A tag is a label from a vocabulary declared in the
-config, similar to the categories in a linter (style, complexity, security). The
-vocabulary is declared so a misspelled tag is an error, not a rule that silently
-never loads.
+config (a rule's tags here are its effective tags, see above), similar to the
+categories in a linter (style, complexity, security). The vocabulary is declared
+so a misspelled tag is an error, not a rule that silently never loads.
 
 A stage lists tags, and a rule lists tags. In v0.1 the matching rule is
 **all-of**: a rule applies to a stage only when **every** tag of the rule is
@@ -857,9 +926,11 @@ Output, printed to the session:
    ancestors.
 4. The selected rules. They are grouped by the set of roots they apply to, each
    group under one line that names the roots and their paths, such as
-   `Rules for root api (services/api):`, and then by tag, in a stable order.
-   Each rule is shown with its code and name. A ruleset bound to two roots of
-   the Work gives each rule once, in the group for both roots.
+   `Rules for root api (services/api):`, and then by the set of their tags, in
+   a stable order. Each rule is a line with its code and name, followed by its
+   body exactly as written, and rules are separated by two newlines, or by the
+   separator the config sets. A ruleset bound to two roots of the Work gives
+   each rule once, in the group for both roots.
 5. One fixed closing line: if the session's context was compacted, run the
    command from the header again.
 
@@ -1100,9 +1171,12 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - The config schema: the exact field names for stage session policy, and the
   names of the config tables (`[types]`, `[actions]`, `[stages]`, `[presets]`,
   `[trailers]`).
-- Where a ruleset declares its families and prefixes, and whether rule files
-  accept `+++` front matter as well. The rule example above uses the
-  `<!-- wio -->` block, as contracts do.
+- Whether rule files accept `+++` front matter as well. The rule example above
+  uses the `<!-- wio -->` block, as contracts do.
+- Mapping tag names when a ruleset's vocabulary is close to the repository's,
+  such as `style = "implementation"`. Family overrides cover most cases.
+- Two rulesets that claim the same family prefix cannot both be bound. Renaming
+  a prefix when binding could solve it later.
 - Stage-level ordering across the tree. A parent is delivered after its
   children, and a shared boundary is a leaf of its own, so interleaved stages
   are not needed. Records and the log key on the Work, the action and the
