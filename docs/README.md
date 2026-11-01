@@ -15,5 +15,5 @@
   actions, stages and presets wio's own development uses.
 - [Work templates](../.agents/wio/templates): the draft, leaf and parent
   templates used to write Work contracts.
-- [Contracts ruleset](../.agents/wio/rulesets/contracts): the rules for writing
+- [Contracts ruleset](../.agents/wio/rules/contracts): the rules for writing
   and reviewing Work contracts.
