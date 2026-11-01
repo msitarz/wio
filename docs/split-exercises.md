@@ -168,9 +168,12 @@ after:   context/rule-selection/                  (parent, still s9t2wy)
   `scope-filtering`, matching to `tag-matching`. A parent states only
   system-level guarantees (rule ACC006), so the parent gets new criteria for
   what only the joined result establishes, such as "a stage gets exactly the
-  rules that pass both filters". The skill adds Constraints and Visuals, sets
-  the parent's roots to `["@descendants"]` in place of the leaf's own, and
-  switches `template` to the parent template. Each child that takes over
+  rules that pass both filters". The skill prints the parent template with
+  `wio contract template feature.parent --work s9t2wy`, without `--keep`, so
+  the parent gets the template's roots, `["@descendants"]`, and its pipelines
+  instead of the leaf's, and wio lists the leaf's roots and overrides it did not
+  carry. It adds Constraints and Visuals and rewrites the contract in that
+  shape. Each child that takes over
   criteria is created from the leaf template
   (`wio contract new feature --template feature.leaf --parent s9t2wy`), because
   the draft has no place for them.

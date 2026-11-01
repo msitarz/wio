@@ -240,10 +240,16 @@ skill can name a template and show it to the agent without knowing which file
 holds it. That skeleton carries no `id`: pasted as it is, it fails
 `wio contract check`, and the output is the same on every run. With
 `--work <id>`, it is the skeleton for that existing Work: `template` is the
-requested template, and the Work's own metadata (its `id`, `roots`,
-`depends_on` and the actions it overrides) is carried over, with the new
-template's defaults for any other key. A define stage that moves a Work to
-another template uses `--work`, so the Work keeps its id and its records.
+requested template, and the Work's `id` and `depends_on` are carried over,
+because they are its identity and its ordering in any template. Everything else
+comes from the new template's defaults. `--keep <key>`, which can be repeated,
+carries more on request: `--keep roots` and `--keep actions` keep the Work's
+roots and its action overrides. wio knows no procedure for moving between
+templates, so it never decides what else to keep: the skill that knows its
+templates does. On standard error, wio lists the Work's metadata the skeleton
+does not carry, so nothing is dropped silently; standard output stays the
+skeleton. A define stage that moves a Work to another template uses `--work`,
+so the Work keeps its id and its records.
 
 ### Types and entry templates
 
@@ -426,9 +432,14 @@ depends_on = ["a7b2c4", "k3m9xq"]
   updates its dependents in the same change: drop the edge when the work is
   done, or rethink the dependent when it was abandoned. `wio contract show`
   lists the dependents of a Work, and the error names them.
-- A dependency means the other Work must be delivered first. Whether it also
-  holds back the dependent's definition, and whether a parent's dependencies
-  also apply to its descendants, are open points.
+- A dependency means the other Work must be delivered first. It applies to the
+  Work that lists it and to no other: a parent's dependency holds back only that
+  parent, and a child that needs the same Work lists it itself. So the graph is
+  exactly the listed edges plus each parent's implicit dependency on its
+  children, and that is the graph the cycle check walks. A sibling may build on
+  one child of a parent while the parent's integration waits for the sibling.
+  Whether a dependency also holds back the dependent's definition is an open
+  point.
 
 ### Tracking criteria (planned)
 
@@ -632,7 +643,8 @@ on, and they do not judge how a workflow is built:
   `invalidated_by` are declared actions with a known prefix, and every stage's
   skill can be found.
 - Every root a contract or a stage names is a root in the config.
-- Every `depends_on` id exists, and there are no cycles.
+- Every `depends_on` id exists, and there are no cycles in the graph of listed
+  dependencies plus each parent's implicit dependency on its children.
 - No stage appears twice in one pipeline. Records key on the Work, the action
   and the stage, so two positions of one stage could not be told apart.
 - Required sections are present, as the template's directives say. A `##`
@@ -932,7 +944,10 @@ controls its formatting. A convention keeps rules alike:
 - The body has no Markdown headings, because they would break the structure of
   the bundle it is injected into.
 
-`wio rule check` checks the metadata, not the body.
+`wio rule check` checks the metadata, not the body, with one exception: a
+Markdown heading in a body is a warning, because it is the one convention
+whose violation breaks something other than the rule, the structure of the
+bundle it is injected into. The rule is still selected and injected as written.
 
 Rules are atomic so they can be combined freely. A long guidance document cannot
 be filtered, but forty small rules can be filtered down to the seven that matter
@@ -1199,7 +1214,7 @@ Wio-Result: pass
 | `Wio-Work` | The Work's id, or `none` for a commit that belongs to no Work. Required. |
 | `Wio-Action` | The action the stage belongs to. Required unless the Work is `none`. |
 | `Wio-Stage` | The stage the commit works on. Required unless the Work is `none`. |
-| `Wio-Criteria` | The acceptance criteria the stage addresses, separated by commas. Optional. |
+| `Wio-Criteria` | The acceptance criteria this commit addresses, separated by commas. Optional. |
 | `Wio-Result` | The gate's result, one of the `results` in the config. Only for stages that judge an artifact. |
 
 - **One record is one paragraph.** A commit message can hold several records,
@@ -1216,9 +1231,15 @@ Wio-Result: pass
   abandoned is not reachable and does not count. Uncommitted work leaves no
   record. Records are a signal, not proof: a criterion addressed at the
   architecture stage is specified, not satisfied.
-- **The latest record of a stage counts.** Order is the order of the history,
-  and within one commit the order of the paragraphs (see `wio next` in section
-  5).
+- **The latest record of a stage counts** for whether the stage is current.
+  Order is the order of the history, and within one commit the order of the
+  paragraphs (see `wio next` in section 5).
+- **A stage's criteria are the union of its current run.** Each record names
+  the criteria its own commit addresses, so an agent writes only what it knows.
+  The criteria a stage addressed are the union over its records that are newer
+  than the latest record of every earlier stage in its pipeline, the same window
+  that decides currency. When an earlier stage is redone, the run starts over,
+  and so do its criteria. A record without `Wio-Criteria` adds none.
 - **Unknown ids are ignored.** A record of a Work that was deleted refers to
   nothing and does no harm.
 - **A revert takes its commit's records back.** `git revert` writes
@@ -1433,8 +1454,6 @@ goal or skill. How well it produces it comes from the rules its tags select.
   children, and a shared boundary is a leaf of its own, so interleaved stages
   are not needed. Records and the log key on the Work, the action and the
   stage, so they can be added later.
-- Whether a parent's `depends_on` also applies to its descendants. The current
-  lean is no.
 - Whether defining a Work holds back on its dependencies, so the dependent's
   contract can cite the dependency's contract, while independent Works are
   defined in parallel. The first split exercise leans towards yes.

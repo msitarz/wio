@@ -98,9 +98,9 @@ rulesets = ["contract-upkeep"]
 goal = """\
 Interview the driver until the intent is clear, using the draft's Purpose and \
 Intent as working space. Decide whether the Work is a leaf or a parent, print \
-that template with `wio contract template <name> --work <id>`, and rewrite the \
-contract in its shape, setting its roots for that shape; the Intent section \
-does not carry over. Ask the driver for anything still missing. For a parent, \
+that template with `wio contract template <name> --work <id>` (without \
+`--keep`, so the new template's roots and actions apply), and rewrite the \
+contract in its shape; the Intent section does not carry over. Ask the driver for anything still missing. For a parent, \
 create its children with `wio contract new feature --parent <id> --title \
 <title>`. Check the result with `wio contract check`."""
 tags = ["contract"]
