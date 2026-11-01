@@ -86,12 +86,15 @@ scenario changes only the parts it tests.
 
 ```python
 def test_reviewer_only_rules_never_reach_the_author_stage(wio):
+    # Given an authoring stage and a rule tagged for review only
     wio.config(stages=[stage("architecture", tags=["architecture", "testing"])])
     wio.rule("ARC001", tags=["architecture", "review"])
     wio.work("feature", id="k3m9xq")
 
+    # When the context for the authoring stage is compiled
     bundle = wio.context(work_id="k3m9xq", action="deliver", stage="architecture")
 
+    # Then the review rule is not in it
     assert "ARC001" not in bundle
 ```
 
@@ -157,17 +160,22 @@ annotation-based channel selector:
 ```python
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_check_fails_on_unknown_tag(wio):
+    # Given a rule whose tag is not in the vocabulary
     wio.config(tags=["architecture"])
     wio.rule("ARC001", tags=["nonexistent"])
 
+    # When the rules are checked
     result = wio.rule_check()
 
+    # Then the check fails and names the tag
     assert not result.ok
     assert "nonexistent" in result.errors[0]
 ```
 
 `conftest.py` parametrizes `channel` from the marker and falls back to a
-`channel` fixture that returns `IN_PROCESS`. Run the shared scenarios against
+`channel` fixture that returns `IN_PROCESS`. It marks the `CLI` case `slow`,
+because it spawns the real command, so `make test` runs the in-process case and
+`make slow` the CLI case of the same scenario. Run the shared scenarios against
 both channels only where the CLI wiring matters. Future channels (MCP, a skill's
 command sequence) are new drivers; scenarios do not change.
 
@@ -175,7 +183,13 @@ command sequence) are new drivers; scenarios do not change.
 def pytest_generate_tests(metafunc):
     marker = metafunc.definition.get_closest_marker("channels")
     if marker:
-        metafunc.parametrize("channel", marker.args, ids=[c.value for c in marker.args])
+        params = [
+            pytest.param(
+                c, id=c.value, marks=[pytest.mark.slow] if c is Channel.CLI else []
+            )
+            for c in marker.args
+        ]
+        metafunc.parametrize("channel", params)
 
 
 @pytest.fixture
@@ -206,16 +220,16 @@ pytest-bdd, their fixtures are not visible when tests are generated.
 [tool.pytest]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = ["--import-mode=importlib"]
+addopts = ["--import-mode=importlib", "-m", "not slow"]
 markers = [
     "channels(*channels): run once per listed Channel",
-    "slow: spawns the real CLI",
+    "slow: spawns a real subprocess (git, the CLI) or builds the package",
 ]
 ```
 
 `pythonpath = ["."]` allows `from tests.acceptance.dsl.wio import Wio` without
-`__init__.py` files everywhere. Run `uv run pytest` for the fast set,
-`uv run pytest -m "not slow"` if CLI runs become slow.
+`__init__.py` files everywhere. `addopts` deselects the slow tests, so
+`uv run pytest` runs the fast set and `uv run pytest -m slow` the slow one.
 
 ## 8. Conventions
 

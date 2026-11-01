@@ -160,10 +160,14 @@ after:   context/rule-selection/                  (parent, still s9t2wy)
            tag-matching/      id m3p8cu           (new, from the entry template)
 ```
 
-- The leaf's criteria were already the outcome, so they become the parent's
-  system-level criteria. The skill adds Constraints and Visuals, removes the
-  leaf's `roots` so the parent uses its children's union, and switches
-  `template` to the parent template. Each child starts from the entry template.
+- The leaf's criteria move to the children that can establish them: filtering
+  to `scope-filtering`, matching to `tag-matching`. A parent states only
+  system-level guarantees (rule ACC006), so the parent gets new criteria for
+  what only the joined result establishes, such as "a stage gets exactly the
+  rules that pass both filters". The skill adds Constraints and Visuals, removes
+  the leaf's `roots` so the parent uses its children's union, and switches
+  `template` to the parent template. Each child starts from the entry template,
+  with the criteria it took over.
 - Dependents need no change: `context-command` depends on `s9t2wy`, which still
   means the whole outcome.
 - The `architecture` record for `s9t2wy` stays in the history. The parent's
