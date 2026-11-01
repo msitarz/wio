@@ -75,4 +75,4 @@ jobs:
           enable-cache: true
           prune-cache: true
       - run: uv sync --locked
-      - run: make build
+      - run: make slow

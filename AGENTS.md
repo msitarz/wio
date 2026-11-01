@@ -19,6 +19,9 @@ for single tools. The checks are defined in `prek.toml` (hooks) and
 - `make test`: the fast tests, with the coverage gate (95%).
 - `make build`: the slow packaging tests, which build the wheel and sdist and
   verify them.
+- `make slow`: every slow test, the packaging tests included. A test is slow
+  when it spawns a subprocess (git, the CLI) or builds the package. CI runs
+  this target.
 - `make secrets`: scan the full git history with gitleaks.
 - `make audit`: check the locked dependencies for known vulnerabilities (needs
   network; uv's `audit` command is experimental).
@@ -28,7 +31,7 @@ Single tools, for quick feedback:
 - `uv run pytest`: the fast tests in random order. Add `-p no:randomly` to
   debug, `-k name` to select, and `-m slow` to run the slow tests instead.
 - `uv run ruff check --fix` and `uv run ruff format`: lint and format Python.
-- `uv run pyrefly check`: strict type check of `src` and `tests`.
+- `uv run pyrefly check`: strict type check of `scripts`, `src` and `tests`.
 - `uv run complexipy src tests`: cognitive complexity.
 - `uv run jscpd src tests`: duplicate code.
 - `uv run rumdl check --fix`: lint and format Markdown.
@@ -40,6 +43,8 @@ Single tools, for quick feedback:
 - Start every Python file with `# SPDX-License-Identifier: Apache-2.0` as the
   first line (second after a shebang). Ruff enforces it (`CPY001`).
 - Annotate everything, tests included. Run `pyrefly` before declaring done.
+- Give every test `# Given`, `# When` and `# Then` comments, in that order, each
+  describing its section (see `tests/README.md`).
 - Write a Google-style docstring for every module, class and function, private
   helpers too. Ruff enforces it only for public names.
 - A `.pyi` stub carries a docstring for each item. Stubs are the architecture

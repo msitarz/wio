@@ -2,7 +2,7 @@
 # pyproject.toml (tool settings), so local runs and CI use the same commands.
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint test check build audit secrets clean
+.PHONY: help install lint test check build slow audit secrets clean
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*## "} /^[a-z-]+:.*## / {printf "  %-8s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -25,6 +25,9 @@ check: lint test ## Run lint and tests
 
 build: ## Build the package and verify the artifacts
 	uv run pytest -m slow tests/packaging
+
+slow: ## Run every slow test: subprocesses and packaging
+	uv run pytest -m slow
 
 audit: ## Check the locked dependencies for known vulnerabilities
 	uv audit --locked --preview-features audit-command

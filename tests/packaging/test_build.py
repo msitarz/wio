@@ -62,42 +62,88 @@ def sdist_names(dist_dir: Path) -> list[str]:
 
 
 def test_wheel_contains_only_the_package(wheel_names: list[str]) -> None:
+    # Given the files of the built wheel
+
+    # When the files outside the package and its metadata are listed
     unexpected = [
         name
         for name in wheel_names
         if not (name.startswith("wio/") or DIST_INFO.match(name))
     ]
+
+    # Then there are none
     assert unexpected == []
 
 
 def test_wheel_ships_the_typing_marker(wheel_names: list[str]) -> None:
+    # Given the files of the built wheel
+
+    # When nothing more is done
+
+    # Then the package's typing marker is among them
     assert "wio/py.typed" in wheel_names
 
 
 def test_sdist_ships_the_typing_marker(sdist_names: list[str]) -> None:
+    # Given the files of the built sdist
+
+    # When nothing more is done
+
+    # Then the package's typing marker is among them
     assert "src/wio/py.typed" in sdist_names
 
 
 def test_wheel_has_no_editor_or_cache_files(wheel_names: list[str]) -> None:
-    assert [name for name in wheel_names if JUNK.search(name)] == []
+    # Given the files of the built wheel
+
+    # When the editor and cache files among them are listed
+    junk = [name for name in wheel_names if JUNK.search(name)]
+
+    # Then there are none
+    assert junk == []
 
 
 def test_sdist_has_no_editor_or_cache_files(sdist_names: list[str]) -> None:
-    assert [name for name in sdist_names if JUNK.search(name)] == []
+    # Given the files of the built sdist
+
+    # When the editor and cache files among them are listed
+    junk = [name for name in sdist_names if JUNK.search(name)]
+
+    # Then there are none
+    assert junk == []
 
 
 def test_sdist_does_not_ship_the_tests(sdist_names: list[str]) -> None:
-    assert [name for name in sdist_names if name.startswith("tests/")] == []
+    # Given the files of the built sdist
+
+    # When the test files among them are listed
+    tests = [name for name in sdist_names if name.startswith("tests/")]
+
+    # Then there are none
+    assert tests == []
 
 
 def test_wheel_ships_the_license(wheel_names: list[str]) -> None:
-    assert any(name.endswith(".dist-info/licenses/LICENSE") for name in wheel_names)
+    # Given the files of the built wheel
+
+    # When the license file is looked for in its metadata
+    has_license = any(
+        name.endswith(".dist-info/licenses/LICENSE") for name in wheel_names
+    )
+
+    # Then it is there
+    assert has_license
 
 
 def test_wheel_metadata_declares_license_and_typing(wheel_path: Path) -> None:
+    # Given the built wheel
+
+    # When its METADATA file is read
     with zipfile.ZipFile(wheel_path) as wheel:
         name = next(n for n in wheel.namelist() if n.endswith(".dist-info/METADATA"))
         metadata = wheel.read(name).decode()
+
+    # Then it declares the license and the typing classifier
     assert "License-Expression: Apache-2.0" in metadata
     assert "Classifier: Typing :: Typed" in metadata
 
@@ -105,6 +151,9 @@ def test_wheel_metadata_declares_license_and_typing(wheel_path: Path) -> None:
 def test_wheel_imports_from_a_clean_environment(
     wheel_path: Path, tmp_path: Path
 ) -> None:
+    # Given the built wheel and an empty directory outside the repository
+
+    # When the package is imported in an isolated environment with only the wheel
     result = subprocess.run(
         [
             _uv(),
@@ -123,4 +172,6 @@ def test_wheel_imports_from_a_clean_environment(
         capture_output=True,
         text=True,
     )
+
+    # Then it is imported from the installed wheel, not from the source tree
     assert "site-packages" in result.stdout
