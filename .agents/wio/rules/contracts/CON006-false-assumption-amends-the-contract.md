@@ -1,7 +1,7 @@
 <!-- wio
 code = "CON006"
 name = "false-assumption-amends-the-contract"
-tags = ["contract"]
+tags = ["delivery"]
 -->
 
 When an assumption proves false, amend the contract instead of working around it
