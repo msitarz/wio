@@ -45,7 +45,7 @@ several outcomes, and review it."""
 # Proposed once the Work is defined. Redefining or amending it, or delivering
 # one of its children again, makes its delivery stale.
 after = ["define"]
-invalidated_by = ["define", "amend", "@children:deliver"]
+invalidated_by = ["define", "amend", "@descendants:deliver"]
 description = """\
 Build what a Work contract says, one stage at a time, with a review after each \
 stage. A leaf goes from typed boundaries through wiring to implementation; a \
@@ -96,21 +96,24 @@ rulesets = ["contract-upkeep"]
 # The wio-define skill takes over this goal once it exists; until then the goal
 # carries its steps, so this config passes its own check.
 goal = """\
-Interview the driver and capture the intent in the draft's Purpose and Intent. \
-Decide whether the Work is a leaf or a parent, print that template with \
-`wio contract template <name> --work <id>`, rewrite the contract in its shape, \
-and ask the driver for anything still missing. For a parent, create its \
-children with `wio contract new feature --parent <id> --title <title>`. Check \
-the result with `wio contract check`."""
+Interview the driver until the intent is clear, using the draft's Purpose and \
+Intent as working space. Decide whether the Work is a leaf or a parent, print \
+that template with `wio contract template <name> --work <id>`, and rewrite the \
+contract in its shape, setting its roots for that shape; the Intent section \
+does not carry over. Ask the driver for anything still missing. For a parent, \
+create its children with `wio contract new feature --parent <id> --title \
+<title>`. Check the result with `wio contract check`."""
 tags = ["contract"]
 roots = ["contract"]
 
 [stages.review-contract]
 gate = true
 goal = """\
-Judge the contract, in its final template, against the driver's \
-intent and the rules: is the outcome clear, are the assumptions stated, can \
-every criterion be assessed? Record the result with `wio trailers --result`."""
+Judge the contract, in its final template, by the rules: is the outcome clear, \
+are guesses listed as assumptions, can every criterion fail, is every goal \
+covered? Then ask the driver to confirm that the contract states what they \
+meant. Record the result with `wio trailers --result`, and `pass` only once \
+the driver has confirmed."""
 tags = ["contract", "review"]
 roots = ["contract"]
 session = "fresh"
@@ -174,6 +177,17 @@ result with `wio trailers --result`."""
 tags = ["integration", "testing", "review"]
 session = "fresh"
 
+[stages.review-amendment]
+gate = true
+goal = """\
+Judge the amendment: did it change only what the driver decided, with the \
+changed ids named, and does the contract still hold together? Ask the driver \
+to confirm the amended parts state what they meant. Record the result with \
+`wio trailers --result`, and `pass` only once the driver has confirmed."""
+tags = ["contract", "amend", "review"]
+roots = ["contract"]
+session = "fresh"
+
 [stages.ratify]
 goal = """\
 Update the contract to match what was built, without changing its intent, and \
@@ -181,9 +195,21 @@ check it with `wio contract check`."""
 tags = ["contract", "ratify"]
 roots = ["contract"]
 
+[stages.review-ratify]
+gate = true
+goal = """\
+Judge the ratify: did it only bring wording, diagrams and links in line with \
+what was built, and does every criterion still guarantee what it did? If a \
+guarantee changed, the result is `fail`, and the change belongs in an \
+amendment. Record the result with `wio trailers --result`."""
+tags = ["contract", "ratify", "review"]
+roots = ["contract"]
+session = "fresh"
+
 [presets]
 define-feature = ["define", "review-contract"]
-amend-contract = ["amend", "review-contract"]
+amend-contract = ["amend", "review-amendment"]
+ratify-contract = ["ratify", "review-ratify"]
 typed-boundary = [
     "architecture",
     "architecture-review",
