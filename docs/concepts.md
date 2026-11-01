@@ -919,8 +919,11 @@ files.
 Output, printed to the session:
 
 1. A header: the Work, the action, the stage, the session advice, the number of
-   rules, the size of the bundle in bytes and lines, a short bundle id (a hash
-   of the text), and the exact command that produced the bundle.
+   rules, the size of the bundle in bytes and lines, a short bundle id, and the
+   exact command that produced the bundle. The bundle id is a hash of the parts
+   below the header (the goal, the resolved contract and the rules), so it does
+   not depend on the header that contains it, on how wio was invoked or on
+   `--output`.
 2. The stage's goal, or the name of its skill.
 3. The resolved contract: the Work plus inheritable sections from its
    ancestors.
@@ -957,9 +960,11 @@ Properties that matter:
   config turns an oversized bundle into a warning, and `--output <path>` writes
   the bundle to a file that the agent reads with its file tools.
 - **Once per session, and again when needed**: the bundle is injected at session
-  start. If the contract is amended afterwards, or the harness compacts the
-  context, the session runs the command again and gets the same bundle id. Hooks
-  that do this automatically are harness integration, not part of the engine.
+  start. If the harness compacts the context, the session runs the command
+  again and gets the same bundle id. If the contract is amended afterwards, the
+  session runs it again too, and gets a new bundle id, because the context
+  changed. Hooks that do this automatically are harness integration, not part of
+  the engine.
 
 ## 11. Intent in the repo, progress in the history
 
@@ -1039,11 +1044,12 @@ from the history comes with `wio next` in v0.2.
 ### Reading records
 
 How a workflow moves commit messages around decides where records end up. A
-squash merge on GitHub, for example, replaces the branch's commit messages
-with the pull request's body, and when the branch's commits have co-authors it
-appends a separate `Co-authored-by` paragraph after it. Git itself only parses
-the last paragraph of a message as trailers, so records in the body are no
-longer trailers to git.
+squash merge on GitHub, for example, with the repository's default squash
+message set to "pull request title and description", replaces the branch's
+commit messages with the pull request's body, and when the branch's commits have
+co-authors it appends a separate `Co-authored-by` paragraph after it. Git itself
+only parses the last paragraph of a message as trailers, so records in the body
+are no longer trailers to git.
 
 The reader is therefore a setting:
 
@@ -1076,8 +1082,9 @@ records two events:
 
 - `context`: a session started a stage, with the Work, action, stage, bundle
   id, size, rule codes, the harness and the session id. A second event with the
-  same session and bundle id is the bundle being injected again, not a new
-  stage.
+  same session, Work, action and stage is the bundle being injected again, after
+  a compaction or an amendment, not a new stage. Its bundle id says whether the
+  context changed.
 - `review`: a gate finished, with the Work, action, stage, the reviewed commit,
   the overall result, and a result for each cited item, a rule code or a
   criterion id (`ARC001=fail`, `AC-2=pass`). What is not cited was not judged.
@@ -1110,7 +1117,7 @@ possible preset is the typed-boundary flow, and a template binds it to the
 
 ```toml
 [presets]
-define-feature = ["define", "review-contract", "split"]
+define-feature = ["define", "split", "review-contract"]
 typed-boundary = [
   "architecture",         # typed signatures and test stubs
   "architecture-review",
@@ -1215,6 +1222,13 @@ goal or skill. How well it produces it comes from the rules its tags select.
   documentation and delete the contract in the final commit, or keep them as
   decision records. wio works either way; a deleted Work's dependents are
   updated in the same change.
+- The order of records in a history with merge commits, where "the order of
+  the history" is not a total order. Topological order, oldest first, is the
+  likely answer, for `wio next` to settle.
+- Where `wio trailers` finds a contract's criterion ids, and what `items` and
+  `pattern` count. Criteria are `### **AC-1** ...` subheadings in the templates,
+  not list items, so the directive grammar must be able to apply to
+  subheadings. The directive-grammar Work settles it.
 - Whether all-of tag matching is enough. It is the simplest rule that works, and
   it can be replaced later without changing the file formats.
 - Recipes for harness hooks that inject the bundle again after compaction.
