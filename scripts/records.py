@@ -42,7 +42,6 @@ SKIPPED_SUBJECTS = (
     "Reapply ",
     "fixup! ",
     "squash! ",
-    "amend! ",
 )
 REVERT_LINE = re.compile(r"^This reverts commit [0-9a-f]{7,40}\.?$")
 REVERTS = re.compile(r"^This reverts commit (?P<sha>[0-9a-f]{7,40})\b", re.MULTILINE)
@@ -203,8 +202,9 @@ def record_problems(record: Record) -> list[str]:
 def message_problems(message: str) -> list[str]:
     """Check every record of a commit message.
 
-    Merge and revert commits, and commits made to be squashed into another
-    one, need no record.
+    Merge, revert and reapply commits, and fixup and squash commits made to
+    be squashed into another one, need no record. An `amend!` commit does:
+    its message replaces its target's when it is squashed.
 
     Args:
         message: A commit message.
