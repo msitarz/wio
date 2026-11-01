@@ -8,7 +8,7 @@ commit messages.
 | Work | One outcome with its behaviors, described by a contract. A directory whose `README.md` has a `wio` metadata block. |
 | Work contract | The markdown file, with a metadata block, that states a Work's intent. It follows a template. |
 | Leaf | A Work without child Works. |
-| Parent | A Work with child Works. Unless it declares its own roots, its roots are the union of its children's roots, computed recursively. |
+| Parent | A Work with child Works. Its roots are the ones it lists; `@descendants` among them adds the union of its descendants' roots. |
 | Template | A markdown file that shapes a contract: sections, directives and a metadata block with the template's name, type, optional shape (leaf or parent) and default actions. |
 | Type | A kind of outcome, such as `feature`, declared in the config with its entry template. A type groups templates. |
 | Entry template | The template of a type that new Works of that type start from. Declared in the config. |

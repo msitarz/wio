@@ -46,7 +46,8 @@ After the parent is defined, which includes its split, each child is created
 from the entry template: an id, a template, a title and a seed sentence, and the
 roots when the split already knows them. The entry template requires little, so
 the children pass `wio contract check` before they are defined. The parent
-declares no roots, so its roots are the union of its children's roots.
+lists `roots = ["@descendants"]`, from its template, so its roots are the union
+of its descendants' roots.
 
 **Inherited by every leaf:** the parent's Constraints (the same inputs give
 identical bytes; an unknown Work or stage fails loudly and never yields an empty
@@ -163,15 +164,16 @@ after:   context/rule-selection/                  (parent, still s9t2wy)
            tag-matching/      id m3p8cq           (new, from the leaf template)
 ```
 
-- The leaf's criteria move to the children that can establish them: filtering
-  to `scope-filtering`, matching to `tag-matching`. A parent states only
+- The leaf's criteria move to the children that can establish them: filtering to
+  `scope-filtering`, matching to `tag-matching`. A parent states only
   system-level guarantees (rule ACC006), so the parent gets new criteria for
   what only the joined result establishes, such as "a stage gets exactly the
-  rules that pass both filters". The skill adds Constraints and Visuals, removes
-  the leaf's `roots` so the parent uses its children's union, and switches
-  `template` to the parent template. Each child that takes over criteria is
-  created from the leaf template (`wio contract new feature --template
-  feature.leaf --parent s9t2wy`), because the draft has no place for them.
+  rules that pass both filters". The skill adds Constraints and Visuals, sets
+  the parent's roots to `["@descendants"]` in place of the leaf's own, and
+  switches `template` to the parent template. Each child that takes over
+  criteria is created from the leaf template
+  (`wio contract new feature --template feature.leaf --parent s9t2wy`), because
+  the draft has no place for them.
 - Dependents need no change: `context-command` depends on `s9t2wy`, which still
   means the whole outcome.
 - The `architecture` record for `s9t2wy` stays in the history. The parent's
@@ -235,8 +237,9 @@ leaf, so the outcome becomes a parent with two leaves.
   until definition decides it, and no check fails until a stage needs it.
 - A parent's bundle mixes toolchains. Grouping the rules under a line that names
   each root and its paths tells the agent which files each rule is for.
-- One root per leaf is the workflow's choice. A parent that declares
-  `roots = ["api", "web", "e2e"]` for its integration stage is equally valid.
+- One root per leaf is the workflow's choice. A parent that lists
+  `roots = ["e2e", "@descendants"]` for its integration stage is equally valid:
+  it gets its children's `api` and `web` and adds `e2e`.
 
 ## Summary
 

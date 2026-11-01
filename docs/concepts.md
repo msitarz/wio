@@ -168,10 +168,13 @@ and the human decides. The decision has three outcomes:
 - **Amend**: change the acceptance criteria or assumptions, then rework whatever
   depended on them. In this repository's config an amendment runs through an
   on-demand action of its own, `amend`, which `deliver` lists in
-  `invalidated_by`, so the delivered stages become stale (section 5).
+  `invalidated_by`, so the delivered stages become stale (section 5). Its gate,
+  `review-amendment`, sees the rules for amendments.
 - **Ratify**: update the contract to match what was built, without reworking
   anything. It runs through an on-demand action of its own, `ratify`, that
-  `deliver` does not list in `invalidated_by`, so nothing becomes stale.
+  `deliver` does not list in `invalidated_by`, so nothing becomes stale. Its
+  gate, `review-ratify`, checks that no criterion's guarantee changed; one that
+  did is an amendment.
 
 Ratify is the cheap option and the one to watch. Used too often, it turns the
 contract from a statement of intent into a log of what happened. Giving it its
@@ -357,16 +360,26 @@ A **root** is a set of directories bound to one toolchain and its rulesets
 (section 8). A Work names the roots it touches in `roots`, using the names the
 config gives them.
 
-- A leaf's roots are the ones it declares.
-- A parent's roots are the ones it declares, if its `roots` list is not empty.
-  Otherwise they are the union of its children's roots, computed recursively: a
-  child that is a parent contributes its own roots, declared or computed. So a
-  root declared by a parent in the middle of the tree, for example one for
-  end-to-end tests, reaches every parent above it. Declared roots replace the
-  union, so a parent can name a root that none of its children touch.
-- An empty `roots` list and a missing one mean the same: nothing is declared.
-  Templates can therefore keep `roots = []` as a placeholder, and a draft that
-  becomes a parent needs no change to get the union.
+- A Work's roots are exactly the ones it lists, for a leaf and a parent alike.
+  Nothing is added implicitly, so a parent's stages get the rules of the roots
+  its author chose, however large its subtree is.
+- A parent can list `@descendants` to include the union of its descendants'
+  roots, computed recursively: a child that is a parent contributes whatever
+  its own `roots` resolve to, so a parent in the middle of the tree decides what
+  it passes upward. `@descendants` combines with explicit roots:
+
+  ```toml
+  roots = ["api", "web"]              # exactly these
+  roots = ["@descendants"]            # the union of the descendants' roots
+  roots = ["e2e", "@descendants"]     # the union, plus e2e
+  ```
+
+  A template sets the default: this repository's parent template uses
+  `roots = ["@descendants"]`. A parent whose roots leave out a root that one of
+  its descendants uses gets a note from `wio contract check`, not a warning,
+  because a narrower list may be intended.
+- An empty `roots` list and a missing one mean the same: no roots. Templates can
+  therefore keep `roots = []` as a placeholder.
 - `roots` may be empty. That is not an error in `wio contract check`. It fails
   only when a stage selects rules by the Work's roots (section 6), and then
   loudly.
@@ -532,7 +545,13 @@ happens and check invariants afterwards.
 
 ### What `wio next` proposes
 
-This comes in v0.2 and is not part of v0.1.
+This comes in v0.2 and is not part of v0.1, and this section is a sketch. It
+records the direction chosen (currency from records, `after` for order,
+`invalidated_by` for staleness, on-demand actions, gates with results). The
+Work that builds `wio next` settles the details against the records v0.1
+produces; the record format and the config keys it reads are fixed in v0.1, so
+it should not need a new format. The cases it must settle are listed in the
+open points (section 14).
 
 `wio next` proposes the next action and stage for a Work. It is a heuristic over
 the records in the git history (section 11), and the driver may do something
@@ -557,15 +576,15 @@ else. Every proposal says so in one fixed line.
   ```toml
   [actions.deliver]
   after = ["define"]
-  invalidated_by = ["define", "amend", "@children:deliver"]
+  invalidated_by = ["define", "amend", "@descendants:deliver"]
   ```
 
   A stage of such an action is current only if its latest record is also newer
   than the latest record of everything in `invalidated_by`:
   - a plain name is that action of the same Work, on demand or not;
-  - `@children:<action>` is that action on any descendant of the Work, at any
-    depth, so a parent's delivery becomes stale when one of its children is
-    delivered again;
+  - `@descendants:<action>` is that action on any descendant of the Work, at
+    any depth, so a parent's delivery becomes stale when one of its descendants
+    is delivered again;
   - `@dependencies:<action>` is that action on the Works in `depends_on`.
 
   An amendment therefore makes every `deliver` stage stale, and `wio next`
@@ -736,6 +755,14 @@ files records its result in an empty commit.
 There is no gate object to learn and no approval flag, only stages marked
 `gate = true` that record a result.
 
+The gate of a define action is where wio's first need is met: a human confirms
+the understanding before expensive work starts. The reviewer judges the
+contract on its own terms, by the rules, and only the driver can say whether it
+states what they meant. So in this repository's config the gate ends by asking
+the driver to confirm, and records `pass` only once they have. The contract
+holds the intent in the template's shape, not a transcript of the interview
+that produced it.
+
 ### What a good gate looks like
 
 - It looks at the **exact revision** that was produced. A reviewer pinned to a
@@ -827,11 +854,12 @@ select the contract root.
 
 Rules are selected by the root the stage edits:
 
-- A stage without `roots` uses the Work's roots: the declared ones, or for a
-  parent without declared roots, the union of its children's roots (section 4).
+- A stage without `roots` uses the Work's roots, with `@descendants` expanded
+  (section 4).
 - A stage with `roots` uses exactly those. The entry `@work` stands for the
   Work's roots, so a contract review that checks criteria against real modules
-  can use `roots = ["contract", "@work"]`. Root names cannot contain `@`.
+  can use `roots = ["contract", "@work"]`. Root and action names cannot
+  contain `@`, so the `@` tokens never clash with them.
 - If the stage selects the Work's roots, without `roots` or through `@work`,
   and the Work has none, `wio context` fails loudly, whatever other roots the
   list names. A Work that skipped its definition fails the moment it is
@@ -1443,6 +1471,21 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - Whether all-of tag matching is enough. It is the simplest rule that works, and
   it can be replaced later without changing the file formats.
 - Recipes for harness hooks that inject the bundle again after compaction.
+- Cases the `wio next` Work must settle, found on paper:
+  - a gate's record under `define` or `amend` makes delivery stale even when
+    the contract did not change, for example a second opinion on a defined
+    contract;
+  - the gate of an on-demand action is never proposed once its first stage has
+    run, because the action is never proposed;
+  - "delivered", which `depends_on` and a parent's implicit dependency on its
+    children rely on, names no action in an engine without built-in actions;
+    `after` could take `@descendants:` and `@dependencies:` to say which;
+  - retiring finished leaves before their parent is delivered leaves the parent
+    with nothing for `@descendants` to resolve;
+  - dropping an edge to a retired Work changes the dependent's contract, and no
+    action clearly matches that change;
+  - staleness flows up the tree through `@descendants:` but not down, although
+    inherited constraints flow down when a parent is amended.
 - How users get the skills wio offers. In v0.1, `wio-define` lives in this
   repository at `.agents/skills/wio-define/` and is copied, like a ruleset. A
   command that installs it from the package may come later.
