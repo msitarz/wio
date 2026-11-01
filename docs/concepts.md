@@ -324,6 +324,39 @@ depends_on = ["a7b2c4", "k3m9xq"]
   holds back the dependent's definition, and whether a parent's dependencies
   also apply to its descendants, are open points.
 
+### Tracking criteria (planned)
+
+This is planned for v0.2 or v0.3 and is not part of v0.1.
+
+A parent's acceptance criteria are usually established by its descendants
+together, and the parent is written before they exist. So the link runs from the
+child upward: a criterion of a Work can track a criterion of another Work, such
+as a parent, a grandparent or a sibling. The links live in the contract's
+metadata block, in a `[tracks]` table keyed by the Work's own criterion ids:
+
+```toml
+[tracks]
+AC-1 = ["31as8f AC-3"]
+AC-2 = ["31as8f AC-3", "871df7 AC-4"]
+```
+
+- To track means to contribute to, not to be enough for. Several children
+  together establish one parent criterion.
+- `wio contract check` verifies that every referenced Work and criterion exists,
+  so an amendment that removes a criterion shows up as a dangling link.
+- The parent never lists its children. The criteria that track a parent
+  criterion are computed from the descendants.
+- A parent criterion that nothing tracks is a warning, not an error. Some
+  system-level criteria are verified only at the parent's integration stage.
+- Pull requests carry no extra line for this. Their `Criteria:` line together
+  with the contract's links gives the same information.
+- Constraints are not covered. They are inherited, not traced.
+
+The exact shape of the table is open. A flat table with one string per target,
+as above, is the simplest. Nested tables per target Work, such as
+`[tracks.31as8f]` with `AC-1 = ["AC-3"]`, keep the Work id and the criterion id
+as separate pieces of data.
+
 ## 5. Actions
 
 ### What an action is
@@ -830,8 +863,10 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - Flat splits, custom actions and the joining of presets, which come after v0.1.
   A flat split has no channel for shared constraints; passing inheritable
   sections along `depends_on` could close that.
-- Tracing a parent's constraints and acceptance criteria to the child criteria
-  that establish them (v0.2 or v0.3).
+- Tracing a parent's acceptance criteria to the child criteria that establish
+  them (v0.2 or v0.3). The proposed design is under "Tracking criteria" in
+  section 4, and the shape of its `[tracks]` table is open. Tracing a parent's
+  constraints is not covered.
 - Giving a Work that designs a shared boundary the contracts of its sibling
   Works as context. For now a stage goal or a skill asks the agent to read them.
 - A helper that lists the Works that depend on an id, to support restructuring.
