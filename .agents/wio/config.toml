@@ -30,7 +30,8 @@ reader = "scan"
 [types]
 feature = "feature.draft"
 
-# The order of the tables is the order in which `wio next` proposes actions.
+# `wio next` proposes actions in the order that `after` gives, ties by name, and
+# never proposes an action marked `on_demand`.
 [actions.define]
 description = """\
 Turn an intent into a Work contract: interview the driver, write the contract \
@@ -39,12 +40,22 @@ several outcomes. Also used to amend a contract that later work showed to be \
 wrong."""
 
 [actions.deliver]
-# Amending a contract through `define` makes every deliver stage stale.
+# Amending a contract through `define` makes every deliver stage stale, and
+# `deliver` is proposed after `define`.
 after = ["define"]
 description = """\
 Build what a Work contract says, one stage at a time, with a review after each \
 stage. A leaf goes from typed boundaries through wiring to implementation; a \
 parent integrates its delivered children."""
+
+[actions.ratify]
+# Only when the driver asks for it. A ratify needs no rework, so `deliver` does
+# not list it in `after`.
+on_demand = true
+description = """\
+Update a contract to match what was built, without reworking anything, such as \
+correcting a diagram or a criterion's wording after the implementation showed \
+the better form. A change of intent is an amendment, through define."""
 
 [[roots]]
 name = "contract"
@@ -54,30 +65,31 @@ rulesets = ["contracts"]
 [[roots]]
 name = "wio"
 paths = ["src", "tests", "scripts"]
-rulesets = []
+rulesets = ["contract-upkeep"]
 
 # Everything else in the repository: docs, CI, the Makefile, skills. It
 # overlaps the other roots, which is allowed: roots select rules by name.
 [[roots]]
 name = "repo"
 paths = ["."]
-rulesets = []
+rulesets = ["contract-upkeep"]
 
-# Stages. A review stage records a result. `session = "fresh"` asks for a new
-# agent session, so the reviewer does not share the author's context. The
-# deliver stages also select the contract root, so the few contract rules
-# tagged `delivery` (such as amending a contract instead of working around a
-# false assumption) reach the agent that writes the code. All-of matching keeps
-# the other contract rules, tagged `contract`, out of those stages.
+# Stages. A stage marked `gate` judges an artifact, and each of its records
+# carries a result. `session = "fresh"` asks for a new agent session, so the
+# reviewer does not share the author's context. The define stages select the
+# contract root; the deliver stages select the Work's roots, whose
+# contract-upkeep ruleset reminds the agent that writes code how to keep the
+# contract true.
 
 [stages.define]
 goal = """\
-Interview the driver about the intent, then fill in the Work's contract from \
-its template and check it with `wio contract check`."""
+Interview the driver about the intent, and capture it in the draft's Purpose \
+and Intent."""
 tags = ["contract"]
 roots = ["contract"]
 
 [stages.review-contract]
+gate = true
 goal = """\
 Judge the contract, in its final shape after the split, against the driver's \
 intent and the rules: is the outcome clear, are the assumptions stated, can \
@@ -88,49 +100,49 @@ session = "fresh"
 
 [stages.split]
 goal = """\
-Decide whether the Work is one outcome or several. Move it to the leaf \
-template, or to the parent template and create its child Works from the entry \
-template."""
+Decide whether the Work is one outcome or several. Print that template with \
+`wio contract template feature.leaf` or `feature.parent`, rewrite the contract \
+in its shape from the captured intent, and ask the driver for anything still \
+missing. For a parent, create its child Works with \
+`wio contract new feature --parent <id>`. Check the result with \
+`wio contract check`."""
 tags = ["contract"]
 roots = ["contract"]
 
 [stages.architecture]
 goal = "Write the typed boundaries and the test stubs the contract needs."
 tags = ["architecture", "testing", "delivery"]
-roots = ["@work", "contract"]
 
 [stages.architecture-review]
+gate = true
 goal = """\
 Judge the typed boundaries and test stubs against the contract, and record \
 the result with `wio trailers --result`."""
 tags = ["architecture", "testing", "review", "delivery"]
-roots = ["@work", "contract"]
 session = "fresh"
 
 [stages.wiring]
 goal = "Compose the boundaries into a running skeleton with stubbed leaves."
 tags = ["wiring", "testing", "delivery"]
-roots = ["@work", "contract"]
 
 [stages.wiring-review]
+gate = true
 goal = """\
 Judge the wired skeleton against the contract and the boundaries, and record \
 the result with `wio trailers --result`."""
 tags = ["wiring", "testing", "review", "delivery"]
-roots = ["@work", "contract"]
 session = "fresh"
 
 [stages.implementation]
 goal = "Implement the stubbed leaves until the tests and checks pass."
 tags = ["implementation", "testing", "delivery"]
-roots = ["@work", "contract"]
 
 [stages.implementation-review]
+gate = true
 goal = """\
 Judge the implementation against the contract, and record the result \
 with `wio trailers --result`."""
 tags = ["implementation", "testing", "review", "delivery"]
-roots = ["@work", "contract"]
 session = "fresh"
 
 [stages.integration]
@@ -138,15 +150,21 @@ goal = """\
 Join the delivered children and add the tests for the parent's system-level \
 criteria."""
 tags = ["integration", "testing", "delivery"]
-roots = ["@work", "contract"]
 
 [stages.system-review]
+gate = true
 goal = """\
 Judge the integrated result against the parent's criteria, and record the \
 result with `wio trailers --result`."""
 tags = ["integration", "testing", "review", "delivery"]
-roots = ["@work", "contract"]
 session = "fresh"
+
+[stages.ratify]
+goal = """\
+Update the contract to match what was built, without changing its intent, and \
+check it with `wio contract check`."""
+tags = ["contract"]
+roots = ["contract"]
 
 [presets]
 define-feature = ["define", "split", "review-contract"]

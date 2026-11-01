@@ -1,0 +1,8 @@
+# Rules for the stages that write code: how to keep the Work's contract true.
+# The config binds this ruleset to the code roots, so delivery sessions get it
+# without selecting the contract root.
+name = "contract-upkeep"
+description = "How the stages that write code keep the Work's contract true."
+
+[families]
+UPK = "Contract upkeep"

@@ -1,5 +1,5 @@
 <!-- wio
-code = "CON007"
+code = "CON006"
 name = "mechanisms-are-specific"
 tags = ["contract"]
 -->

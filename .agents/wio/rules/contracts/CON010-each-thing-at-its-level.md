@@ -1,5 +1,5 @@
 <!-- wio
-code = "CON011"
+code = "CON010"
 name = "each-thing-at-its-level"
 tags = ["contract"]
 -->

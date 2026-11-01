@@ -163,12 +163,19 @@ and the human decides. The decision has three outcomes:
   Every Work that depends on it must be updated in the same change (see
   section 4).
 - **Amend**: change the acceptance criteria or assumptions, then rework whatever
-  depended on them.
+  depended on them. In this repository's config an amendment runs through the
+  `define` action, and because `deliver` comes `after` it, the delivered stages
+  become stale (section 5).
 - **Ratify**: update the contract to match what was built, without reworking
-  anything.
+  anything. It runs through an action of its own, `ratify`, that `deliver` does
+  not list in `after`, so nothing becomes stale.
 
 Ratify is the cheap option and the one to watch. Used too often, it turns the
-contract from a statement of intent into a log of what happened.
+contract from a statement of intent into a log of what happened. Giving it its
+own action keeps it visible: its records show how often it happens. The rule
+for agents is that a commit that changes a contract carries a record of the
+action that matches the change, an amendment or a ratify, and never a record of
+the delivery stage it was found in.
 
 Changes to the contract file, including the step where a definition is finished
 and the contract takes its final shape, are changes of intent. They are made in
@@ -201,6 +208,12 @@ depends_on = []
   the file name does not matter.
 - `type` is the template's type, one of the types the config declares.
 - `description` is what tools show when they list templates.
+- `shape` is optional: `"leaf"` or `"parent"`, the shape of Work the template
+  is for. `wio contract check` warns when a Work's children do not match it:
+  a Work with children whose template says `leaf`, or a Work without children
+  whose template says `parent`. It is only a warning, because the two disagree
+  for a moment during every split. wio still has no levels: the tree decides
+  what a Work is, and `shape` only states what the template's author expected.
 - `[actions]` holds the default actions of every contract that follows the
   template (see section 5).
 - `[contract]` is the metadata of the contracts the template produces.
@@ -215,7 +228,10 @@ itself, even if the template specifies them, and it removes comments from the
 metadata, because they belong to the template author.
 
 A contract created from a template therefore has exactly the shape the template
-describes, and the agent that fills it in sees that shape.
+describes, and the agent that fills it in sees that shape. `wio contract
+template <name>` prints that prepared skeleton without creating a Work, so a
+skill can name a template and show it to the agent without knowing which file
+holds it.
 
 ### Types and entry templates
 
@@ -237,7 +253,11 @@ a template can also be chosen by name.
 
 How a Work moves from its entry template to another one, for example from a
 draft to a leaf or a parent, is a procedure of the stages that define it. wio
-does not know about it. It only checks the result.
+does not know about it. It only checks the result. So a type's templates and
+the skills of its define stages are written together, as one package: the
+skills know which templates the type has, name them, and print them with
+`wio contract template`, and the agent rewrites the contract in the chosen
+shape. wio does not rewrite contracts itself.
 
 `wio config check` fails when a type's entry template does not exist or has
 another type, and when a template or a rule names a type that is not declared.
@@ -430,13 +450,23 @@ description = "Build what the contract says."
 
 The description is written for agents, like a skill's description: an agent
 reads it to choose the action that fits what the user asked for. `wio contract
-show` lists a Work's actions with their descriptions and pipelines. The order of
-the tables is the order in which `wio next` proposes actions.
+show` lists a Work's actions with their descriptions and pipelines.
 
-`define` and `deliver` are the actions this repository uses, and they are only
-examples. Nothing in the engine sets one action apart from another, so a
-project can add as many as it needs, such as an `amend` action for changing a
-delivered contract.
+An action can be **on demand**:
+
+```toml
+[actions.ratify]
+on_demand = true
+description = "Update a contract to match what was built, without reworking anything."
+```
+
+`wio next` never proposes an on-demand action; the driver runs it on purpose.
+Its records count like any other's, so an action that lists it in `after`
+becomes stale after it. `wio contract show` marks it. The default is `false`.
+
+`define`, `deliver` and `ratify` are the actions this repository uses, and they
+are only examples. Nothing in the engine sets one action apart from another,
+so a project can add as many as it needs.
 
 An action's **pipeline** is either a **preset** (an ordered list of stages, by
 preset id) or a list of **stage names**. In both, some stages may be gates.
@@ -491,8 +521,12 @@ This comes in v0.2 and is not part of v0.1.
 the records in the git history (section 11), and the driver may do something
 else. Every proposal says so in one fixed line.
 
-- Actions are considered in the order the config declares them. The proposal is
-  the first stage, in the first action, that is not current.
+- Actions are considered in the order that `after` gives: an action comes after
+  the actions it lists, and actions with no relation between them are ordered by
+  name, so the order never depends on how the config file is laid out. A cycle
+  in `after` is an error in `wio config check`. On-demand actions are never
+  proposed. The proposal is the first stage, in the first action, that is not
+  current.
 - A stage is **current** when it has a record, and its latest record is newer
   than the latest record of every earlier stage in the same pipeline. When an
   earlier stage is done again after a back-edge, the stages after it stop being
@@ -514,12 +548,14 @@ else. Every proposal says so in one fixed line.
   delivery again from its first stage. This is coarse: it cannot tell which
   stages an amendment really affects, and the driver can skip ahead. Tracking
   criteria could make it finer later. Without `after`, actions do not affect
-  each other.
+  each other. `after` therefore means both "propose this one later" and "redo
+  this one when that one changes", which go together: what must come first
+  invalidates what follows it.
 - Only stages in the Work's current pipeline count. Records of a stage that the
   pipeline no longer contains are ignored, for example after a leaf is promoted
   to a parent with a different pipeline.
-- Which results let a gate's next stage start is declared with the results,
-  when `wio next` is built.
+- A gate's latest record carries its result, and which results let the next
+  stage start is declared with the results, when `wio next` is built.
 
 For a whole tree, defining runs top-down and delivering runs bottom-up. A parent
 is defined before the Works its split creates, and a parent is delivered after
@@ -546,13 +582,14 @@ on, and they do not judge how a workflow is built:
   action; it is not an empty pipeline. An outcome with nothing to deliver
   belongs in the ticketing system, not in the repository.
 - Every action name, preset id and stage name in a template or a contract
-  exists.
+  exists, `after` has no cycle, and every stage's skill can be found.
 - Every root a contract or a stage names is a root in the config.
 - Every `depends_on` id exists, and there are no cycles.
 - No stage appears twice in one pipeline. Records key on the Work, the action
   and the stage, so two positions of one stage could not be told apart.
 - Required sections are present, as the template's directives say. A `##`
-  heading the template does not have is a warning.
+  heading the template does not have is a warning, and so is a Work whose
+  children do not match its template's `shape`.
 
 ## 6. Stage
 
@@ -570,6 +607,7 @@ A stage definition has these parts:
 | `skill` | A skill name, used instead of a goal when the procedure needs references, templates or scripts. |
 | `tags` | Which rules apply (section 9). |
 | `roots` | Optional. Which roots the stage selects rules from (section 8). Without it, the stage uses the Work's roots. |
+| `gate` | Optional. `true` when the stage judges an artifact, so each of its records carries a result (section 7). |
 | session policy | Whether the stage needs a fresh session, and whether later stages may continue its session. |
 
 ```toml
@@ -581,11 +619,28 @@ roots = ["contract"]
 [stages.architecture-review]
 goal = "Review the typed boundaries against the contract."
 tags = ["architecture", "review"]
+gate = true
 ```
 
 A stage with only a goal and tags is valid. A stage with a skill hands its
 procedure to that skill. The engine does not care which; it prints the goal or
 names the skill, and compiles the rules.
+
+wio does not load or run skills, but it finds them, so it can check that a
+stage's skill exists and tell when it changed. A skill is a directory named
+after it that holds a `SKILL.md`, which is the shape harnesses use. wio looks
+for it in this order, and the first match wins:
+
+1. the directories in the config's `[skills] paths`, for skills meant only for
+   wio, which no harness loads by default and whose descriptions therefore never
+   take up an agent's context;
+2. the project directories harnesses read, such as `.agents/skills` and
+   `.claude/skills`;
+3. the same directories in the user's home.
+
+`wio config check` fails when a stage names a skill that none of them holds,
+and adds a note when a skill is found only in the user's home, because another
+machine may not have it.
 
 Stage names are global in the config, so the same stage can appear in the
 pipelines of several actions. That is why every command, record and event
@@ -636,10 +691,13 @@ A gate is a point where work stops until a decision is made. The decision is one
 of: continue to the next stage, go back to an earlier stage, or change the
 contract.
 
-In the engine a gate is not a separate object. It is a stage whose job is to
-judge the previous stage's artifact, and whose record carries a **result** from
-the `results` vocabulary in the config (section 11). It is a normal stage with
-its own rules (tagged for review) and usually a fresh session.
+In the engine a gate is not a separate object. It is a stage marked
+`gate = true`, whose job is to judge the previous stage's artifact, and every
+record of it carries a **result** from the `results` vocabulary in the config
+(section 11). It is a normal stage with its own rules (tagged for review) and
+usually a fresh session. The mark lets wio require the result: `wio trailers`
+refuses a gate's record without one, and a stage that is not a gate cannot
+record one. The bundle's header says when a stage is a gate.
 
 Who judges is the workflow's business. A review can be done by an agent in a
 fresh session with a different ruleset, or by a human. A human approval is a
@@ -648,8 +706,8 @@ person approves the artifact. The human records the result, or tells the agent
 to record it, and the commit's author shows who did. A review that changes no
 files records its result in an empty commit.
 
-There is no gate type to learn and no approval flag, only stages that record a
-result.
+There is no gate object to learn and no approval flag, only stages marked
+`gate = true` that record a result.
 
 ### What a good gate looks like
 
@@ -724,8 +782,12 @@ writing them (how to state a criterion, what an assumption is) are a ruleset
 like any other. A project binds it to a root whose paths are the Works
 directory, named `contract` in the example. Define stages select that root with
 `roots = ["contract"]`, so a Work that is still being defined, and has no roots
-yet, gets the rules for writing contracts. An amendment of a delivered leaf gets
-them as well, and not the rules of the code the leaf touches.
+yet, gets the rules for writing contracts. An amendment or a ratify of a
+delivered leaf gets them as well, and not the rules of the code the leaf
+touches. The few rules that the agent writing code needs about its contract,
+such as asking for an amendment instead of working around a false assumption,
+are a small ruleset of their own bound to the code roots, so code stages never
+select the contract root.
 
 ### Which roots a stage selects
 
@@ -968,12 +1030,15 @@ files.
 
 Output, printed to the session:
 
-1. A header: the Work, the action, the stage, the session advice, the number of
-   rules, the size of the bundle in bytes and lines, a short bundle id, and the
-   exact command that produced the bundle. The bundle id is a hash of the parts
-   below the header (the goal, the resolved contract and the rules), so it does
-   not depend on the header that contains it, on how wio was invoked or on
-   `--output`.
+1. A header: the Work, the action, the stage, whether the stage is a gate, the
+   session advice, the number of rules, the size of the bundle in bytes and
+   lines, a short bundle id, and the exact command that produced the bundle.
+   For a stage with a skill, it also names the directory the skill was found in
+   and a hash of the skill's files. The bundle id is a hash of the parts below
+   the header (the goal, the resolved contract and the rules) and of the skill's
+   files, so it does not depend on the header that contains it, on how wio was
+   invoked or on `--output`, and it changes when the skill does. A skill's
+   references and scripts are part of its procedure, so all its files count.
 2. The stage's goal, or the name of its skill.
 3. The resolved contract: the Work plus inheritable sections from its
    ancestors.
@@ -1087,27 +1152,45 @@ Wio-Result: pass
   5).
 - **Unknown ids are ignored.** A record of a Work that was deleted refers to
   nothing and does no harm.
+- **A revert takes its commit's records back.** `git revert` writes
+  `This reverts commit <sha>.` into the revert's message. A reader that finds
+  that line drops the records of the commit it names, and a revert of a revert
+  restores them. A revert carries no record of its own: it undoes work rather
+  than doing any. When reverted work is rolled back by hand instead, nothing
+  can tell, and the driver decides.
 
 `wio trailers <work> <action> <stage> [--criteria ...] [--result ...]
-[--cite ...]` prints a checked record: the Work exists, the criteria exist in
-its contract, the result is in the vocabulary, and the stage is in the Work's
-actions (a warning, as in `wio context`). With `--result` it also writes the
+[--cite ...]` prints a checked record: the Work exists in the working tree or in
+`HEAD`, the criteria exist in its contract, the result is in the vocabulary and
+present exactly when the stage is a gate, and the stage is in the Work's
+actions (a warning, as in `wio context`). A Work found only in `HEAD` is one
+that the change being committed deletes, so the commit that retires or
+abandons a Work still carries its record, and its criteria are checked against
+`HEAD`'s contract. With `--result` it also writes the
 `review` event to the event log, with the items `--cite` names (such as
 `--cite ARC001=fail --cite AC-2=pass`) and `HEAD` as the reviewed commit,
 because the review's own commit does not exist yet. A reviewer records
 everything with one command. That relies on two things: the artifact under
-review is committed, and the gate's result is recorded in its first commit. So
-`wio trailers --result` warns when the working tree has uncommitted changes, and
-when `HEAD` already carries a record of the same gate, because then `HEAD` is
-the reviewer's own commit and not the artifact.
+review is committed, and the reviewed commit is the one before the gate's first
+commit. So `wio trailers --result` warns when the working tree has uncommitted
+changes, and when `HEAD` already carries a record of the same gate, because then
+`HEAD` is the reviewer's own commit and not the artifact. A gate that takes
+several commits records its result on each of them, because only the latest
+record counts, and each call writes a `review` event, of which the latest wins.
 
 `wio trailers check` reads a commit message or a pull request body and checks
-every record in it. A message without a record passes, because that is often
-right: a pull request whose commits all belong to no Work has none in its body.
-`wio trailers check --require` also fails a message without a record, except a
-message whose subject starts with `Merge `, `fixup! `, `squash!` or `amend! `,
-git's own forms for commits that are merged or squashed away. A project calls
-`--require` from a commit-msg hook and the plain check from CI.
+the shape of every record in it: the keys, the id's form, action and stage names
+that the config declares, results from the vocabulary, and a result exactly on
+the records of gates. It does not check that the Works and criteria exist: it
+reads messages away from the commit they belong to, a pull request body gathers
+records of many commits, and Works are deleted later. The readers ignore
+unknown ids for the same reason. A message without a record passes, because
+that is often right: a pull request whose commits all belong to no Work has
+none in its body. `wio trailers check --require` also fails a message without a
+record, except a message whose subject starts with `Merge `, `Revert `,
+`fixup! `, `squash!` or `amend! `, git's own forms for commits that are merged,
+reverted or squashed away. A project calls `--require` from a commit-msg hook
+and the plain check from CI.
 
 Writing and checking records is part of v0.1. Reading them from the history
 comes with `wio next` in v0.2.
@@ -1309,3 +1392,8 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - Whether all-of tag matching is enough. It is the simplest rule that works, and
   it can be replaced later without changing the file formats.
 - Recipes for harness hooks that inject the bundle again after compaction.
+- How users get the skills wio offers. In v0.1, `wio-define` lives in this
+  repository at `.agents/skills/wio-define/` and is copied, like a ruleset. A
+  command that installs it from the package may come later.
+- The exact list of harness skill directories wio searches, checked against
+  each harness's documentation when it is built.
