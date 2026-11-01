@@ -9,19 +9,19 @@ commit messages.
 | Work contract | The markdown file, with a metadata block, that states a Work's intent. It follows a template. |
 | Leaf | A Work without child Works. |
 | Parent | A Work with child Works. Unless it declares its own roots, its roots are the union of its leaves' roots. |
-| Template | A markdown file that shapes a contract: sections, directives and a metadata block with the template's name, type and default actions. |
+| Template | A markdown file that shapes a contract: sections, directives and a metadata block with the template's name, type, optional shape (leaf or parent) and default actions. |
 | Type | A kind of outcome, such as `feature`, declared in the config with its entry template. A type groups templates. |
 | Entry template | The template of a type that new Works of that type start from. Declared in the config. |
 | Metadata block | The TOML at the top of a contract, template or rule, in a hidden comment or between `+++` lines. |
 | Directive | A `wio:` instruction in an HTML comment on a template heading, such as `required` or `inherit`. |
 | Dependency | A Work id in `depends_on`: that Work must be delivered first. |
-| Action | A named kind of work done on a Work, such as `define` or `deliver`. Declared in the config with a description; none are built in. Its pipeline is a preset or a list of stages. |
+| Action | A named kind of work done on a Work, such as `define` or `deliver`. Declared in the config with a description, the actions it comes after, and whether it is on demand; none are built in. Its pipeline is a preset or a list of stages. |
 | Config | The `.agents/wio/config.toml` file: types, actions, roots, stages, presets, tags, results and the trailer reader. |
 | Root | A named set of directories (its `paths`) bound to one toolchain and its rulesets. Works and stages refer to it by name. |
 | Ruleset | A reusable collection of rule files with a `ruleset.toml` manifest. Bound to roots, and its rules chosen, by the repo's config. |
 | Stage | A named step: a goal or a skill, tags, optional roots and a session policy. |
-| Skill | A packaged procedure, with references, templates or scripts, that a stage can hand its work to. |
-| Gate | A stage that judges the previous stage's artifact and records a result. A human approval is a gate too. |
+| Skill | A packaged procedure, with references, templates or scripts, that a stage can hand its work to. A directory with a `SKILL.md`, found in the config's skill directories or in those harnesses read. |
+| Gate | A stage marked `gate = true`, which judges the previous stage's artifact; each of its records carries a result. A human approval is a gate too. |
 | Result | A gate's decision, such as `pass` or `fail`, from the vocabulary the config declares. |
 | Back-edge | Returning to an earlier stage (or the contract) because a later one exposed a gap. |
 | Preset | A named, ordered list of stages. It can be the pipeline of an action. |

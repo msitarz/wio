@@ -17,3 +17,5 @@
   templates used to write Work contracts.
 - [Contracts ruleset](../.agents/wio/rules/contracts): the rules for writing
   and reviewing Work contracts.
+- [Contract-upkeep ruleset](../.agents/wio/rules/contract-upkeep): the rules
+  that keep a contract true while its code is written.
