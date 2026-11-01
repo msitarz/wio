@@ -393,6 +393,11 @@ children. The leaves to deliver, with `depends_on`, form a graph that can be
 sorted into batches, and the Works in one batch can run in parallel, for
 example `(("32s", "97f"), "213as", ("8as", "732sfa"))`.
 
+Stages of different Works do not interleave. A boundary that several leaves
+share is extracted as a leaf of its own and delivered first, and the other
+leaves depend on it. The [split exercises](split-exercises.md) walk through
+this.
+
 ### Invariants wio checks
 
 `wio contract check` and `wio config check` verify mechanically what wio relies
@@ -806,14 +811,15 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - Where a ruleset declares its families and prefixes, and whether rule files
   accept `+++` front matter as well. The rule example above uses the
   `<!-- wio -->` block, as contracts do.
-- How a parent whose pipeline needs stages both before and after its children is
-  expressed. Today a parent is delivered after its children. Interleaved flows,
-  such as typed architecture and wiring of the whole before the leaves are
-  implemented, need stage-level ordering across the tree. The history and the
-  log already key on the Work, the action and the stage, so this can be added.
-- Whether a parent's `depends_on` also applies to its descendants, and whether a
-  dependency holds back the dependent's definition. The current lean is no to
-  both.
+- Stage-level ordering across the tree. A parent is delivered after its
+  children, and a shared boundary is a leaf of its own, so interleaved stages
+  are not needed. The history and the log key on the Work, the action and the
+  stage, so they can be added later.
+- Whether a parent's `depends_on` also applies to its descendants. The current
+  lean is no.
+- Whether defining a Work holds back on its dependencies, so the dependent's
+  contract can cite the dependency's contract, while independent Works are
+  defined in parallel. The first split exercise leans towards yes.
 - How `wio next` reads the history of a Work after a structural change such as
   promoting or demoting it. Custom actions, which come after v0.1, will carry
   their own metadata for this.
@@ -822,6 +828,14 @@ goal or skill. How well it produces it comes from the rules its tags select.
   comments, so the rewrite either swaps only the delimiters or reads with a
   style-preserving parser.
 - Flat splits, custom actions and the joining of presets, which come after v0.1.
+  A flat split has no channel for shared constraints; passing inheritable
+  sections along `depends_on` could close that.
+- Tracing a parent's constraints and acceptance criteria to the child criteria
+  that establish them (v0.2 or v0.3).
+- Giving a Work that designs a shared boundary the contracts of its sibling
+  Works as context. For now a stage goal or a skill asks the agent to read them.
+- A helper that lists the Works that depend on an id, to support restructuring.
+  The reverse edges can be computed from the metadata.
 - How finished contracts are retired: promote the lasting parts into
   documentation and delete the contract in the final commit, or keep them as
   decision records. Not decided.
