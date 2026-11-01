@@ -39,6 +39,8 @@ several outcomes. Also used to amend a contract that later work showed to be \
 wrong."""
 
 [actions.deliver]
+# Amending a contract through `define` makes every deliver stage stale.
+after = ["define"]
 description = """\
 Build what a Work contract says, one stage at a time, with a review after each \
 stage. A leaf goes from typed boundaries through wiring to implementation; a \
@@ -72,7 +74,7 @@ roots = ["contract"]
 goal = """\
 Judge the contract, in its final shape after the split, against the driver's \
 intent and the rules: is the outcome clear, are the assumptions stated, can \
-every criterion be assessed? Record the result in the commit's record."""
+every criterion be assessed? Record the result with `wio trailers --result`."""
 tags = ["contract", "review"]
 roots = ["contract"]
 session = "fresh"
@@ -93,7 +95,7 @@ roots = ["@work", "contract"]
 [stages.architecture-review]
 goal = """\
 Judge the typed boundaries and test stubs against the contract, and record \
-the result in the commit's record."""
+the result with `wio trailers --result`."""
 tags = ["architecture", "testing", "review", "delivery"]
 roots = ["@work", "contract"]
 session = "fresh"
@@ -106,7 +108,7 @@ roots = ["@work", "contract"]
 [stages.wiring-review]
 goal = """\
 Judge the wired skeleton against the contract and the boundaries, and record \
-the result in the commit's record."""
+the result with `wio trailers --result`."""
 tags = ["wiring", "testing", "review", "delivery"]
 roots = ["@work", "contract"]
 session = "fresh"
@@ -118,8 +120,8 @@ roots = ["@work", "contract"]
 
 [stages.implementation-review]
 goal = """\
-Judge the implementation against the contract, and record the result in the \
-commit's record."""
+Judge the implementation against the contract, and record the result \
+with `wio trailers --result`."""
 tags = ["implementation", "testing", "review", "delivery"]
 roots = ["@work", "contract"]
 session = "fresh"
@@ -134,7 +136,7 @@ roots = ["@work", "contract"]
 [stages.system-review]
 goal = """\
 Judge the integrated result against the parent's criteria, and record the \
-result in the commit's record."""
+result with `wio trailers --result`."""
 tags = ["integration", "testing", "review", "delivery"]
 roots = ["@work", "contract"]
 session = "fresh"
