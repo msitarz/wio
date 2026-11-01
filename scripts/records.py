@@ -24,6 +24,7 @@ from pathlib import Path
 lazy from collections.abc import Sequence
 
 type Record = tuple[tuple[str, str], ...]
+type Commit = tuple[str, str]  # (sha, message)
 
 TRAILER = re.compile(r"^(?P<key>[A-Za-z0-9][A-Za-z0-9-]*): (?P<value>\S.*)$")
 FENCE = re.compile(r"^\s*(```|~~~)")
@@ -32,7 +33,8 @@ CRITERIA = re.compile(r"^AC-\d+(, AC-\d+)*$")
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 RESULT = re.compile(r"^(pass|fail|unknown)$")
 KEYS = frozenset({"Wio-Work", "Wio-Action", "Wio-Stage", "Wio-Criteria", "Wio-Result"})
-SKIPPED_SUBJECTS = ("Merge ", "fixup! ", "squash! ", "amend! ")
+SKIPPED_SUBJECTS = ("Merge ", "Revert ", "fixup! ", "squash! ", "amend! ")
+REVERTS = re.compile(r"^This reverts commit (?P<sha>[0-9a-f]{7,40})\b", re.MULTILINE)
 NO_WORK = "none"
 FORMATS = (
     ("Wio-Work", WORK_ID, "is not a Work id"),
@@ -190,8 +192,8 @@ def record_problems(record: Record) -> list[str]:
 def message_problems(message: str) -> list[str]:
     """Check every record of a commit message.
 
-    Merge commits and commits made to be squashed into another one need no
-    record.
+    Merge and revert commits, and commits made to be squashed into another
+    one, need no record.
 
     Args:
         message: A commit message.
@@ -219,18 +221,42 @@ def render(record: Record) -> str:
     return "\n".join(f"{key}: {value}" for key, value in record if key in KEYS)
 
 
-def collect(messages: Sequence[str]) -> list[str]:
-    """Collect the records of several commits that name a Work.
+def _kept(commits: Sequence[Commit]) -> list[Commit]:
+    """Leave out the commits that a later commit in the list reverts.
+
+    A revert undoes the work its records named, so neither keeps a record. A
+    revert of a revert restores the original commit.
 
     Args:
-        messages: Commit messages, oldest first.
+        commits: Commits as (sha, message), oldest first.
+
+    Returns:
+        The commits that still count, oldest first.
+    """
+    dropped: set[str] = set()
+    kept: list[Commit] = []
+    for sha, message in reversed(commits):
+        if any(sha.startswith(reverted) for reverted in dropped):
+            continue
+        dropped.update(match["sha"] for match in REVERTS.finditer(message))
+        kept.append((sha, message))
+    return kept[::-1]
+
+
+def collect(commits: Sequence[Commit]) -> list[str]:
+    """Collect the records of several commits that name a Work.
+
+    Records of commits reverted later in the list are left out.
+
+    Args:
+        commits: Commits as (sha, message), oldest first.
 
     Returns:
         The rendered records, in commit order.
     """
     return [
         render(record)
-        for message in messages
+        for _, message in _kept(commits)
         for record in records(message)
         if dict(record).get("Wio-Work") != NO_WORK
     ]
@@ -252,22 +278,24 @@ def with_records(body: str, rendered: Sequence[str]) -> str:
     return "\n\n".join([*blocks, *rendered]).strip() + "\n"
 
 
-def commit_messages(revision_range: str) -> list[str]:
-    """Read the messages of the commits in a revision range.
+def commits_in(revision_range: str) -> list[Commit]:
+    """Read the commits in a revision range.
 
     Args:
         revision_range: A range such as `main..HEAD`.
 
     Returns:
-        The messages, oldest first.
+        The commits as (sha, message), oldest first.
     """
     output = subprocess.run(
-        ["git", "log", "--reverse", "--format=%B%x00", revision_range],
+        ["git", "log", "--reverse", "--format=%H%n%B%x00", revision_range],
         capture_output=True,
         check=True,
         text=True,
     ).stdout
-    return [message.strip() for message in output.split("\0") if message.strip()]
+    entries = (entry.strip() for entry in output.split("\0"))
+    pairs = (entry.partition("\n") for entry in entries if entry)
+    return [(sha, message.strip()) for sha, _, message in pairs]
 
 
 def _report(label: str, problems: list[str]) -> None:
@@ -324,7 +352,7 @@ def _commits(revision_range: str) -> int:
         The exit code: 0 when every record is valid, 1 otherwise.
     """
     failed = False
-    for message in commit_messages(revision_range):
+    for _, message in commits_in(revision_range):
         problems = _commit_problems(message)
         _report(message.split("\n", 1)[0], problems)
         failed = failed or bool(problems)
@@ -344,7 +372,7 @@ def _body(revision_range: str) -> int:
         The exit code, always 0.
     """
     body = sys.stdin.read()
-    updated = with_records(body, collect(commit_messages(revision_range)))
+    updated = with_records(body, collect(commits_in(revision_range)))
     if updated.strip() != body.replace("\r\n", "\n").strip():
         sys.stdout.write(updated)
     return 0

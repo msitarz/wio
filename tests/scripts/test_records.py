@@ -85,10 +85,12 @@ def test_a_message_without_a_record_is_reported() -> None:
     assert problems == ["no Wio-* record; add one, or `Wio-Work: none`"]
 
 
-@pytest.mark.parametrize("subject", ["Merge branch 'x'", "fixup! docs: x"])
-def test_merge_and_fixup_commits_need_no_record(subject: str) -> None:
-    """Commits that are merged or squashed away are not checked."""
-    # Given a merge or fixup commit message without a record
+@pytest.mark.parametrize(
+    "subject", ["Merge branch 'x'", 'Revert "docs: x"', "fixup! docs: x"]
+)
+def test_merge_revert_and_fixup_commits_need_no_record(subject: str) -> None:
+    """Commits that are merged, reverted or squashed away are not checked."""
+    # Given a merge, revert or fixup commit message without a record
     message = _message(subject, "Body.")
 
     # When its problems are computed
@@ -138,15 +140,46 @@ def test_several_records_are_read_in_order() -> None:
 def test_collect_keeps_records_of_works_and_drops_the_rest() -> None:
     """Only `Wio-*` fields of records that name a Work are collected."""
     # Given a commit with a record and a co-author, and a commit with no Work
-    messages = [
-        _message("a", f"{RECORD}\nCo-Authored-By: A <a@example.com>"),
-        _message("b", "Wio-Work: none"),
+    commits = [
+        ("a1", _message("a", f"{RECORD}\nCo-Authored-By: A <a@example.com>")),
+        ("b2", _message("b", "Wio-Work: none")),
     ]
 
     # When their records are collected
-    collected = records.collect(messages)
+    collected = records.collect(commits)
 
     # Then only the first record's Wio-* fields remain
+    assert collected == [RECORD]
+
+
+def test_collect_leaves_out_reverted_commits() -> None:
+    """A commit reverted later in the range keeps no record."""
+    # Given a commit with a record and a later commit that reverts it
+    commits = [
+        ("c0ffee1234", _message("docs: a", RECORD)),
+        ("deadbeef56", _message('Revert "docs: a"', "This reverts commit c0ffee1234.")),
+    ]
+
+    # When their records are collected
+    collected = records.collect(commits)
+
+    # Then the reverted commit's record is left out
+    assert collected == []
+
+
+def test_collect_restores_a_commit_whose_revert_is_reverted() -> None:
+    """A revert of a revert brings the original record back."""
+    # Given a commit, its revert, and a revert of that revert
+    commits = [
+        ("c0ffee1234", _message("docs: a", RECORD)),
+        ("deadbeef56", _message('Revert "docs: a"', "This reverts commit c0ffee1234.")),
+        ("f00dcafe78", _message('Revert "Revert"', "This reverts commit deadbeef56.")),
+    ]
+
+    # When their records are collected
+    collected = records.collect(commits)
+
+    # Then the original record counts again
     assert collected == [RECORD]
 
 
