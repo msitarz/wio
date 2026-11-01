@@ -1,11 +1,13 @@
 <!-- wio
 name = "feature.parent"
 type = "feature"
+shape = "parent"
 description = "A capability delivered by child Works, with constraints they share."
 
 [actions]
 define = "define-feature"
 deliver = "integrate"
+ratify = ["ratify"]
 
 [contract]
 depends_on = []
