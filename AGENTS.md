@@ -77,7 +77,7 @@ Single tools, for quick feedback:
   | --- | --- |
   | `Wio-Work` | The Work's id, or `none`. |
   | `Wio-Action` | The action, such as `define` or `deliver`. |
-  | `Wio-Stage` | The stage the commit finishes. |
+  | `Wio-Stage` | The stage the commit works on. |
   | `Wio-Criteria` | Optional: the acceptance criteria it addresses. |
   | `Wio-Result` | Only for a review stage: `pass`, `fail` or `unknown`. |
 

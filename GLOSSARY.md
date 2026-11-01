@@ -30,6 +30,6 @@ commit messages.
 | Family | The letters of a rule code. They group rules by topic and belong to a ruleset. |
 | Tag | A label from the config vocabulary that links rules to stages. A rule's effective tags are its own, unless the config overrides them. A rule without tags applies to every stage that selects its roots. |
 | Bundle | The text `wio context` prints for a session. |
-| Record | A paragraph of `Wio-*` git trailers in a commit message that says a stage of a Work was done, with its criteria and result. |
+| Record | A paragraph of `Wio-*` git trailers in a commit message that says the commit is work on a stage of a Work, with its criteria and, for a gate, its result. |
 | Driver | Whoever advances the Work: a human now, an orchestrator later. It chooses the action and the stage; wio only proposes. |
 | Event log | Append-only record kept outside the repo, personal to one machine, for evaluation and cost analysis. |

@@ -41,7 +41,7 @@ A coding agent does better work when three things are true:
 In one sentence: wio runs **actions** on an **outcome**. An action is a
 **preset**, an ordered list of stages, some of them gates. A **template** gives
 a contract its shape and its default actions, rules are selected for every
-stage, and every finished stage leaves a **record** in the git history.
+stage, and every commit of a stage carries a **record** in the git history.
 
 ```mermaid
 flowchart LR
@@ -88,9 +88,9 @@ flowchart LR
 - **Context compiler.** `wio context` joins the contract, the stage and the
   matching rules into one deterministic bundle that the agent reads first in
   each session.
-- **Records.** A finished stage leaves a paragraph of `Wio-*` git trailers in
-  a commit message. wio reads progress from the records reachable from `HEAD`,
-  whatever workflow put them there.
+- **Records.** Every commit of a stage carries a record: a paragraph of `Wio-*`
+  git trailers in its message. wio reads progress from the records reachable
+  from `HEAD`, whatever workflow put them there.
 
 Terms are defined in [GLOSSARY.md](GLOSSARY.md), and the design is described
 in [docs/](docs/README.md).
@@ -104,7 +104,7 @@ A single `implement` stage is another.
 
 - **The working tree stores intent; the history stores progress.** Contracts
   have no status fields, because a commit cannot record a fact that only
-  becomes true after it lands. A finished stage leaves a record in its commit
+  becomes true after it lands. Each commit records which stage it works on
   instead.
 - **Compute, don't store.** Children, roots of parents, inherited constraints
   and the Work tree are derived.
@@ -127,7 +127,7 @@ The first release is the engine only: no shipped stages, presets or rulesets.
 | `wio contract` | Create, list, check and show Work contracts |
 | `wio rule` | Validate and list rule files, also for a given path |
 | `wio context` | Compile the contract and rules for a stage |
-| `wio trailers` | Write and check the records a finished stage leaves |
+| `wio trailers` | Write and check the records that tie commits to stages |
 | `wio log` | Record context and review events |
 | `wio-define` skill | Interview, then write and check a contract |
 
