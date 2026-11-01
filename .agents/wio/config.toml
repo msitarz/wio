@@ -104,8 +104,8 @@ Decide whether the Work is one outcome or several. Print that template with \
 `wio contract template feature.leaf` or `feature.parent`, rewrite the contract \
 in its shape from the captured intent, and ask the driver for anything still \
 missing. For a parent, create its child Works with \
-`wio contract new feature --parent <id>`. Check the result with \
-`wio contract check`."""
+`wio contract new feature --parent <id> --title <title>`. Check the result \
+with `wio contract check`."""
 tags = ["contract"]
 roots = ["contract"]
 

@@ -46,7 +46,7 @@ After the parent is defined and split, each child is created from the entry
 template: an id, a template, a title and a seed sentence, and the roots when the
 split already knows them. The entry template requires little, so the children
 pass `wio contract check` before they are defined. The parent declares no
-roots, so its roots are the union of its leaves' roots.
+roots, so its roots are the union of its children's roots.
 
 **Inherited by every leaf:** the parent's Constraints (the same inputs give
 identical bytes; an unknown Work or stage fails loudly and never yields an empty
@@ -137,8 +137,10 @@ needed.
 ### What exercise 2 showed
 
 - The original Work can become the last one, carrying the end-to-end criteria
-  with `deliver = ["integration", "system-review"]`, or it can be abandoned by
-  deleting it, after its dependents are updated. Nothing in wio requires either.
+  with a pipeline of its own for end-to-end checks and a review. It is not a
+  parent, so the parents' `integration` stage, which joins children, does not
+  fit it. Or it can be abandoned by deleting it, after its dependents are
+  updated. Nothing in wio requires either.
 - Inheritance is lost. The slices are not under the original, so its
   Constraints and Glossary do not reach them. They would be copied into each
   slice, where they drift, or linked by hand.
@@ -157,8 +159,8 @@ filtering by roots and type, and matching tags. `context-command` depends on it.
 ```text
 before:  context/rule-selection/                  (leaf s9t2wy)
 after:   context/rule-selection/                  (parent, still s9t2wy)
-           scope-filtering/   id v6k2jd           (new, from the entry template)
-           tag-matching/      id m3p8cu           (new, from the entry template)
+           scope-filtering/   id v6k2jd           (new, from the leaf template)
+           tag-matching/      id m3p8cq           (new, from the leaf template)
 ```
 
 - The leaf's criteria move to the children that can establish them: filtering
@@ -167,8 +169,9 @@ after:   context/rule-selection/                  (parent, still s9t2wy)
   what only the joined result establishes, such as "a stage gets exactly the
   rules that pass both filters". The skill adds Constraints and Visuals, removes
   the leaf's `roots` so the parent uses its children's union, and switches
-  `template` to the parent template. Each child starts from the entry template,
-  with the criteria it took over.
+  `template` to the parent template. Each child that takes over criteria is
+  created from the leaf template (`wio contract new feature --template
+  feature.leaf --parent s9t2wy`), because the draft has no place for them.
 - Dependents need no change: `context-command` depends on `s9t2wy`, which still
   means the whole outcome.
 - The `architecture` record for `s9t2wy` stays in the history. The parent's
