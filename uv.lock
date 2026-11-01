@@ -708,9 +708,6 @@ wheels = [
 name = "work-it-out"
 version = "0.0.1"
 source = { editable = "." }
-dependencies = [
-    { name = "rumdl" },
-]
 
 [package.dev-dependencies]
 dev = [
@@ -726,13 +723,13 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-randomly" },
     { name = "ruff" },
+    { name = "rumdl" },
     { name = "tach" },
     { name = "typos" },
     { name = "zizmor" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "rumdl", specifier = ">=0.3.0" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -748,6 +745,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "pytest-randomly", specifier = ">=5.0.0" },
     { name = "ruff", specifier = ">=0.17.2" },
+    { name = "rumdl", specifier = ">=0.3.0" },
     { name = "tach", specifier = ">=0.35.3" },
     { name = "typos", specifier = ">=1.51.1" },
     { name = "zizmor", specifier = ">=1.31.1" },
