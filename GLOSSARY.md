@@ -18,7 +18,7 @@ commit messages.
 | Action | A named kind of work done on a Work, such as `define` or `deliver`. Declared in the config with a description; none are built in. Its pipeline is a preset or a list of stages. |
 | Config | The `.agents/wio/config.toml` file: types, actions, roots, stages, presets, tags, results and the trailer reader. |
 | Root | A named set of directories (its `paths`) bound to one toolchain and its rulesets. Works and stages refer to it by name. |
-| Ruleset | A reusable bundle of rule files. Bound to roots by the repo. |
+| Ruleset | A reusable collection of rule files with a `ruleset.toml` manifest. Bound to roots, and its rules chosen, by the repo's config. |
 | Stage | A named step: a goal or a skill, tags, optional roots and a session policy. |
 | Skill | A packaged procedure, with references, templates or scripts, that a stage can hand its work to. |
 | Gate | A stage that judges the previous stage's artifact and records a result. A human approval is a gate too. |
@@ -28,7 +28,7 @@ commit messages.
 | Rule | One atomic do/don't instruction with a reason, identified by a code such as `ARC001`. |
 | Rule code | The stable identifier of a rule: a family prefix and a number. |
 | Family | The letters of a rule code. They group rules by topic and belong to a ruleset. |
-| Tag | A label from the config vocabulary that links rules to stages. A rule without tags applies to every stage that selects its roots. |
+| Tag | A label from the config vocabulary that links rules to stages. A rule's effective tags are its own, unless the config overrides them. A rule without tags applies to every stage that selects its roots. |
 | Bundle | The text `wio context` prints for a session. |
 | Record | A paragraph of `Wio-*` git trailers in a commit message that says a stage of a Work was done, with its criteria and result. |
 | Driver | Whoever advances the Work: a human now, an orchestrator later. It chooses the action and the stage; wio only proposes. |

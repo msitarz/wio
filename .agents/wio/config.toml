@@ -1,0 +1,129 @@
+# wio's own configuration, the first consumer of the engine.
+#
+# Nothing reads this file yet: it is the reference that the config, contract
+# and rule Works are built against. The schema is not final; see the open
+# points in docs/concepts.md.
+
+# Labels that link rules to stages. A rule applies to a stage when every one of
+# its tags is among the stage's tags.
+tags = [
+    "contract",        # writing and reviewing Work contracts
+    "review",          # judging another stage's artifact
+    "architecture",    # typed boundaries and test stubs
+    "wiring",          # a composed skeleton with stubbed leaves
+    "implementation",  # the code behind the boundaries
+    "testing",         # tests at any stage
+    "integration",     # joining the children of a parent
+]
+
+# What a gate can decide. Records and review events use these values.
+results = ["pass", "fail", "unknown"]
+
+[trailers]
+# GitHub's squash merge appends a Co-authored-by paragraph after the records
+# that the Records workflow copies into the body, so git's own parser would not
+# find them.
+reader = "scan"
+
+# Each type and the template new Works of that type start from.
+[types]
+feature = "feature.draft"
+
+# The order of the tables is the order in which `wio next` proposes actions.
+[actions.define]
+description = """\
+Turn an intent into a Work contract: interview the driver, write the contract \
+from a template, review it, and split it into child Works when it holds \
+several outcomes. Also used to amend a contract that later work showed to be \
+wrong."""
+
+[actions.deliver]
+description = """\
+Build what a Work contract says, one stage at a time, with a review after each \
+stage. A leaf goes from typed boundaries through wiring to implementation; a \
+parent integrates its delivered children."""
+
+[[roots]]
+name = "contract"
+paths = [".agents/wio/works"]
+rulesets = ["contracts"]
+
+[[roots]]
+name = "wio"
+paths = ["src", "tests", "scripts"]
+rulesets = []
+
+# Stages. A review stage records a result. `session = "fresh"` asks for a new
+# agent session, so the reviewer does not share the author's context.
+
+[stages.define]
+goal = """\
+Interview the driver about the intent, then fill in the Work's contract from \
+its template and check it with `wio contract check`."""
+tags = ["contract"]
+roots = ["contract"]
+
+[stages.review-contract]
+goal = """\
+Judge the contract against the driver's intent and the rules: is the outcome \
+clear, are the assumptions stated, can every criterion be assessed?"""
+tags = ["contract", "review"]
+roots = ["contract"]
+session = "fresh"
+
+[stages.split]
+goal = """\
+Split the Work into child Works when it holds several independently \
+deliverable outcomes, and move it to the leaf or parent template."""
+tags = ["contract"]
+roots = ["contract"]
+
+[stages.architecture]
+goal = "Write the typed boundaries and the test stubs the contract needs."
+tags = ["architecture", "testing"]
+
+[stages.architecture-review]
+goal = "Judge the typed boundaries and test stubs against the contract."
+tags = ["architecture", "testing", "review"]
+session = "fresh"
+
+[stages.wiring]
+goal = "Compose the boundaries into a running skeleton with stubbed leaves."
+tags = ["wiring", "testing"]
+
+[stages.wiring-review]
+goal = "Judge the wired skeleton against the contract and the boundaries."
+tags = ["wiring", "testing", "review"]
+session = "fresh"
+
+[stages.implementation]
+goal = "Implement the stubbed leaves until the tests and checks pass."
+tags = ["implementation", "testing"]
+
+[stages.implementation-review]
+goal = "Judge the implementation against the contract."
+tags = ["implementation", "testing", "review"]
+session = "fresh"
+
+[stages.integration]
+goal = """\
+Join the delivered children and add the tests for the parent's system-level \
+criteria."""
+tags = ["integration", "testing"]
+
+[stages.system-review]
+goal = "Judge the integrated result against the parent's criteria."
+tags = ["integration", "testing", "review"]
+session = "fresh"
+
+[presets]
+define-feature = ["define", "review-contract", "split"]
+typed-boundary = [
+    "architecture",
+    "architecture-review",
+    "wiring",
+    "wiring-review",
+    "implementation",
+    "implementation-review",
+]
+integrate = ["integration", "system-review"]

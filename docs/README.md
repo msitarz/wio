@@ -11,5 +11,9 @@
 - [Glossary](../GLOSSARY.md): the terms used across the project.
 - [Test strategy](../tests/README.md): test layers, the acceptance-test DSL and
   conventions.
-- [Work templates](../.agents/wio/templates): the leaf and parent templates
-  used to write Work contracts.
+- [This repository's config](../.agents/wio/config.toml): the roots, types,
+  actions, stages and presets wio's own development uses.
+- [Work templates](../.agents/wio/templates): the draft, leaf and parent
+  templates used to write Work contracts.
+- [Contracts ruleset](../.agents/wio/rules/contracts): the rules for writing
+  and reviewing Work contracts.
