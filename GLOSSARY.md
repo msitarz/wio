@@ -15,7 +15,7 @@ commit messages.
 | Metadata block | The TOML at the top of a contract, template or rule, in a hidden comment or between `+++` lines. |
 | Directive | A `wio:` instruction in an HTML comment on a template heading, such as `required` or `inherit`. |
 | Dependency | A Work id in `depends_on`: that Work must be delivered first. |
-| Action | A named kind of work done on a Work, such as `define` or `deliver`. Declared in the config with a description, the actions it comes after, and whether it is on demand; none are built in. Its pipeline is a preset or a list of stages. |
+| Action | A named kind of work done on a Work, such as `define` or `deliver`. Declared in the config with a description, the actions it comes after, what invalidates its work, and whether it is on demand; none are built in. Its pipeline is a preset or a list of stages. |
 | Config | The `.agents/wio/config.toml` file: types, actions, roots, stages, presets, tags, results, the rules chosen from each ruleset, skill directories, the trailer reader, and bundle settings. |
 | Root | A named set of directories (its `paths`) bound to one toolchain and its rulesets. Works and stages refer to it by name. |
 | Ruleset | A reusable collection of rule files with a `ruleset.toml` manifest. Bound to roots, and its rules chosen, by the repo's config. |

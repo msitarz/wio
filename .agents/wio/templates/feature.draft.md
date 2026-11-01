@@ -14,7 +14,7 @@ depends_on = []
 # <Work name>
 
 <!--
-A draft holds an intent in a few lines. Its define action turns it into a
+A draft holds an intent in a few lines. Its define stage turns it into a
 feature.leaf or a feature.parent contract and switches `template`.
 -->
 

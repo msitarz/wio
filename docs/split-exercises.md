@@ -42,11 +42,11 @@ has five child Works:
   context-command/   id x6c1ne   wires inputs to a printed bundle   depends_on s9t2wy, d4r8hz
 ```
 
-After the parent is defined and split, each child is created from the entry
-template: an id, a template, a title and a seed sentence, and the roots when the
-split already knows them. The entry template requires little, so the children
-pass `wio contract check` before they are defined. The parent declares no
-roots, so its roots are the union of its children's roots.
+After the parent is defined, which includes its split, each child is created
+from the entry template: an id, a template, a title and a seed sentence, and the
+roots when the split already knows them. The entry template requires little, so
+the children pass `wio contract check` before they are defined. The parent
+declares no roots, so its roots are the union of its children's roots.
 
 **Inherited by every leaf:** the parent's Constraints (the same inputs give
 identical bytes; an unknown Work or stage fails loudly and never yields an empty
@@ -191,7 +191,9 @@ and a new overarching outcome appears. wio does not care which.
 ### What exercise 3 showed
 
 1. Define and deliver are enough. The restructuring commit records
-   `Wio-Action: define` with `Wio-Stage: split`.
+   `Wio-Action: define` with `Wio-Stage: define`: a restructure is the Work
+   being defined again. Its record makes `review-contract` stale, and, through
+   `invalidated_by`, the Work's delivery too.
 2. Invariants do the work afterwards: the new template's sections are present,
    dependency ids exist, and there are no cycles. A child that depends on its
    own parent is a cycle, because the parent waits for its children.

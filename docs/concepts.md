@@ -166,12 +166,12 @@ and the human decides. The decision has three outcomes:
   deleted by the commit of the last stage it belongs to, and carries that
   stage's record.
 - **Amend**: change the acceptance criteria or assumptions, then rework whatever
-  depended on them. In this repository's config an amendment runs through the
-  `define` action, and because `deliver` comes `after` it, the delivered stages
-  become stale (section 5).
+  depended on them. In this repository's config an amendment runs through an
+  on-demand action of its own, `amend`, which `deliver` lists in
+  `invalidated_by`, so the delivered stages become stale (section 5).
 - **Ratify**: update the contract to match what was built, without reworking
-  anything. It runs through an action of its own, `ratify`, that `deliver` does
-  not list in `after`, so nothing becomes stale.
+  anything. It runs through an on-demand action of its own, `ratify`, that
+  `deliver` does not list in `invalidated_by`, so nothing becomes stale.
 
 Ratify is the cheap option and the one to watch. Used too often, it turns the
 contract from a statement of intent into a log of what happened. Giving it its
@@ -234,7 +234,13 @@ A contract created from a template therefore has exactly the shape the template
 describes, and the agent that fills it in sees that shape. `wio contract
 template <name>` prints that prepared skeleton without creating a Work, so a
 skill can name a template and show it to the agent without knowing which file
-holds it.
+holds it. That skeleton carries no `id`: pasted as it is, it fails
+`wio contract check`, and the output is the same on every run. With
+`--work <id>`, it is the skeleton for that existing Work: `template` is the
+requested template, and the Work's own metadata (its `id`, `roots`,
+`depends_on` and the actions it overrides) is carried over, with the new
+template's defaults for any other key. A define stage that moves a Work to
+another template uses `--work`, so the Work keeps its id and its records.
 
 ### Types and entry templates
 
@@ -259,8 +265,8 @@ draft to a leaf or a parent, is a procedure of the stages that define it. wio
 does not know about it. It only checks the result. So a type's templates and
 the skills of its define stages are written together, as one package: the
 skills know which templates the type has, name them, and print them with
-`wio contract template`, and the agent rewrites the contract in the chosen
-shape. wio does not rewrite contracts itself.
+`wio contract template <name> --work <id>`, and the agent rewrites the contract
+in the chosen shape. wio does not rewrite contracts itself.
 
 `wio config check` fails when a type's entry template does not exist or has
 another type, and when a template or a rule names a type that is not declared.
@@ -470,12 +476,14 @@ description = "Update a contract to match what was built, without reworking anyt
 ```
 
 `wio next` never proposes an on-demand action; the driver runs it on purpose.
-Its records count like any other's, so an action that lists it in `after`
-becomes stale after it. `wio contract show` marks it. The default is `false`.
+That is all `on_demand` means. Its records count like any other's, so an action
+that lists it in `invalidated_by` becomes stale after it, and listing it in
+`after` is an error, because an order with an action that is never proposed
+could not happen. `wio contract show` marks it. The default is `false`.
 
-`define`, `deliver` and `ratify` are the actions this repository uses, and they
-are only examples. Nothing in the engine sets one action apart from another,
-so a project can add as many as it needs.
+`define`, `deliver`, `amend` and `ratify` are the actions this repository uses,
+and they are only examples. Nothing in the engine sets one action apart from
+another, so a project can add as many as it needs.
 
 An action's **pipeline** is either a **preset** (an ordered list of stages, by
 preset id) or a list of **stage names**. In both, some stages may be gates.
@@ -532,10 +540,10 @@ else. Every proposal says so in one fixed line.
 
 - Actions are considered in the order that `after` gives: an action comes after
   the actions it lists, and actions with no relation between them are ordered by
-  name, so the order never depends on how the config file is laid out. A cycle
-  in `after` is an error in `wio config check`. On-demand actions are never
-  proposed. The proposal is the first stage, in the first action, that is not
-  current.
+  name, so the order never depends on how the config file is laid out. `after`
+  means order and nothing else. A cycle in `after` is an error in
+  `wio config check`. On-demand actions are never proposed. The proposal is the
+  first stage, in the first action, that is not current.
 - A stage is **current** when it has a record, and its latest record is newer
   than the latest record of every earlier stage in the same pipeline. When an
   earlier stage is done again after a back-edge, the stages after it stop being
@@ -544,22 +552,30 @@ else. Every proposal says so in one fixed line.
   finished (section 11). So after the first commit of a stage, `wio next`
   proposes the stage after it. Whether the work is really done is the driver's
   call, and the next gate's result is the only judgement the history holds.
-- An action can declare that it comes **after** others:
+- An action can declare what **invalidates** its work:
 
   ```toml
   [actions.deliver]
   after = ["define"]
+  invalidated_by = ["define", "amend", "@children:deliver"]
   ```
 
   A stage of such an action is current only if its latest record is also newer
-  than the latest record of every action in `after`. An amendment through
-  `define` therefore makes every `deliver` stage stale, and `wio next` proposes
-  delivery again from its first stage. This is coarse: it cannot tell which
-  stages an amendment really affects, and the driver can skip ahead. Tracking
-  criteria could make it finer later. Without `after`, actions do not affect
-  each other. `after` therefore means both "propose this one later" and "redo
-  this one when that one changes", which go together: what must come first
-  invalidates what follows it.
+  than the latest record of everything in `invalidated_by`:
+  - a plain name is that action of the same Work, on demand or not;
+  - `@children:<action>` is that action on any descendant of the Work, at any
+    depth, so a parent's delivery becomes stale when one of its children is
+    delivered again;
+  - `@dependencies:<action>` is that action on the Works in `depends_on`.
+
+  An amendment therefore makes every `deliver` stage stale, and `wio next`
+  proposes delivery again from its first stage. This is coarse: it cannot tell
+  which stages a change really affects, and the driver can skip ahead. Tracking
+  criteria could make it finer later. `invalidated_by` implies no order and
+  `after` implies no staleness, so `deliver` lists `define` in both, because it
+  is ordered after definition and also redone after it. Without
+  `invalidated_by`, nothing invalidates an action. Names that start with `@`
+  are reserved, as in `@work`, so they cannot clash with an action's name.
 - Only stages in the Work's current pipeline count. Records of a stage that the
   pipeline no longer contains are ignored, for example after a leaf is promoted
   to a parent with a different pipeline.
@@ -591,7 +607,9 @@ on, and they do not judge how a workflow is built:
   action; it is not an empty pipeline. An outcome with nothing to deliver
   belongs in the ticketing system, not in the repository.
 - Every action name, preset id and stage name in a template or a contract
-  exists, `after` has no cycle, and every stage's skill can be found.
+  exists, `after` has no cycle and names no on-demand action, the names in
+  `invalidated_by` are declared actions with a known prefix, and every stage's
+  skill can be found.
 - Every root a contract or a stage names is a root in the config.
 - Every `depends_on` id exists, and there are no cycles.
 - No stage appears twice in one pipeline. Records key on the Work, the action
@@ -721,8 +739,9 @@ There is no gate object to learn and no approval flag, only stages marked
 ### What a good gate looks like
 
 - It looks at the **exact revision** that was produced. A reviewer pinned to a
-  commit cannot be fooled by later edits. The `review` event records that
-  commit (section 11).
+  commit cannot be fooled by later edits. The `context` event of a gate session
+  records the commit the review starts from, and the `review` event records the
+  commit that was judged, so a change in between is visible (section 11).
 - It is done by someone other than the author, or by the human.
 - It judges the artifact against the contract. The contract is the standard, the
   code is the subject.
@@ -1178,17 +1197,21 @@ present exactly when the stage is a gate, and the stage is in the Work's
 actions (a warning, as in `wio context`). A Work found only in `HEAD` is one
 that the change being committed deletes, so the commit that retires or
 abandons a Work still carries its record, and its criteria are checked against
-`HEAD`'s contract. With `--result` it also writes the
-`review` event to the event log, with the items `--cite` names (such as
-`--cite ARC001=fail --cite AC-2=pass`) and `HEAD` as the reviewed commit,
-because the review's own commit does not exist yet. A reviewer records
-everything with one command. That relies on two things: the artifact under
-review is committed, and the reviewed commit is the one before the gate's first
-commit. So `wio trailers --result` warns when the working tree has uncommitted
-changes, and when `HEAD` already carries a record of the same gate, because then
-`HEAD` is the reviewer's own commit and not the artifact. A gate that takes
-several commits records its result on each of them, because only the latest
-record counts, and each call writes a `review` event, of which the latest wins.
+`HEAD`'s contract.
+
+With `--result` it also writes the `review` event to the event log, with the
+items `--cite` names (such as `--cite ARC001=fail --cite AC-2=pass`), so a
+reviewer records everything with one command. The **reviewed commit** is worked
+out from the history: starting at `HEAD`, wio skips the commits that carry a
+record of this gate (the same Work, action and stage), and the first other
+commit is the artifact. So every call of a gate that takes several commits finds
+the same commit, and a gate records its result on each of its commits, because
+only the latest record counts. `--reviewed <sha>` overrides the rule, for
+example for a review of an older commit. `wio trailers --result` warns when the
+commit it works out differs from the one this session's `context` event
+recorded, because then the artifact changed while it was under review, and
+when the review started on a tree with uncommitted changes, because then no
+commit holds all of what was judged.
 
 `wio trailers check` reads a commit message or a pull request body and checks
 the shape of every record in it: the keys, the id's form, action and stage names
@@ -1247,7 +1270,9 @@ command, a failure is only a warning, and it can be turned off. In v0.1 it
 records two events:
 
 - `context`: a session started a stage, with the Work, action, stage, bundle
-  id, size, rule codes, the harness and the session id. A second event with the
+  id, size, rule codes, the harness and the session id. For a gate, it also
+  records `HEAD` and whether the working tree had uncommitted changes: the
+  commit the review starts from. A second event with the
   same session, Work, action and stage is the bundle being injected again, after
   a compaction or an amendment, not a new stage. Its bundle id says whether the
   context changed.
@@ -1285,7 +1310,7 @@ possible preset is the typed-boundary flow, and a template binds it to the
 
 ```toml
 [presets]
-define-feature = ["define", "split", "review-contract"]
+define-feature = ["define", "review-contract"]
 typed-boundary = [
   "architecture",         # typed signatures and test stubs
   "architecture-review",
