@@ -1,5 +1,5 @@
 <!-- wio
-code = "ACC010"
+code = "ACC006"
 name = "parent-criteria-are-system-level"
 tags = ["contract"]
 -->

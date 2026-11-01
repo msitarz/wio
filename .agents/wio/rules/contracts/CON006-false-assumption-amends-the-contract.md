@@ -1,5 +1,5 @@
 <!-- wio
-code = "CON007"
+code = "CON006"
 name = "false-assumption-amends-the-contract"
 tags = ["contract"]
 -->

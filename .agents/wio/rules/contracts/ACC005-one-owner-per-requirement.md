@@ -1,5 +1,5 @@
 <!-- wio
-code = "ACC009"
+code = "ACC005"
 name = "one-owner-per-requirement"
 tags = ["contract"]
 -->

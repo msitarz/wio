@@ -1,5 +1,5 @@
 <!-- wio
-code = "ACC004"
+code = "ACC003"
 name = "state-the-boundaries"
 tags = ["contract"]
 -->

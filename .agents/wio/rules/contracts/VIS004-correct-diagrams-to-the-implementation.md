@@ -1,5 +1,5 @@
 <!-- wio
-code = "VIS005"
+code = "VIS004"
 name = "correct-diagrams-to-the-implementation"
 tags = ["contract"]
 -->

@@ -1,5 +1,5 @@
 <!-- wio
-code = "ACC005"
+code = "ACC004"
 name = "give-interfaces-with-types"
 tags = ["contract"]
 -->

@@ -1,5 +1,5 @@
 <!-- wio
-code = "CST007"
+code = "CST004"
 name = "parents-state-concepts-and-invariants"
 tags = ["contract"]
 -->

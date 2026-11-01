@@ -1,5 +1,5 @@
 <!-- wio
-code = "CON006"
+code = "CON005"
 name = "assumptions-have-ids"
 tags = ["contract"]
 -->

@@ -16,7 +16,8 @@ depends_on = []
 
 <!--
 Write each section for the rules this stage's bundle lists.
-Delete a section that has nothing to say, unless it is required.
+Delete a section or a heading that has nothing under it, unless it is
+required.
 -->
 
 ## Purpose <!-- wio: required -->

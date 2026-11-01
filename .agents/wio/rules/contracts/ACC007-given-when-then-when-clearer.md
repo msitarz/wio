@@ -1,5 +1,5 @@
 <!-- wio
-code = "ACC012"
+code = "ACC007"
 name = "given-when-then-when-clearer"
 tags = ["contract"]
 -->
