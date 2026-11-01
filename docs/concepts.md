@@ -501,7 +501,7 @@ deliver = ["implementation"]
 ```
 
 This is how a small leaf skips the stages a large parent needs: its delivery is
-shorter, and its `define` action, used to amend it, is still the template's. An
+shorter, and its `define` and `amend` actions are still the template's. An
 empty list removes an action from the Work, such as `define = []`, and a
 contract can add an action the template does not have, as long as the config
 declares it. A contract's `[actions]` customizes its pipelines and has no other
@@ -759,6 +759,12 @@ Three outcomes, all of which are normal:
   contract or split the Work.
 - **Contract change**: the intent was wrong. See section 2.
 
+The gate records one of the results the config declares, and the result only
+says how the artifact fared. In this repository's vocabulary `pass` means the
+next stage can start, `fail` means it cannot, and `unknown` means the gate could
+not judge. After a `fail`, whether the work goes back to an earlier stage or
+the contract changes is the driver's decision, which no record states.
+
 ### What the engine enforces
 
 In v0.1, the engine describes gates and the driver honors them. `wio context`
@@ -829,7 +835,9 @@ Rules are selected by the root the stage edits:
 - If the stage selects the Work's roots, without `roots` or through `@work`,
   and the Work has none, `wio context` fails loudly, whatever other roots the
   list names. A Work that skipped its definition fails the moment it is
-  delivered, and a Work being defined never reaches this case. An empty `@work`
+  delivered. A stage that runs while roots are still being decided, such as a
+  review of a parent whose children have no roots yet, should not select
+  `@work`, or it fails too. An empty `@work`
   that adds nothing would hide exactly that mistake behind the other roots'
   rules. A form for "the Work's roots, if any" can come later if a stage needs
   one.
@@ -1208,7 +1216,8 @@ commit is the artifact. So every call of a gate that takes several commits finds
 the same commit, and a gate records its result on each of its commits, because
 only the latest record counts. `--reviewed <sha>` overrides the rule, for
 example for a review of an older commit. `wio trailers --result` warns when the
-commit it works out differs from the one this session's `context` event
+commit it works out differs from the one recorded by this session's first
+`context` event for the gate, which is where the review started,
 recorded, because then the artifact changed while it was under review, and
 when the review started on a tree with uncommitted changes, because then no
 commit holds all of what was judged.
@@ -1249,11 +1258,16 @@ reader = "scan"
 
 - `scan` (the default) reads every paragraph in which every line is a
   `Key: value` trailer and some key starts with `Wio-`, anywhere in the message,
-  outside fenced code blocks. The code blocks are skipped because a message
-  often quotes example records, like this document does.
+  outside fenced code blocks and leaving out lines that start with `#`. The code
+  blocks are skipped because a message often quotes example records, like this
+  document does, and the `#` lines are git's comments, which a commit-msg hook
+  still sees before git removes them.
 - `git` uses git's own trailer parsing (`git log --format=%(trailers)`), for
   workflows that keep records in the last paragraph: rebase merges, merge
-  commits, or squash merges with an explicit message.
+  commits, or squash merges with an explicit message. Git parses only the last
+  paragraph, so a message can hold one record under this reader, and
+  `wio trailers check` fails a message with more than one when the reader is
+  `git`, because all but the last would be invisible.
 
 The two can disagree on edge cases. Git accepts a last paragraph that is only
 partly trailers when it contains a trailer git generated itself, and `scan`
@@ -1263,11 +1277,11 @@ third reader, later.
 ### The event log
 
 An append-only JSONL file stored in the user's data directory, one file per
-repo. It holds ids, hashes and codes only, no prompts, no code and no free
-text. It is personal to one machine, so the history answers "what was done"
-for everyone, and the log answers "what I started". Writing it never blocks a
-command, a failure is only a warning, and it can be turned off. In v0.1 it
-records two events:
+repo. It holds ids, hashes, codes, times and the working directory, and no
+prompts, no code and no free text. It is personal to one machine, so the history
+answers "what was done" for everyone, and the log answers "what I started".
+Writing it never blocks a command, a failure is only a warning, and it can be
+turned off. In v0.1 it records two events:
 
 - `context`: a session started a stage, with the Work, action, stage, bundle
   id, size, rule codes, the harness and the session id. For a gate, it also
