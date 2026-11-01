@@ -10,7 +10,7 @@ tags = [
     "contract",        # writing and reviewing Work contracts
     "amend",           # amending a defined contract
     "ratify",          # ratifying a contract to what was built
-    "delivery",        # every stage of the deliver action
+    "delivery",        # the authoring stages of the deliver action
     "review",          # judging another stage's artifact
     "architecture",    # typed boundaries and test stubs
     "wiring",          # a composed skeleton with stubbed leaves
@@ -66,7 +66,7 @@ on_demand = true
 description = """\
 Update a contract to match what was built, without reworking anything, such as \
 correcting a diagram or a criterion's wording after the implementation showed \
-the better form. A change of intent is an amendment, through define."""
+the better form. A change of intent is an amendment, through amend."""
 
 [[roots]]
 name = "contract"
@@ -93,10 +93,15 @@ rulesets = ["contract-upkeep"]
 # contract true.
 
 [stages.define]
-# The wio-define skill: interview the driver, capture the intent in the draft,
-# choose leaf or parent, rewrite the contract in that template with
-# `wio contract template <name> --work <id>`, create a parent's children, check.
-skill = "wio-define"
+# The wio-define skill takes over this goal once it exists; until then the goal
+# carries its steps, so this config passes its own check.
+goal = """\
+Interview the driver and capture the intent in the draft's Purpose and Intent. \
+Decide whether the Work is a leaf or a parent, print that template with \
+`wio contract template <name> --work <id>`, rewrite the contract in its shape, \
+and ask the driver for anything still missing. For a parent, create its \
+children with `wio contract new feature --parent <id> --title <title>`. Check \
+the result with `wio contract check`."""
 tags = ["contract"]
 roots = ["contract"]
 
@@ -128,7 +133,7 @@ gate = true
 goal = """\
 Judge the typed boundaries and test stubs against the contract, and record \
 the result with `wio trailers --result`."""
-tags = ["architecture", "testing", "review", "delivery"]
+tags = ["architecture", "testing", "review"]
 session = "fresh"
 
 [stages.wiring]
@@ -140,7 +145,7 @@ gate = true
 goal = """\
 Judge the wired skeleton against the contract and the boundaries, and record \
 the result with `wio trailers --result`."""
-tags = ["wiring", "testing", "review", "delivery"]
+tags = ["wiring", "testing", "review"]
 session = "fresh"
 
 [stages.implementation]
@@ -152,7 +157,7 @@ gate = true
 goal = """\
 Judge the implementation against the contract, and record the result \
 with `wio trailers --result`."""
-tags = ["implementation", "testing", "review", "delivery"]
+tags = ["implementation", "testing", "review"]
 session = "fresh"
 
 [stages.integration]
@@ -166,7 +171,7 @@ gate = true
 goal = """\
 Judge the integrated result against the parent's criteria, and record the \
 result with `wio trailers --result`."""
-tags = ["integration", "testing", "review", "delivery"]
+tags = ["integration", "testing", "review"]
 session = "fresh"
 
 [stages.ratify]
