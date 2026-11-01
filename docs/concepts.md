@@ -746,7 +746,9 @@ Adapters return typed results, not raw dicts.
 Why: a dict hides the contract from the type checker, so drift appears at runtime.
 ```
 
-The first line of the body is the rule's summary, and the rest is its reason.
+The first paragraph of the body is the rule's summary, and the rest is its
+reason. A paragraph rather than a line, so Markdown formatters can wrap a long
+summary.
 
 Rules are atomic so they can be combined freely. A long guidance document cannot
 be filtered, but forty small rules can be filtered down to the seven that matter
@@ -767,7 +769,7 @@ sessions for its roots, not everyone who opens the repository with an agent.
 
 Rules are identified the way linter rules are. A rule has a **code**, such as
 `ARC001`, a **name**, such as `adapters-return-typed-results`, and a one-line
-summary (the first line of its body). The letters of the code are its
+summary (the first paragraph of its body). The letters of the code are its
 **family**, which groups rules by topic.
 
 - A ruleset declares its families and owns their prefixes. `wio rule new`

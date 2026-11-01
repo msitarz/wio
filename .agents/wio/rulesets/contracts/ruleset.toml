@@ -1,0 +1,10 @@
+# The rules for writing and reviewing Work contracts. The config binds this
+# ruleset to the `contract` root, so define and review-contract sessions get it.
+name = "contracts"
+description = "How to write and review Work contracts."
+
+[families]
+CON = "Contract sections"
+ACC = "Acceptance criteria"
+CST = "Constraints"
+VIS = "Visuals"
