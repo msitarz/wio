@@ -34,7 +34,9 @@ Single tools, for quick feedback:
 - `uv run pyrefly check`: strict type check of `scripts`, `src` and `tests`.
 - `uv run complexipy src tests`: cognitive complexity.
 - `uv run jscpd src tests`: duplicate code.
-- `uv run rumdl check --fix`: lint and format Markdown.
+- `uv run rumdl check --fix`: lint and format Markdown, and check that every
+  Mermaid block renders (`scripts/check_mermaid.py`). A diagram that renders
+  can still be wrong.
 - `uv add <package>` or `uv add --dev <package>`: change dependencies. Never
   edit `uv.lock` by hand.
 
