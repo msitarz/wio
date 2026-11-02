@@ -33,8 +33,7 @@ directory and its descendants; a ratify then replaces this section with links.
   of them is a component.
 - **Port**: a `typing.Protocol` declared in a `.pyi` stub, saying what a package
   needs from the outside.
-- **Adapter**: the implementation of a port, one per port for now; real
-  adapters are imported only by `cli`, and fakes live in the tests.
+- **Adapter**: the implementation of a port, one per port for now.
 - **Command**: the object a component exposes to the command line, with a name,
   a help text, a function that configures its argparse subparser and a function
   that runs it.
@@ -63,24 +62,21 @@ directory and its descendants; a ratify then replaces this section with links.
 
 ## Mechanisms
 
-- `tach check`, configured in `tach.toml`, enforces the dependency table
-  between the `.py` code of the packages of `src/wio`.
-- A `prek` hook runs `tach check`, so `make lint`, `make check` and the
-  continuous integration cover it.
+- `tach check` enforces the dependency direction between the `.py` code of the
+  packages of `src/wio`.
 - `typing.Protocol` classes in `.pyi` stubs declare the ports, and `pyrefly
   check` verifies that their names and signatures resolve.
-- `argparse` subparsers, one per command, and Python 3.15 `lazy from ... import`
-  in `wio.cli`, which each component's Work adds with its command.
-- `pytest.mark.xfail(strict=True)` marks the scenario that waits for the `cli`
-  package.
+- `argparse` subparsers, one per command.
+- Python 3.15 `lazy from ... import` in `wio.cli`, which each component's Work
+  adds with its command.
 
 ## Constraints
 
 - **Dependency direction**: `wio.models` imports nothing else from `wio`;
   `wio.formats` and `wio.io` import only `wio.models`; a component imports only
-  `wio.models`, `wio.formats` and the ports of `wio.io`; `wio.cli` is the only
-  package that imports the commands of the components and the adapters in
-  `wio.io.adapters`.
+  `wio.models`, `wio.formats` and the ports of `wio.io`; the adapters in
+  `wio.io.adapters` import only `wio.io` and `wio.models`; `wio.cli` is the only
+  package that imports the commands of the components and the adapters.
 - **No component imports another component.** They meet only in `wio.cli`, which
   gives each the implementation of the ports it consumes.
 - **Ports are owned by their consumer**, declared in `<package>/ports.pyi`,
@@ -92,12 +88,18 @@ directory and its descendants; a ratify then replaces this section with links.
   replaces it**: that Work writes a `.py` with the same annotations and
   docstrings and deletes the stub, while a port stays a `.pyi` for good.
 - **One adapter per port.** An extra adapter needs a reason that the contract of
-  the Work that adds it states.
+  the Work that adds it states, and fakes of ports live under `tests`, not in
+  `src`.
 - **Components reach the filesystem, standard streams, git and the environment
-  only through the ports of `wio.io`.** The architecture review of each Work
-  verifies it, because no tool checks it yet.
+  only through the ports of `wio.io`.**
 - **A dependency that exists only for a type is still a dependency**, so tach is
   set to count `TYPE_CHECKING` imports.
+- **Verification.** Tach checks the dependency direction and the use of
+  `TYPE_CHECKING` imports in `.py` code. The architecture review of each Work
+  verifies the rest, because no tool checks it yet: port ownership, the
+  `TYPE_CHECKING`-only import of every port stub (a `.pyi` has no runtime
+  module), the stub lifecycle, one adapter per port and the access to the
+  outside world.
 
 ## Visuals
 
@@ -129,30 +131,33 @@ flowchart LR
 ```
 
 After: layers with one direction, one hook that checks them, and the test
-setup that drives the command. The bold boxes replace `cli.py` and its test.
+setup that drives the command. Bold boxes are added by this Work, and `cli`
+also replaces `cli.py`. The six component packages are bold too, as empty
+packages. The dotted edge is the one the components' own Works add.
 
 ```mermaid
 flowchart LR
     subgraph src_wio["src/wio"]
         cli["wio.cli (composition root)"]:::new
         subgraph components
-            config
-            contract
-            rule
-            trailers
-            log
-            context
+            config:::new
+            contract:::new
+            rule:::new
+            trailers:::new
+            log:::new
+            context:::new
         end
         adapters["wio.io.adapters"]:::new
         io["wio.io (ports)"]:::new
         formats["wio.formats (codecs)"]:::new
         models["wio.models (shared types)"]:::new
-        cli -- "lazy import of commands" --> components
+        cli -. "lazy import of commands, later" .-> components
         cli --> adapters
         cli --> io
         cli --> formats
         cli --> models
         adapters --> io
+        adapters --> models
         components -- "ports" --> io
         components --> formats
         components --> models
@@ -168,17 +173,15 @@ flowchart LR
 
 ### **AC-1** The delivered foundation passes every check
 
-With every child Work delivered, `make check` and `make slow` pass, the
-dependency check and the type check are among the hooks they run, and the
-scenario for the bare `wio` command is reported as expected to fail.
+With every child Work delivered, the repository's two gates, `make check` and
+`make slow`, both pass; what each child establishes in them is stated in the
+child.
 
 #### The whole tree
 
 - **Given** the tree with every child Work delivered.
 - **When** `make check` runs, and then `make slow`.
-- **Then** both exit 0, the output lists the `tach check` and `pyrefly check`
-  hooks as passed, and the bare-`wio` scenario is reported as xfailed, once in
-  each run.
+- **Then** both exit 0.
 
 ### **AC-2** The layout and the dependency rules describe the same packages
 

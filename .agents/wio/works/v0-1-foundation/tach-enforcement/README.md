@@ -26,7 +26,6 @@ breaks it, so the repository's own gates must run one.
 - Checking the imports inside `.pyi` files, which tach cannot read.
 - Enabling the `--tach` pytest plugin, which skips tests and enforces nothing.
 - Constraining `tests`, `scripts` or any directory other than `src/wio`.
-- Committing a test for a forbidden import.
 
 ## Assumptions
 
@@ -43,20 +42,25 @@ breaks it, so the repository's own gates must run one.
 - `tach.toml` at the repository root, with `source_roots = ["src"]`, a
   `[[modules]]` entry per package of `src/wio` and its `depends_on`, and
   `exact = false`.
-- `ignore_type_checking_imports = false`, because ports are imported only under
-  `TYPE_CHECKING`.
+- `ignore_type_checking_imports = false` in `tach.toml`, because ports are
+  imported only under `TYPE_CHECKING`.
 - A nested module `wio.io.adapters` with `visibility = ["wio.cli"]`, so only
   `wio.cli` can import an adapter.
 - A local hook in `prek.toml` named `tach check`, running `uv run tach check`
   with `pass_filenames = false` on changes to `src/**/*.py`, `tach.toml` and
   `pyproject.toml`.
 
+## Constraints
+
+- A change of the locked `tach` version repeats the trials of AC-2 to AC-5
+  before it merges, because the contract commits no test for them.
+
 ## Acceptance criteria
 
 ### **AC-1** Every module has the allowed dependencies
 
-`tach.toml` declares these modules with these `depends_on`, and a clean tree
-passes the check.
+`tach.toml` encodes the parent's dependency direction as the table below, and a
+clean tree passes the check.
 
 | Module | May depend on |
 | --- | --- |
@@ -79,7 +83,8 @@ fails `tach check` and names both modules.
 
 #### A forbidden import
 
-- **Given** a `.py` module in `wio.rule` that imports `wio.config`.
+- **Given** a `.py` module in `wio.rule` that imports `wio.config`, added
+  locally by the reviewer and not committed.
 - **When** `uv run tach check` runs.
 - **Then** it exits non-zero and its output names `wio.rule` and `wio.config`.
 
@@ -90,7 +95,7 @@ A dependency that exists only under `TYPE_CHECKING` is checked like any other.
 #### A forbidden type-only import
 
 - **Given** a `.py` module in `wio.models` that imports `wio.io` under
-  `TYPE_CHECKING`.
+  `TYPE_CHECKING`, added locally by the reviewer and not committed.
 - **When** `uv run tach check` runs.
 - **Then** it exits non-zero and its output names `wio.models` and `wio.io`.
 
@@ -101,7 +106,8 @@ names both modules.
 
 #### A component importing an adapter
 
-- **Given** a `.py` module in `wio.rule` that imports `wio.io.adapters`.
+- **Given** a `.py` module in `wio.rule` that imports `wio.io.adapters`, added
+  locally by the reviewer and not committed.
 - **When** `uv run tach check` runs.
 - **Then** it exits non-zero and its output names `wio.rule` and
   `wio.io.adapters`.
@@ -120,13 +126,18 @@ it, and a violation fails them.
 
 #### A violation fails lint
 
-- **Given** the forbidden import of AC-2.
+- **Given** the forbidden import of AC-2, added locally by the reviewer.
 - **When** `make lint` runs.
 - **Then** it exits non-zero and the `tach check` hook is reported as failed.
+
+#### The command is documented
+
+- **Given** the delivered tree.
+- **When** the commands list of `AGENTS.md` is read.
+- **Then** it lists `uv run tach check`.
 
 ## Additional context
 
 - The [parent Work](../README.md) states the dependency direction that this Work
-  implements, and its first assumption is the gap with the stubs.
-- The scenarios with a forbidden import are tried locally by the reviewer of
-  this Work and are not committed.
+  implements, its first assumption is the gap with the stubs, and its Non-Goals
+  say why the trials are not committed.

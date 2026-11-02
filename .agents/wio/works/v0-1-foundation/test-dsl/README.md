@@ -17,7 +17,13 @@ channels and one working example must exist before the first component.
 - A scenario can reach `wio` through the same domain verbs on two channels.
 - One scenario shows the shape of an acceptance test, and waits for the `cli`
   package.
+- A scenario cannot touch the developer's own state.
 - The test strategy document says what the channels are for.
+
+## Glossary
+
+- **Test driver**: the object that reaches `wio` for a scenario, on one channel;
+  it is not the engine's Driver, which advances a Work.
 
 ## Non-Goals
 
@@ -30,8 +36,9 @@ channels and one working example must exist before the first component.
 ## Assumptions
 
 - **A-1**: The console script that the skeleton installs is next to the Python
-  executable in the environment, so the CLI driver can run it without a shell.
-- **A-2**: Running the bare command writes no file, so the repository the
+  executable in the environment, so the CLI test driver can run it without a
+  shell.
+- **A-2**: Running the bare command writes no file, so the repository the test
   drivers prepare can be an empty directory.
 - **A-3**: Bare `wio` is meant to print the `description` of `pyproject.toml` on
   standard output and exit 0, which the scope document does not state, and the
@@ -39,24 +46,30 @@ channels and one working example must exist before the first component.
 
 ## Mechanisms
 
-- `tests/acceptance/dsl/wio.py`, the `Wio` facade, with the verb `help()`.
-- `tests/acceptance/drivers/base.py`, the `WioDriver` Protocol, and the drivers
-  `in_process.py` (calls `wio.cli.main` with in-memory streams) and `cli.py`
-  (runs the `wio` command in a subprocess).
-- A `Sandbox` that each driver is built from, holding the directory under
-  `tmp_path` that `wio` runs in and the environment it sees.
+Provisional: the names and shapes of the verb, the results and the test driver
+Protocol below, which later Works extend. `tests/README.md` describes drivers
+that run an operation, and operation-shaped verbs are layered on `run(args)` as
+scenarios need them.
+
+- `tests/acceptance/dsl/wio.py`, the `Wio` facade, with the verb `bare()`.
+- `tests/acceptance/drivers/base.py`, the `WioDriver` Protocol, and the test
+  drivers `in_process.py` (calls `wio.cli.main` with in-memory streams) and
+  `cli.py` (runs the `wio` command in a subprocess).
+- `tests/acceptance/sandbox.py`, the `Sandbox` that each test driver is built
+  from, holding the directory under `tmp_path` that `wio` runs in and the
+  environment it sees.
 - `tests/acceptance/channels.py`, the `Channel` enum with the members
   `IN_PROCESS = "in_process"` and `CLI = "cli"`, and the `pytest_generate_tests`
   hook in `tests/acceptance/conftest.py` that parametrizes the `channels` marker
   and marks the CLI case `slow`.
-- `tests/acceptance/cli/test_help.py`, the file of the first scenario.
+- `tests/acceptance/cli/test_bare.py`, the file of the first scenario.
 - `pytest.mark.xfail(strict=True, raises=AssertionError)` on the scenario.
 
 ## Acceptance criteria
 
-### **AC-1** A scenario reaches wio through a facade and a driver
+### **AC-1** A scenario reaches wio through a facade and a test driver
 
-A scenario asks the facade for `help()` and gets a result, without naming a
+A scenario asks the facade for `bare()` and gets a result, without naming a
 subprocess or a function of `wio`.
 
 ```python
@@ -72,26 +85,26 @@ class WioDriver(Protocol):
 
 
 @dataclass(frozen=True)
-class Help:
+class Output:
     text: str
     exit_code: int
 ```
 
-`Wio(driver).help() -> Help` runs the driver with no arguments. Drivers return
-data and never assert.
+`Wio(driver).bare() -> Output` runs the test driver with no arguments. Test
+drivers return data and never assert.
 
-#### Both drivers return the same data
+#### Both test drivers return the same data
 
-- **Given** the in-process and the CLI driver on an empty prepared repository.
+- **Given** the in-process and the CLI test driver on an empty prepared
+  repository.
 - **When** each runs `wio` with no arguments.
-- **Then** each returns a `RunResult`, with `exit_code` 0 and an empty `stdout`
-  and `stderr` while the command prints nothing.
+- **Then** each returns a `RunResult`, and the two results are equal.
 
 #### The facade maps a result
 
-- **Given** a fake driver that returns `RunResult("usage\n", "", 0)`.
-- **When** `Wio(driver).help()` is called.
-- **Then** it returns `Help(text="usage\n", exit_code=0)`.
+- **Given** a fake test driver that returns `RunResult("usage\n", "", 0)`.
+- **When** `Wio(driver).bare()` is called.
+- **Then** it returns `Output(text="usage\n", exit_code=0)`.
 
 ### **AC-2** The channel of a scenario is chosen by a marker
 
@@ -100,10 +113,11 @@ the in-process case is fast and the CLI case is marked `slow`.
 
 #### One case per channel
 
-- **Given** a test marked with both channels.
-- **When** `uv run pytest --collect-only -m "slow or not slow"` runs.
-- **Then** it lists two cases, ids `in_process` and `cli`, and the CLI case
-  carries the `slow` marker.
+- **Given** the first scenario, which is marked with both channels.
+- **When** `uv run pytest --collect-only -q -m "slow or not slow"`, then the
+  same with `-m slow`, and then with no `-m`, run.
+- **Then** the first lists the cases with ids `in_process` and `cli`, the second
+  lists only the `cli` case, and the third lists only the `in_process` case.
 
 #### Without a marker
 
@@ -132,14 +146,14 @@ def test_bare_wio_displays_its_description(wio: Wio) -> None: ...
 #### It fails on the assertion
 
 - **Given** the scenario on either channel.
-- **When** it runs.
+- **When** it runs with `--runxfail`.
 - **Then** it fails with an `AssertionError` about the missing description, not
   with an import error or a missing command.
 
 ### **AC-4** Scenarios cannot touch the developer's own state
 
-Each driver is built from a `Sandbox` under `tmp_path`, whose environment has
-`HOME` and `XDG_DATA_HOME` inside it.
+Each test driver is built from a `Sandbox` under `tmp_path`, whose environment
+has `HOME` and `XDG_DATA_HOME` inside it.
 
 #### The sandbox
 
@@ -148,13 +162,22 @@ Each driver is built from a `Sandbox` under `tmp_path`, whose environment has
 - **Then** the root is a directory under `tmp_path`, and `HOME` and
   `XDG_DATA_HOME` in its environment are under `tmp_path`.
 
-#### Both drivers use it
+#### The CLI test driver
 
-- **Given** each driver built from a sandbox.
+- **Given** the CLI test driver built from a sandbox, with `subprocess.run`
+  replaced by a spy.
 - **When** it runs `wio`.
-- **Then** the CLI driver starts the subprocess with the sandbox's directory and
-  environment, and the in-process driver runs with the working directory and
-  `HOME` set to the sandbox's, restored afterwards.
+- **Then** the spy received the sandbox's root as the working directory and the
+  sandbox's environment.
+
+#### The in-process test driver
+
+- **Given** the in-process test driver built from a sandbox, with `wio.cli.main`
+  replaced by a function that records the working directory and the environment.
+- **When** it runs `wio`.
+- **Then** the recorded working directory is the sandbox's root, the recorded
+  `HOME` and `XDG_DATA_HOME` are the sandbox's, and both are restored
+  afterwards.
 
 ### **AC-5** The test strategy says what the channels are for
 
@@ -168,8 +191,10 @@ layout lists `tests/acceptance/cli/`.
 - **When** `tests/README.md` is read.
 - **Then** no sentence calls the CLI channel opt-in per test or limits both
   channels to where the CLI wiring matters, a sentence gives each channel's
-  role, the layout lists `tests/acceptance/cli/`, step 2 of its order of work
-  names the bare `wio` scenario, and `rumdl check` passes.
+  role, a note says that operation-shaped verbs are layered on the test driver's
+  `run(args)` as scenarios need them, the layout lists `tests/acceptance/cli/`,
+  step 2 of its order of work names the bare `wio` scenario, and `rumdl check`
+  passes.
 
 ## Additional context
 

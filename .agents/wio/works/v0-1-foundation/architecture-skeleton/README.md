@@ -18,7 +18,8 @@ neighbors, so that it can be built alone against their stubs.
 - Every interaction between a package and the outside is declared as a port in
   a `.pyi` stub.
 - The shared types that the ports mention are declared once, in `wio.models`.
-- The `wio` command is installed and dispatches through the composition root.
+- The `wio` command is installed and its entry point runs through the
+  composition root.
 - The documents and glossaries describe the architecture the stubs encode.
 
 ## Non-Goals
@@ -36,15 +37,18 @@ neighbors, so that it can be built alone against their stubs.
 - **A-1**: The `hello()` placeholder, `src/wio/cli.py` and the unit test of
   `hello` have no user, so replacing them breaks nothing.
 - **A-2**: The collaborators in the provisional table below are enough for the
-  data flows of the scope document, and the architecture stage may rename them.
+  data flows of the scope document, including that `config` and `log` consume
+  only the ports of `wio.io`, and the architecture stage may rename, add or move
+  them.
 - **A-3**: The architecture review verifies the docstrings of the stubs, because
   `ruff check` applies no docstring rule to `.pyi` files.
+- **A-4**: The real adapters for `FileSystem`, `Git` and `Environment` arrive
+  with the Work of the first component that consumes the port.
 
 ## Mechanisms
 
-- `src/wio/<package>/__init__.py` makes each package importable; it holds only
-  a module docstring, except in `cli`, where it also defines `main` and
-  `console_main`.
+- `src/wio/<package>/__init__.py` makes each package importable; its content is
+  a module docstring, and in `cli` also `main` and `console_main`.
 - `src/wio/<package>/ports.pyi` holds the `typing.Protocol` classes that
   `<package>` consumes.
 - `src/wio/io/ports.pyi` holds the ports of `wio.io`, and
@@ -55,6 +59,9 @@ neighbors, so that it can be built alone against their stubs.
   `wio = "wio.cli:console_main"`.
 - `src/wio/GLOSSARY.md` and `src/wio/cli/GLOSSARY.md` hold the terms of the
   architecture, bound to their directory and its descendants.
+- `wheel-exclude` in `[tool.uv.build-backend]` of `pyproject.toml` gains
+  `GLOSSARY.md`, and a slow test in `tests/packaging/test_build.py` checks the
+  wheel.
 
 ## Acceptance criteria
 
@@ -145,8 +152,8 @@ appears only when a port signature or a criterion of this Work reads it.
 - **Given** the delivered tree.
 - **When** the types named in every `ports.pyi` are compared with the stubs in
   `wio.models`, and the architecture review reads the stubs.
-- **Then** every type that a port names has a stub with a docstring, and no stub
-  is unused by a port.
+- **Then** every type that a port names has one stub with a docstring, and no
+  stub is unused by a port.
 
 ### **AC-5** The `wio` command is installed and runs through the composition root
 
@@ -160,6 +167,8 @@ def console_main() -> int: ...
 ```
 
 `console_main` builds `SystemStdio` and returns `main(sys.argv[1:], stdio)`.
+The two signatures are required; `main` ignores its arguments until then, and
+how the implementation satisfies the unused-argument lint is its own choice.
 `Command` in `cli/ports.pyi` has the provisional members `name: str`,
 `help: str`, `configure(parser: ArgumentParser) -> None` and
 `run(args: Namespace, stdio: Stdio) -> int`.
@@ -201,10 +210,10 @@ the directories that use them.
 - **Given** the delivered documents.
 - **When** `docs/v0.1-scope.md` is read.
 - **Then** its Overview table and its sections have no "Foundation" row or
-  heading, have one each for `wio.formats` and `wio.io`, it links to the parent
-  Work for the dependency direction instead of copying it, and its order of work
-  lists the skeleton, the tach enforcement and the test DSL before the
-  components.
+  heading, have one each for `wio.formats` and `wio.io`, the Overview table's
+  first column is not headed "Component", it links to the parent Work for the
+  dependency direction instead of copying it, and its order of work lists the
+  skeleton, the tach enforcement and the test DSL before the components.
 
 #### Scoped glossaries
 
@@ -219,7 +228,7 @@ the directories that use them.
 #### Glossaries stay out of the wheel
 
 - **Given** the wheel built from the delivered tree.
-- **When** its files are listed.
+- **When** the slow packaging test lists its files.
 - **Then** no `GLOSSARY.md` is in it, and `rumdl check` passes on every file
   this Work changed.
 
