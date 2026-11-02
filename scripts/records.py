@@ -35,7 +35,17 @@ WORK_ID = re.compile(r"^[0-9a-hjkmnp-tv-z]{6,8}$")  # lowercase Crockford base32
 CRITERIA = re.compile(r"^AC-\d+(, AC-\d+)*$")
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 RESULT = re.compile(r"^(pass|fail|unknown)$")
-KEYS = frozenset({"Wio-Work", "Wio-Action", "Wio-Stage", "Wio-Criteria", "Wio-Result"})
+JUDGE = re.compile(r"^(human|agent)$")
+KEYS = frozenset(
+    {
+        "Wio-Work",
+        "Wio-Action",
+        "Wio-Stage",
+        "Wio-Criteria",
+        "Wio-Result",
+        "Wio-Judge",
+    }
+)
 SKIPPED_SUBJECTS = (
     "Merge ",
     "Revert ",
@@ -52,6 +62,7 @@ FORMATS = (
     ("Wio-Stage", NAME, "is not a name"),
     ("Wio-Criteria", CRITERIA, "must look like `AC-1, AC-3`"),
     ("Wio-Result", RESULT, "must be one of pass, fail, unknown"),
+    ("Wio-Judge", JUDGE, "must be one of human, agent"),
 )
 
 
@@ -155,6 +166,8 @@ def _work_problems(values: dict[str, str]) -> list[str]:
     """
     required = ("Wio-Action", "Wio-Stage")
     missing = [f"{key} is missing" for key in required if key not in values]
+    if "Wio-Judge" in values and "Wio-Result" not in values:
+        missing.append("Wio-Judge needs a Wio-Result: only a gate has a judge")
     malformed = [
         f"{key} {values[key]!r} {message}"
         for key, pattern, message in FORMATS
