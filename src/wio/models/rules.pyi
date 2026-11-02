@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The types for a rule and for the selection of rules for a stage.
 
-The stubs are the spec until the Work that implements `wio rule` replaces them
+The stubs are the spec until the Work that implements `wio rules` replaces them
 with a `.py` of the same annotations. They declare no fields: the rule
 metadata is that Work's to settle.
 """

@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The ports that `wio.contract` consumes.
+"""The ports that `wio.rules` consumes.
 
 Provisional: the architecture review may rename them. The component that
-satisfies each is wired in by `wio.cli`; `wio.contract` never imports it.
+satisfies each is wired in by `wio.cli`; `wio.rules` never imports it.
 """
 
 from typing import Protocol
@@ -10,7 +10,7 @@ from typing import Protocol
 from wio.models.config import Config
 
 class Settings(Protocol):
-    """The project settings that contract commands read."""
+    """The project settings that rule commands read."""
 
     def load(self) -> Config:
         """Load the settings.

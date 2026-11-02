@@ -6,6 +6,6 @@ the [repository glossary](../../GLOSSARY.md).
 
 | Term | Meaning |
 | --- | --- |
-| Component | The package under `src/wio` of one v0.1 subcommand: `config`, `contract`, `rule`, `trailers`, `log` or `context`. `cli` is the composition root, and `models`, `formats`, `io` and `env` are shared layers, so none of them is a component. |
+| Component | The package under `src/wio` of one v0.1 subcommand: `config`, `contracts`, `rules`, `trailers`, `log` or `context`. `cli` is the composition root, and `models`, `formats`, `io` and `env` are shared layers, so none of them is a component. |
 | Port | A `typing.Protocol` declared in a `.pyi` stub, saying what a package needs from the outside. Its consumer owns it, in `<package>/ports.pyi`, except the ports of `wio.io` and `wio.env`, which those packages own. |
 | Adapter | The implementation of a port: one per port, or for a port of `wio.env` one for each supported platform where its behavior differs. Only `wio.cli` imports adapters. |

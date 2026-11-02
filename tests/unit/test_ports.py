@@ -12,7 +12,7 @@ import pytest
 SRC = Path(__file__).resolve().parents[2] / "src" / "wio"
 PORTS = sorted(SRC.glob("*/ports.pyi"))
 MODELS = sorted((SRC / "models").glob("*.pyi"))
-OWNERS = {"cli", "context", "contract", "env", "io", "rule", "trailers"}
+OWNERS = {"cli", "context", "contracts", "env", "io", "rules", "trailers"}
 
 
 def _tree(path: Path) -> ast.Module:
