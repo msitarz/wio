@@ -7,8 +7,9 @@ line is a `Key: value` trailer and some key starts with `Wio-`, outside fenced
 code blocks. It checks only the shape of a record, not whether its Work, stage
 or criteria exist.
 
-`Wio-Work` takes one id, several ids separated by commas, or `none`. A list is
-the same as one record per id, in the order written, oldest first. A pull
+`Wio-Work` takes one id, several ids separated by a comma and one space, or
+`none`. A list is the same as one record per id, in the order written; a Work
+listed later counts as recorded later. A pull
 request body shows the records folded: for each Work, consecutive records of the
 same action and stage become one, and then consecutive records that differ only
 in the Work become one list.
@@ -23,6 +24,9 @@ Commands:
   records of the range's commits at its end, after the revert lines of commits
   that revert work outside the range, or nothing when it already has them
   (CI).
+
+`block` and `body` assume that `commits` accepted the range, so they do not
+check the records they fold.
 """
 
 import argparse
@@ -60,6 +64,7 @@ SKIPPED_SUBJECTS = (
     "fixup! ",
     "squash! ",
 )
+BLANK_LINE = re.compile(r"\n[ \t]*\n")
 REVERT_LINE = re.compile(r"^This reverts commit [0-9a-f]{7,40}\.?$")
 REVERTS = re.compile(r"^This reverts commit (?P<sha>[0-9a-f]{7,40})\b", re.MULTILINE)
 NO_WORK = "none"
@@ -164,13 +169,15 @@ def _key_problems(keys: list[str]) -> list[str]:
 def work_ids(value: str) -> list[str]:
     """Split a `Wio-Work` value into the ids it lists.
 
+    Ids are separated by a comma and one space, the form `Wio-Criteria` uses.
+
     Args:
         value: The value, such as `k3m9xq` or `k3m9xq, a7b2c4`.
 
     Returns:
-        The ids in the order written, without surrounding spaces.
+        The ids in the order written.
     """
-    return [part.strip() for part in value.split(",")]
+    return value.split(", ")
 
 
 def _ids_problems(ids: list[str]) -> list[str]:
@@ -529,8 +536,8 @@ def with_records(
         The body without its trailing managed paragraphs, followed by the
         revert lines and `rendered`.
     """
-    blocks = body.replace("\r\n", "\n").strip().split("\n\n")
-    while blocks and _is_managed(blocks[-1]):
+    blocks = BLANK_LINE.split(body.replace("\r\n", "\n").strip())
+    while blocks and (not blocks[-1].strip() or _is_managed(blocks[-1])):
         blocks.pop()
     extra = ["\n".join(reverts)] if reverts else []
     return "\n\n".join([*blocks, *extra, *rendered]).strip() + "\n"
@@ -546,7 +553,14 @@ def commits_in(revision_range: str) -> list[Commit]:
         The commits as (sha, message), oldest first.
     """
     output = subprocess.run(
-        ["git", "log", "--reverse", "--format=%H%n%B%x00", revision_range],
+        [
+            "git",
+            "log",
+            "--reverse",
+            "--topo-order",
+            "--format=%H%n%B%x00",
+            revision_range,
+        ],
         capture_output=True,
         check=True,
         text=True,

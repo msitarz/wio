@@ -32,7 +32,6 @@ def _message(*paragraphs: str) -> str:
         f"{RECORD}\nWio-Result: pass",
         f"{RECORD}\nWio-Result: pass\nWio-Judge: human",
         "Wio-Work: k3m9xq, a7b2c4\nWio-Action: define\nWio-Stage: define",
-        "Wio-Work: k3m9xq,a7b2c4\nWio-Action: define\nWio-Stage: define",
         f"{RECORD}\nWio-Result: fail\nWio-Judge: agent",
         f"{RECORD}\nCo-Authored-By: A Person <a@example.com>",
         "Wio-Work: none",
@@ -73,7 +72,16 @@ def test_valid_records_have_no_problems(record: str) -> None:
             "Wio-Work: k3m9xq, A7B2C4\nWio-Action: a\nWio-Stage: b",
             "'A7B2C4' is not a Work id",
         ),
-        ("Wio-Work: k3m9xq,\nWio-Action: a\nWio-Stage: b", "'' is not a Work id"),
+        ("Wio-Work: k3m9xq,\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
+        ("Wio-Work: k3m9xq,a7b2c4\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
+        ("Wio-Work: k3m9xq,  a7b2c4\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
+        ("Wio-Work: k3m9xq,, a7b2c4\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
+        (
+            "Wio-Work: k3m9xq,\u00a0a7b2c4\nWio-Action: a\nWio-Stage: b",
+            "is not a Work id",
+        ),
+        ("Wio-Work: k3m9x\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
+        ("Wio-Work: k3m9xqzzz\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
         ("Wio-Work: none\nWio-Judge: human", "not allowed when Wio-Work is none"),
         (f"{RECORD}\nWio-Stage: wiring", "appears more than once"),
         (f"{RECORD}\nWio-Typo: x", "unknown trailer Wio-Typo"),
@@ -397,6 +405,66 @@ def test_the_records_of_a_pull_request_fold_to_one_paragraph_per_run() -> None:
     ]
 
 
+def test_folding_twice_changes_nothing_and_no_work_is_listed_twice() -> None:
+    """Interleaved records of two Works fold to one list, and stay folded."""
+    # Given two Works recorded in turn, twice each, with the same record
+    messages = [_record(work, "define") for work in ("k3m9xq", "jsk0yt") * 2]
+
+    # When their records are collected, then collected again from the result
+    collected = _collect(*messages)
+    again = _collect(*collected)
+
+    # Then the list names each Work once, and a second fold changes nothing
+    assert collected == [_record("k3m9xq, jsk0yt", "define")]
+    assert again == collected
+
+
+def test_a_reverted_commit_leaves_the_rest_of_a_list() -> None:
+    """Reverting one commit of a folded run drops only its record."""
+    # Given three commits for three Works, and a revert of the middle one
+    commits = [
+        ("aaaaaa1111", _message("docs: a", _record("k3m9xq", "define"))),
+        ("bbbbbb2222", _message("docs: b", _record("jsk0yt", "define"))),
+        ("cccccc3333", _message("docs: c", _record("a7b2c4", "define"))),
+        ("dddddd4444", _message('Revert "docs: b"', "This reverts commit bbbbbb2222.")),
+    ]
+
+    # When their records are collected
+    collected = records.collect(commits)
+
+    # Then the list holds the two Works that were not reverted
+    assert collected == [_record("k3m9xq, a7b2c4", "define")]
+
+
+def test_collect_ignores_a_no_work_paragraph_next_to_a_work_record() -> None:
+    """A paragraph of `Wio-Work: none` adds nothing to the folded records."""
+    # Given a commit with a record for a Work and a record of no Work
+    message = f"{_record('k3m9xq', 'define')}\n\nWio-Work: none"
+
+    # When its records are collected
+    collected = _collect(message)
+
+    # Then only the Work's record remains
+    assert collected == [_record("k3m9xq", "define")]
+
+
+@pytest.mark.parametrize("separator", ["\n\n\n\n", "\n \n", "\n\t\n", "\n\n\n"])
+def test_with_records_replaces_records_set_apart_by_any_blank_lines(
+    separator: str,
+) -> None:
+    """Old records are replaced however the blank lines between them look."""
+    # Given a body whose old records are separated by unusual blank lines
+    old = separator.join(["Wio-Work: abcdef\nWio-Action: a\nWio-Stage: b"] * 2)
+    body = f"## Outcome{separator}Text.{separator}{old}"
+
+    # When the current record is put at its end
+    updated = records.with_records(body, [RECORD])
+
+    # Then no old record remains
+    assert updated.count("Wio-Work:") == 1
+    assert updated.endswith(f"{RECORD}\n")
+
+
 def test_outside_reverts_keeps_only_reverts_of_earlier_work() -> None:
     """A revert of a commit outside the range keeps its revert line."""
     # Given a revert of a commit from an earlier pull request, and a commit
@@ -564,6 +632,51 @@ def test_body_command_prints_nothing_when_the_body_is_current(
     # Then it prints nothing, so the workflow does not edit the pull request
     assert code == 0
     assert not capsys.readouterr().out
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("line_end", ["\n", "\r\n"])
+def test_body_command_prints_nothing_when_a_folded_body_is_current(
+    repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    line_end: str,
+) -> None:
+    """A body that already lists the Works of the range needs no edit."""
+    # Given two commits with the same record for two Works, and a body that ends
+    # with their folded record
+    _commit(repo, _message("docs: a", _record("k3m9xq", "define")))
+    _commit(repo, _message("docs: b", _record("jsk0yt", "define")))
+    folded = _record("k3m9xq, jsk0yt", "define").replace("\n", line_end)
+    body = f"## Outcome{line_end}{line_end}{folded}"
+    monkeypatch.setattr("sys.stdin", io.StringIO(body))
+
+    # When the body command updates the body
+    code = records.main(["body", "HEAD~2..HEAD"])
+
+    # Then it prints nothing, so the workflow does not edit the pull request
+    assert code == 0
+    assert not capsys.readouterr().out
+
+
+@pytest.mark.slow
+def test_body_command_replaces_an_unfolded_body_once(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A body with one paragraph per commit gets the folded list instead."""
+    # Given two commits for two Works and a body with a paragraph for each
+    _commit(repo, _message("docs: a", _record("k3m9xq", "define")))
+    _commit(repo, _message("docs: b", _record("jsk0yt", "define")))
+    old = f"{_record('k3m9xq', 'define')}\n\n{_record('jsk0yt', 'define')}"
+    monkeypatch.setattr("sys.stdin", io.StringIO(f"## Outcome\n\n{old}"))
+
+    # When the body command updates the body
+    code = records.main(["body", "HEAD~2..HEAD"])
+
+    # Then it prints the body with the one folded record at its end
+    folded = _record("k3m9xq, jsk0yt", "define")
+    assert code == 0
+    assert capsys.readouterr().out == f"## Outcome\n\n{folded}\n"
 
 
 @pytest.mark.slow
