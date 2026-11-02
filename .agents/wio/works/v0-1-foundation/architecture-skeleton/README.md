@@ -88,7 +88,7 @@ The packages are `wio.models`, `wio.formats`, `wio.io`, `wio.env`,
 - **Then** no import fails, and each package's docstring is one sentence that
   names its role.
 
-### **AC-2** Each consumer declares what it needs as ports of its own
+### **AC-2** Ports are declared by their consumer, or shared once
 
 A package that calls collaborators other than those of `wio.io`, `wio.env` and
 `wio.ports` has a `ports.pyi` with one `Protocol` per collaborator, `wio.io` and
@@ -98,7 +98,7 @@ identically, and no `ports.pyi` of a consumer declares a port of the same name.
 
 Provisional, as the architecture stage may rename the Protocols:
 
-| Package | Protocols it declares | Satisfied by |
+| Stub | Protocols it declares | Satisfied by |
 | --- | --- | --- |
 | `wio.ports` | `Settings`, `EventSink` | `config`, `log` |
 | `trailers` | `Contracts`, `Events` | `contracts`, `log` |
@@ -123,6 +123,19 @@ none.
 - **Given** a `ports.pyi` of a component.
 - **When** its imports are read.
 - **Then** none of them comes from another component's package.
+
+#### A shared port is declared once
+
+- **Given** the delivered stubs.
+- **When** the class names in `src/wio/ports.pyi` are compared with those in
+  every other `ports.pyi`.
+- **Then** no name is declared twice.
+
+#### The shared stub depends on the shared types only
+
+- **Given** `src/wio/ports.pyi`.
+- **When** its imports are read.
+- **Then** each one is from `wio.models` or the standard library.
 
 ### **AC-3** The outside world is reached through ports declared once
 

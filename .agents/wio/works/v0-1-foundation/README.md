@@ -29,8 +29,8 @@ directory and its descendants; a ratify then replaces this section with links.
 
 - **Component**: the package under `src/wio` of one v0.1 subcommand, which is
   `config`, `contracts`, `rules`, `trailers`, `log` or `context`; `cli` is the
-  composition root and `models`, `formats`, `io` and `env` are shared layers, so
-  none of them is a component.
+  composition root and `models`, `formats`, `io`, `env` and `ports` are shared
+  layers, so none of them is a component.
 - **Port**: a `typing.Protocol` declared in a `.pyi` stub, saying what a package
   needs from the outside.
 - **Adapter**: the implementation of a port, one per port, or for a port of
@@ -88,10 +88,13 @@ directory and its descendants; a ratify then replaces this section with links.
   never imports the stub of its consumer. The exceptions are `wio.io` and
   `wio.env`, whose ports are shared infrastructure that each owns in its own
   `ports.pyi`: `wio.io` for the filesystem, standard streams and git, and
-  `wio.env` for what the process knows about its surroundings; and `wio.ports`,
-  the stub `src/wio/ports.pyi`, which declares each port that two or more
-  components consume identically. A consumer that needs a different view
-  declares its own port and does not use the shared one.
+  `wio.env` for what the process knows about its surroundings.
+- **A port that two or more components need with the same members and the same
+  signatures is declared once, in the shared stub `src/wio/ports.pyi`
+  (`wio.ports`).** A consumer that needs a different view declares its own port
+  under its own name in its `ports.pyi` and does not use the shared one. No
+  component owns `wio.ports`, so a change to it is judged against every
+  component that consumes the port.
 - **A shared-type stub is the spec until the Work that implements the type
   replaces it**: that Work writes a `.py` with the same annotations and
   docstrings and deletes the stub, while a port stays a `.pyi` for good.

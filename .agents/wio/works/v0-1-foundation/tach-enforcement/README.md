@@ -32,8 +32,9 @@ breaks it, so the repository's own gates must run one.
 - **A-1**: The `tach` that `uv.lock` pins, 0.35.3 at the time of writing, keeps
   the behavior verified for this contract: it counts lazy imports, counts
   `TYPE_CHECKING` imports when `ignore_type_checking_imports = false`, and
-  limits a nested module to the modules its `visibility` names, and enforces
-  imports of the stub-only module `wio.ports` once `tach.toml` declares it.
+  limits a nested module to the modules its `visibility` names.
+- **A-3**: Tach enforces imports of the stub-only module `wio.ports` once
+  `tach.toml` declares it, although it reads no `.pyi` file.
 - **A-2**: The stubs hold no `.py` code, so the skeleton gives tach few real
   edges to check, the table is exercised as components land, and `tach check`
   prints a warning about missing first-party imports on the bare skeleton.
@@ -41,8 +42,8 @@ breaks it, so the repository's own gates must run one.
 ## Mechanisms
 
 - `tach.toml` at the repository root, with `source_roots = ["src"]`, a
-  `[[modules]]` entry per package of `src/wio` and its `depends_on`, and
-  `exact = false`.
+  `[[modules]]` entry per package of `src/wio` and one for the stub `wio.ports`,
+  each with its `depends_on`, and `exact = false`.
 - `ignore_type_checking_imports = false` in `tach.toml`, because ports are
   imported only under `TYPE_CHECKING`.
 - The nested modules `wio.io.adapters` and `wio.env.adapters`, each with
