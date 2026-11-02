@@ -64,10 +64,10 @@ clean tree passes the check.
 
 | Module | May depend on |
 | --- | --- |
-| `wio.models` | nothing |
-| `wio.formats`, `wio.io`, `wio.env` | `wio.models` |
+| `wio.models`, `wio.env` | nothing |
+| `wio.formats`, `wio.io` | `wio.models` |
 | `wio.io.adapters` | `wio.io`, `wio.models` |
-| `wio.env.adapters` | `wio.env`, `wio.models` |
+| `wio.env.adapters` | `wio.env` |
 | `wio.config`, `wio.contract`, `wio.rule`, `wio.trailers`, `wio.log`, `wio.context` | `wio.models`, `wio.formats`, `wio.io`, `wio.env` |
 | `wio.cli` | every other module |
 

@@ -75,12 +75,12 @@ directory and its descendants; a ratify then replaces this section with links.
 
 ## Constraints
 
-- **Dependency direction**: `wio.models` imports nothing else from `wio`;
-  `wio.formats`, `wio.io` and `wio.env` import only `wio.models`; a component
+- **Dependency direction**: `wio.models` and `wio.env` import nothing else from
+  `wio`; `wio.formats` and `wio.io` import only `wio.models`; a component
   imports only `wio.models`, `wio.formats` and the ports of `wio.io` and
-  `wio.env`; the adapters in `wio.io.adapters` and `wio.env.adapters` import
-  only their own package and `wio.models`; `wio.cli` is the only package that
-  imports the commands of the components and the adapters.
+  `wio.env`; `wio.io.adapters` imports only `wio.io` and `wio.models`, and
+  `wio.env.adapters` only `wio.env`; `wio.cli` is the only package that imports
+  the commands of the components and the adapters.
 - **No component imports another component.** They meet only in `wio.cli`, which
   gives each the implementation of the ports it consumes.
 - **Ports are owned by their consumer**, declared in `<package>/ports.pyi`,
@@ -172,14 +172,12 @@ flowchart LR
         ioadapters --> io
         ioadapters --> models
         envadapters --> env
-        envadapters --> models
         components -- "ports" --> io
         components -- "ports" --> env
         components --> formats
         components --> models
         formats --> models
         io --> models
-        env --> models
     end
     hook["prek hook: tach check"]:::new -. "checks the .py edges" .-> src_wio
     acc["tests/acceptance: DSL and drivers"]:::new -- "drives" --> cli
