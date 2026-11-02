@@ -42,7 +42,8 @@ jobs:
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: uv run python scripts/records.py commits "$BASE..$HEAD"
       - name: Copy the records to the body
-        # The token of a pull request from a fork cannot edit it.
+        # The records are folded (see "Records" in docs/concepts.md). The token
+        # of a pull request from a fork cannot edit the body.
         if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}

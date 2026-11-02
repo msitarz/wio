@@ -7,6 +7,13 @@ line is a `Key: value` trailer and some key starts with `Wio-`, outside fenced
 code blocks. It checks only the shape of a record, not whether its Work, stage
 or criteria exist.
 
+`Wio-Work` takes one id, several ids separated by a comma and one space, or
+`none`. A list is the same as one record per id, in the order written; a Work
+listed later counts as recorded later. A pull
+request body shows the records folded: for each Work, consecutive records of the
+same action and stage become one, and then consecutive records that differ only
+in the Work become one list.
+
 Commands:
 
 - `check FILE`: check one commit message (the commit-msg hook).
@@ -17,16 +24,21 @@ Commands:
   records of the range's commits at its end, after the revert lines of commits
   that revert work outside the range, or nothing when it already has them
   (CI).
+
+`block` and `body` assume that `commits` accepted the range, so they do not
+check the records they fold.
 """
 
 import argparse
 import re
 import subprocess
 import sys
+from itertools import groupby
 from pathlib import Path
-lazy from collections.abc import Sequence
+lazy from collections.abc import Iterable, Sequence
 
 type Record = tuple[tuple[str, str], ...]
+type Fields = dict[str, str]  # the Wio-* fields of one record, in KEY_ORDER
 type Commit = tuple[str, str]  # (sha, message)
 
 TRAILER = re.compile(r"^(?P<key>[A-Za-z0-9][A-Za-z0-9-]*): (?P<value>\S.*)$")
@@ -36,16 +48,15 @@ CRITERIA = re.compile(r"^AC-\d+(, AC-\d+)*$")
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 RESULT = re.compile(r"^(pass|fail|unknown)$")
 JUDGE = re.compile(r"^(human|agent)$")
-KEYS = frozenset(
-    {
-        "Wio-Work",
-        "Wio-Action",
-        "Wio-Stage",
-        "Wio-Criteria",
-        "Wio-Result",
-        "Wio-Judge",
-    }
+KEY_ORDER = (
+    "Wio-Work",
+    "Wio-Action",
+    "Wio-Stage",
+    "Wio-Criteria",
+    "Wio-Result",
+    "Wio-Judge",
 )
+KEYS = frozenset(KEY_ORDER)
 SKIPPED_SUBJECTS = (
     "Merge ",
     "Revert ",
@@ -53,11 +64,11 @@ SKIPPED_SUBJECTS = (
     "fixup! ",
     "squash! ",
 )
+BLANK_LINE = re.compile(r"\n[ \t]*\n")
 REVERT_LINE = re.compile(r"^This reverts commit [0-9a-f]{7,40}\.?$")
 REVERTS = re.compile(r"^This reverts commit (?P<sha>[0-9a-f]{7,40})\b", re.MULTILINE)
 NO_WORK = "none"
 FORMATS = (
-    ("Wio-Work", WORK_ID, "is not a Work id"),
     ("Wio-Action", NAME, "is not a name"),
     ("Wio-Stage", NAME, "is not a name"),
     ("Wio-Criteria", CRITERIA, "must look like `AC-1, AC-3`"),
@@ -155,6 +166,42 @@ def _key_problems(keys: list[str]) -> list[str]:
     return unknown + repeated
 
 
+def work_ids(value: str) -> list[str]:
+    """Split a `Wio-Work` value into the ids it lists.
+
+    Ids are separated by a comma and one space, the form `Wio-Criteria` uses.
+
+    Args:
+        value: The value, such as `k3m9xq` or `k3m9xq, a7b2c4`.
+
+    Returns:
+        The ids in the order written.
+    """
+    return value.split(", ")
+
+
+def _ids_problems(ids: list[str]) -> list[str]:
+    """Report problems of the ids a record lists.
+
+    Args:
+        ids: The ids of a `Wio-Work` value that is not `none` alone.
+
+    Returns:
+        One message per problem.
+    """
+    if NO_WORK in ids:
+        return [f"Wio-Work {NO_WORK} cannot be listed with Work ids"]
+    malformed = [
+        f"Wio-Work {work!r} is not a Work id" for work in ids if not WORK_ID.match(work)
+    ]
+    repeated = [
+        f"Wio-Work lists {work} more than once"
+        for work in sorted(set(ids))
+        if ids.count(work) > 1
+    ]
+    return malformed + repeated
+
+
 def _work_problems(values: dict[str, str]) -> list[str]:
     """Report problems of a record that names a Work.
 
@@ -173,7 +220,7 @@ def _work_problems(values: dict[str, str]) -> list[str]:
         for key, pattern, message in FORMATS
         if key in values and not pattern.match(values[key])
     ]
-    return missing + malformed
+    return missing + _ids_problems(work_ids(values["Wio-Work"])) + malformed
 
 
 def _value_problems(values: dict[str, str]) -> list[str]:
@@ -233,16 +280,171 @@ def message_problems(message: str) -> list[str]:
     return [problem for record in found for problem in record_problems(record)]
 
 
-def render(record: Record) -> str:
-    """Render the `Wio-*` fields of a record as one paragraph.
+def _canonical(fields: dict[str, str]) -> Fields:
+    """Keep the `Wio-*` fields of a record, in the order of `KEY_ORDER`.
+
+    Args:
+        fields: The fields of a record, any keys in any order.
+
+    Returns:
+        The `Wio-*` fields, in a fixed order, so equal records compare equal.
+    """
+    return {key: fields[key] for key in KEY_ORDER if key in fields}
+
+
+def expand(record: Record) -> list[Fields]:
+    """Split a record into one set of fields per Work it names.
 
     Args:
         record: The fields of one record.
 
     Returns:
+        One entry per listed id, in the order written. A record of no Work
+        gives none.
+    """
+    fields = _canonical(dict(record))
+    ids = work_ids(fields.get("Wio-Work", NO_WORK))
+    return [] if ids == [NO_WORK] else [{**fields, "Wio-Work": work} for work in ids]
+
+
+def _united(earlier: str | None, later: str | None) -> str | None:
+    """Unite two criteria lists, keeping the order of first appearance.
+
+    Args:
+        earlier: The `Wio-Criteria` value of the earlier record, if any.
+        later: The `Wio-Criteria` value of the later record, if any.
+
+    Returns:
+        The united list, or `None` when neither record has criteria.
+    """
+    parts = [part for value in (earlier, later) if value for part in value.split(", ")]
+    return ", ".join(dict.fromkeys(parts)) or None
+
+
+def _merge(earlier: Fields, later: Fields) -> Fields:
+    """Merge two records of one Work and stage into one.
+
+    Args:
+        earlier: The older record.
+        later: The newer record, whose result and judge win.
+
+    Returns:
+        The newer record with the criteria of both.
+    """
+    merged = {key: value for key, value in later.items() if key != "Wio-Criteria"}
+    criteria = _united(earlier.get("Wio-Criteria"), later.get("Wio-Criteria"))
+    if criteria:
+        merged["Wio-Criteria"] = criteria
+    return _canonical(merged)
+
+
+def _same_stage(first: Fields, second: Fields) -> bool:
+    """Tell whether two records are for the same action and stage.
+
+    Args:
+        first: One record.
+        second: Another record.
+
+    Returns:
+        True when both the action and the stage are equal.
+    """
+    keys = ("Wio-Action", "Wio-Stage")
+    return all(first.get(key) == second.get(key) for key in keys)
+
+
+def _last_of(folded: list[Fields], work: str) -> int | None:
+    """Find the newest record of a Work.
+
+    Args:
+        folded: Records of single Works, oldest first.
+        work: A Work id.
+
+    Returns:
+        The index of the Work's newest record, or `None` when it has none.
+    """
+    indices = (i for i in reversed(range(len(folded))) if folded[i]["Wio-Work"] == work)
+    return next(indices, None)
+
+
+def fold_works(items: Sequence[Fields]) -> list[Fields]:
+    """Merge each Work's consecutive records of one action and stage.
+
+    The merged record takes the later position, because only the latest record
+    of a stage counts for the order of progress.
+
+    Args:
+        items: Records of single Works, oldest first.
+
+    Returns:
+        The records with each such run merged into one.
+    """
+    folded: list[Fields] = []
+    for item in items:
+        index = _last_of(folded, item["Wio-Work"])
+        if index is not None and _same_stage(folded[index], item):
+            item = _merge(folded.pop(index), item)
+        folded.append(item)
+    return folded
+
+
+def _shape(fields: Fields) -> tuple[tuple[str, str], ...]:
+    """List the fields of a record other than its Work.
+
+    Args:
+        fields: One record.
+
+    Returns:
+        The other fields, in order, as a comparable value.
+    """
+    return tuple((key, value) for key, value in fields.items() if key != "Wio-Work")
+
+
+def merge_blocks(items: Sequence[Fields]) -> list[Fields]:
+    """Merge consecutive records that differ only in their Work into one list.
+
+    Records are read in order across Works, so only neighbors merge: a record
+    between two others could be one that makes a Work's progress stale.
+
+    Args:
+        items: Records of single Works, oldest first.
+
+    Returns:
+        The records, with each run of neighbors that share every other field
+        as one record whose ids are listed oldest first.
+    """
+    blocks: list[Fields] = []
+    for _, run in groupby(items, key=_shape):
+        members = list(run)
+        works = ", ".join(member["Wio-Work"] for member in members)
+        blocks.append({**members[0], "Wio-Work": works})
+    return blocks
+
+
+def fold(found: Iterable[Record]) -> list[Fields]:
+    """Fold records for a pull request body.
+
+    Args:
+        found: Records in the order of the history, any of which may list
+            several Works.
+
+    Returns:
+        One record per Work and stage run, and neighbors that differ only in
+        the Work as one list.
+    """
+    expanded = [fields for record in found for fields in expand(record)]
+    return merge_blocks(fold_works(expanded))
+
+
+def render(fields: Fields) -> str:
+    """Render the fields of a record as one paragraph.
+
+    Args:
+        fields: One record, as `expand` and `fold` return it.
+
+    Returns:
         The trailer lines, joined by newlines.
     """
-    return "\n".join(f"{key}: {value}" for key, value in record if key in KEYS)
+    return "\n".join(f"{key}: {value}" for key, value in fields.items())
 
 
 def _kept(commits: Sequence[Commit]) -> list[Commit]:
@@ -268,7 +470,7 @@ def _kept(commits: Sequence[Commit]) -> list[Commit]:
 
 
 def collect(commits: Sequence[Commit]) -> list[str]:
-    """Collect the records of several commits that name a Work.
+    """Collect the records of several commits that name a Work, folded.
 
     Records of commits reverted later in the list are left out.
 
@@ -276,14 +478,12 @@ def collect(commits: Sequence[Commit]) -> list[str]:
         commits: Commits as (sha, message), oldest first.
 
     Returns:
-        The rendered records, in commit order.
+        The rendered records, in the order of the history, with each Work's
+        consecutive records of one stage merged and then neighbors that differ
+        only in the Work merged into one list.
     """
-    return [
-        render(record)
-        for _, message in _kept(commits)
-        for record in records(message)
-        if dict(record).get("Wio-Work") != NO_WORK
-    ]
+    found = (record for _, message in _kept(commits) for record in records(message))
+    return [render(fields) for fields in fold(found)]
 
 
 def outside_reverts(commits: Sequence[Commit]) -> list[str]:
@@ -336,8 +536,8 @@ def with_records(
         The body without its trailing managed paragraphs, followed by the
         revert lines and `rendered`.
     """
-    blocks = body.replace("\r\n", "\n").strip().split("\n\n")
-    while blocks and _is_managed(blocks[-1]):
+    blocks = BLANK_LINE.split(body.replace("\r\n", "\n").strip())
+    while blocks and (not blocks[-1].strip() or _is_managed(blocks[-1])):
         blocks.pop()
     extra = ["\n".join(reverts)] if reverts else []
     return "\n\n".join([*blocks, *extra, *rendered]).strip() + "\n"
@@ -353,7 +553,14 @@ def commits_in(revision_range: str) -> list[Commit]:
         The commits as (sha, message), oldest first.
     """
     output = subprocess.run(
-        ["git", "log", "--reverse", "--format=%H%n%B%x00", revision_range],
+        [
+            "git",
+            "log",
+            "--reverse",
+            "--topo-order",
+            "--format=%H%n%B%x00",
+            revision_range,
+        ],
         capture_output=True,
         check=True,
         text=True,
