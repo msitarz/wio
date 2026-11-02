@@ -1,21 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 """Command-line entry points for wio."""
 
+import sys
 from typing import TYPE_CHECKING
+
+lazy from wio.io import adapters
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from wio.io.ports import Stdio
-
-
-def hello() -> str:
-    """Return a greeting.
-
-    Returns:
-        The string `"world"`.
-    """
-    return "world"
 
 
 def main(argv: Sequence[str], stdio: Stdio) -> int:
@@ -33,7 +27,8 @@ def main(argv: Sequence[str], stdio: Stdio) -> int:
         The exit code: 0 on success, 1 when a check fails, and 2 for a usage or
         configuration error.
     """
-    raise NotImplementedError
+    del argv, stdio
+    return 0
 
 
 def console_main() -> int:
@@ -45,4 +40,4 @@ def console_main() -> int:
     Returns:
         The exit code of `main`.
     """
-    raise NotImplementedError
+    return main(sys.argv[1:], adapters.SystemStdio())

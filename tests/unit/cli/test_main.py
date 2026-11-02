@@ -4,22 +4,21 @@
 import io
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TextIO
+from typing import TYPE_CHECKING, TextIO
 
 import pytest
 
 from wio import cli
 
-BEFORE_WIRING = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="the wiring stage implements main",
-)
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from wio.io.ports import Stdio
+
 BEFORE_IMPLEMENTATION = pytest.mark.xfail(
     strict=True,
     raises=NotImplementedError,
-    reason="the wiring stage composes console_main, and the implementation "
-    "stage adds the adapter it needs",
+    reason="the implementation stage binds the streams of sys in SystemStdio",
 )
 
 
@@ -32,7 +31,6 @@ class FakeStdio:
     stderr: TextIO
 
 
-@BEFORE_WIRING
 def test_main_returns_zero_and_writes_nothing() -> None:
     """With no arguments the entry point succeeds silently, for now."""
     # Given in-memory streams in place of the standard streams
@@ -64,18 +62,42 @@ def test_console_main_builds_the_real_streams_and_returns_zero(
     assert (captured.out, captured.err) == ("", "")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="the wiring stage removes hello, its module and its test",
-)
+def test_console_main_runs_the_core_on_the_adapter_for_the_process_streams(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The console function builds the stream adapter and hands it to `main`."""
+    # Given a stream adapter that is a fake, and a core that records its call
+    out = io.StringIO()
+    fake = FakeStdio(io.StringIO(), out, io.StringIO())
+    calls: list[tuple[list[str], object]] = []
+
+    def record(argv: Sequence[str], stdio: Stdio) -> int:
+        calls.append((list(argv), stdio))
+        return 7
+
+    monkeypatch.setattr("sys.argv", ["wio", "x", "y"])
+    monkeypatch.setattr("wio.io.adapters.SystemStdio", lambda: fake)
+    monkeypatch.setattr(cli, "main", record)
+
+    # When the console function runs
+    code = cli.console_main()
+
+    # Then it passed the arguments after the program name and the fake streams
+    assert calls == [(["x", "y"], fake)]
+    assert code == 7
+
+
 def test_the_placeholder_is_gone() -> None:
-    """Neither the greeting nor its test is left."""
-    # Given the package and the unit tests as they are
+    """Neither the greeting, its module nor its test is left."""
+    # Given the package and the source and test trees as they are
+    root = Path(__file__).resolve().parents[3]
 
     # When the placeholder is looked for
-    has_greeting = hasattr(cli, "hello")
-    has_test = (Path(__file__).parents[1] / "test_cli.py").exists()
+    found = (
+        hasattr(cli, "hello"),
+        (root / "src" / "wio" / "cli.py").exists(),
+        (root / "tests" / "unit" / "test_cli.py").exists(),
+    )
 
-    # Then neither exists
-    assert (has_greeting, has_test) == (False, False)
+    # Then none of the three exists
+    assert found == (False, False, False)

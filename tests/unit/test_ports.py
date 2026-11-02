@@ -48,7 +48,8 @@ def _undocumented(path: Path) -> list[str]:
     """
     tree = _tree(path)
     nodes = [tree, *(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef))]
-    nodes += [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+    functions = (ast.FunctionDef, ast.AsyncFunctionDef)
+    nodes += [n for n in ast.walk(tree) if isinstance(n, functions)]
     return [
         getattr(node, "name", path.name)
         for node in nodes
@@ -73,35 +74,38 @@ def _modules_of(node: ast.AST) -> list[str]:
     return []
 
 
-def _import_problems(path: Path) -> list[str]:
+def _import_problems(path: Path, *, ports_allowed: bool) -> list[str]:
     """List the imports of a stub that break the dependency direction.
 
-    A stub may import the standard library, the shared types and the ports of
-    `wio.io`, by absolute name.
+    A stub may import the standard library and the shared types, by absolute
+    name, and a ports stub also the ports of `wio.io`.
 
     Args:
         path: The `.pyi` file.
+        ports_allowed: Whether `wio.io.ports` may be imported.
 
     Returns:
         One entry per import that is relative or from anywhere else.
     """
     modules = [m for node in ast.walk(_tree(path)) for m in _modules_of(node)]
-    return [module for module in modules if not _allowed(module)]
+    return [m for m in modules if not _allowed(m, ports_allowed=ports_allowed)]
 
 
-def _allowed(module: str) -> bool:
+def _allowed(module: str, *, ports_allowed: bool) -> bool:
     """Tell whether a stub may import a module.
 
     Args:
         module: An absolute or relative module name.
+        ports_allowed: Whether `wio.io.ports` may be imported.
 
     Returns:
-        True for the standard library, `wio.models` and `wio.io.ports`.
+        True for the standard library, `wio.models`, and `wio.io.ports` when
+        allowed.
     """
     top = module.split(".", maxsplit=1)[0]
     return (
         top in sys.stdlib_module_names
-        or module == "wio.io.ports"
+        or (ports_allowed and module == "wio.io.ports")
         or module == "wio.models"
         or module.startswith("wio.models.")
     )
@@ -219,7 +223,21 @@ def test_a_port_stub_imports_only_shared_types_io_ports_and_the_stdlib(
     # Given a ports stub
 
     # When its imports that break the dependency direction are listed
-    problems = _import_problems(path)
+    problems = _import_problems(path, ports_allowed=True)
+
+    # Then there are none
+    assert problems == []
+
+
+@pytest.mark.parametrize("path", MODELS, ids=_name)
+def test_a_shared_type_stub_imports_only_the_stdlib_and_shared_types(
+    path: Path,
+) -> None:
+    """The shared types depend on nothing else in wio."""
+    # Given a shared-type stub
+
+    # When its imports that break the dependency direction are listed
+    problems = _import_problems(path, ports_allowed=False)
 
     # Then there are none
     assert problems == []
