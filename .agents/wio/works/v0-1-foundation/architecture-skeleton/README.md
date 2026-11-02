@@ -56,6 +56,8 @@ neighbors, so that it can be built alone against their stubs.
   `<package>` consumes.
 - `src/wio/io/ports.pyi` holds the ports of `wio.io`, and
   `src/wio/io/adapters.py` holds its adapters.
+- `src/wio/ports.pyi` holds the ports that two or more components consume
+  identically.
 - `src/wio/env/ports.pyi` holds the ports of `wio.env`, and
   `src/wio/env/adapters.py` holds its adapters, none yet.
 - `src/wio/models/*.pyi` hold the shared types as stubs, until the Work that
@@ -88,22 +90,24 @@ The packages are `wio.models`, `wio.formats`, `wio.io`, `wio.env`,
 
 ### **AC-2** Each consumer declares what it needs as ports of its own
 
-A package that calls collaborators other than `wio.io` and `wio.env` has a
-`ports.pyi` with one `Protocol` per collaborator, and no other package outside
-those two has one.
+A package that calls collaborators other than those of `wio.io`, `wio.env` and
+`wio.ports` has a `ports.pyi` with one `Protocol` per collaborator, `wio.io` and
+`wio.env` have one for their own ports, and no other package has one.
+`src/wio/ports.pyi` declares the ports that two or more components consume
+identically, and no `ports.pyi` of a consumer declares a port of the same name.
 
 Provisional, as the architecture stage may rename the Protocols:
 
 | Package | Protocols it declares | Satisfied by |
 | --- | --- | --- |
-| `contracts` | `Settings` | `config` |
-| `rules` | `Settings` | `config` |
-| `trailers` | `Settings`, `Contracts`, `EventSink` | `config`, `contracts`, `log` |
-| `context` | `Settings`, `Contracts`, `RuleSelection`, `EventSink` | `config`, `contracts`, `rules`, `log` |
+| `wio.ports` | `Settings`, `EventSink` | `config`, `log` |
+| `trailers` | `Contracts`, `Events` | `contracts`, `log` |
+| `context` | `Contracts`, `RuleSelection` | `contracts`, `rules` |
 | `cli` | `Command` | every component |
 
-`config` and `log` consume only the ports of `wio.io` and `wio.env`, so they
-declare none.
+`config` and `log` consume only the ports of `wio.io` and `wio.env`, and
+`contracts` and `rules` only those and the shared `Settings`, so they declare
+none.
 
 #### Ports are typed and documented
 
@@ -111,7 +115,8 @@ declare none.
 - **When** `pyrefly check` runs and the architecture review reads the stubs.
 - **Then** `pyrefly` passes, every `Protocol` and method in a `ports.pyi` has a
   docstring that says what it guarantees, and every name in a signature
-  resolves to `wio.models`, `wio.io`, `wio.env` or the standard library.
+  resolves to `wio.models`, `wio.io`, `wio.env`, `wio.ports` or the standard
+  library.
 
 #### No port names a neighbor
 

@@ -32,7 +32,8 @@ breaks it, so the repository's own gates must run one.
 - **A-1**: The `tach` that `uv.lock` pins, 0.35.3 at the time of writing, keeps
   the behavior verified for this contract: it counts lazy imports, counts
   `TYPE_CHECKING` imports when `ignore_type_checking_imports = false`, and
-  limits a nested module to the modules its `visibility` names.
+  limits a nested module to the modules its `visibility` names, and enforces
+  imports of the stub-only module `wio.ports` once `tach.toml` declares it.
 - **A-2**: The stubs hold no `.py` code, so the skeleton gives tach few real
   edges to check, the table is exercised as components land, and `tach check`
   prints a warning about missing first-party imports on the bare skeleton.
@@ -65,10 +66,10 @@ clean tree passes the check.
 | Module | May depend on |
 | --- | --- |
 | `wio.models`, `wio.env` | nothing |
-| `wio.formats`, `wio.io` | `wio.models` |
+| `wio.formats`, `wio.io`, `wio.ports` | `wio.models` |
 | `wio.io.adapters` | `wio.io`, `wio.models` |
 | `wio.env.adapters` | `wio.env` |
-| `wio.config`, `wio.contracts`, `wio.rules`, `wio.trailers`, `wio.log`, `wio.context` | `wio.models`, `wio.formats`, `wio.io`, `wio.env` |
+| `wio.config`, `wio.contracts`, `wio.rules`, `wio.trailers`, `wio.log`, `wio.context` | `wio.models`, `wio.formats`, `wio.io`, `wio.env`, `wio.ports` |
 | `wio.cli` | every other module |
 
 #### The clean tree passes
