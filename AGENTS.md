@@ -80,6 +80,7 @@ Single tools, for quick feedback:
   | `Wio-Stage` | The stage the commit works on. |
   | `Wio-Criteria` | Optional: the acceptance criteria this commit addresses. |
   | `Wio-Result` | Only for a gate (a review stage): `pass`, `fail` or `unknown`. |
+  | `Wio-Judge` | For a gate: `agent`, or `human` when the driver judged. |
 
 - Never skip hooks (`--no-verify`).
 - Commit when a step is done and checks pass. Keep commits small, one concern

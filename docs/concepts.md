@@ -108,6 +108,15 @@ deliver = ["implementation"]
 
 Contract metadata carries no comments. Explanations belong to the template.
 
+wio knows these keys, and an unknown key is a **warning**, in contracts,
+templates and rules alike, naming the key and the known key it is close to, if
+any ("unknown key `depend_on`; did you mean `depends_on`?"). A typo is visible
+and nothing is blocked. A known key with a wrong type, such as a string where a
+list belongs, is an error. Keys planned for later, such as `tracks` for tracking
+criteria, are reserved and do not warn. Data of a project's own goes under
+`[x]`, a table wio never reads and never warns about, so a template can carry,
+for example, a ticket key through `[contract.x]`.
+
 The title is the first heading and is stored nowhere else. There is no `parent`
 field, because the directory layout gives the hierarchy (see section 4).
 
@@ -427,11 +436,17 @@ depends_on = ["a7b2c4", "k3m9xq"]
 - `wio contract check` verifies that every id exists and that there are no
   cycles. For delivery, each parent implicitly depends on its children, and
   that edge counts too.
-- A `depends_on` id that no longer exists is an error. Whoever removes a Work,
-  because it was abandoned or because the project retires finished Works,
-  updates its dependents in the same change: drop the edge when the work is
-  done, or rethink the dependent when it was abandoned. `wio contract show`
-  lists the dependents of a Work, and the error names them.
+- A `depends_on` id that is not in the tree is looked up in the history: wio
+  reads the latest record of that Work reachable from `HEAD`, with the
+  configured reader. With no record at all it is an **error**, because the id is
+  mistyped or the Work never got anywhere. With a record it is a **note** that
+  shows that record ("depends on removed Work `y4k2mq`, last record:
+  `deliver`/`system-review`, pass"), and the dependency counts as satisfied for
+  ordering and for the cycle check. wio does not interpret action names, so it
+  cannot tell a retired Work from an abandoned one; the driver reads the note.
+  When a Work was abandoned, its dependents should be rethought, and
+  `wio contract show` lists them. When it was retired after delivery, the edge
+  stays true and nothing needs to change.
 - A dependency means the other Work must be delivered first. It applies to the
   Work that lists it and to no other: a parent's dependency holds back only that
   parent, and a child that needs the same Work lists it itself. So the graph is
@@ -562,8 +577,10 @@ This comes in v0.2 and is not part of v0.1, and this section is a sketch. It
 records the direction chosen (currency from records, `after` for order,
 `invalidated_by` for staleness, on-demand actions, gates with results). The
 Work that builds `wio next` settles the details against the records v0.1
-produces; the record format and the config keys it reads are fixed in v0.1, so
-it should not need a new format. The cases it must settle are listed in the
+produces. The record format is fixed in v0.1. Config keys may be added in v0.2,
+and the keys v0.1 defines keep their meaning: `results` stays the vocabulary,
+and which results let the next stage start becomes a key of its own, such as
+`[gates] continue = ["pass"]`. The cases it must settle are listed in the
 open points (section 14).
 
 `wio next` proposes the next action and stage for a Work. It is a heuristic over
@@ -574,8 +591,12 @@ else. Every proposal says so in one fixed line.
   the actions it lists, and actions with no relation between them are ordered by
   name, so the order never depends on how the config file is laid out. `after`
   means order and nothing else. A cycle in `after` is an error in
-  `wio config check`. On-demand actions are never proposed. The proposal is the
-  first stage, in the first action, that is not current.
+  `wio config check`. An entry that starts with `@` is reserved for v0.2 (for
+  example `@descendants:deliver`, to order a Work after its descendants'
+  delivery): v0.1 accepts it with a note and does not read it, and the same goes
+  for any `@` prefix in `invalidated_by` other than the ones defined. On-demand
+  actions are never proposed. The proposal is the first stage, in the first
+  action, that is not current.
 - A stage is **current** when it has a record, and its latest record is newer
   than the latest record of every earlier stage in the same pipeline. When an
   earlier stage is done again after a back-edge, the stages after it stop being
@@ -668,6 +689,7 @@ A stage definition has these parts:
 | `tags` | Which rules apply (section 9). |
 | `roots` | Optional. Which roots the stage selects rules from (section 8). Without it, the stage uses the Work's roots. |
 | `gate` | Optional. `true` when the stage judges an artifact, so each of its records carries a result (section 7). |
+| `judge` | Optional, for a gate. `"human"` when a person must judge it (section 7). |
 | session policy | Whether the stage needs a fresh session, and whether later stages may continue its session. |
 
 ```toml
@@ -762,9 +784,20 @@ record one. The bundle's header says when a stage is a gate.
 Who judges is the workflow's business. A review can be done by an agent in a
 fresh session with a different ruleset, or by a human. A human approval is a
 review stage too, for example `architecture-approval`, whose goal says that a
-person approves the artifact. The human records the result, or tells the agent
-to record it, and the commit's author shows who did. A review that changes no
-files records its result in an empty commit.
+person approves the artifact. A review that changes no files records its result
+in an empty commit.
+
+A gate's record says who judged it, in `Wio-Judge`. A commit's author cannot,
+because agents commit under the person's git identity and a squash merge gives
+a pull request one author. A record without `Wio-Judge` was judged by a human,
+so a person who records a result by hand adds nothing. `wio trailers --result`
+always writes the trailer: `agent` by default, because agents run the tool, and
+`human` with `--judge human` when a person judged, whether they ran the command
+or told the agent to record their decision. A gate with `judge = "human"`
+requires a human judge: `wio trailers` refuses `agent` for it, and the bundle's
+header says that a person must judge. This is a stated claim, not a proof: an
+agent could type `--judge human`. But the claim is explicit and reviewable,
+and the tool's default cannot produce it by accident.
 
 There is no gate object to learn and no approval flag, only stages marked
 `gate = true` that record a result.
@@ -972,11 +1005,15 @@ Rules are identified the way linter rules are. A rule has a **code**, such as
 **family**, which groups rules by topic.
 
 - A ruleset declares its families and owns their prefixes. `wio rule new`
-  assigns the next free number in a family, so codes cannot clash inside a
-  ruleset, and `wio config check` fails when two rulesets bound in the same repo
-  claim the same prefix.
-- The code is the stable identifier. Review events and review comments cite it,
-  and renaming a rule does not change it.
+  assigns the number after the highest existing code in a family, and never
+  fills a gap, so codes cannot clash inside a ruleset. `wio config check` fails
+  when two rulesets bound in the same repo claim the same prefix.
+- The code identifies a rule within a ruleset as it currently is, and renaming
+  the rule does not change it. It is not a permanent registry entry: rules are
+  cheap to try and drop, and a deleted code may come back. So the events that
+  cite rules record each rule's code together with a hash of its file, and
+  evidence never confuses two rules that shared a code, nor a rule with an
+  edited version of itself.
 - A rule file is named `<code>-<name>.md`, so listings sort by family.
 - Wherever a rule is shown to a person or an agent, the code and the name appear
   together, so the code is never opaque.
@@ -1125,7 +1162,13 @@ Output, printed to the session:
    files, so it does not depend on the header that contains it, on how wio was
    invoked or on `--output`, and it changes when the skill does. A skill's
    references and scripts are part of its procedure, so all its files count.
-2. The stage's goal, or the name of its skill.
+2. The stage's goal, or, for a stage with a skill, one fixed instruction to read
+   it: "This stage's procedure is the skill `wio-define`. Read
+   `.agents/skills/wio-define/SKILL.md` and follow it; its other files are in
+   the same directory." The path is relative to the repository. The bundle does
+   not include the skill's text, so it stays small and works with any harness
+   that can read files, and a harness that loads the skill itself can use it as
+   usual.
 3. The resolved contract: the Work plus inheritable sections from its
    ancestors.
 4. The selected rules. They are grouped by the set of roots they apply to, each
@@ -1162,8 +1205,14 @@ Properties that matter:
   excluded.
 - **Sized**: harnesses truncate long command output, and a truncated bundle
   looks complete. The header states the size, an optional threshold in the
-  config turns an oversized bundle into a warning, and `--output <path>` writes
-  the bundle to a file that the agent reads with its file tools.
+  config turns an oversized bundle into a warning, and `--output` writes the
+  bundle to a file that the agent reads with its file tools. Without a path it
+  writes `$TMPDIR/wio/<repo>/<bundle-id>.md` and prints that path: harnesses set
+  `$TMPDIR` to a directory their sandbox lets the session write, which a
+  configured path might not be. If `$TMPDIR` is not set, it fails and says to
+  set it or to pass a path. `--output <path>` writes where it is told, and a
+  path inside the worktree gets a warning, because an uncommitted bundle can be
+  committed by mistake and marks the tree as changed.
 - **Once per session, and again when needed**: the bundle is injected at session
   start. If the harness compacts the context, the session runs the command
   again and gets the same bundle id. If the contract is amended afterwards, the
@@ -1220,6 +1269,7 @@ Wio-Result: pass
 | `Wio-Stage` | The stage the commit works on. Required unless the Work is `none`. |
 | `Wio-Criteria` | The acceptance criteria this commit addresses, separated by commas. Optional. |
 | `Wio-Result` | The gate's result, one of the `results` in the config. Only for stages that judge an artifact. |
+| `Wio-Judge` | Who judged a gate: `human` or `agent`. Optional; a gate's record without it was judged by a human. |
 
 - **One record is one paragraph.** A commit message can hold several records,
   each in its own paragraph. Repeating keys inside one paragraph would lose
@@ -1253,14 +1303,18 @@ Wio-Result: pass
   than doing any. When reverted work is rolled back by hand instead, nothing
   can tell, and the driver decides.
 
-`wio trailers <work> <action> <stage> [--criteria ...] [--result ...]
-[--cite ...]` prints a checked record: the Work exists in the working tree or in
-`HEAD`, the criteria exist in its contract, the result is in the vocabulary and
-present exactly when the stage is a gate, and the stage is in the Work's
-actions (a warning, as in `wio context`). A Work found only in `HEAD` is one
-that the change being committed deletes, so the commit that retires or
-abandons a Work still carries its record, and its criteria are checked against
-`HEAD`'s contract.
+```text
+wio trailers <work> <action> <stage> [--criteria ...] [--result ...]
+             [--judge ...] [--cite ...]
+```
+
+It prints a checked record: the Work exists in the working tree or in `HEAD`,
+the criteria exist in its contract, the result is in the vocabulary and present
+exactly when the stage is a gate, and the stage is in the Work's actions (a
+warning, as in `wio context`). A Work found only in `HEAD` is one that the
+change being committed deletes, so the commit that retires or abandons a Work
+still carries its record, and its criteria are checked against `HEAD`'s
+contract.
 
 With `--result` it also writes the `review` event to the event log, with the
 items `--cite` names (such as `--cite ARC001=fail --cite AC-2=pass`), so a
@@ -1287,22 +1341,34 @@ the earliest `context` event for the same Work, action and stage from the same
 working directory since the latest `review` event for them, so a bundle injected
 again after the artifact changed does not move the start of the review.
 
-`wio trailers check` reads a commit message or a pull request body and checks
-the shape of every record in it: the keys, the id's form, action and stage names
-that the config declares, results from the vocabulary, and a result exactly on
-the records of gates. It does not check that the Works and criteria exist: it
-reads messages away from the commit they belong to, a pull request body gathers
-records of many commits, and Works are deleted later. The readers ignore
-unknown ids for the same reason. A message without a record passes, because
-that is often right: a pull request whose commits all belong to no Work has
-none in its body. `wio trailers check --require` also fails a message without a
-record, except a message whose subject starts with `Merge`, `Revert`, `Reapply`,
-`fixup!` or `squash!`, each followed by a space: git's own forms for commits
-that are merged, reverted (git writes `Reapply` for a revert of a revert) or
-squashed into another. An `amend!` commit is not exempt, because when it is
-squashed its message replaces the target's message, so it must carry the record
-the target will end up with. A project calls `--require` from a commit-msg hook
-and the plain check from CI.
+`wio trailers check` reads a commit message or a pull request body. It has two
+modes, because a message is checked either when it is written or long after.
+
+- **At commit time, `--require`.** It checks every record as `wio trailers`
+  does when it writes one: the Work exists in the index or in `HEAD`, its
+  criteria exist, the names are in the config, and a result is present exactly
+  on gates. Failures are errors, because the message is checked against the
+  config it was written for. It also fails a message without a record, except a
+  message whose subject starts with `Merge`, `Revert`, `Reapply`, `fixup!` or
+  `squash!`, each followed by a space: git's own forms for commits that are
+  merged, reverted (git writes `Reapply` for a revert of a revert) or squashed
+  into another. An `amend!` commit is not exempt, because when it is squashed
+  its message replaces the target's message, so it must carry the record the
+  target will end up with. A project calls it from a commit-msg hook.
+- **Afterwards, without `--require`,** for a pull request body or a range of
+  commits in CI. It checks the shape of every record (the keys, the id's form, a
+  result's value), and reports names that the current config does not know as
+  **warnings**: a record that was valid when it was written never fails later
+  because the config changed. It does not check that Works and criteria exist,
+  because Works are deleted later and the readers ignore unknown ids. A message
+  without a record passes: a pull request whose commits all belong to no Work
+  has none in its body.
+
+In both modes, a `Wio-` line that the configured reader cannot see is reported,
+as an error at commit time and as a warning afterwards: for `scan`, a `Wio-`
+line in a paragraph that is not a record, for example one with a prose line or
+a wrapped value inside; for `git`, a record that is not in the message's last
+paragraph.
 
 Writing and checking records is part of v0.1, and so is the short walk back
 from `HEAD` that finds a gate's reviewed commit. Reading progress from the
@@ -1356,7 +1422,8 @@ blocks a command, a failure is only a warning, and it can be turned off. In v0.1
 it records two events:
 
 - `context`: a session started a stage, with the Work, action, stage, bundle id,
-  size, rule codes, the harness and the session id. For a gate, it also records
+  size, the code and file hash of each rule it received, the harness and the
+  session id. For a gate, it also records
   the commit the review starts from, found with the same rule as the reviewed
   commit (skipping the gate's own commits), and whether the working tree had
   uncommitted changes. A second review of the same artifact, after an `unknown`
@@ -1365,8 +1432,9 @@ it records two events:
   again, after a compaction or an amendment, not a new stage. Its bundle id says
   whether the context changed.
 - `review`: a gate finished, with the Work, action, stage, the reviewed commit,
-  the overall result, and a result for each cited item, a rule code or a
-  criterion id (`ARC001=fail`, `AC-2=pass`). What is not cited was not judged.
+  the judge, the overall result, and a result for each cited item, a rule code
+  (with its file's hash) or a criterion id (`ARC001=fail`, `AC-2=pass`). What is
+  not cited was not judged.
   `wio trailers --result` writes it, and `wio log review`, with the same
   arguments, writes it for workflows that do not use records. A gate that takes
   several commits, or a record printed again after a hook rejected the commit,
@@ -1519,6 +1587,17 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - Whether all-of tag matching is enough. It is the simplest rule that works, and
   it can be replaced later without changing the file formats.
 - Recipes for harness hooks that inject the bundle again after compaction.
+- A lock file for rules, like `uv.lock`, for v0.3 or later:
+  `.agents/wio/rules.lock` records the ruleset, code, name and file hash of
+  every rule the config chooses, and later where a copied ruleset came from.
+  `wio rule lock` rewrites it on purpose, so a reviewer sees in the diff when a
+  code now names a different rule, and `wio config check` warns when the rules
+  on disk no longer match it.
+- Making an unknown metadata key an error when it is a near miss of a known key,
+  within a small edit distance, while other unknown keys stay warnings.
+- The environment variables that harnesses set for their temp directory, to
+  check before `$TMPDIR`: verify them in the documentation of Claude Code,
+  Codex, pi, opencode and Hermes.
 - Cases the `wio next` Work must settle, found on paper:
   - a gate's record under `define` or `amend` makes delivery stale even when
     the contract did not change, for example a second opinion on a defined
