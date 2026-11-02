@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """The ports that two or more components consume identically.
 
-These ports are shared by the components that need them, an exception to the
-rule that the consumer owns its ports. A consumer that needs a different view
+A port is declared here when two or more components need it with the same
+members and the same signatures, an exception to the rule that the consumer owns
+its ports. The components and `wio.cli` may import this stub; `wio.io`,
+`wio.env` and `wio.models` never do. A consumer that needs a different view
 declares its own port in its `ports.pyi` and does not use these. Provisional:
 the members may be narrowed or split once the schemas behind them are decided.
 """

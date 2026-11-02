@@ -101,7 +101,7 @@ def _import_problems(path: Path, policy: ImportPolicy) -> list[str]:
     """List the imports of a stub that break the dependency direction.
 
     A stub may import the standard library and, by absolute name, the shared
-    types, and a ports stub also the ports of `wio.io`.
+    types, and a ports stub also the ports its policy lists.
 
     Args:
         path: The `.pyi` file.
@@ -211,8 +211,9 @@ def test_the_shared_ports_stub_exists_and_a_consumer_does_not_repeat_it() -> Non
         if shared & _class_names(path)
     }
 
-    # Then the shared stub declares ports, and no consumer repeats one
-    assert shared
+    # Then the shared stub declares the ports of the AC-2 table, and no consumer
+    # repeats one
+    assert shared == {"Settings", "EventSink"}
     assert repeated == {}
 
 
