@@ -1251,8 +1251,8 @@ and the event log, which is personal.
 
 ### Records
 
-A **record** says that a commit is work on a stage of a Work. It is a paragraph
-of git trailers in the commit's message:
+A **record** says that a commit is work on a stage of one or more Works. It is
+a paragraph of git trailers in the commit's message:
 
 ```text
 Wio-Work: k3m9xq
@@ -1264,7 +1264,7 @@ Wio-Result: pass
 
 | Trailer | Meaning |
 | --- | --- |
-| `Wio-Work` | The Work's id, or `none` for a commit that belongs to no Work. Required. |
+| `Wio-Work` | The Work's id; several ids separated by a comma and one space, for Works that share the rest of the record; or `none` for a commit that belongs to no Work. Required. |
 | `Wio-Action` | The action the stage belongs to. Required unless the Work is `none`. |
 | `Wio-Stage` | The stage the commit works on. Required unless the Work is `none`. |
 | `Wio-Criteria` | The acceptance criteria this commit addresses, separated by commas. Optional. |
@@ -1274,6 +1274,20 @@ Wio-Result: pass
 - **One record is one paragraph.** A commit message can hold several records,
   each in its own paragraph. Repeating keys inside one paragraph would lose
   which criteria belong to which stage, so a record never does.
+- **A record names one Work or a list of Works.** `Wio-Work: a7b2c4, k3m9xq` is
+  shorthand for two records that are identical except for the id, in the order
+  written, and the Work listed later counts as recorded later. A commit that
+  serves several Works, such as the `review-contract` gate that approves a
+  parent and its children together, writes one list when every other trailer is
+  the same, and one paragraph per Work when anything else differs. The ids are
+  separated by a comma and one space, as in `Wio-Criteria`. Nothing is listed
+  twice, and `none` is never listed. A record of a parent says nothing about its
+  children, because progress is read for each Work, action and stage on its own.
+  Two cautions follow from that. The order of the ids matters when one Work's
+  staleness depends on another's record (section 5), so list dependencies and
+  children before the Works that depend on them. And criteria ids belong to
+  their Work, so `Wio-Criteria: AC-1` on a list means each Work's own `AC-1`:
+  list Works together only when that is what the record means.
 - **Every commit of a stage carries the stage's record.** A stage that takes
   four commits has four records, and only the latest counts. No record says
   that a stage is finished: that is a judgement, and the next gate's result
@@ -1287,7 +1301,8 @@ Wio-Result: pass
   architecture stage is specified, not satisfied.
 - **The latest record of a stage counts** for whether the stage is current.
   Order is the order of the history, and within one commit the order of the
-  paragraphs (see `wio next` in section 5).
+  paragraphs, and within a list the order of the ids (see `wio next` in
+  section 5).
 - **A stage's criteria are the union of its current run.** Each record names
   the criteria its own commit addresses, so an agent writes only what it knows.
   The criteria a stage addressed are the union over its records that are newer
@@ -1302,30 +1317,60 @@ Wio-Result: pass
   restores them. A revert carries no record of its own: it undoes work rather
   than doing any. When reverted work is rolled back by hand instead, nothing
   can tell, and the driver decides.
+- **A pull request body shows the records folded.** The commits keep every
+  record, and a squash merge keeps only the body, so the body carries what a
+  reader needs and no repetition. The fold takes two steps, in this order.
+  - For each Work, consecutive records of the same action and stage become one
+    record at the later position, with the criteria united in order of
+    appearance and the latest result and judge. This loses nothing a reader
+    uses, because only the latest record of a stage counts, and the criteria of
+    a stage are read from the window of its earlier stages alone, not from
+    `invalidated_by`.
+  - Then consecutive records that differ only in the Work become one list,
+    in the order of the history; records with any other difference stay apart.
+    Only neighbors merge, because a record between two others can matter: a
+    child delivered again after its parent integrated makes the parent stale
+    (section 5), and merging the two deliveries would move one past that
+    record.
+
+  Records that are not consecutive, such as a stage done again after another,
+  stay as they are. The fold is a function of the commits, so running it again
+  gives the same body. After a squash merge the folded body is the only record
+  of the pull request, so a reader may rely on nothing more than the latest
+  record of each Work, action and stage, its criteria and the order of those
+  records. How many times a stage was recorded is lost; a back-edge is not,
+  because it needs a record of another stage between the two.
 
 ```text
-wio trailers <work> <action> <stage> [--criteria ...] [--result ...]
-             [--judge ...] [--cite ...]
+wio trailers <work>[,<work>...] <action> <stage> [--criteria ...]
+             [--result ...] [--judge ...] [--cite ...]
 ```
 
-It prints a checked record: the Work exists in the working tree or in `HEAD`,
-the criteria exist in its contract, the result is in the vocabulary and present
-exactly when the stage is a gate, and the stage is in the Work's actions (a
-warning, as in `wio context`). A Work found only in `HEAD` is one that the
-change being committed deletes, so the commit that retires or abandons a Work
-still carries its record, and its criteria are checked against `HEAD`'s
-contract.
+It prints a checked record: each Work exists in the working tree or in `HEAD`,
+the criteria exist in the contract of every Work listed, the result is in the
+vocabulary and present exactly when the stage is a gate, and the stage is in
+each Work's actions (a warning, as in `wio context`). On the command line the
+ids are separated by commas alone, and the record separates them with a comma
+and a space, in the order given. A list names no Work twice. A Work found only
+in `HEAD` is one that the change being committed deletes, so the commit that
+retires or abandons a Work still carries its record, and its criteria are
+checked against `HEAD`'s contract.
 
 With `--result` it also writes the `review` event to the event log, with the
 items `--cite` names (such as `--cite ARC001=fail --cite AC-2=pass`), so a
-reviewer records everything with one command. Each item is checked: one whose
-form is a rule code must name a rule the config chooses, and any other must be a
-criterion of the Work's contract, and its result must be in the vocabulary. The
-**reviewed commit** is worked out from the history: starting at `HEAD` and
-following first parents, wio skips the **pure gate commits** of this gate, those
-whose records all belong to it (the same Work, action and stage), and the first
-other commit is the artifact. A commit that carries this gate's record together
-with any other record, for example a squash merge that holds a whole pull
+reviewer records everything with one command. For a list of Works, each cited
+criterion must exist in every Work's contract, the event is written once per
+Work, and the comparison with the `context` event below runs for each Work. Each
+item is checked: one whose form is a rule code must name a rule the config
+chooses, and any other must be a criterion of the Work's contract, and its
+result must be in the vocabulary. The **reviewed commit** is worked out from the
+history: starting at `HEAD` and following first parents, wio skips the
+**pure gate commits** of this gate, those with at least one record, all of which
+belong to its action and stage once the lists are expanded (for this Work or for
+others, as when one gate approves a parent and its children), and the first
+other commit is the artifact. A commit with no record, or only `Wio-Work: none`,
+is never pure. A commit that carries this gate's record together with a record
+of another action or stage, for example a squash merge that holds a whole pull
 request's records, is not skipped: it holds the artifact. So every call of a
 gate that takes several commits finds the same commit, and a gate records its
 result on each of its commits, because only the latest record counts. The walk
@@ -1357,12 +1402,12 @@ modes, because a message is checked either when it is written or long after.
   target will end up with. A project calls it from a commit-msg hook.
 - **Afterwards, without `--require`,** for a pull request body or a range of
   commits in CI. It checks the shape of every record (the keys, the id's form, a
-  result's value), and reports names that the current config does not know as
-  **warnings**: a record that was valid when it was written never fails later
-  because the config changed. It does not check that Works and criteria exist,
-  because Works are deleted later and the readers ignore unknown ids. A message
-  without a record passes: a pull request whose commits all belong to no Work
-  has none in its body.
+  result's value, the ids of a list), and reports names that the current config
+  does not know as **warnings**: a record that was valid when it was written
+  never fails later because the config changed. It does not check that Works and
+  criteria exist, because Works are deleted later and the readers ignore unknown
+  ids. A message without a record passes: a pull request whose commits all
+  belong to no Work has none in its body.
 
 In both modes, a `Wio-` line that the configured reader cannot see is reported,
 as an error at commit time and as a warning afterwards: for `scan`, a `Wio-`
@@ -1402,7 +1447,12 @@ reader = "scan"
   commits, or squash merges with an explicit message. Git parses only the last
   paragraph, so a message can hold one record under this reader, and
   `wio trailers check` fails a message with more than one when the reader is
-  `git`, because all but the last would be invisible.
+  `git`, because all but the last would be invisible. A list of Works is how a
+  message under this reader serves several Works, when their records are the
+  same. A folded body usually holds several paragraphs, so it belongs to the
+  `scan` reader. Lists have a cost for any reader: each must expand them, and
+  `git log --grep` or a trailer filter on the key finds only the first id of
+  a list.
 
 The two can disagree on edge cases. Git accepts a last paragraph that is only
 partly trailers when it contains a trailer git generated itself, and `scan`

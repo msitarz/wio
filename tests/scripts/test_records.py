@@ -30,6 +30,9 @@ def _message(*paragraphs: str) -> str:
         RECORD,
         f"{RECORD}\nWio-Criteria: AC-1, AC-3",
         f"{RECORD}\nWio-Result: pass",
+        f"{RECORD}\nWio-Result: pass\nWio-Judge: human",
+        "Wio-Work: k3m9xq, a7b2c4\nWio-Action: define\nWio-Stage: define",
+        f"{RECORD}\nWio-Result: fail\nWio-Judge: agent",
         f"{RECORD}\nCo-Authored-By: A Person <a@example.com>",
         "Wio-Work: none",
     ],
@@ -55,6 +58,31 @@ def test_valid_records_have_no_problems(record: str) -> None:
         ("Wio-Work: k3m9xi\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
         (f"{RECORD}\nWio-Criteria: 1, 3", "must look like"),
         (f"{RECORD}\nWio-Result: maybe", "must be one of"),
+        (f"{RECORD}\nWio-Result: pass\nWio-Judge: robot", "must be one of human"),
+        (f"{RECORD}\nWio-Judge: human", "Wio-Judge needs a Wio-Result"),
+        (
+            "Wio-Work: k3m9xq, k3m9xq\nWio-Action: a\nWio-Stage: b",
+            "lists k3m9xq more than once",
+        ),
+        (
+            "Wio-Work: k3m9xq, none\nWio-Action: a\nWio-Stage: b",
+            "cannot be listed with Work ids",
+        ),
+        (
+            "Wio-Work: k3m9xq, A7B2C4\nWio-Action: a\nWio-Stage: b",
+            "'A7B2C4' is not a Work id",
+        ),
+        ("Wio-Work: k3m9xq,\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
+        ("Wio-Work: k3m9xq,a7b2c4\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
+        ("Wio-Work: k3m9xq,  a7b2c4\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
+        ("Wio-Work: k3m9xq,, a7b2c4\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
+        (
+            "Wio-Work: k3m9xq,\u00a0a7b2c4\nWio-Action: a\nWio-Stage: b",
+            "is not a Work id",
+        ),
+        ("Wio-Work: k3m9x\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
+        ("Wio-Work: k3m9xqzzz\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
+        ("Wio-Work: none\nWio-Judge: human", "not allowed when Wio-Work is none"),
         (f"{RECORD}\nWio-Stage: wiring", "appears more than once"),
         (f"{RECORD}\nWio-Typo: x", "unknown trailer Wio-Typo"),
         ("Wio-Work: none\nWio-Stage: define", "not allowed when Wio-Work is none"),
@@ -194,6 +222,247 @@ def test_collect_restores_a_commit_whose_revert_is_reverted() -> None:
 
     # Then the original record counts again
     assert collected == [RECORD]
+
+
+def _record(work: str, stage: str, *extra: str, action: str = "define") -> str:
+    """Build a record for a Work.
+
+    Args:
+        work: The Work id, or a list of ids.
+        stage: The stage.
+        *extra: Further trailer lines, such as a result.
+        action: The action.
+
+    Returns:
+        The record as one paragraph.
+    """
+    lines = [f"Wio-Work: {work}", f"Wio-Action: {action}", f"Wio-Stage: {stage}"]
+    return "\n".join([*lines, *extra])
+
+
+def _collect(*messages: str) -> list[str]:
+    """Collect the records of commits with these messages, oldest first.
+
+    Args:
+        *messages: The paragraphs of each commit, joined by blank lines.
+
+    Returns:
+        The folded records.
+    """
+    commits = [(f"{i:040x}", _message("docs: x", m)) for i, m in enumerate(messages)]
+    return records.collect(commits)
+
+
+def test_a_works_consecutive_records_of_one_stage_become_one() -> None:
+    """Four commits of a stage leave one record, with the criteria united."""
+    # Given a Work with a record in each of four commits of one stage
+    messages = [
+        _record("k3m9xq", "define", "Wio-Criteria: AC-1"),
+        _record("k3m9xq", "define"),
+        _record("k3m9xq", "define", "Wio-Criteria: AC-2, AC-1"),
+        _record("k3m9xq", "define", "Wio-Criteria: AC-3"),
+    ]
+
+    # When their records are collected
+    collected = _collect(*messages)
+
+    # Then one record remains, with each criterion once, in order of appearance
+    assert collected == [_record("k3m9xq", "define", "Wio-Criteria: AC-1, AC-2, AC-3")]
+
+
+def test_the_latest_result_and_judge_of_a_merged_gate_win() -> None:
+    """A gate recorded twice keeps its later result and judge."""
+    # Given a gate recorded by an agent as failed, then by a human as passed
+    first = _record("k3m9xq", "review", "Wio-Result: fail", "Wio-Judge: agent")
+    second = _record("k3m9xq", "review", "Wio-Result: pass", "Wio-Judge: human")
+
+    # When their records are collected
+    collected = _collect(first, second)
+
+    # Then only the later result and judge remain
+    assert collected == [second]
+
+
+def test_a_stage_done_again_after_another_stays_a_separate_record() -> None:
+    """Records of a Work that are not consecutive keep their order."""
+    # Given a Work that defines, is reviewed, and defines again
+    messages = [
+        _record("k3m9xq", "define"),
+        _record("k3m9xq", "review", "Wio-Result: fail"),
+        _record("k3m9xq", "define"),
+    ]
+
+    # When their records are collected
+    collected = _collect(*messages)
+
+    # Then all three remain
+    assert collected == messages
+
+
+def test_neighbors_that_differ_only_in_their_work_become_one_list() -> None:
+    """Identical records of consecutive commits list their Works, oldest first."""
+    # Given the same gate result recorded for four Works in four commits
+    gate = ("Wio-Result: pass", "Wio-Judge: human")
+    works = ["k3m9xq", "jsk0yt", "a7b2c4", "vds425"]
+    messages = [_record(work, "review", *gate) for work in works]
+
+    # When their records are collected
+    collected = _collect(*messages)
+
+    # Then one record lists the four Works in the order of the commits
+    assert collected == [_record("k3m9xq, jsk0yt, a7b2c4, vds425", "review", *gate)]
+
+
+def test_a_list_in_a_commit_is_read_as_one_record_per_work() -> None:
+    """A listed record folds the same way as separate records."""
+    # Given one commit that lists two Works, and a later commit for a third
+    messages = [
+        _record("k3m9xq, jsk0yt", "define"),
+        _record("a7b2c4", "define"),
+    ]
+
+    # When their records are collected
+    collected = _collect(*messages)
+
+    # Then the three Works are listed together, in order
+    assert collected == [_record("k3m9xq, jsk0yt, a7b2c4", "define")]
+
+
+def test_blocks_with_any_other_difference_stay_apart() -> None:
+    """Different criteria, results or stages keep records separate."""
+    # Given consecutive records for two Works that differ in their criteria
+    messages = [
+        _record("k3m9xq", "define", "Wio-Criteria: AC-1"),
+        _record("jsk0yt", "define", "Wio-Criteria: AC-2"),
+    ]
+
+    # When their records are collected
+    collected = _collect(*messages)
+
+    # Then neither record merges with the other
+    assert collected == messages
+
+
+def test_a_record_between_two_works_keeps_them_apart() -> None:
+    """A child delivered again after its parent integrates keeps its place."""
+    # Given two children delivered with the same record, and the parent's
+    # integration between them
+    child = ("deliver", "implementation")
+    messages = [
+        _record("c1c1c1", child[1], action=child[0]),
+        _record("a7b2c4", "integration", action="deliver"),
+        _record("c2c2c2", child[1], action=child[0]),
+    ]
+
+    # When their records are collected
+    collected = _collect(*messages)
+
+    # Then the three records stay in the order of the history
+    assert collected == messages
+
+
+def test_a_merged_record_takes_its_later_position() -> None:
+    """A Work's repeated record moves past the records written between them."""
+    # Given a Work recorded, another Work recorded, and the first recorded again
+    messages = [
+        _record("k3m9xq", "define", "Wio-Criteria: AC-1"),
+        _record("jsk0yt", "review", "Wio-Result: pass"),
+        _record("k3m9xq", "define", "Wio-Criteria: AC-2"),
+    ]
+
+    # When their records are collected
+    collected = _collect(*messages)
+
+    # Then the first Work's merged record comes after the other Work's
+    assert collected == [
+        messages[1],
+        _record("k3m9xq", "define", "Wio-Criteria: AC-1, AC-2"),
+    ]
+
+
+def test_the_records_of_a_pull_request_fold_to_one_paragraph_per_run() -> None:
+    """A stage with several commits and a gate for four Works fold to two."""
+    # Given four define commits for one Work, one for another, and a gate that
+    # was first recorded for the parent alone, then for all four Works
+    gate = ("Wio-Result: pass", "Wio-Judge: human")
+    messages = [
+        *[_record("zpnbj3", "define")] * 4,
+        _record("vds425", "define"),
+        _record("zpnbj3", "review-contract", "Wio-Result: pass"),
+        "\n\n".join(
+            _record(work, "review-contract", *gate)
+            for work in ("zpnbj3", "jsk0yt", "1g7xnh", "vds425")
+        ),
+    ]
+
+    # When their records are collected
+    collected = _collect(*messages)
+
+    # Then the first stage and the gate are one paragraph each
+    assert collected == [
+        _record("zpnbj3, vds425", "define"),
+        _record("zpnbj3, jsk0yt, 1g7xnh, vds425", "review-contract", *gate),
+    ]
+
+
+def test_folding_twice_changes_nothing_and_no_work_is_listed_twice() -> None:
+    """Interleaved records of two Works fold to one list, and stay folded."""
+    # Given two Works recorded in turn, twice each, with the same record
+    messages = [_record(work, "define") for work in ("k3m9xq", "jsk0yt") * 2]
+
+    # When their records are collected, then collected again from the result
+    collected = _collect(*messages)
+    again = _collect(*collected)
+
+    # Then the list names each Work once, and a second fold changes nothing
+    assert collected == [_record("k3m9xq, jsk0yt", "define")]
+    assert again == collected
+
+
+def test_a_reverted_commit_leaves_the_rest_of_a_list() -> None:
+    """Reverting one commit of a folded run drops only its record."""
+    # Given three commits for three Works, and a revert of the middle one
+    commits = [
+        ("aaaaaa1111", _message("docs: a", _record("k3m9xq", "define"))),
+        ("bbbbbb2222", _message("docs: b", _record("jsk0yt", "define"))),
+        ("cccccc3333", _message("docs: c", _record("a7b2c4", "define"))),
+        ("dddddd4444", _message('Revert "docs: b"', "This reverts commit bbbbbb2222.")),
+    ]
+
+    # When their records are collected
+    collected = records.collect(commits)
+
+    # Then the list holds the two Works that were not reverted
+    assert collected == [_record("k3m9xq, a7b2c4", "define")]
+
+
+def test_collect_ignores_a_no_work_paragraph_next_to_a_work_record() -> None:
+    """A paragraph of `Wio-Work: none` adds nothing to the folded records."""
+    # Given a commit with a record for a Work and a record of no Work
+    message = f"{_record('k3m9xq', 'define')}\n\nWio-Work: none"
+
+    # When its records are collected
+    collected = _collect(message)
+
+    # Then only the Work's record remains
+    assert collected == [_record("k3m9xq", "define")]
+
+
+@pytest.mark.parametrize("separator", ["\n\n\n\n", "\n \n", "\n\t\n", "\n\n\n"])
+def test_with_records_replaces_records_set_apart_by_any_blank_lines(
+    separator: str,
+) -> None:
+    """Old records are replaced however the blank lines between them look."""
+    # Given a body whose old records are separated by unusual blank lines
+    old = separator.join(["Wio-Work: abcdef\nWio-Action: a\nWio-Stage: b"] * 2)
+    body = f"## Outcome{separator}Text.{separator}{old}"
+
+    # When the current record is put at its end
+    updated = records.with_records(body, [RECORD])
+
+    # Then no old record remains
+    assert updated.count("Wio-Work:") == 1
+    assert updated.endswith(f"{RECORD}\n")
 
 
 def test_outside_reverts_keeps_only_reverts_of_earlier_work() -> None:
@@ -363,6 +632,51 @@ def test_body_command_prints_nothing_when_the_body_is_current(
     # Then it prints nothing, so the workflow does not edit the pull request
     assert code == 0
     assert not capsys.readouterr().out
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("line_end", ["\n", "\r\n"])
+def test_body_command_prints_nothing_when_a_folded_body_is_current(
+    repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    line_end: str,
+) -> None:
+    """A body that already lists the Works of the range needs no edit."""
+    # Given two commits with the same record for two Works, and a body that ends
+    # with their folded record
+    _commit(repo, _message("docs: a", _record("k3m9xq", "define")))
+    _commit(repo, _message("docs: b", _record("jsk0yt", "define")))
+    folded = _record("k3m9xq, jsk0yt", "define").replace("\n", line_end)
+    body = f"## Outcome{line_end}{line_end}{folded}"
+    monkeypatch.setattr("sys.stdin", io.StringIO(body))
+
+    # When the body command updates the body
+    code = records.main(["body", "HEAD~2..HEAD"])
+
+    # Then it prints nothing, so the workflow does not edit the pull request
+    assert code == 0
+    assert not capsys.readouterr().out
+
+
+@pytest.mark.slow
+def test_body_command_replaces_an_unfolded_body_once(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A body with one paragraph per commit gets the folded list instead."""
+    # Given two commits for two Works and a body with a paragraph for each
+    _commit(repo, _message("docs: a", _record("k3m9xq", "define")))
+    _commit(repo, _message("docs: b", _record("jsk0yt", "define")))
+    old = f"{_record('k3m9xq', 'define')}\n\n{_record('jsk0yt', 'define')}"
+    monkeypatch.setattr("sys.stdin", io.StringIO(f"## Outcome\n\n{old}"))
+
+    # When the body command updates the body
+    code = records.main(["body", "HEAD~2..HEAD"])
+
+    # Then it prints the body with the one folded record at its end
+    folded = _record("k3m9xq, jsk0yt", "define")
+    assert code == 0
+    assert capsys.readouterr().out == f"## Outcome\n\n{folded}\n"
 
 
 @pytest.mark.slow

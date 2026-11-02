@@ -90,8 +90,9 @@ flowchart LR
   matching rules into one deterministic bundle that the agent reads first in
   each session.
 - **Records.** Every commit of a stage carries a record: a paragraph of `Wio-*`
-  git trailers in its message. wio reads progress from the records reachable
-  from `HEAD`, whatever workflow put them there.
+  git trailers in its message, for one Work or a list of Works. wio reads
+  progress from the records reachable from `HEAD`, whatever workflow put them
+  there.
 
 Terms are defined in [GLOSSARY.md](GLOSSARY.md), and the design is described
 in [docs/](docs/README.md).

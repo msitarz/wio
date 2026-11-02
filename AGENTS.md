@@ -65,8 +65,12 @@ Single tools, for quick feedback:
 - End every commit message with a record: a paragraph of `Wio-*` trailers that
   says which Work and stage the commit belongs to (see "Records" in
   [docs/concepts.md](docs/concepts.md#records)). Write `Wio-Work: none` when it
-  belongs to no Work. Once `wio trailers` exists, append its output instead of
-  writing the record by hand. The commit-msg hook checks the record.
+  belongs to no Work. When a commit serves several Works with the same action,
+  stage, criteria, result and judge, list their ids in one `Wio-Work`, such as
+  `Wio-Work: k3m9xq, a7b2c4` (a comma and one space, dependencies and children
+  first); if anything else differs, write a paragraph per Work. Once
+  `wio trailers` exists, append its output instead of writing the record by
+  hand. The commit-msg hook checks the record.
 
   ```text
   Wio-Work: k3m9xq
@@ -77,7 +81,7 @@ Single tools, for quick feedback:
 
   | Trailer | Meaning |
   | --- | --- |
-  | `Wio-Work` | The Work's id, or `none`. |
+  | `Wio-Work` | The Work's id, a comma-separated list of ids, or `none`. |
   | `Wio-Action` | The action, such as `define` or `deliver`. |
   | `Wio-Stage` | The stage the commit works on. |
   | `Wio-Criteria` | Optional: the acceptance criteria this commit addresses. |
