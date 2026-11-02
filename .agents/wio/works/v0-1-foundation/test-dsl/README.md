@@ -19,11 +19,21 @@ channels and one working example must exist before the first component.
   package.
 - A scenario cannot touch the developer's own state.
 - The test strategy document says what the channels are for.
+- The terms of the test setup are defined where the tests use them, apart from
+  the engine's Driver.
 
 ## Glossary
 
+These definitions are the source until this Work moves them to
+`tests/GLOSSARY.md`, which binds them to `tests/` and its descendants.
+
+- **Channel**: a way a scenario reaches `wio`, either in the same process or
+  through the installed command.
 - **Test driver**: the object that reaches `wio` for a scenario, on one channel;
   it is not the engine's Driver, which advances a Work.
+- **Facade**: the `Wio` object whose verbs a scenario calls, in domain terms.
+- **Sandbox**: the directory under `tmp_path` and the environment that a test
+  driver gives `wio`.
 
 ## Non-Goals
 
@@ -64,6 +74,7 @@ scenarios need them.
   and marks the CLI case `slow`.
 - `tests/acceptance/cli/test_bare.py`, the file of the first scenario.
 - `pytest.mark.xfail(strict=True, raises=AssertionError)` on the scenario.
+- `tests/GLOSSARY.md`, which holds the terms of the test setup.
 
 ## Acceptance criteria
 
@@ -195,6 +206,27 @@ layout lists `tests/acceptance/cli/`.
   `run(args)` as scenarios need them, the layout lists `tests/acceptance/cli/`,
   step 2 of its order of work names the bare `wio` scenario, and `rumdl check`
   passes.
+
+### **AC-6** The terms of the test setup are defined where the tests use them
+
+`tests/GLOSSARY.md` defines the terms of the glossary above, binds them to
+`tests/` and its descendants, and says that its test driver narrows the root
+`GLOSSARY.md`'s Driver; `tests/README.md` uses "test driver" for it.
+
+#### The glossary
+
+- **Given** the delivered tree.
+- **When** `tests/GLOSSARY.md` is read.
+- **Then** it defines Channel, Test driver, Facade and Sandbox, and the entry
+  for Test driver says how it differs from the root Driver.
+
+#### The README
+
+- **Given** the delivered documents.
+- **When** `tests/README.md` is searched for the word "driver" not preceded by
+  "test".
+- **Then** nothing is found, except in code identifiers and paths such as
+  `WioDriver` and `drivers/`, and `rumdl check` passes.
 
 ## Additional context
 
