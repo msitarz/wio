@@ -44,7 +44,9 @@ neighbors, so that it can be built alone against their stubs.
   `ruff check` applies no docstring rule to `.pyi` files.
 - **A-4**: The real adapters for the ports of `wio.io` other than `Stdio`, and
   for those of `wio.env`, arrive with the Work of the first component that
-  consumes the port, which also tests each against the port's docstring.
+  consumes the port.
+- **A-5**: A `$TMPDIR` that is set and non-empty is used as it is, without a
+  write test, even when it is unusable, and an empty `$TMPDIR` counts as unset.
 
 ## Mechanisms
 
@@ -155,8 +157,9 @@ class Stdio(Protocol):
 #### The temporary directory
 
 - **Given** the delivered stubs.
-- **When** the architecture review reads the docstring of the `Directories`
-  member that returns the temporary directory.
+- **When** the architecture review reads the docstring of the member of the
+  `wio.env` port for well-known directories that returns the temporary
+  directory.
 - **Then** it states that the result is the directory `$TMPDIR` names, as it is,
   when `$TMPDIR` is set to a non-empty value; otherwise `/tmp` on Linux or
   `/private/tmp` on macOS, when a small test file can be written there; and

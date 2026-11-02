@@ -93,13 +93,14 @@ directory and its descendants; a ratify then replaces this section with links.
   replaces it**: that Work writes a `.py` with the same annotations and
   docstrings and deletes the stub, while a port stays a `.pyi` for good.
 - **One adapter per port**, except that a port whose behavior differs by
-  platform has one adapter for each supported platform. Any other extra adapter
+  platform, such as the one for the temporary directory, has one adapter for
+  each supported platform. Any other extra adapter
   needs a reason that the contract of the Work that adds it states, and fakes of
   ports live under `tests`, not in `src`.
 - **Components reach the filesystem, standard streams and git only through the
   ports of `wio.io`, and the process environment (variables, working
-  directory, clock, randomness and well-known directories such as the temporary
-  directory) only through those of `wio.env`.**
+  directory, clock, randomness and the well-known directories, starting with
+  the temporary directory) only through those of `wio.env`.**
 - **A dependency that exists only for a type is still a dependency**, so tach is
   set to count `TYPE_CHECKING` imports.
 - **Verification.** Tach checks the dependency direction and the use of
