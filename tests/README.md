@@ -51,14 +51,14 @@ tests/
 │   │   ├── base.py         # WioDriver Protocol
 │   │   ├── in_process.py   # calls the library
 │   │   └── cli.py          # subprocess; parses --json; reads exit codes
-│   └── config/ contract/ rule/ context/ trailers/ log/   # one folder per v0.1 feature
+│   └── config/ contracts/ rules/ context/ trailers/ log/   # one folder per v0.1 feature
 ├── golden/                 # expected bundle bytes
 ├── packaging/              # build the wheel and sdist and inspect them (slow)
 ├── scripts/                # the repository's own scripts, such as records.py
 └── fixtures/               # static sample repos, example templates, rulesets
 ```
 
-Acceptance folders follow the feature tree (`config`, `contract`, `rule`,
+Acceptance folders follow the feature tree (`config`, `contracts`, `rules`,
 `context`, `trailers`, `log`), so coverage gaps are easy to see. The DSL lives
 inside `tests/acceptance/` because nothing else uses it yet; promote it to its
 own package only when a second consumer (for example `wio-eval`) needs it.
@@ -274,9 +274,9 @@ markers = [
    tests).
 2. `tests/acceptance/` skeleton: `Wio` facade, builders, in-process driver, CLI
    driver, targeting `wio config check`.
-3. `wio contract new / list / check`, developed against the DSL.
+3. `wio contracts new / list / check`, developed against the DSL.
 4. `wio trailers` and `wio trailers check`.
-5. `wio rule check` and `wio context`, with golden tests.
+5. `wio rules check` and `wio context`, with golden tests.
 6. `wio log`, with the `context` and `review` events.
 7. Add the CLI channel to the scenarios where exit codes, `--json` or
    environment matter.

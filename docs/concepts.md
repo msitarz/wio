@@ -148,7 +148,7 @@ writer (using a safe load) and change the templates.
   It is generated, not written by a model, because models invent or duplicate
   ids. It is not a UUID (too long, untypeable) and not a ticket key (that would
   tie wio to one tracker).
-- Two contracts with the same id are an error, and `wio contract check` names
+- Two contracts with the same id are an error, and `wio contracts check` names
   both paths. Copying a Work's directory is the usual cause. Ids are what
   dependencies, records and the event log key on, so a duplicate would merge the
   progress of two Works.
@@ -157,7 +157,7 @@ writer (using a safe load) and change the templates.
   configurable. Humans navigate by slug and scripts key on the id.
 - Anything else in a Work's directory (notes, diagrams, stage artifacts) is
   ignored. Only a subdirectory that is itself a Work makes a child.
-- `wio contract new` creates a Work in the Works directory, or inside a parent
+- `wio contracts new` creates a Work in the Works directory, or inside a parent
   given by id with `--parent`. Its directory is named by `--slug`, or by a slug
   derived from `--title`, and an existing directory of that name is an error,
   so a Work is never overwritten.
@@ -224,7 +224,7 @@ depends_on = []
 - `type` is the template's type, one of the types the config declares.
 - `description` is what tools show when they list templates.
 - `shape` is optional: `"leaf"` or `"parent"`, the shape of Work the template
-  is for. `wio contract check` warns when a Work's children do not match it:
+  is for. `wio contracts check` warns when a Work's children do not match it:
   a Work with children whose template says `leaf`, or a Work without children
   whose template says `parent`. It is only a warning, because the two disagree
   for a moment during every split. wio still has no levels: the tree decides
@@ -243,11 +243,11 @@ contract skeleton. The `[contract]` table is promoted to the top level
 from the metadata, because they belong to the template author.
 
 A contract created from a template therefore has exactly the shape the template
-describes, and the agent that fills it in sees that shape. `wio contract
+describes, and the agent that fills it in sees that shape. `wio contracts
 template <name>` prints that prepared skeleton without creating a Work, so a
 skill can name a template and show it to the agent without knowing which file
 holds it. That skeleton carries no `id`: pasted as it is, it fails
-`wio contract check`, and the output is the same on every run. With
+`wio contracts check`, and the output is the same on every run. With
 `--work <id>`, it is the skeleton for that existing Work: `template` is the
 requested template, and the Work's `id` and `depends_on` are carried over,
 because they are its identity and its ordering in any template. Everything else
@@ -273,17 +273,17 @@ bugfix = "bugfix"
 
 A type groups templates that serve one kind of outcome. A type can have any
 number of templates (a draft, a leaf, a parent, or seven others), each with its
-own actions. wio gives them no level or shape: which template a contract
-follows is the contract's `template` field, and that decides its sections and
-its actions. `wio contract new feature` creates a Work from `feature.draft`, and
-a template can also be chosen by name.
+own actions. wio gives them no level or shape: which template a contract follows
+is the contract's `template` field, and that decides its sections and its
+actions. `wio contracts new feature` creates a Work from `feature.draft`, and a
+template can also be chosen by name.
 
 How a Work moves from its entry template to another one, for example from a
 draft to a leaf or a parent, is a procedure of the stages that define it. wio
 does not know about it. It only checks the result. So a type's templates and
 the skills of its define stages are written together, as one package: the
 skills know which templates the type has, name them, and print them with
-`wio contract template <name> --work <id>`, and the agent rewrites the contract
+`wio contracts template <name> --work <id>`, and the agent rewrites the contract
 in the chosen shape. wio does not rewrite contracts itself.
 
 `wio config check` fails when a type's entry template does not exist or has
@@ -295,7 +295,7 @@ block are ignored.
 
 ### Directives
 
-Directives tell `wio contract check` what is mandatory. They live in HTML
+Directives tell `wio contracts check` what is mandatory. They live in HTML
 comments on the heading they govern, for example
 `## Goals <!-- wio: required, items>=1 -->`. They are invisible when the
 template is rendered, readable in the source, and parseable by a markdown
@@ -309,7 +309,7 @@ that wants content says so with `items`.
 
 A contract created from a template keeps the template's authoring comments in
 its body, because they are the guidance the agent follows while it fills each
-section in. Directives are removed at creation, because `wio contract check`
+section in. Directives are removed at creation, because `wio contracts check`
 reads them from the template. The agent deletes each authoring comment once its
 section is written, and deletes the sections it leaves empty, unless they are
 required. The `wio` metadata block stays.
@@ -331,7 +331,7 @@ A contract is checked against the template it names, and only against it:
   a leaf or a parent, carry the stricter directives. This is guidance for
   template authors; the engine rule is only "check against your template".
 - Changing a template changes the checks for every contract that follows it. A
-  template change is a reviewed change, and `wio contract check` lists the
+  template change is a reviewed change, and `wio contracts check` lists the
   contracts it breaks, so they are fixed in the same change or moved to a new
   template.
 
@@ -391,13 +391,13 @@ config gives them.
 
   A template sets the default: this repository's parent template uses
   `roots = ["@descendants"]`. A parent whose roots leave out a root that one of
-  its descendants uses gets a note from `wio contract check`, not a warning,
+  its descendants uses gets a note from `wio contracts check`, not a warning,
   because a narrower list may be intended. A Work without children that lists
   `@descendants` gets a warning, because the token resolves to nothing there,
   for example after a parent is demoted to a leaf.
 - An empty `roots` list and a missing one mean the same: no roots. Templates can
   therefore keep `roots = []` as a placeholder.
-- `roots` may be empty. That is not an error in `wio contract check`. It fails
+- `roots` may be empty. That is not an error in `wio contracts check`. It fails
   only when a stage selects rules by the Work's roots (section 6), and then
   loudly.
 
@@ -410,10 +410,10 @@ enforce it.
 
 A child often needs constraints that its parent states. Instead of copying them
 into each child, a parent's template marks sections as **inheritable** with the
-`inherit` directive, for example its Glossary and its Constraints. `wio contract
-show` can then print the leaf together with the inheritable sections of its
-ancestors. The agent reads one resolved view and never needs to open whole
-parent contracts.
+`inherit` directive, for example its Glossary and its Constraints.
+`wio contracts show` can then print the leaf together with the inheritable
+sections of its ancestors. The agent reads one resolved view and never needs to
+open whole parent contracts.
 
 A leaf's own Constraints section holds only the constraints the leaf adds. The
 inherited ones are not restated, so they cannot drift.
@@ -433,7 +433,7 @@ depends_on = ["a7b2c4", "k3m9xq"]
   breaks nothing. The tree gives the hierarchy, and `depends_on` adds an
   ordering graph on top of it. Nesting only decides what is inherited;
   `depends_on` works the same for nested and flat Works.
-- `wio contract check` verifies that every id exists and that there are no
+- `wio contracts check` verifies that every id exists and that there are no
   cycles. For delivery, each parent implicitly depends on its children, and
   that edge counts too.
 - A `depends_on` id that is not in the tree is looked up in the history: wio
@@ -445,7 +445,7 @@ depends_on = ["a7b2c4", "k3m9xq"]
   ordering and for the cycle check. wio does not interpret action names, so it
   cannot tell a retired Work from an abandoned one; the driver reads the note.
   When a Work was abandoned, its dependents should be rethought, and
-  `wio contract show` lists them. When it was retired after delivery, the edge
+  `wio contracts show` lists them. When it was retired after delivery, the edge
   stays true and nothing needs to change.
 - A dependency means the other Work must be delivered first. It applies to the
   Work that lists it and to no other: a parent's dependency holds back only that
@@ -474,8 +474,8 @@ AC-2 = ["31as8f AC-3", "871df7 AC-4"]
 
 - To track means to contribute to, not to be enough for. Several children
   together establish one parent criterion.
-- `wio contract check` verifies that every referenced Work and criterion exists,
-  so an amendment that removes a criterion shows up as a dangling link.
+- `wio contracts check` verifies that every referenced Work and criterion
+  exists, so an amendment that removes a criterion shows up as a dangling link.
 - The parent never lists its children. The criteria that track a parent
   criterion are computed from the descendants.
 - A parent criterion that nothing tracks is a warning, not an error. Some
@@ -505,7 +505,7 @@ description = "Build what the contract says."
 ```
 
 The description is written for agents, like a skill's description: an agent
-reads it to choose the action that fits what the user asked for. `wio contract
+reads it to choose the action that fits what the user asked for. `wio contracts
 show` lists a Work's actions with their descriptions and pipelines.
 
 An action can be **on demand**:
@@ -520,7 +520,7 @@ description = "Update a contract to match what was built, without reworking anyt
 That is all `on_demand` means. Its records count like any other's, so an action
 that lists it in `invalidated_by` becomes stale after it, and listing it in
 `after` is an error, because an order with an action that is never proposed
-could not happen. `wio contract show` marks it. The default is `false`.
+could not happen. `wio contracts show` marks it. The default is `false`.
 
 `define`, `deliver`, `amend` and `ratify` are the actions this repository uses,
 and they are only examples. Nothing in the engine sets one action apart from
@@ -556,7 +556,7 @@ presets can encourage good practice.
 
 Inherited actions follow the template when it changes. The actions a contract
 overrides stay as the contract states them, and wio does not update them when
-the template or the config changes. `wio contract check` reports names that no
+the template or the config changes. `wio contracts check` reports names that no
 longer exist.
 
 ### Procedures belong to stages
@@ -648,7 +648,7 @@ this.
 
 ### Invariants wio checks
 
-`wio contract check` and `wio config check` verify mechanically what wio relies
+`wio contracts check` and `wio config check` verify mechanically what wio relies
 on, and they do not judge how a workflow is built:
 
 - Every contract names an existing template, and the template's type is a
@@ -924,8 +924,8 @@ path, so paths are used for three things:
 
 - the header of each group of rules in a bundle, so the agent knows which files
   the rules are for (section 10);
-- the scope that `wio contract tree` shows;
-- `wio rule list --path <file>`, which answers "which rules apply to this
+- the scope that `wio contracts tree` shows;
+- `wio rules list --path <file>`, which answers "which rules apply to this
   file?": every root whose paths contain the file, then the rules of their
   rulesets, optionally narrowed by a stage's tags. No Work is given, so rules
   restricted by `types` are listed with their types marked rather than
@@ -938,7 +938,7 @@ and that a root lists no path twice. A path that does not exist yet is a
 warning, not an error, because a new root's directory is often created by the
 Work that needs it. Roots may overlap: `repo = ["."]` and
 `api = ["services/api"]` can coexist, and a file in both gets the rules of both
-from `wio rule list --path`. Files outside every specific root, such as CI
+from `wio rules list --path`. Files outside every specific root, such as CI
 configuration, belong to a root the project defines for them.
 
 ## 9. Rules
@@ -967,7 +967,7 @@ Everything after the metadata block is the rule's **body**, and the bundle
 shows it exactly as written (section 10). wio does not parse it, so the author
 controls its formatting. A convention keeps rules alike:
 
-- The first paragraph is the instruction. `wio rule list` shows it as the
+- The first paragraph is the instruction. `wio rules list` shows it as the
   rule's summary.
 - A paragraph that starts with `Why:` gives the reason. An agent that knows why
   a rule exists applies it sensibly at its edges instead of literally.
@@ -977,7 +977,7 @@ controls its formatting. A convention keeps rules alike:
 - The body has no Markdown headings, because they would break the structure of
   the bundle it is injected into.
 
-`wio rule check` checks the metadata, not the body, with one exception: a
+`wio rules check` checks the metadata, not the body, with one exception: a
 Markdown heading in a body is a warning, because it is the one convention
 whose violation breaks something other than the rule, the structure of the
 bundle it is injected into. The rule is still selected and injected as written.
@@ -1004,7 +1004,7 @@ Rules are identified the way linter rules are. A rule has a **code**, such as
 (the first paragraph of its body). The letters of the code are its
 **family**, which groups rules by topic.
 
-- A ruleset declares its families and owns their prefixes. `wio rule new`
+- A ruleset declares its families and owns their prefixes. `wio rules new`
   assigns the number after the highest existing code in a family, and never
   fills a gap, so codes cannot clash inside a ruleset. `wio config check` fails
   when two rulesets bound in the same repo claim the same prefix.
@@ -1116,12 +1116,12 @@ the author's tag.
 
 The last rule has no tags, so it applies to every stage that selects its root.
 That is valid, and it is how a project states a rule that is always on within
-its roots. `wio rule list` marks such rules, and `wio rule check` reports them
+its roots. `wio rules list` marks such rules, and `wio rules check` reports them
 as a note that does not change its exit code, so the driver can review them.
 
 A rule whose tags no single stage has all of, so that it can never be selected,
 is a warning
-in `wio rule check`.
+in `wio rules check`.
 
 ### What else filters a rule
 
@@ -1145,7 +1145,7 @@ dimensions are enough. More would make rules hard to write and reason about.
 agent session read before it starts?*
 
 Inputs: a Work id, an action and a stage. The Work always exists first: a new
-intent starts with `wio contract new <type>`, which creates the Work from the
+intent starts with `wio contracts new <type>`, which creates the Work from the
 type's entry template, and its definition then runs as stages of an action like
 any other. `wio context` reads the contract and its ancestors, the stage
 definition, the rulesets bound to the roots the stage selects, and the rule
@@ -1188,7 +1188,7 @@ Properties that matter:
   id ("these saw identical context").
 - **Pull, not push**: the agent runs `wio context` itself as the first step of a
   stage. For a new intent the Work must exist first, so the first step of its
-  definition is `wio contract new`, run by the driver or by the define skill,
+  definition is `wio contracts new`, run by the driver or by the define skill,
   and `wio context` follows. That works with any harness that can run a command,
   it makes the command the session's own declaration of its stage, and it lets
   the `context` event be written from inside the session, with the session's id.
@@ -1600,11 +1600,11 @@ goal or skill. How well it produces it comes from the rules its tags select.
   root it is for, for example tests colocated with sources. The preferred shape
   is paths on a binding, such as
   `rulesets = ["python", { name = "pytest", paths = ["**/*_test.py"] }]`. It
-  changes only how bundles and `wio rule list --path` show rules, not which
+  changes only how bundles and `wio rules list --path` show rules, not which
   rules a stage selects.
 - A scope check that warns when a change touches files outside the roots of the
   Work its records name. It needs the record reader, so it belongs with v0.2.
-- Whether `wio contract new` also avoids ids that appear in the history, so a
+- Whether `wio contracts new` also avoids ids that appear in the history, so a
   deleted Work's id is never reused with its old records.
 - The form of the metadata block (comment or `+++`) as a config setting, with a
   command that rewrites contracts and templates. Templates must keep their

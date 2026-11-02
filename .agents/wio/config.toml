@@ -98,11 +98,11 @@ rulesets = ["contract-upkeep"]
 goal = """\
 Interview the driver until the intent is clear, using the draft's Purpose and \
 Intent as working space. Decide whether the Work is a leaf or a parent, print \
-that template with `wio contract template <name> --work <id>` (without \
+that template with `wio contracts template <name> --work <id>` (without \
 `--keep`, so the new template's roots and actions apply), and rewrite the \
 contract in its shape; the Intent section does not carry over. Ask the driver for anything still missing. For a parent, \
-create its children with `wio contract new feature --parent <id> --title \
-<title>`. Check the result with `wio contract check`."""
+create its children with `wio contracts new feature --parent <id> --title \
+<title>`. Check the result with `wio contracts check`."""
 tags = ["contract"]
 roots = ["contract"]
 
@@ -124,7 +124,7 @@ goal = """\
 Change the contract's criteria, assumptions or constraints as the driver \
 decided, keep its template, and name the changed ids in the commit message. \
 For a parent, list the children the change affects. Check the result with \
-`wio contract check`."""
+`wio contracts check`."""
 tags = ["contract", "amend"]
 roots = ["contract"]
 
@@ -194,7 +194,7 @@ session = "fresh"
 [stages.ratify]
 goal = """\
 Update the contract to match what was built, without changing its intent, and \
-check it with `wio contract check`."""
+check it with `wio contracts check`."""
 tags = ["contract", "ratify"]
 roots = ["contract"]
 
