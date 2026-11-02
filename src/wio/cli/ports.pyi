@@ -14,11 +14,15 @@ from wio.io.ports import Stdio
 class Command(Protocol):
     """The object a component exposes for one `wio` subcommand."""
 
-    name: str
-    """The subcommand's name, as typed after `wio`."""
+    @property
+    def name(self) -> str:
+        """The subcommand's name, as typed after `wio`."""
+        ...
 
-    help: str
-    """One line that `wio --help` shows for the subcommand."""
+    @property
+    def help(self) -> str:
+        """One line that `wio --help` shows for the subcommand."""
+        ...
 
     def configure(self, parser: ArgumentParser) -> None:
         """Add the subcommand's arguments to its argparse subparser.

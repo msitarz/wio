@@ -5,12 +5,11 @@ Provisional: the architecture review may rename them. The component that
 satisfies each is wired in by `wio.cli`; `wio.context` never imports it.
 """
 
-from collections.abc import Sequence
 from typing import Protocol
 
 from wio.models.config import Config
 from wio.models.events import Event
-from wio.models.rules import Rule
+from wio.models.rules import Selection
 from wio.models.work import ResolvedContract
 
 class Settings(Protocol):
@@ -47,7 +46,7 @@ class Contracts(Protocol):
 class RuleSelection(Protocol):
     """The rules that apply to a Work at a stage."""
 
-    def select(self, contract: ResolvedContract, stage: str) -> Sequence[Rule]:
+    def select(self, contract: ResolvedContract, stage: str) -> Selection:
         """Select the rules for a stage of a Work.
 
         Args:
@@ -56,10 +55,14 @@ class RuleSelection(Protocol):
             stage: The name of a stage in the config.
 
         Returns:
-            The rules in a fixed order, so the same inputs give the same bytes.
+            Every rule considered, in a fixed order so the same inputs give the
+            same bytes, each with its decision: the roots of an included rule,
+            or why a rule was left out.
 
         Raises:
             KeyError: If the stage is not in the config.
+            ValueError: If the stage selects the Work's roots and the Work has
+                none.
         """
         ...
 

@@ -1,23 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the adapters of `wio.io`."""
 
-import importlib
 import sys
 
 import pytest
 
-WAITING = pytest.mark.xfail(
+from wio.io import adapters
+
+
+@pytest.mark.xfail(
     strict=True,
-    raises=ModuleNotFoundError,
-    reason="the implementation stage adds wio.io.adapters",
+    raises=NotImplementedError,
+    reason="the implementation stage binds the streams of sys",
 )
-
-
-@WAITING
 def test_the_standard_streams_adapter_wraps_the_real_streams() -> None:
     """The adapter for standard streams hands out `sys`'s own streams."""
     # Given the adapter for standard streams
-    adapters = importlib.import_module("wio.io.adapters")
 
     # When it is created
     stdio = adapters.SystemStdio()
@@ -28,11 +26,9 @@ def test_the_standard_streams_adapter_wraps_the_real_streams() -> None:
     assert stdio.stderr is sys.stderr
 
 
-@WAITING
 def test_the_standard_streams_adapter_is_the_only_adapter() -> None:
     """The ports for files, git and the environment have no adapter yet."""
     # Given the module that holds the adapters
-    adapters = importlib.import_module("wio.io.adapters")
 
     # When its public classes are listed
     public = sorted(

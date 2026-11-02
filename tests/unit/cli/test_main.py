@@ -3,6 +3,7 @@
 
 import io
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TextIO
 
 import pytest
@@ -63,12 +64,18 @@ def test_console_main_builds_the_real_streams_and_returns_zero(
     assert (captured.out, captured.err) == ("", "")
 
 
-def test_the_placeholder_is_still_here_until_wiring() -> None:
-    """The greeting stays until the wiring stage removes it with its test."""
-    # Given the package as the architecture stage leaves it
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="the wiring stage removes hello, its module and its test",
+)
+def test_the_placeholder_is_gone() -> None:
+    """Neither the greeting nor its test is left."""
+    # Given the package and the unit tests as they are
 
-    # When the placeholder is called
-    answer = cli.hello()
+    # When the placeholder is looked for
+    has_greeting = hasattr(cli, "hello")
+    has_test = (Path(__file__).parents[1] / "test_cli.py").exists()
 
-    # Then it answers "world"
-    assert answer == "world"
+    # Then neither exists
+    assert (has_greeting, has_test) == (False, False)

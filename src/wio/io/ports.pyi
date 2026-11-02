@@ -3,18 +3,21 @@
 
 These ports are shared infrastructure that `wio.io` owns, an exception to the
 rule that the consumer owns its ports. A component reaches the filesystem,
-standard streams, git and the environment only through them. Provisional: the
-members of `FileSystem`, `Git` and `Environment` are the ones the scope
-document needs, and the architecture review may rename them; `Stdio` is
-required as written.
+standard streams, git and the environment, which includes the clock and the
+source of randomness, only through them. Provisional: the members of
+`FileSystem`, `Git` and `Environment` are the ones the data flows of the scope
+document need, and the Works that add an adapter may rename or extend them;
+`Stdio` is required as written.
 """
 
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol, TextIO
 
+from wio.models.commits import Commit
+
 class FileSystem(Protocol):
-    """Reads and writes text files and lists directories.
+    """Reads and writes files and lists directories.
 
     Paths are absolute or relative to the working directory, and a failure
     raises the `OSError` subclass that describes it.
@@ -34,12 +37,38 @@ class FileSystem(Protocol):
         """
         ...
 
+    def read_bytes(self, path: Path) -> bytes:
+        """Read a file as it is stored, for hashing.
+
+        Args:
+            path: The file to read.
+
+        Returns:
+            The file's bytes.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+        """
+        ...
+
     def write_text(self, path: Path, text: str) -> None:
         """Write a file as UTF-8 text, creating its parent directories.
 
         Args:
             path: The file to write.
             text: The content, written exactly as given.
+        """
+        ...
+
+    def append_text(self, path: Path, text: str) -> None:
+        """Append UTF-8 text to a file in one write, creating it if needed.
+
+        The text reaches the file in a single append, so writers that run at
+        the same time do not interleave their lines.
+
+        Args:
+            path: The file to append to, whose parents are created.
+            text: The content, appended exactly as given.
         """
         ...
 
@@ -51,6 +80,28 @@ class FileSystem(Protocol):
 
         Returns:
             True when the path exists.
+        """
+        ...
+
+    def is_dir(self, path: Path) -> bool:
+        """Tell whether a path is a directory.
+
+        Args:
+            path: Any path.
+
+        Returns:
+            True when the path exists and is a directory.
+        """
+        ...
+
+    def is_file(self, path: Path) -> bool:
+        """Tell whether a path is a regular file.
+
+        Args:
+            path: Any path.
+
+        Returns:
+            True when the path exists and is a regular file.
         """
         ...
 
@@ -86,7 +137,29 @@ class Stdio(Protocol):
     """The stream a command writes notes, warnings and errors to."""
 
 class Git(Protocol):
-    """Reads a git repository's history and file contents."""
+    """Reads the history, the index and the files of a git repository.
+
+    Every method raises `RuntimeError` when the working directory is not inside
+    a git repository, and `ValueError` for a revision or range that git rejects.
+    """
+
+    def root(self) -> Path:
+        """Find the top of the working tree.
+
+        Returns:
+            The absolute path of the repository root, the base of every path
+            that `show` and `list_files` take.
+        """
+        ...
+
+    def common_dir(self) -> Path:
+        """Find the repository's common git directory.
+
+        Returns:
+            The absolute path shared by every worktree of one clone, which
+            identifies the repository.
+        """
+        ...
 
     def rev_parse(self, revision: str) -> str:
         """Resolve a revision to a full commit id.
@@ -96,20 +169,39 @@ class Git(Protocol):
 
         Returns:
             The full commit id.
-
-        Raises:
-            ValueError: If the revision does not name a commit.
         """
         ...
 
-    def messages(self, revision_range: str) -> Sequence[str]:
-        """List the commit messages of a revision range.
+    def history(self, revision_range: str) -> Sequence[Commit]:
+        """List the commits of a revision range.
 
         Args:
             revision_range: A range such as `main..HEAD`.
 
         Returns:
-            The messages, oldest first.
+            The commits oldest first, parents before children.
+        """
+        ...
+
+    def first_parents(self, revision: str) -> Sequence[Commit]:
+        """List a revision's ancestors along first parents.
+
+        Args:
+            revision: The revision to start from, such as `HEAD`.
+
+        Returns:
+            The commits newest first, starting with the revision's own.
+        """
+        ...
+
+    def list_files(self, revision: str) -> Sequence[Path]:
+        """List the files of a revision's tree.
+
+        Args:
+            revision: The revision, such as `HEAD`.
+
+        Returns:
+            The paths relative to the repository root, sorted.
         """
         ...
 
@@ -125,8 +217,31 @@ class Git(Protocol):
         """
         ...
 
+    def show_index(self, path: Path) -> str | None:
+        """Read a file as it is staged in the index.
+
+        Args:
+            path: The file, relative to the repository root.
+
+        Returns:
+            The staged content, or `None` when the index has no such file.
+        """
+        ...
+
+    def is_dirty(self) -> bool:
+        """Tell whether the working tree has uncommitted changes.
+
+        Returns:
+            True when a tracked file differs from `HEAD` or the index.
+        """
+        ...
+
 class Environment(Protocol):
-    """Reads the process environment and the working directory."""
+    """Reads what the process knows about its surroundings.
+
+    That is its variables, its working directory, the clock and the source of
+    randomness, so tests can fix all four.
+    """
 
     def get(self, name: str) -> str | None:
         """Read an environment variable.
@@ -144,5 +259,24 @@ class Environment(Protocol):
 
         Returns:
             The absolute working directory.
+        """
+        ...
+
+    def now(self) -> float:
+        """Read the clock.
+
+        Returns:
+            Seconds since the Unix epoch, in UTC.
+        """
+        ...
+
+    def random_bytes(self, count: int) -> bytes:
+        """Read cryptographically secure random bytes.
+
+        Args:
+            count: How many bytes to return.
+
+        Returns:
+            Exactly `count` bytes.
         """
         ...

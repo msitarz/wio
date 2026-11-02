@@ -2,6 +2,7 @@
 """Tests for the port and shared-type stubs that make up the architecture."""
 
 import ast
+import sys
 from pathlib import Path
 
 import pytest
@@ -9,7 +10,7 @@ import pytest
 SRC = Path(__file__).resolve().parents[2] / "src" / "wio"
 PORTS = sorted(SRC.glob("*/ports.pyi"))
 MODELS = sorted((SRC / "models").glob("*.pyi"))
-ALLOWED = ("wio.models", "wio.io")
+OWNERS = {"cli", "context", "contract", "io", "rule", "trailers"}
 
 
 def _tree(path: Path) -> ast.Module:
@@ -22,6 +23,18 @@ def _tree(path: Path) -> ast.Module:
         Its syntax tree.
     """
     return ast.parse(path.read_text(encoding="utf-8"))
+
+
+def _name(path: Path) -> str:
+    """Name a stub for a test id.
+
+    Args:
+        path: A stub under `src/wio`.
+
+    Returns:
+        Its path relative to `src/wio`.
+    """
+    return str(path.relative_to(SRC))
 
 
 def _undocumented(path: Path) -> list[str]:
@@ -41,6 +54,57 @@ def _undocumented(path: Path) -> list[str]:
         for node in nodes
         if not ast.get_docstring(node)
     ]
+
+
+def _modules_of(node: ast.AST) -> list[str]:
+    """List the module names an import statement refers to.
+
+    Args:
+        node: Any syntax node.
+
+    Returns:
+        The names, with a leading dot for each level of a relative import, or
+        none when the node is not an import.
+    """
+    if isinstance(node, ast.ImportFrom):
+        return [("." * node.level) + (node.module or "")]
+    if isinstance(node, ast.Import):
+        return [alias.name for alias in node.names]
+    return []
+
+
+def _import_problems(path: Path) -> list[str]:
+    """List the imports of a stub that break the dependency direction.
+
+    A stub may import the standard library, the shared types and the ports of
+    `wio.io`, by absolute name.
+
+    Args:
+        path: The `.pyi` file.
+
+    Returns:
+        One entry per import that is relative or from anywhere else.
+    """
+    modules = [m for node in ast.walk(_tree(path)) for m in _modules_of(node)]
+    return [module for module in modules if not _allowed(module)]
+
+
+def _allowed(module: str) -> bool:
+    """Tell whether a stub may import a module.
+
+    Args:
+        module: An absolute or relative module name.
+
+    Returns:
+        True for the standard library, `wio.models` and `wio.io.ports`.
+    """
+    top = module.split(".", maxsplit=1)[0]
+    return (
+        top in sys.stdlib_module_names
+        or module == "wio.io.ports"
+        or module == "wio.models"
+        or module.startswith("wio.models.")
+    )
 
 
 def _models_named_by(path: Path) -> set[str]:
@@ -70,41 +134,10 @@ def _declared_types(path: Path) -> set[str]:
     Returns:
         The names of its classes and type aliases.
     """
-    nodes = ast.walk(_tree(path))
+    nodes = list(ast.walk(_tree(path)))
     classes = {n.name for n in nodes if isinstance(n, ast.ClassDef)}
-    aliases = {n.name.id for n in ast.walk(_tree(path)) if isinstance(n, ast.TypeAlias)}
+    aliases = {n.name.id for n in nodes if isinstance(n, ast.TypeAlias)}
     return classes | aliases
-
-
-@pytest.mark.parametrize(
-    "path", [*PORTS, *MODELS], ids=lambda p: str(p.relative_to(SRC))
-)
-def test_every_item_of_a_stub_has_a_docstring(path: Path) -> None:
-    """Each module, class and method of a stub says what it guarantees."""
-    # Given a port or shared-type stub
-
-    # When the items without a docstring are listed
-    missing = _undocumented(path)
-
-    # Then there are none
-    assert missing == []
-
-
-@pytest.mark.parametrize("path", PORTS, ids=lambda p: str(p.relative_to(SRC)))
-def test_a_port_stub_imports_nothing_from_a_neighbor(path: Path) -> None:
-    """A stub imports only shared types, the io ports and the standard library."""
-    # Given a ports stub
-    tree = _tree(path)
-
-    # When the `wio` modules it imports are listed
-    imported = {
-        node.module
-        for node in ast.walk(tree)
-        if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("wio")
-    }
-
-    # Then each is a shared type module or the io ports
-    assert [m for m in imported if not (m or "").startswith(ALLOWED)] == []
 
 
 def _alias_parts(path: Path) -> dict[str, set[str]]:
@@ -123,23 +156,80 @@ def _alias_parts(path: Path) -> dict[str, set[str]]:
     }
 
 
-def _named_types() -> set[str]:
+def _named_types(declared: set[str]) -> set[str]:
     """List the shared types the ports name, including an alias's members.
 
+    Args:
+        declared: The types the models stubs declare.
+
     Returns:
-        The names the ports import from `wio.models`, plus the names inside
-        any type alias among them.
+        The names the ports import from `wio.models`, plus the declared types
+        inside any type alias among them.
     """
     named = {name for path in PORTS for name in _models_named_by(path)}
     parts = {k: v for path in MODELS for k, v in _alias_parts(path).items()}
-    return named | {member for alias in named for member in parts.get(alias, set())}
+    return named | {m for a in named for m in parts.get(a, set()) if m in declared}
+
+
+def test_only_the_consuming_packages_have_a_ports_stub() -> None:
+    """Six packages declare ports, and `config` and `log` declare none."""
+    # Given the packages that hold a `ports.pyi`
+    owners = {path.parent.name for path in PORTS}
+
+    # When they are compared with the packages that consume something
+    # Then they are the same six
+    assert owners == OWNERS
+
+
+@pytest.mark.parametrize("path", PORTS, ids=_name)
+def test_every_class_of_a_ports_stub_is_a_protocol(path: Path) -> None:
+    """A port is a `typing.Protocol`, so a provider satisfies it structurally."""
+    # Given a ports stub
+    classes = [n for n in ast.walk(_tree(path)) if isinstance(n, ast.ClassDef)]
+
+    # When the classes that do not derive from `Protocol` are listed
+    others = [
+        c.name
+        for c in classes
+        if not any(isinstance(b, ast.Name) and b.id == "Protocol" for b in c.bases)
+    ]
+
+    # Then there are none, and the stub declares at least one port
+    assert others == []
+    assert classes
+
+
+@pytest.mark.parametrize("path", [*PORTS, *MODELS], ids=_name)
+def test_every_item_of_a_stub_has_a_docstring(path: Path) -> None:
+    """Each module, class and method of a stub says what it guarantees."""
+    # Given a port or shared-type stub
+
+    # When the items without a docstring are listed
+    missing = _undocumented(path)
+
+    # Then there are none
+    assert missing == []
+
+
+@pytest.mark.parametrize("path", PORTS, ids=_name)
+def test_a_port_stub_imports_only_shared_types_io_ports_and_the_stdlib(
+    path: Path,
+) -> None:
+    """A stub never imports a neighbor, an adapter or a third-party package."""
+    # Given a ports stub
+
+    # When its imports that break the dependency direction are listed
+    problems = _import_problems(path)
+
+    # Then there are none
+    assert problems == []
 
 
 def test_the_shared_types_are_those_the_ports_name() -> None:
     """Every type a port names has one stub, and no stub goes unused."""
-    # Given the types the ports name, and the types the stubs declare
-    named = _named_types()
+    # Given the types the stubs declare, and the types the ports name
     declared = [name for path in MODELS for name in _declared_types(path)]
+    named = _named_types(set(declared))
 
     # When the two are compared
     undeclared = named - set(declared)
