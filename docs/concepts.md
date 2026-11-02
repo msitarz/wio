@@ -1587,12 +1587,28 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - Whether all-of tag matching is enough. It is the simplest rule that works, and
   it can be replaced later without changing the file formats.
 - Recipes for harness hooks that inject the bundle again after compaction.
-- A lock file for rules, like `uv.lock`, for v0.3 or later:
-  `.agents/wio/rules.lock` records the ruleset, code, name and file hash of
-  every rule the config chooses, and later where a copied ruleset came from.
-  `wio rule lock` rewrites it on purpose, so a reviewer sees in the diff when a
-  code now names a different rule, and `wio config check` warns when the rules
-  on disk no longer match it.
+- A lock file for the whole workflow, like `uv.lock`, for v0.3 or later.
+  `.agents/wio/wio.lock` records everything `wio context` compiles bundles from:
+  the config, each template, each rule the config chooses (its ruleset, code,
+  name and file hash), and each skill a stage names (where it was found and a
+  hash of its files), and later where a copied ruleset came from.
+  - `wio lock` rewrites it on purpose, so a change to the workflow shows up in
+    the pull request's diff: a code that now names a different rule, an edited
+    skill, a new template.
+  - `wio context` warns, before compiling a bundle, when the repository is out
+    of sync with the lock and names what changed. `wio lock check` fails on the
+    same differences, for a project that wants unreviewed workflow changes to
+    stop CI. wio itself still never blocks a session.
+  - A **lock id**, a hash of the lock, is recorded in every `context` event. Two
+    sessions with the same lock id ran under the same workflow, as two with the
+    same bundle id saw the same context. A skill found in a user's directory is
+    part of the lock too, so a machine that runs a different version of it shows
+    up as a mismatch.
+  - It is the natural unit of evaluation: two commits, each with its
+    `wio.lock`, run the same Work, and the results are compared by a skill, a
+    human gate, or both. An evaluation is then a Work of its own type, with its
+    own template and actions, so the evaluation harness uses the engine rather
+    than sitting beside it.
 - Making an unknown metadata key an error when it is a near miss of a known key,
   within a small edit distance, while other unknown keys stay warnings.
 - The environment variables that harnesses set for their temp directory, to
