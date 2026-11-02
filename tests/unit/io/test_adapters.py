@@ -1,9 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the adapters of `wio.io`."""
 
+import io
 import sys
+from typing import TYPE_CHECKING
 
 from wio.io import adapters
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def test_the_standard_streams_adapter_wraps_the_real_streams() -> None:
@@ -32,3 +37,20 @@ def test_the_standard_streams_adapter_is_the_only_adapter() -> None:
 
     # Then only the adapter for standard streams is there
     assert public == ["SystemStdio"]
+
+
+def test_the_standard_streams_adapter_reads_the_streams_when_it_is_created(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The adapter binds the streams at creation, not when the module loads."""
+    # Given replacement streams installed after the module was imported
+    out, err, source = io.StringIO(), io.StringIO(), io.StringIO()
+    monkeypatch.setattr("sys.stdout", out)
+    monkeypatch.setattr("sys.stderr", err)
+    monkeypatch.setattr("sys.stdin", source)
+
+    # When the adapter is created
+    stdio = adapters.SystemStdio()
+
+    # Then it hands out the replacements
+    assert (stdio.stdin, stdio.stdout, stdio.stderr) == (source, out, err)
