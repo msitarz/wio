@@ -28,12 +28,13 @@ These definitions are the source until the skeleton leaf moves them to
 directory and its descendants; a ratify then replaces this section with links.
 
 - **Component**: the package under `src/wio` of one v0.1 subcommand, which is
-  `config`, `contract`, `rule`, `trailers`, `log` or `context`; `cli` is the
-  composition root and `models`, `formats` and `io` are shared layers, so none
-  of them is a component.
+  `config`, `contracts`, `rules`, `trailers`, `log` or `context`; `cli` is the
+  composition root and `models`, `formats`, `io` and `env` are shared layers, so
+  none of them is a component.
 - **Port**: a `typing.Protocol` declared in a `.pyi` stub, saying what a package
   needs from the outside.
-- **Adapter**: the implementation of a port, one per port for now.
+- **Adapter**: the implementation of a port, one per port, or for a port of
+  `wio.env` one for each supported platform where its behavior differs.
 - **Command**: the object a component exposes to the command line, with a name,
   a help text, a function that configures its argparse subparser and a function
   that runs it.
@@ -59,6 +60,8 @@ directory and its descendants; a ratify then replaces this section with links.
 - **A-3**: The scope document's six components are all of v0.1, and
   `wio-define` lives outside `src`.
 - **A-4**: A component's package has the name of its subcommand.
+- **A-5**: Linux and macOS are the supported platforms, as the continuous
+  integration matrix shows.
 
 ## Mechanisms
 
@@ -72,26 +75,32 @@ directory and its descendants; a ratify then replaces this section with links.
 
 ## Constraints
 
-- **Dependency direction**: `wio.models` imports nothing else from `wio`;
-  `wio.formats` and `wio.io` import only `wio.models`; a component imports only
-  `wio.models`, `wio.formats` and the ports of `wio.io`; the adapters in
-  `wio.io.adapters` import only `wio.io` and `wio.models`; `wio.cli` is the only
-  package that imports the commands of the components and the adapters.
+- **Dependency direction**: `wio.models` and `wio.env` import nothing else from
+  `wio`; `wio.formats` and `wio.io` import only `wio.models`; a component
+  imports only `wio.models`, `wio.formats` and the ports of `wio.io` and
+  `wio.env`; `wio.io.adapters` imports only `wio.io` and `wio.models`, and
+  `wio.env.adapters` only `wio.env`; `wio.cli` is the only package that imports
+  the commands of the components and the adapters.
 - **No component imports another component.** They meet only in `wio.cli`, which
   gives each the implementation of the ports it consumes.
 - **Ports are owned by their consumer**, declared in `<package>/ports.pyi`,
   imported only under `TYPE_CHECKING`, and satisfied structurally, so a provider
-  never imports the stub of its consumer. The exception is `wio.io`, whose ports
-  for the filesystem, standard streams, git and the environment are shared
-  infrastructure that `wio.io` owns in `io/ports.pyi`.
+  never imports the stub of its consumer. The exceptions are `wio.io` and
+  `wio.env`, whose ports are shared infrastructure that each owns in its own
+  `ports.pyi`: `wio.io` for the filesystem, standard streams and git, and
+  `wio.env` for what the process knows about its surroundings.
 - **A shared-type stub is the spec until the Work that implements the type
   replaces it**: that Work writes a `.py` with the same annotations and
   docstrings and deletes the stub, while a port stays a `.pyi` for good.
-- **One adapter per port.** An extra adapter needs a reason that the contract of
-  the Work that adds it states, and fakes of ports live under `tests`, not in
-  `src`.
-- **Components reach the filesystem, standard streams, git and the environment
-  only through the ports of `wio.io`.**
+- **One adapter per port**, except that a port of `wio.env` whose behavior
+  differs by platform, such as the one for the temporary directory, has one
+  adapter for each supported platform. Any other extra adapter needs a reason
+  that the contract of the Work that adds it states, and fakes of ports live
+  under `tests`, not in `src`.
+- **Components reach the filesystem, standard streams and git only through the
+  ports of `wio.io`, and the process environment (variables, working
+  directory, clock, randomness and the well-known directories, starting with
+  the temporary directory) only through those of `wio.env`.**
 - **A dependency that exists only for a type is still a dependency**, so tach is
   set to count `TYPE_CHECKING` imports.
 - **Verification.** Tach checks the dependency direction and the use of
@@ -141,24 +150,30 @@ flowchart LR
         cli["wio.cli (composition root)"]:::new
         subgraph components
             config:::new
-            contract:::new
-            rule:::new
+            contracts:::new
+            rules:::new
             trailers:::new
             log:::new
             context:::new
         end
-        adapters["wio.io.adapters"]:::new
+        ioadapters["wio.io.adapters"]:::new
         io["wio.io (ports)"]:::new
+        envadapters["wio.env.adapters"]:::new
+        env["wio.env (ports)"]:::new
         formats["wio.formats (codecs)"]:::new
         models["wio.models (shared types)"]:::new
         cli -. "lazy import of commands, later" .-> components
-        cli --> adapters
+        cli --> ioadapters
+        cli --> envadapters
         cli --> io
+        cli --> env
         cli --> formats
         cli --> models
-        adapters --> io
-        adapters --> models
+        ioadapters --> io
+        ioadapters --> models
+        envadapters --> env
         components -- "ports" --> io
+        components -- "ports" --> env
         components --> formats
         components --> models
         formats --> models
@@ -186,16 +201,17 @@ child.
 ### **AC-2** The layout and the dependency rules describe the same packages
 
 Every package directly under `src/wio` is a module in `tach.toml`, and the only
-other module there is `wio.io.adapters`, so the checked graph is the one the
-constraints state.
+other modules there are `wio.io.adapters` and `wio.env.adapters`, so the checked
+graph is the one the constraints state.
 
 #### Same packages
 
 - **Given** the delivered tree.
 - **When** the packages under `src/wio` are compared with the modules in
   `tach.toml`.
-- **Then** the lists are equal apart from `wio.io.adapters`, and each module's
-  allowed dependencies are those of the dependency direction constraint.
+- **Then** the lists are equal apart from `wio.io.adapters` and
+  `wio.env.adapters`, and each module's allowed dependencies are those of the
+  dependency direction constraint.
 
 ## Additional context
 

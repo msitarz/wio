@@ -38,12 +38,15 @@ neighbors, so that it can be built alone against their stubs.
   `hello` have no user, so replacing them breaks nothing.
 - **A-2**: The collaborators in the provisional table below are enough for the
   data flows of the scope document, including that `config` and `log` consume
-  only the ports of `wio.io`, and the architecture stage may rename, add or move
-  them.
+  only the ports of `wio.io` and `wio.env`, and the architecture stage may
+  rename, add or move them.
 - **A-3**: The architecture review verifies the docstrings of the stubs, because
   `ruff check` applies no docstring rule to `.pyi` files.
-- **A-4**: The real adapters for `FileSystem`, `Git` and `Environment` arrive
-  with the Work of the first component that consumes the port.
+- **A-4**: The real adapters for the ports of `wio.io` other than `Stdio`, and
+  for those of `wio.env`, arrive with the Work of the first component that
+  consumes the port.
+- **A-5**: A `$TMPDIR` that is set and non-empty is used as it is, without a
+  write test, even when it is unusable, and an empty `$TMPDIR` counts as unset.
 
 ## Mechanisms
 
@@ -53,6 +56,8 @@ neighbors, so that it can be built alone against their stubs.
   `<package>` consumes.
 - `src/wio/io/ports.pyi` holds the ports of `wio.io`, and
   `src/wio/io/adapters.py` holds its adapters.
+- `src/wio/env/ports.pyi` holds the ports of `wio.env`, and
+  `src/wio/env/adapters.py` holds its adapters, none yet.
 - `src/wio/models/*.pyi` hold the shared types as stubs, until the Work that
   implements a type replaces its stub.
 - `[project.scripts]` in `pyproject.toml` installs the command with the line
@@ -70,9 +75,9 @@ neighbors, so that it can be built alone against their stubs.
 Importing any package of v0.1 works, and its docstring says what the package is
 for.
 
-The packages are `wio.models`, `wio.formats`, `wio.io`, `wio.config`,
-`wio.contract`, `wio.rule`, `wio.trailers`, `wio.log`, `wio.context` and
-`wio.cli`.
+The packages are `wio.models`, `wio.formats`, `wio.io`, `wio.env`,
+`wio.config`, `wio.contracts`, `wio.rules`, `wio.trailers`, `wio.log`,
+`wio.context` and `wio.cli`.
 
 #### Every package imports
 
@@ -83,20 +88,22 @@ The packages are `wio.models`, `wio.formats`, `wio.io`, `wio.config`,
 
 ### **AC-2** Each consumer declares what it needs as ports of its own
 
-A package that calls collaborators other than `wio.io` has a `ports.pyi` with
-one `Protocol` per collaborator, and no other package outside `wio.io` has one.
+A package that calls collaborators other than `wio.io` and `wio.env` has a
+`ports.pyi` with one `Protocol` per collaborator, and no other package outside
+those two has one.
 
 Provisional, as the architecture stage may rename the Protocols:
 
 | Package | Protocols it declares | Satisfied by |
 | --- | --- | --- |
-| `contract` | `Settings` | `config` |
-| `rule` | `Settings` | `config` |
-| `trailers` | `Settings`, `Contracts`, `EventSink` | `config`, `contract`, `log` |
-| `context` | `Settings`, `Contracts`, `RuleSelection`, `EventSink` | `config`, `contract`, `rule`, `log` |
+| `contracts` | `Settings` | `config` |
+| `rules` | `Settings` | `config` |
+| `trailers` | `Settings`, `Contracts`, `EventSink` | `config`, `contracts`, `log` |
+| `context` | `Settings`, `Contracts`, `RuleSelection`, `EventSink` | `config`, `contracts`, `rules`, `log` |
 | `cli` | `Command` | every component |
 
-`config` and `log` consume only the ports of `wio.io`, so they declare none.
+`config` and `log` consume only the ports of `wio.io` and `wio.env`, so they
+declare none.
 
 #### Ports are typed and documented
 
@@ -104,7 +111,7 @@ Provisional, as the architecture stage may rename the Protocols:
 - **When** `pyrefly check` runs and the architecture review reads the stubs.
 - **Then** `pyrefly` passes, every `Protocol` and method in a `ports.pyi` has a
   docstring that says what it guarantees, and every name in a signature
-  resolves to `wio.models`, `wio.io` or the standard library.
+  resolves to `wio.models`, `wio.io`, `wio.env` or the standard library.
 
 #### No port names a neighbor
 
@@ -114,12 +121,17 @@ Provisional, as the architecture stage may rename the Protocols:
 
 ### **AC-3** The outside world is reached through ports declared once
 
-`wio.io` declares the ports for the filesystem, standard streams, git and the
-environment, and has one real adapter, for standard streams.
+`wio.io` declares the ports for the filesystem, standard streams and git,
+`wio.env` declares those for what the process knows about its surroundings, and
+`wio.io` has the only real adapter, for standard streams.
 
-Provisional: `Stdio` is as below, and `FileSystem`, `Git` and `Environment` may
-start as documented Protocols with the members that the architecture stage finds
-the scope document needs. The adapter is `SystemStdio` in `wio.io.adapters`.
+Provisional: `Stdio` is as below. `FileSystem` and `Git` of `wio.io`, and
+`Environment`, `Clock`, `Entropy` and `Directories` of `wio.env`, may start as
+documented Protocols with the members that the architecture stage finds the
+scope document needs. `Environment` reads variables and the working directory,
+`Clock` the time, `Entropy` secure random bytes, and `Directories` the
+well-known directories, starting with the temporary directory. The adapter is
+`SystemStdio` in `wio.io.adapters`.
 
 ```python
 class Stdio(Protocol):
@@ -138,9 +150,20 @@ class Stdio(Protocol):
 #### No other adapter
 
 - **Given** the delivered tree.
-- **When** `wio.io.adapters` is listed.
-- **Then** it holds only `SystemStdio`, so the `FileSystem`, `Git` and
-  `Environment` ports have no adapter.
+- **When** `wio.io.adapters` and `wio.env.adapters` are listed.
+- **Then** the first holds only `SystemStdio` and the second holds none, so the
+  other ports have no adapter.
+
+#### The temporary directory
+
+- **Given** the delivered stubs.
+- **When** the architecture review reads the docstring of the member of the
+  `wio.env` port for well-known directories that returns the temporary
+  directory.
+- **Then** it states that the result is the directory `$TMPDIR` names, as it is,
+  when `$TMPDIR` is set to a non-empty value; otherwise `/tmp` on Linux or
+  `/private/tmp` on macOS, when a small test file can be written there; and
+  that it raises an error when it cannot be.
 
 ### **AC-4** The shared types are declared as far as the ports need them
 
@@ -201,19 +224,20 @@ how the implementation satisfies the unused-argument lint is its own choice.
 
 ### **AC-6** The documents and glossaries describe the architecture
 
-`docs/v0.1-scope.md` names `wio.formats` and `wio.io` where it named the
-foundation, and the terms of the architecture are defined in glossaries bound to
-the directories that use them.
+`docs/v0.1-scope.md` names `wio.formats`, `wio.io` and `wio.env` where it named
+the foundation, and the terms of the architecture are defined in glossaries
+bound to the directories that use them.
 
 #### The scope document
 
 - **Given** the delivered documents.
 - **When** `docs/v0.1-scope.md` is read.
 - **Then** its Overview table and its sections have no "Foundation" row or
-  heading, have one each for `wio.formats` and `wio.io`, the Overview table's
-  first column is not headed "Component", it links to the parent Work for the
-  dependency direction instead of copying it, and its order of work lists the
-  skeleton, the tach enforcement and the test DSL before the components.
+  heading, have one each for `wio.formats`, `wio.io` and `wio.env`, the Overview
+  table's first column is not headed "Component", it links to the parent Work
+  for the dependency direction instead of copying it, and its order of work
+  lists the skeleton, the tach enforcement and the test DSL before the
+  components.
 
 #### Scoped glossaries
 

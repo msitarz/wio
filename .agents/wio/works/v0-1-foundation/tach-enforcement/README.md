@@ -44,8 +44,8 @@ breaks it, so the repository's own gates must run one.
   `exact = false`.
 - `ignore_type_checking_imports = false` in `tach.toml`, because ports are
   imported only under `TYPE_CHECKING`.
-- A nested module `wio.io.adapters` with `visibility = ["wio.cli"]`, so only
-  `wio.cli` can import an adapter.
+- The nested modules `wio.io.adapters` and `wio.env.adapters`, each with
+  `visibility = ["wio.cli"]`, so only `wio.cli` can import an adapter.
 - A local hook in `prek.toml` named `tach check`, running `uv run tach check`
   with `pass_filenames = false` on changes to `src/**/*.py`, `tach.toml` and
   `pyproject.toml`.
@@ -64,10 +64,11 @@ clean tree passes the check.
 
 | Module | May depend on |
 | --- | --- |
-| `wio.models` | nothing |
+| `wio.models`, `wio.env` | nothing |
 | `wio.formats`, `wio.io` | `wio.models` |
 | `wio.io.adapters` | `wio.io`, `wio.models` |
-| `wio.config`, `wio.contract`, `wio.rule`, `wio.trailers`, `wio.log`, `wio.context` | `wio.models`, `wio.formats`, `wio.io` |
+| `wio.env.adapters` | `wio.env` |
+| `wio.config`, `wio.contracts`, `wio.rules`, `wio.trailers`, `wio.log`, `wio.context` | `wio.models`, `wio.formats`, `wio.io`, `wio.env` |
 | `wio.cli` | every other module |
 
 #### The clean tree passes
@@ -78,15 +79,15 @@ clean tree passes the check.
 
 ### **AC-2** A component importing another component fails the check
 
-An import between two components, from `wio.rule` to `wio.config` for example,
+An import between two components, from `wio.rules` to `wio.config` for example,
 fails `tach check` and names both modules.
 
 #### A forbidden import
 
-- **Given** a `.py` module in `wio.rule` that imports `wio.config`, added
+- **Given** a `.py` module in `wio.rules` that imports `wio.config`, added
   locally by the reviewer and not committed.
 - **When** `uv run tach check` runs.
-- **Then** it exits non-zero and its output names `wio.rule` and `wio.config`.
+- **Then** it exits non-zero and its output names `wio.rules` and `wio.config`.
 
 ### **AC-3** An import under `TYPE_CHECKING` counts
 
@@ -101,16 +102,24 @@ A dependency that exists only under `TYPE_CHECKING` is checked like any other.
 
 ### **AC-4** Only `wio.cli` imports an adapter
 
-An import of `wio.io.adapters` from any module but `wio.cli` fails the check and
-names both modules.
+An import of `wio.io.adapters` or `wio.env.adapters` from any module but
+`wio.cli` fails the check and names both modules.
 
 #### A component importing an adapter
 
-- **Given** a `.py` module in `wio.rule` that imports `wio.io.adapters`, added
+- **Given** a `.py` module in `wio.rules` that imports `wio.io.adapters`, added
   locally by the reviewer and not committed.
 - **When** `uv run tach check` runs.
-- **Then** it exits non-zero and its output names `wio.rule` and
+- **Then** it exits non-zero and its output names `wio.rules` and
   `wio.io.adapters`.
+
+#### A component importing an environment adapter
+
+- **Given** a `.py` module in `wio.log` that imports `wio.env.adapters`, added
+  locally by the reviewer and not committed.
+- **When** `uv run tach check` runs.
+- **Then** it exits non-zero and its output names `wio.log` and
+  `wio.env.adapters`.
 
 ### **AC-5** The repository's gates run the check
 

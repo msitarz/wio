@@ -20,6 +20,9 @@ classifiers = [
 requires-python = ">=3.15"
 dependencies = []
 
+[project.scripts]
+wio = "wio.cli:console_main"
+
 [project.urls]
 Homepage = "https://github.com/msitarz/wio"
 Repository = "https://github.com/msitarz/wio"
@@ -46,7 +49,7 @@ module-name = "wio"
 # uv_build ignores .gitignore: keep editor files out of artifacts (backups ~,
 # dotfiles incl. emacs .# locks, emacs #autosave# files).
 source-exclude = ["*\\~", ".*", "\\#*\\#"]
-wheel-exclude = ["*\\~", ".*", "\\#*\\#"]
+wheel-exclude = ["*\\~", ".*", "\\#*\\#", "**/GLOSSARY.md"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
@@ -118,6 +121,7 @@ extend-select = [
     "CPY001",  # SPDX license header (preview rule, selected explicitly)
     "C901",  # McCabe complexity (default limit 10); complexipy covers cognitive complexity
     "D",     # docstrings (google convention below)
+    "E501",  # line length 88, docstrings included; the formatter cannot wrap them
     "EM",    # exception message style
     "ERA",   # commented-out code
     "FBT",   # boolean positional arguments
@@ -185,6 +189,11 @@ lint = ["mermaid-check"]
 reflow = true
 code_blocks = false  # code is formatted by ruff, not rumdl
 tables = false
+
+[tool.deptry]
+# The distribution is `work-it-out` and the module `wio`; without this deptry
+# calls an import of `wio` from inside `src` a transitive dependency.
+known_first_party = ["wio"]
 
 [tool.deptry.per_rule_ignores]
 # deptry treats only `tests` as development code. `scripts/check_mermaid.py` is

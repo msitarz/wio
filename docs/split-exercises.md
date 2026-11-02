@@ -45,7 +45,7 @@ has five child Works:
 After the parent is defined, which includes its split, each child is created
 from the entry template: an id, a template, a title and a seed sentence, and the
 roots when the split already knows them. The entry template requires little, so
-the children pass `wio contract check` before they are defined. The parent
+the children pass `wio contracts check` before they are defined. The parent
 lists `roots = ["@descendants"]`, from its template, so its roots are the union
 of its descendants' roots.
 
@@ -169,13 +169,13 @@ after:   context/rule-selection/                  (parent, still s9t2wy)
   system-level guarantees (rule ACC006), so the parent gets new criteria for
   what only the joined result establishes, such as "a stage gets exactly the
   rules that pass both filters". The skill prints the parent template with
-  `wio contract template feature.parent --work s9t2wy`, without `--keep`, so
+  `wio contracts template feature.parent --work s9t2wy`, without `--keep`, so
   the parent gets the template's roots, `["@descendants"]`, and its pipelines
   instead of the leaf's, and wio lists the leaf's roots and overrides it did not
   carry. It adds Constraints and Visuals and rewrites the contract in that
   shape. Each child that takes over
   criteria is created from the leaf template
-  (`wio contract new feature --template feature.leaf --parent s9t2wy`), because
+  (`wio contracts new feature --template feature.leaf --parent s9t2wy`), because
   the draft has no place for them.
 - Dependents need no change: `context-command` depends on `s9t2wy`, which still
   means the whole outcome.
@@ -214,7 +214,7 @@ and a new overarching outcome appears. wio does not care which.
    records count, and the driver decides whether to redo the stages. Because
    the latest record wins, redoing an earlier stage makes the later ones stop
    being current.
-4. Restructuring needs the dependents of an id. `wio contract show` lists them,
+4. Restructuring needs the dependents of an id. `wio contracts show` lists them,
    computed from the metadata.
 5. A review session in progress is recorded in the local event log, which is
    personal and not authoritative.
