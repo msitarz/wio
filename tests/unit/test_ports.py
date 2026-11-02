@@ -276,7 +276,9 @@ def test_the_temporary_directory_rule_is_in_the_docstring() -> None:
         doc,
     )
     empty = re.search(r"empty `\$TMPDIR` (counts as|is treated as) unset", doc)
-    error = re.search(r"Raises:\s+OSError", doc)
+    error = re.search(
+        r"Raises:\s+OSError: If `\$TMPDIR` is not set and .*cannot be", doc
+    )
     missing = [
         name
         for name, found in (("branches", branches), ("empty", empty), ("error", error))

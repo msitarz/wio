@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The real adapters of the ports of `wio.io`."""
 
+import sys
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -19,4 +20,6 @@ class SystemStdio:
 
     def __init__(self) -> None:
         """Bind the streams of `sys`."""
-        raise NotImplementedError
+        self.stdin = sys.stdin
+        self.stdout = sys.stdout
+        self.stderr = sys.stderr

@@ -6,20 +6,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, TextIO
 
-import pytest
-
 from wio import cli
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from wio.io.ports import Stdio
+    import pytest
 
-BEFORE_IMPLEMENTATION = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="the implementation stage binds the streams of sys in SystemStdio",
-)
+    from wio.io.ports import Stdio
 
 
 @dataclass
@@ -45,7 +39,6 @@ def test_main_returns_zero_and_writes_nothing() -> None:
     assert (out.getvalue(), err.getvalue()) == ("", "")
 
 
-@BEFORE_IMPLEMENTATION
 def test_console_main_builds_the_real_streams_and_returns_zero(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -72,6 +65,15 @@ def test_console_main_runs_the_core_on_the_adapter_for_the_process_streams(
     calls: list[tuple[list[str], object]] = []
 
     def record(argv: Sequence[str], stdio: Stdio) -> int:
+        """Remember the call and answer 7.
+
+        Args:
+            argv: The arguments the core received.
+            stdio: The streams the core received.
+
+        Returns:
+            The fixed exit code 7.
+        """
         calls.append((list(argv), stdio))
         return 7
 

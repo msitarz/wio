@@ -3,16 +3,9 @@
 
 import sys
 
-import pytest
-
 from wio.io import adapters
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="the implementation stage binds the streams of sys",
-)
 def test_the_standard_streams_adapter_wraps_the_real_streams() -> None:
     """The adapter for standard streams hands out `sys`'s own streams."""
     # Given the adapter for standard streams
