@@ -66,10 +66,11 @@ Single tools, for quick feedback:
   says which Work and stage the commit belongs to (see "Records" in
   [docs/concepts.md](docs/concepts.md#records)). Write `Wio-Work: none` when it
   belongs to no Work. When a commit serves several Works with the same action,
-  stage, criteria, result and judge, list their ids in one `Wio-Work`, oldest
-  first, such as `Wio-Work: k3m9xq, a7b2c4`; if anything else differs, write a
-  paragraph per Work. Once `wio trailers` exists, append its output instead of
-  writing the record by hand. The commit-msg hook checks the record.
+  stage, criteria, result and judge, list their ids in one `Wio-Work`, such as
+  `Wio-Work: k3m9xq, a7b2c4` (a comma and one space, dependencies and children
+  first); if anything else differs, write a paragraph per Work. Once
+  `wio trailers` exists, append its output instead of writing the record by
+  hand. The commit-msg hook checks the record.
 
   ```text
   Wio-Work: k3m9xq

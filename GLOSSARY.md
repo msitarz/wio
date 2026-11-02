@@ -32,4 +32,5 @@ commit messages.
 | Bundle | The text `wio context` prints for a session. |
 | Record | A paragraph of `Wio-*` git trailers in a commit message that says the commit is work on a stage of one or more Works, with its criteria and, for a gate, its result and who judged it. |
 | Driver | Whoever advances the Work: a human now, an orchestrator later. It chooses the action and the stage; wio only proposes. |
+| Fold | Merging the records of a pull request body: each Work's consecutive records of a stage become one, then neighbors that differ only in the Work become one list. The commits keep every record. |
 | Event log | Append-only record kept outside the repo, personal to one machine, for evaluation and cost analysis. |
