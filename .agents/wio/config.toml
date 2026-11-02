@@ -108,12 +108,13 @@ roots = ["contract"]
 
 [stages.review-contract]
 gate = true
+judge = "human"
 goal = """\
 Judge the contract, in its final template, by the rules: is the outcome clear, \
 are guesses listed as assumptions, can every criterion fail, is every goal \
 covered? Then ask the driver to confirm that the contract states what they \
-meant. Record the result with `wio trailers --result`, and `pass` only once \
-the driver has confirmed."""
+meant. Record the result with `wio trailers --result --judge human`, and `pass` \
+only once the driver has confirmed."""
 tags = ["contract", "review"]
 roots = ["contract"]
 session = "fresh"
@@ -179,11 +180,13 @@ session = "fresh"
 
 [stages.review-amendment]
 gate = true
+judge = "human"
 goal = """\
 Judge the amendment: did it change only what the driver decided, with the \
 changed ids named, and does the contract still hold together? Ask the driver \
 to confirm the amended parts state what they meant. Record the result with \
-`wio trailers --result`, and `pass` only once the driver has confirmed."""
+`wio trailers --result --judge human`, and `pass` only once the driver has \
+confirmed."""
 tags = ["contract", "amend", "review"]
 roots = ["contract"]
 session = "fresh"
