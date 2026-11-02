@@ -1609,6 +1609,29 @@ goal or skill. How well it produces it comes from the rules its tags select.
     human gate, or both. An evaluation is then a Work of its own type, with its
     own template and actions, so the evaluation harness uses the engine rather
     than sitting beside it.
+- Personal workflows, beyond v0.2: a user's own `~/.agents/wio` providing a
+  workflow for a repository, in two cases with different problems.
+  - **Inside a repository that uses wio.** A team member layers their own
+    rulesets, stages, presets or templates over the project's config. Personal
+    rulesets bound to the project's roots are the easy start, because rulesets
+    are already data and leave no trace in shared history. Personal stages are
+    harder: their records name stages teammates' configs do not know, and a
+    personal pipeline can skip the team's gates. Open questions: precedence and
+    name clashes between the user's and the project's config; whether a project
+    can forbid overlays, or allow personal rules but not personal stages; and
+    making an overlay visible in the bundle header and in the lock id, so that
+    the same lock id still means the same workflow.
+  - **In a repository that does not use wio.** Contracts cannot live in its tree
+    and `Wio-*` trailers cannot go into a history the team did not agree to, so
+    intent lives in the user's directory, such as
+    `~/.agents/wio/projects/<repo>/works/`, keyed by the repository's identity
+    as the event log is, and progress lives somewhere personal, such as the
+    event log or git notes in a local ref. "The working tree stores intent, the
+    history stores progress" becomes "the user's directory stores intent, local
+    notes store progress": coherent for one person, not shared. Open questions:
+    where personal Works and progress live, how the repository is identified,
+    and how personal Works move into the project, as its first contracts, when
+    the team adopts wio.
 - Making an unknown metadata key an error when it is a near miss of a known key,
   within a small edit distance, while other unknown keys stay warnings.
 - The environment variables that harnesses set for their temp directory, to
