@@ -3,11 +3,10 @@
 
 These ports are shared infrastructure that `wio.io` owns, an exception to the
 rule that the consumer owns its ports. A component reaches the filesystem,
-standard streams, git and the environment, which includes the clock and the
-source of randomness, only through them. Provisional: the members of
-`FileSystem`, `Git` and `Environment` are the ones the data flows of the scope
-document need, and the Works that add an adapter may rename or extend them;
-`Stdio` is required as written.
+standard streams and git only through them. Provisional: the members of
+`FileSystem` and `Git` are the ones the data flows of the scope document need,
+and the Works that add an adapter may rename or extend them; `Stdio` is
+required as written.
 """
 
 from collections.abc import Sequence
@@ -233,50 +232,5 @@ class Git(Protocol):
 
         Returns:
             True when a tracked file differs from `HEAD` or the index.
-        """
-        ...
-
-class Environment(Protocol):
-    """Reads what the process knows about its surroundings.
-
-    That is its variables, its working directory, the clock and the source of
-    randomness, so tests can fix all four.
-    """
-
-    def get(self, name: str) -> str | None:
-        """Read an environment variable.
-
-        Args:
-            name: The variable's name.
-
-        Returns:
-            Its value, or `None` when it is not set.
-        """
-        ...
-
-    def working_directory(self) -> Path:
-        """Find the directory the command runs in.
-
-        Returns:
-            The absolute working directory.
-        """
-        ...
-
-    def now(self) -> float:
-        """Read the clock.
-
-        Returns:
-            Seconds since the Unix epoch, in UTC.
-        """
-        ...
-
-    def random_bytes(self, count: int) -> bytes:
-        """Read cryptographically secure random bytes.
-
-        Args:
-            count: How many bytes to return.
-
-        Returns:
-            Exactly `count` bytes.
         """
         ...

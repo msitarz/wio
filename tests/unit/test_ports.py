@@ -10,7 +10,7 @@ import pytest
 SRC = Path(__file__).resolve().parents[2] / "src" / "wio"
 PORTS = sorted(SRC.glob("*/ports.pyi"))
 MODELS = sorted((SRC / "models").glob("*.pyi"))
-OWNERS = {"cli", "context", "contract", "io", "rule", "trailers"}
+OWNERS = {"cli", "context", "contract", "env", "io", "rule", "trailers"}
 
 
 def _tree(path: Path) -> ast.Module:
@@ -74,40 +74,48 @@ def _modules_of(node: ast.AST) -> list[str]:
     return []
 
 
-def _import_problems(path: Path, *, ports_allowed: bool) -> list[str]:
+def _import_problems(
+    path: Path, *, ports_allowed: bool, models_allowed: bool = True
+) -> list[str]:
     """List the imports of a stub that break the dependency direction.
 
-    A stub may import the standard library and the shared types, by absolute
-    name, and a ports stub also the ports of `wio.io`.
+    A stub may import the standard library and, by absolute name, the shared
+    types, and a ports stub also the ports of `wio.io`.
 
     Args:
         path: The `.pyi` file.
         ports_allowed: Whether `wio.io.ports` may be imported.
+        models_allowed: Whether `wio.models` may be imported.
 
     Returns:
         One entry per import that is relative or from anywhere else.
     """
     modules = [m for node in ast.walk(_tree(path)) for m in _modules_of(node)]
-    return [m for m in modules if not _allowed(m, ports_allowed=ports_allowed)]
+    return [
+        m
+        for m in modules
+        if not _allowed(m, ports_allowed=ports_allowed, models_allowed=models_allowed)
+    ]
 
 
-def _allowed(module: str, *, ports_allowed: bool) -> bool:
+def _allowed(module: str, *, ports_allowed: bool, models_allowed: bool) -> bool:
     """Tell whether a stub may import a module.
 
     Args:
         module: An absolute or relative module name.
         ports_allowed: Whether `wio.io.ports` may be imported.
+        models_allowed: Whether `wio.models` may be imported.
 
     Returns:
-        True for the standard library, `wio.models`, and `wio.io.ports` when
+        True for the standard library, and `wio.models` and `wio.io.ports` when
         allowed.
     """
     top = module.split(".", maxsplit=1)[0]
+    is_models = module == "wio.models" or module.startswith("wio.models.")
     return (
         top in sys.stdlib_module_names
         or (ports_allowed and module == "wio.io.ports")
-        or module == "wio.models"
-        or module.startswith("wio.models.")
+        or (models_allowed and is_models)
     )
 
 
@@ -176,12 +184,12 @@ def _named_types(declared: set[str]) -> set[str]:
 
 
 def test_only_the_consuming_packages_have_a_ports_stub() -> None:
-    """Six packages declare ports, and `config` and `log` declare none."""
+    """Seven packages declare ports, and `config` and `log` declare none."""
     # Given the packages that hold a `ports.pyi`
     owners = {path.parent.name for path in PORTS}
 
     # When they are compared with the packages that consume something
-    # Then they are the same six
+    # Then they are the same seven
     assert owners == OWNERS
 
 
@@ -227,6 +235,37 @@ def test_a_port_stub_imports_only_shared_types_io_ports_and_the_stdlib(
 
     # Then there are none
     assert problems == []
+
+
+def test_the_environment_ports_import_only_the_stdlib() -> None:
+    """`wio.env` imports nothing else from wio, like the shared types."""
+    # Given the ports stub of wio.env
+    path = SRC / "env" / "ports.pyi"
+
+    # When its imports other than the standard library are listed
+    problems = _import_problems(path, ports_allowed=False, models_allowed=False)
+
+    # Then there are none
+    assert problems == []
+
+
+def test_the_temporary_directory_rule_is_in_the_docstring() -> None:
+    """The port states how the temporary directory is found."""
+    # Given the docstring of the member that returns the temporary directory
+    classes = [
+        n
+        for n in ast.walk(_tree(SRC / "env" / "ports.pyi"))
+        if isinstance(n, ast.ClassDef) and n.name == "Directories"
+    ]
+    methods = [n for n in classes[0].body if isinstance(n, ast.FunctionDef)]
+    doc = " ".join((ast.get_docstring(methods[0]) or "").split())
+
+    # When it is read
+    mentions = ("$TMPDIR", "/tmp", "/private/tmp", "non-empty", "OSError")
+
+    # Then it names the variable, both system directories, the empty case and
+    # the error
+    assert [m for m in mentions if m not in doc] == []
 
 
 @pytest.mark.parametrize("path", MODELS, ids=_name)
