@@ -88,11 +88,14 @@ directory and its descendants; a ratify then replaces this section with links.
   never imports the stub of its consumer. The exceptions are `wio.io` and
   `wio.env`, whose ports are shared infrastructure that each owns in its own
   `ports.pyi`: `wio.io` for the filesystem, standard streams and git, and
-  `wio.env` for what the process knows about its surroundings.
-- **A port that two or more components need with the same members and the same
-  signatures is declared once, in the shared stub `src/wio/ports.pyi`
-  (`wio.ports`).** A consumer that needs a different view declares its own port
-  under its own name in its `ports.pyi` and does not use the shared one. No
+  `wio.env` for what the process knows about its surroundings. The shared stub
+  `wio.ports`, below, is a third case, which no package owns.
+- **A port that two or more components consume with the same members and the
+  same signatures is declared once, in the shared stub `src/wio/ports.pyi`
+  (`wio.ports`), and imported only under `TYPE_CHECKING`.** A consumer that
+  needs a different view declares its own port under its own name in its
+  `ports.pyi` and does not use the shared one, and a shared port that only one
+  component still consumes moves back to that component's `ports.pyi`. No
   component owns `wio.ports`, so a change to it is judged against every
   component that consumes the port.
 - **A shared-type stub is the spec until the Work that implements the type

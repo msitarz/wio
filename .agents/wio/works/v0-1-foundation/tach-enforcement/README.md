@@ -33,11 +33,11 @@ breaks it, so the repository's own gates must run one.
   the behavior verified for this contract: it counts lazy imports, counts
   `TYPE_CHECKING` imports when `ignore_type_checking_imports = false`, and
   limits a nested module to the modules its `visibility` names.
-- **A-3**: Tach enforces imports of the stub-only module `wio.ports` once
-  `tach.toml` declares it, although it reads no `.pyi` file.
 - **A-2**: The stubs hold no `.py` code, so the skeleton gives tach few real
   edges to check, the table is exercised as components land, and `tach check`
   prints a warning about missing first-party imports on the bare skeleton.
+- **A-3**: Tach enforces imports of the stub-only module `wio.ports` once
+  `tach.toml` declares it, although it reads no `.pyi` file.
 
 ## Mechanisms
 

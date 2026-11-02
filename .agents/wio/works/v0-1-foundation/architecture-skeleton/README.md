@@ -54,10 +54,10 @@ neighbors, so that it can be built alone against their stubs.
   a module docstring, and in `cli` also `main` and `console_main`.
 - `src/wio/<package>/ports.pyi` holds the `typing.Protocol` classes that
   `<package>` consumes.
-- `src/wio/io/ports.pyi` holds the ports of `wio.io`, and
-  `src/wio/io/adapters.py` holds its adapters.
 - `src/wio/ports.pyi` holds the ports that two or more components consume
   identically.
+- `src/wio/io/ports.pyi` holds the ports of `wio.io`, and
+  `src/wio/io/adapters.py` holds its adapters.
 - `src/wio/env/ports.pyi` holds the ports of `wio.env`, and
   `src/wio/env/adapters.py` holds its adapters, none yet.
 - `src/wio/models/*.pyi` hold the shared types as stubs, until the Work that
@@ -90,9 +90,9 @@ The packages are `wio.models`, `wio.formats`, `wio.io`, `wio.env`,
 
 ### **AC-2** Ports are declared by their consumer, or shared once
 
-A package that calls collaborators other than those of `wio.io`, `wio.env` and
-`wio.ports` has a `ports.pyi` with one `Protocol` per collaborator, `wio.io` and
-`wio.env` have one for their own ports, and no other package has one.
+A package that calls a collaborator other than the ports of `wio.io`, `wio.env`
+and `wio.ports` has a `ports.pyi` with one `Protocol` per collaborator, `wio.io`
+and `wio.env` have one for their own ports, and no other package has one.
 `src/wio/ports.pyi` declares the ports that two or more components consume
 identically, and no `ports.pyi` of a consumer declares a port of the same name.
 
@@ -123,6 +123,13 @@ none.
 - **Given** a `ports.pyi` of a component.
 - **When** its imports are read.
 - **Then** none of them comes from another component's package.
+
+#### A port is shared only when its consumers need it unchanged
+
+- **Given** the delivered stubs.
+- **When** the architecture review compares the ports of every `ports.pyi`.
+- **Then** each port in `src/wio/ports.pyi` is consumed by two or more
+  components, and no two stubs declare a port with the same members.
 
 #### A shared port is declared once
 
@@ -242,19 +249,19 @@ how the implementation satisfies the unused-argument lint is its own choice.
 
 ### **AC-6** The documents and glossaries describe the architecture
 
-`docs/v0.1-scope.md` names `wio.formats`, `wio.io` and `wio.env` where it named
-the foundation, and the terms of the architecture are defined in glossaries
-bound to the directories that use them.
+`docs/v0.1-scope.md` names `wio.formats`, `wio.io`, `wio.env` and `wio.ports`
+where it named the foundation, and the terms of the architecture are defined in
+glossaries bound to the directories that use them.
 
 #### The scope document
 
 - **Given** the delivered documents.
 - **When** `docs/v0.1-scope.md` is read.
 - **Then** its Overview table and its sections have no "Foundation" row or
-  heading, have one each for `wio.formats`, `wio.io` and `wio.env`, the Overview
-  table's first column is not headed "Component", it links to the parent Work
-  for the dependency direction instead of copying it, and its order of work
-  lists the skeleton, the tach enforcement and the test DSL before the
+  heading, have one each for `wio.formats`, `wio.io`, `wio.env` and `wio.ports`,
+  the Overview table's first column is not headed "Component", it links to the
+  parent Work for the dependency direction instead of copying it, and its order
+  of work lists the skeleton, the tach enforcement and the test DSL before the
   components.
 
 #### Scoped glossaries
