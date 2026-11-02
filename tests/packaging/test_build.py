@@ -103,6 +103,16 @@ def test_wheel_has_no_editor_or_cache_files(wheel_names: list[str]) -> None:
     assert junk == []
 
 
+def test_wheel_has_no_glossary(wheel_names: list[str]) -> None:
+    # Given the files of the built wheel
+
+    # When the glossaries among them are listed
+    glossaries = [name for name in wheel_names if name.endswith("GLOSSARY.md")]
+
+    # Then there are none, because glossaries document the source tree
+    assert glossaries == []
+
+
 def test_sdist_has_no_editor_or_cache_files(sdist_names: list[str]) -> None:
     # Given the files of the built sdist
 
