@@ -267,19 +267,23 @@ def test_the_temporary_directory_rule_is_in_the_docstring() -> None:
     methods = [n for n in classes[0].body if isinstance(n, ast.FunctionDef)]
     doc = " ".join((ast.get_docstring(methods[0]) or "").split())
 
-    # When the phrases of the rule are looked for
-    phrases = {
-        "$TMPDIR as it is": r"\$TMPDIR.*as it is",
-        "no test of $TMPDIR": r"without testing it",
-        "empty counts as unset": r"empty `\$TMPDIR` counts as unset",
-        "Linux fallback": r"(?<!private)/tmp` on\s+Linux",
-        "macOS fallback": r"/private/tmp` on macOS",
-        "write test": r"test file can be\s+written",
-        "error": r"Raises:\s+OSError",
-    }
-    missing = [name for name, pattern in phrases.items() if not re.search(pattern, doc)]
+    # When the rule is matched as one ordered statement, and the empty case and
+    # the error are looked for
+    branches = re.search(
+        r"\$TMPDIR` names, as it is.*non-empty value, without testing it\. "
+        r"Otherwise.*(?<!private)/tmp` on Linux.*/private/tmp` on macOS.*"
+        r"test file can be written there",
+        doc,
+    )
+    empty = re.search(r"empty `\$TMPDIR` (counts as|is treated as) unset", doc)
+    error = re.search(r"Raises:\s+OSError", doc)
+    missing = [
+        name
+        for name, found in (("branches", branches), ("empty", empty), ("error", error))
+        if not found
+    ]
 
-    # Then every phrase is there
+    # Then each is there, with the `$TMPDIR` case before the fallback
     assert missing == []
 
 
