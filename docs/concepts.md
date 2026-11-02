@@ -1274,6 +1274,10 @@ Wio-Result: pass
 - **One record is one paragraph.** A commit message can hold several records,
   each in its own paragraph. Repeating keys inside one paragraph would lose
   which criteria belong to which stage, so a record never does.
+- **A record names one Work.** A commit that serves several Works, such as the
+  gate that approves a parent and its children together, carries one record
+  for each, in its own paragraph. A record of a parent says nothing about its
+  children, because progress is read for each Work, action and stage on its own.
 - **Every commit of a stage carries the stage's record.** A stage that takes
   four commits has four records, and only the latest counts. No record says
   that a stage is finished: that is a judgement, and the next gate's result
