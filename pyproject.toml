@@ -121,6 +121,7 @@ extend-select = [
     "CPY001",  # SPDX license header (preview rule, selected explicitly)
     "C901",  # McCabe complexity (default limit 10); complexipy covers cognitive complexity
     "D",     # docstrings (google convention below)
+    "E501",  # line length 88, docstrings included; the formatter cannot wrap them
     "EM",    # exception message style
     "ERA",   # commented-out code
     "FBT",   # boolean positional arguments
