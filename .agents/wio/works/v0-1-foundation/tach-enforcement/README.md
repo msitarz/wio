@@ -14,8 +14,8 @@ breaks it, so the repository's own gates must run one.
 
 ## Goals
 
-- `tach.toml` encodes the dependency direction between the packages of
-  `src/wio`.
+- `tach.toml` encodes the dependency direction between the `.py` code of the
+  packages of `src/wio`.
 - A change that breaks the dependency direction fails `make lint`, and so
   continuous integration.
 
@@ -26,38 +26,43 @@ breaks it, so the repository's own gates must run one.
 - Checking the imports inside `.pyi` files, which tach cannot read.
 - Enabling the `--tach` pytest plugin, which skips tests and enforces nothing.
 - Constraining `tests`, `scripts` or any directory other than `src/wio`.
+- Committing a test for a forbidden import.
 
 ## Assumptions
 
 - **A-1**: The `tach` that `uv.lock` pins, 0.35.3 at the time of writing, keeps
-  the behavior verified for this contract: it counts lazy and `TYPE_CHECKING`
-  imports when `ignore_type_checking_imports = false`.
+  the behavior verified for this contract: it counts lazy imports, counts
+  `TYPE_CHECKING` imports when `ignore_type_checking_imports = false`, and
+  limits a nested module to the modules its `visibility` names.
 - **A-2**: The stubs hold no `.py` code, so the skeleton gives tach few real
-  edges to check, and the table is exercised as components land.
+  edges to check, the table is exercised as components land, and `tach check`
+  prints a warning about missing first-party imports on the bare skeleton.
 
 ## Mechanisms
 
-- `tach.toml` at the repository root, with `source_roots = ["src"]`, one
-  `[[modules]]` entry per package of `src/wio` and its `depends_on`.
+- `tach.toml` at the repository root, with `source_roots = ["src"]`, a
+  `[[modules]]` entry per package of `src/wio` and its `depends_on`, and
+  `exact = false`.
 - `ignore_type_checking_imports = false`, because ports are imported only under
   `TYPE_CHECKING`.
-- A local hook in `prek.toml` that runs `uv run tach check`, so `make lint` and
-  `make check` run it.
-- A tach interface for `wio.io` that exposes its ports to components and its
-  adapters only to `wio.cli`, if tach can express it; otherwise a documented
-  gap. This design is provisional.
+- A nested module `wio.io.adapters` with `visibility = ["wio.cli"]`, so only
+  `wio.cli` can import an adapter.
+- A local hook in `prek.toml` named `tach check`, running `uv run tach check`
+  with `pass_filenames = false` on changes to `src/**/*.py`, `tach.toml` and
+  `pyproject.toml`.
 
 ## Acceptance criteria
 
-### **AC-1** Every package is a module with the allowed dependencies
+### **AC-1** Every module has the allowed dependencies
 
-`tach.toml` has one module per package directly under `src/wio`, with these
-`depends_on`:
+`tach.toml` declares these modules with these `depends_on`, and a clean tree
+passes the check.
 
 | Module | May depend on |
 | --- | --- |
 | `wio.models` | nothing |
 | `wio.formats`, `wio.io` | `wio.models` |
+| `wio.io.adapters` | `wio.io`, `wio.models` |
 | `wio.config`, `wio.contract`, `wio.rule`, `wio.trailers`, `wio.log`, `wio.context` | `wio.models`, `wio.formats`, `wio.io` |
 | `wio.cli` | every other module |
 
@@ -89,7 +94,19 @@ A dependency that exists only under `TYPE_CHECKING` is checked like any other.
 - **When** `uv run tach check` runs.
 - **Then** it exits non-zero and its output names `wio.models` and `wio.io`.
 
-### **AC-4** The repository's gates run the check
+### **AC-4** Only `wio.cli` imports an adapter
+
+An import of `wio.io.adapters` from any module but `wio.cli` fails the check and
+names both modules.
+
+#### A component importing an adapter
+
+- **Given** a `.py` module in `wio.rule` that imports `wio.io.adapters`.
+- **When** `uv run tach check` runs.
+- **Then** it exits non-zero and its output names `wio.rule` and
+  `wio.io.adapters`.
+
+### **AC-5** The repository's gates run the check
 
 `make lint` runs the tach hook, so `make check` and continuous integration run
 it, and a violation fails them.
@@ -109,7 +126,7 @@ it, and a violation fails them.
 
 ## Additional context
 
-- The [parent Work](../README.md) states the dependency direction and the gaps
-  (A-1, A-5 and A-6) that this Work implements and accepts.
-- The scenarios with a forbidden import are tried locally by the reviewer and
-  are not committed (parent A-5).
+- The [parent Work](../README.md) states the dependency direction that this Work
+  implements, and its first assumption is the gap with the stubs.
+- The scenarios with a forbidden import are tried locally by the reviewer of
+  this Work and are not committed.

@@ -16,10 +16,10 @@ neighbors, so that it can be built alone against their stubs.
 
 - The v0.1 packages exist under `src/wio`, each stating its role.
 - Every interaction between a package and the outside is declared as a port in
-  a `.pyi` stub, owned by the package that consumes it.
+  a `.pyi` stub.
 - The shared types that the ports mention are declared once, in `wio.models`.
 - The `wio` command is installed and dispatches through the composition root.
-- The documents describe the architecture the stubs encode.
+- The documents and glossaries describe the architecture the stubs encode.
 
 ## Non-Goals
 
@@ -27,27 +27,34 @@ neighbors, so that it can be built alone against their stubs.
 - Stubs for the `wio.formats` codecs, whose shapes the component Works settle.
 - Lazy bindings for components, which each component's Work adds with its
   command.
+- What `wio` does with arguments, which the Work of the `cli` package settles.
 - The `tach` configuration, which the tach enforcement Work owns.
 - Changing `docs/README.md` or `docs/concepts.md`.
 
 ## Assumptions
 
-- **A-1**: The `hello()` placeholder and its unit test have no user, so
-  replacing them breaks nothing.
+- **A-1**: The `hello()` placeholder, `src/wio/cli.py` and the unit test of
+  `hello` have no user, so replacing them breaks nothing.
 - **A-2**: The collaborators in the provisional table below are enough for the
   data flows of the scope document, and the architecture stage may rename them.
+- **A-3**: The architecture review verifies the docstrings of the stubs, because
+  `ruff check` applies no docstring rule to `.pyi` files.
 
 ## Mechanisms
 
-- `src/wio/<package>/__init__.py`, with only a module docstring, makes each
-  package importable.
+- `src/wio/<package>/__init__.py` makes each package importable; it holds only
+  a module docstring, except in `cli`, where it also defines `main` and
+  `console_main`.
 - `src/wio/<package>/ports.pyi` holds the `typing.Protocol` classes that
   `<package>` consumes.
+- `src/wio/io/ports.pyi` holds the ports of `wio.io`, and
+  `src/wio/io/adapters.py` holds its adapters.
 - `src/wio/models/*.pyi` hold the shared types as stubs, until the Work that
   implements a type replaces its stub.
-- `wio.cli.console_main` is the console script, and `wio.cli.main` is the
-  function that tests call.
-- `[project.scripts]` in `pyproject.toml` installs the `wio` command.
+- `[project.scripts]` in `pyproject.toml` installs the command with the line
+  `wio = "wio.cli:console_main"`.
+- `src/wio/GLOSSARY.md` and `src/wio/cli/GLOSSARY.md` hold the terms of the
+  architecture, bound to their directory and its descendants.
 
 ## Acceptance criteria
 
@@ -69,8 +76,8 @@ The packages are `wio.models`, `wio.formats`, `wio.io`, `wio.config`,
 
 ### **AC-2** Each consumer declares what it needs as ports of its own
 
-A package that calls collaborators has a `ports.pyi` with one `Protocol` per
-collaborator, and no package that consumes nothing has one.
+A package that calls collaborators other than `wio.io` has a `ports.pyi` with
+one `Protocol` per collaborator, and no other package outside `wio.io` has one.
 
 Provisional, as the architecture stage may rename the Protocols:
 
@@ -87,8 +94,8 @@ Provisional, as the architecture stage may rename the Protocols:
 #### Ports are typed and documented
 
 - **Given** the delivered tree.
-- **When** `pyrefly check` and `ruff check` run.
-- **Then** both pass, every `Protocol` and method in a `ports.pyi` has a
+- **When** `pyrefly check` runs and the architecture review reads the stubs.
+- **Then** `pyrefly` passes, every `Protocol` and method in a `ports.pyi` has a
   docstring that says what it guarantees, and every name in a signature
   resolves to `wio.models`, `wio.io` or the standard library.
 
@@ -103,6 +110,10 @@ Provisional, as the architecture stage may rename the Protocols:
 `wio.io` declares the ports for the filesystem, standard streams, git and the
 environment, and has one real adapter, for standard streams.
 
+Provisional: `Stdio` is as below, and `FileSystem`, `Git` and `Environment` may
+start as documented Protocols with the members that the architecture stage finds
+the scope document needs. The adapter is `SystemStdio` in `wio.io.adapters`.
+
 ```python
 class Stdio(Protocol):
     stdin: TextIO
@@ -112,7 +123,7 @@ class Stdio(Protocol):
 
 #### The standard-streams adapter
 
-- **Given** the adapter for standard streams.
+- **Given** the adapter `SystemStdio`.
 - **When** it is created.
 - **Then** its `stdin`, `stdout` and `stderr` are `sys.stdin`, `sys.stdout` and
   `sys.stderr`.
@@ -120,8 +131,9 @@ class Stdio(Protocol):
 #### No other adapter
 
 - **Given** the delivered tree.
-- **When** `wio.io` is listed.
-- **Then** its `FileSystem`, `Git` and `Environment` ports have no adapter.
+- **When** `wio.io.adapters` is listed.
+- **Then** it holds only `SystemStdio`, so the `FileSystem`, `Git` and
+  `Environment` ports have no adapter.
 
 ### **AC-4** The shared types are declared as far as the ports need them
 
@@ -132,24 +144,25 @@ appears only when a port signature or a criterion of this Work reads it.
 
 - **Given** the delivered tree.
 - **When** the types named in every `ports.pyi` are compared with the stubs in
-  `wio.models`.
+  `wio.models`, and the architecture review reads the stubs.
 - **Then** every type that a port names has a stub with a docstring, and no stub
   is unused by a port.
 
 ### **AC-5** The `wio` command is installed and runs through the composition root
 
 After synchronizing, `wio` runs the entry point and exits 0 without output,
-until the `cli` component makes it print its description.
+until the Work of the `cli` package makes it print its description. What it does
+with arguments is undefined until then.
 
 ```python
 def main(argv: Sequence[str], stdio: Stdio) -> int: ...
 def console_main() -> int: ...
 ```
 
-`console_main` builds the adapter for standard streams and returns
-`main(sys.argv[1:], stdio)`. `Command` in `cli/ports.pyi` has the provisional
-members `name: str`, `help: str`, `configure(parser: ArgumentParser) -> None`
-and `run(args: Namespace, stdio: Stdio) -> int`.
+`console_main` builds `SystemStdio` and returns `main(sys.argv[1:], stdio)`.
+`Command` in `cli/ports.pyi` has the provisional members `name: str`,
+`help: str`, `configure(parser: ArgumentParser) -> None` and
+`run(args: Namespace, stdio: Stdio) -> int`.
 
 #### The installed command
 
@@ -163,34 +176,55 @@ and `run(args: Namespace, stdio: Stdio) -> int`.
 - **When** `main([], stdio)` is called.
 - **Then** it returns 0 and the streams hold nothing.
 
+#### The console function
+
+- **Given** `sys.argv` set to `["wio"]`.
+- **When** `console_main()` is called in a fast unit test.
+- **Then** it returns 0 and nothing is captured on standard output or standard
+  error.
+
 #### The placeholder is gone
 
 - **Given** the delivered tree.
-- **When** `hello` and `tests/unit/test_cli.py::test_hello` are searched for.
-- **Then** neither exists.
+- **When** `src/wio/cli.py`, `hello` and `tests/unit/test_cli.py::test_hello`
+  are searched for.
+- **Then** none of them exists.
 
-### **AC-6** The documents describe the architecture the stubs encode
+### **AC-6** The documents and glossaries describe the architecture
 
 `docs/v0.1-scope.md` names `wio.formats` and `wio.io` where it named the
-foundation, and `GLOSSARY.md` defines the terms the architecture introduces.
+foundation, and the terms of the architecture are defined in glossaries bound to
+the directories that use them.
 
 #### The scope document
 
 - **Given** the delivered documents.
 - **When** `docs/v0.1-scope.md` is read.
-- **Then** it has no "Foundation (internal)" heading, has one for `wio.formats`
-  and one for `wio.io`, links to the parent Work for the dependency direction
-  instead of copying it, and its order of work lists the skeleton, the tach
-  enforcement and the test DSL before the components.
+- **Then** its Overview table and its sections have no "Foundation" row or
+  heading, have one each for `wio.formats` and `wio.io`, it links to the parent
+  Work for the dependency direction instead of copying it, and its order of work
+  lists the skeleton, the tach enforcement and the test DSL before the
+  components.
 
-#### The glossary
+#### Scoped glossaries
 
-- **Given** the delivered documents.
-- **When** `GLOSSARY.md` is read.
-- **Then** it has a row each for Component, Port, Adapter and Command, and
-  `rumdl check` passes on both files.
+- **Given** the delivered tree.
+- **When** `src/wio/GLOSSARY.md`, `src/wio/cli/GLOSSARY.md` and `AGENTS.md` are
+  read.
+- **Then** the first defines Component, Port and Adapter, the second defines
+  Command and says that `cli` is the composition root and no component, and
+  `AGENTS.md` says that a `GLOSSARY.md` binds its terms to its directory and
+  descendants and that the nearest one wins.
+
+#### Glossaries stay out of the wheel
+
+- **Given** the wheel built from the delivered tree.
+- **When** its files are listed.
+- **Then** no `GLOSSARY.md` is in it, and `rumdl check` passes on every file
+  this Work changed.
 
 ## Additional context
 
 - The [parent Work](../README.md) states the dependency direction, the port
-  ownership and the stub lifecycle that this Work applies.
+  ownership and the stub lifecycle that this Work applies, and the definitions
+  that this Work moves into the glossaries.
