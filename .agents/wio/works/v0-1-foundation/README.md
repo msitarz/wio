@@ -33,8 +33,8 @@ directory and its descendants; a ratify then replaces this section with links.
   none of them is a component.
 - **Port**: a `typing.Protocol` declared in a `.pyi` stub, saying what a package
   needs from the outside.
-- **Adapter**: the implementation of a port, one per port, or one for each
-  supported platform where the port's behavior differs.
+- **Adapter**: the implementation of a port, one per port, or for a port of
+  `wio.env` one for each supported platform where its behavior differs.
 - **Command**: the object a component exposes to the command line, with a name,
   a help text, a function that configures its argparse subparser and a function
   that runs it.
@@ -92,11 +92,11 @@ directory and its descendants; a ratify then replaces this section with links.
 - **A shared-type stub is the spec until the Work that implements the type
   replaces it**: that Work writes a `.py` with the same annotations and
   docstrings and deletes the stub, while a port stays a `.pyi` for good.
-- **One adapter per port**, except that a port whose behavior differs by
-  platform, such as the one for the temporary directory, has one adapter for
-  each supported platform. Any other extra adapter
-  needs a reason that the contract of the Work that adds it states, and fakes of
-  ports live under `tests`, not in `src`.
+- **One adapter per port**, except that a port of `wio.env` whose behavior
+  differs by platform, such as the one for the temporary directory, has one
+  adapter for each supported platform. Any other extra adapter needs a reason
+  that the contract of the Work that adds it states, and fakes of ports live
+  under `tests`, not in `src`.
 - **Components reach the filesystem, standard streams and git only through the
   ports of `wio.io`, and the process environment (variables, working
   directory, clock, randomness and the well-known directories, starting with
