@@ -10,9 +10,10 @@ from pathlib import Path
 import pytest
 
 SRC = Path(__file__).resolve().parents[2] / "src" / "wio"
-PORTS = sorted(SRC.glob("*/ports.pyi"))
+SHARED = SRC / "ports.pyi"
+PORTS = [SHARED, *sorted(SRC.glob("*/ports.pyi"))]
 MODELS = sorted((SRC / "models").glob("*.pyi"))
-OWNERS = {"cli", "context", "contracts", "env", "io", "rules", "trailers"}
+OWNERS = {"cli", "context", "env", "io", "trailers"}
 
 
 def _tree(path: Path) -> ast.Module:
@@ -37,6 +38,18 @@ def _name(path: Path) -> str:
         Its path relative to `src/wio`.
     """
     return str(path.relative_to(SRC))
+
+
+def _class_names(path: Path) -> set[str]:
+    """List the classes a stub declares.
+
+    Args:
+        path: The `.pyi` file.
+
+    Returns:
+        The names of its classes.
+    """
+    return {n.name for n in ast.walk(_tree(path)) if isinstance(n, ast.ClassDef)}
 
 
 def _undocumented(path: Path) -> list[str]:
@@ -185,13 +198,31 @@ def _named_types(declared: set[str]) -> set[str]:
     return named | {m for a in named for m in parts.get(a, set()) if m in declared}
 
 
+def test_the_shared_ports_stub_exists_and_a_consumer_does_not_repeat_it() -> None:
+    """A port that two components consume identically is declared once."""
+    # Given the shared stub and the ports stubs of the consumers
+    shared = _class_names(SHARED)
+    consumers = [path for path in PORTS if path != SHARED]
+
+    # When the names that a consumer declares again are listed
+    repeated = {
+        _name(path): sorted(shared & _class_names(path))
+        for path in consumers
+        if shared & _class_names(path)
+    }
+
+    # Then the shared stub declares ports, and no consumer repeats one
+    assert shared
+    assert repeated == {}
+
+
 def test_only_the_consuming_packages_have_a_ports_stub() -> None:
-    """Seven packages declare ports, and `config` and `log` declare none."""
+    """Five packages declare ports, and the rest declare none."""
     # Given the packages that hold a `ports.pyi`
-    owners = {path.parent.name for path in PORTS}
+    owners = {path.parent.name for path in PORTS if path != SHARED}
 
     # When they are compared with the packages that consume something
-    # Then they are the same seven
+    # Then they are the same five
     assert owners == OWNERS
 
 
@@ -232,15 +263,16 @@ def _import_policy(path: Path) -> ImportPolicy:
         path: A `ports.pyi` file.
 
     Returns:
-        `wio.env` imports nothing from wio, `wio.io` only the shared types, and
-        a consumer also the ports of `wio.io` and `wio.env`.
+        `wio.env` imports nothing from wio, `wio.io` and the shared ports only
+        the shared types, and a consumer also the ports of `wio.io`, `wio.env`
+        and `wio.ports`.
     """
     owner = path.parent.name
     if owner == "env":
         return ImportPolicy(models_allowed=False)
-    if owner == "io":
+    if path == SHARED or owner == "io":
         return ImportPolicy()
-    return ImportPolicy(ports=("wio.io.ports", "wio.env.ports"))
+    return ImportPolicy(ports=("wio.io.ports", "wio.env.ports", "wio.ports"))
 
 
 @pytest.mark.parametrize("path", PORTS, ids=_name)
