@@ -28,7 +28,7 @@ These definitions are the source until the skeleton leaf moves them to
 directory and its descendants; a ratify then replaces this section with links.
 
 - **Component**: the package under `src/wio` of one v0.1 subcommand, which is
-  `config`, `contract`, `rule`, `trailers`, `log` or `context`; `cli` is the
+  `config`, `contracts`, `rules`, `trailers`, `log` or `context`; `cli` is the
   composition root and `models`, `formats`, `io` and `env` are shared layers, so
   none of them is a component.
 - **Port**: a `typing.Protocol` declared in a `.pyi` stub, saying what a package
@@ -150,8 +150,8 @@ flowchart LR
         cli["wio.cli (composition root)"]:::new
         subgraph components
             config:::new
-            contract:::new
-            rule:::new
+            contracts:::new
+            rules:::new
             trailers:::new
             log:::new
             context:::new

@@ -68,7 +68,7 @@ clean tree passes the check.
 | `wio.formats`, `wio.io` | `wio.models` |
 | `wio.io.adapters` | `wio.io`, `wio.models` |
 | `wio.env.adapters` | `wio.env` |
-| `wio.config`, `wio.contract`, `wio.rule`, `wio.trailers`, `wio.log`, `wio.context` | `wio.models`, `wio.formats`, `wio.io`, `wio.env` |
+| `wio.config`, `wio.contracts`, `wio.rules`, `wio.trailers`, `wio.log`, `wio.context` | `wio.models`, `wio.formats`, `wio.io`, `wio.env` |
 | `wio.cli` | every other module |
 
 #### The clean tree passes
@@ -79,15 +79,15 @@ clean tree passes the check.
 
 ### **AC-2** A component importing another component fails the check
 
-An import between two components, from `wio.rule` to `wio.config` for example,
+An import between two components, from `wio.rules` to `wio.config` for example,
 fails `tach check` and names both modules.
 
 #### A forbidden import
 
-- **Given** a `.py` module in `wio.rule` that imports `wio.config`, added
+- **Given** a `.py` module in `wio.rules` that imports `wio.config`, added
   locally by the reviewer and not committed.
 - **When** `uv run tach check` runs.
-- **Then** it exits non-zero and its output names `wio.rule` and `wio.config`.
+- **Then** it exits non-zero and its output names `wio.rules` and `wio.config`.
 
 ### **AC-3** An import under `TYPE_CHECKING` counts
 
@@ -107,10 +107,10 @@ An import of `wio.io.adapters` or `wio.env.adapters` from any module but
 
 #### A component importing an adapter
 
-- **Given** a `.py` module in `wio.rule` that imports `wio.io.adapters`, added
+- **Given** a `.py` module in `wio.rules` that imports `wio.io.adapters`, added
   locally by the reviewer and not committed.
 - **When** `uv run tach check` runs.
-- **Then** it exits non-zero and its output names `wio.rule` and
+- **Then** it exits non-zero and its output names `wio.rules` and
   `wio.io.adapters`.
 
 #### A component importing an environment adapter

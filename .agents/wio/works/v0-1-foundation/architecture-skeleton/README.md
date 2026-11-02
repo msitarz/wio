@@ -76,7 +76,7 @@ Importing any package of v0.1 works, and its docstring says what the package is
 for.
 
 The packages are `wio.models`, `wio.formats`, `wio.io`, `wio.env`,
-`wio.config`, `wio.contract`, `wio.rule`, `wio.trailers`, `wio.log`,
+`wio.config`, `wio.contracts`, `wio.rules`, `wio.trailers`, `wio.log`,
 `wio.context` and `wio.cli`.
 
 #### Every package imports
@@ -96,10 +96,10 @@ Provisional, as the architecture stage may rename the Protocols:
 
 | Package | Protocols it declares | Satisfied by |
 | --- | --- | --- |
-| `contract` | `Settings` | `config` |
-| `rule` | `Settings` | `config` |
-| `trailers` | `Settings`, `Contracts`, `EventSink` | `config`, `contract`, `log` |
-| `context` | `Settings`, `Contracts`, `RuleSelection`, `EventSink` | `config`, `contract`, `rule`, `log` |
+| `contracts` | `Settings` | `config` |
+| `rules` | `Settings` | `config` |
+| `trailers` | `Settings`, `Contracts`, `EventSink` | `config`, `contracts`, `log` |
+| `context` | `Settings`, `Contracts`, `RuleSelection`, `EventSink` | `config`, `contracts`, `rules`, `log` |
 | `cli` | `Command` | every component |
 
 `config` and `log` consume only the ports of `wio.io` and `wio.env`, so they
