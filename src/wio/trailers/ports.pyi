@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The ports that `wio.trailers` consumes.
+"""The ports that `wio.trailers` consumes besides the shared ones in `wio.ports`.
 
 Provisional: the architecture review may rename them. The component that
 satisfies each is wired in by `wio.cli`; `wio.trailers` never imports it.
@@ -8,22 +8,7 @@ satisfies each is wired in by `wio.cli`; `wio.trailers` never imports it.
 from collections.abc import Sequence
 from typing import Protocol
 
-from wio.models.config import Config
-from wio.models.events import ContextEvent, Event
-
-class Settings(Protocol):
-    """The project settings that trailer commands read."""
-
-    def load(self) -> Config:
-        """Load the settings.
-
-        Returns:
-            The effective settings.
-
-        Raises:
-            ValueError: If the settings cannot be read or are inconsistent.
-        """
-        ...
+from wio.models.events import ContextEvent
 
 class Contracts(Protocol):
     """The Work contracts that a record refers to."""
@@ -77,19 +62,5 @@ class Events(Protocol):
             earliest one from the same working directory since the latest
             `review` event when the session id is unknown; `None` when there is
             none.
-        """
-        ...
-
-class EventSink(Protocol):
-    """Where events go: the personal event log."""
-
-    def write(self, event: Event) -> None:
-        """Append an event to the log.
-
-        A failure to write is reported as a warning and never raised, because
-        the log must not block a command.
-
-        Args:
-            event: The event to record.
         """
         ...

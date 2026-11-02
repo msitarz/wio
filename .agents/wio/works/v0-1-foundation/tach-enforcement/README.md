@@ -36,12 +36,14 @@ breaks it, so the repository's own gates must run one.
 - **A-2**: The stubs hold no `.py` code, so the skeleton gives tach few real
   edges to check, the table is exercised as components land, and `tach check`
   prints a warning about missing first-party imports on the bare skeleton.
+- **A-3**: Tach enforces imports of the stub-only module `wio.ports` once
+  `tach.toml` declares it, although it reads no `.pyi` file.
 
 ## Mechanisms
 
 - `tach.toml` at the repository root, with `source_roots = ["src"]`, a
-  `[[modules]]` entry per package of `src/wio` and its `depends_on`, and
-  `exact = false`.
+  `[[modules]]` entry per package of `src/wio` and one for the stub `wio.ports`,
+  each with its `depends_on`, and `exact = false`.
 - `ignore_type_checking_imports = false` in `tach.toml`, because ports are
   imported only under `TYPE_CHECKING`.
 - The nested modules `wio.io.adapters` and `wio.env.adapters`, each with
@@ -65,10 +67,10 @@ clean tree passes the check.
 | Module | May depend on |
 | --- | --- |
 | `wio.models`, `wio.env` | nothing |
-| `wio.formats`, `wio.io` | `wio.models` |
+| `wio.formats`, `wio.io`, `wio.ports` | `wio.models` |
 | `wio.io.adapters` | `wio.io`, `wio.models` |
 | `wio.env.adapters` | `wio.env` |
-| `wio.config`, `wio.contracts`, `wio.rules`, `wio.trailers`, `wio.log`, `wio.context` | `wio.models`, `wio.formats`, `wio.io`, `wio.env` |
+| `wio.config`, `wio.contracts`, `wio.rules`, `wio.trailers`, `wio.log`, `wio.context` | `wio.models`, `wio.formats`, `wio.io`, `wio.env`, `wio.ports` |
 | `wio.cli` | every other module |
 
 #### The clean tree passes

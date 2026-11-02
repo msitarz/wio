@@ -54,6 +54,8 @@ neighbors, so that it can be built alone against their stubs.
   a module docstring, and in `cli` also `main` and `console_main`.
 - `src/wio/<package>/ports.pyi` holds the `typing.Protocol` classes that
   `<package>` consumes.
+- `src/wio/ports.pyi` holds the ports that two or more components consume
+  identically.
 - `src/wio/io/ports.pyi` holds the ports of `wio.io`, and
   `src/wio/io/adapters.py` holds its adapters.
 - `src/wio/env/ports.pyi` holds the ports of `wio.env`, and
@@ -86,24 +88,26 @@ The packages are `wio.models`, `wio.formats`, `wio.io`, `wio.env`,
 - **Then** no import fails, and each package's docstring is one sentence that
   names its role.
 
-### **AC-2** Each consumer declares what it needs as ports of its own
+### **AC-2** Ports are declared by their consumer, or shared once
 
-A package that calls collaborators other than `wio.io` and `wio.env` has a
-`ports.pyi` with one `Protocol` per collaborator, and no other package outside
-those two has one.
+A package that calls a collaborator other than the ports of `wio.io`, `wio.env`
+and `wio.ports` has a `ports.pyi` with one `Protocol` per collaborator, `wio.io`
+and `wio.env` have one for their own ports, and no other package has one.
+`src/wio/ports.pyi` declares the ports that two or more components consume
+identically, and no `ports.pyi` of a consumer declares a port of the same name.
 
 Provisional, as the architecture stage may rename the Protocols:
 
-| Package | Protocols it declares | Satisfied by |
+| Stub | Protocols it declares | Satisfied by |
 | --- | --- | --- |
-| `contracts` | `Settings` | `config` |
-| `rules` | `Settings` | `config` |
-| `trailers` | `Settings`, `Contracts`, `EventSink` | `config`, `contracts`, `log` |
-| `context` | `Settings`, `Contracts`, `RuleSelection`, `EventSink` | `config`, `contracts`, `rules`, `log` |
+| `wio.ports` | `Settings`, `EventSink` | `config`, `log` |
+| `trailers` | `Contracts`, `Events` | `contracts`, `log` |
+| `context` | `Contracts`, `RuleSelection` | `contracts`, `rules` |
 | `cli` | `Command` | every component |
 
-`config` and `log` consume only the ports of `wio.io` and `wio.env`, so they
-declare none.
+`config` and `log` consume only the ports of `wio.io` and `wio.env`, and
+`contracts` and `rules` only those and the shared `Settings`, so they declare
+none.
 
 #### Ports are typed and documented
 
@@ -111,13 +115,34 @@ declare none.
 - **When** `pyrefly check` runs and the architecture review reads the stubs.
 - **Then** `pyrefly` passes, every `Protocol` and method in a `ports.pyi` has a
   docstring that says what it guarantees, and every name in a signature
-  resolves to `wio.models`, `wio.io`, `wio.env` or the standard library.
+  resolves to `wio.models`, `wio.io`, `wio.env`, `wio.ports` or the standard
+  library.
 
 #### No port names a neighbor
 
 - **Given** a `ports.pyi` of a component.
 - **When** its imports are read.
 - **Then** none of them comes from another component's package.
+
+#### A port is shared only when its consumers need it unchanged
+
+- **Given** the delivered stubs.
+- **When** the architecture review compares the ports of every `ports.pyi`.
+- **Then** each port in `src/wio/ports.pyi` is consumed by two or more
+  components, and no two stubs declare a port with the same members.
+
+#### A shared port is declared once
+
+- **Given** the delivered stubs.
+- **When** the class names in `src/wio/ports.pyi` are compared with those in
+  every other `ports.pyi`.
+- **Then** no name is declared twice.
+
+#### The shared stub depends on the shared types only
+
+- **Given** `src/wio/ports.pyi`.
+- **When** its imports are read.
+- **Then** each one is from `wio.models` or the standard library.
 
 ### **AC-3** The outside world is reached through ports declared once
 
@@ -224,19 +249,19 @@ how the implementation satisfies the unused-argument lint is its own choice.
 
 ### **AC-6** The documents and glossaries describe the architecture
 
-`docs/v0.1-scope.md` names `wio.formats`, `wio.io` and `wio.env` where it named
-the foundation, and the terms of the architecture are defined in glossaries
-bound to the directories that use them.
+`docs/v0.1-scope.md` names `wio.formats`, `wio.io`, `wio.env` and `wio.ports`
+where it named the foundation, and the terms of the architecture are defined in
+glossaries bound to the directories that use them.
 
 #### The scope document
 
 - **Given** the delivered documents.
 - **When** `docs/v0.1-scope.md` is read.
 - **Then** its Overview table and its sections have no "Foundation" row or
-  heading, have one each for `wio.formats`, `wio.io` and `wio.env`, the Overview
-  table's first column is not headed "Component", it links to the parent Work
-  for the dependency direction instead of copying it, and its order of work
-  lists the skeleton, the tach enforcement and the test DSL before the
+  heading, have one each for `wio.formats`, `wio.io`, `wio.env` and `wio.ports`,
+  the Overview table's first column is not headed "Component", it links to the
+  parent Work for the dependency direction instead of copying it, and its order
+  of work lists the skeleton, the tach enforcement and the test DSL before the
   components.
 
 #### Scoped glossaries
