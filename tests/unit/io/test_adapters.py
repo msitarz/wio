@@ -27,7 +27,7 @@ def test_the_standard_streams_adapter_wraps_the_real_streams() -> None:
 
 
 def test_the_standard_streams_adapter_is_the_only_adapter() -> None:
-    """The ports for files, git and the environment have no adapter yet."""
+    """The ports for files and git have no adapter yet."""
     # Given the module that holds the adapters
 
     # When its public classes are listed

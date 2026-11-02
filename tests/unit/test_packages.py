@@ -20,18 +20,7 @@ PACKAGES = (
 )
 
 
-# The wiring stage adds the package file of `wio.env`.
-WAITING = pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="the wiring stage adds the package file of wio.env",
-)
-
-
-@pytest.mark.parametrize(
-    "name",
-    [pytest.param(n, marks=[WAITING] if n == "env" else []) for n in PACKAGES],
-)
+@pytest.mark.parametrize("name", PACKAGES)
 def test_every_package_imports_and_states_its_role(name: str) -> None:
     """A package of v0.1 imports, and its docstring is one sentence."""
     # Given a package of v0.1

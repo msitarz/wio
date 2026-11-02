@@ -2,7 +2,9 @@
 """Tests for the port and shared-type stubs that make up the architecture."""
 
 import ast
+import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -74,9 +76,15 @@ def _modules_of(node: ast.AST) -> list[str]:
     return []
 
 
-def _import_problems(
-    path: Path, *, ports_allowed: bool, models_allowed: bool = True
-) -> list[str]:
+@dataclass(frozen=True)
+class ImportPolicy:
+    """The imports a stub may have besides the standard library."""
+
+    ports: tuple[str, ...] = ()
+    models_allowed: bool = True
+
+
+def _import_problems(path: Path, policy: ImportPolicy) -> list[str]:
     """List the imports of a stub that break the dependency direction.
 
     A stub may import the standard library and, by absolute name, the shared
@@ -84,38 +92,32 @@ def _import_problems(
 
     Args:
         path: The `.pyi` file.
-        ports_allowed: Whether `wio.io.ports` may be imported.
-        models_allowed: Whether `wio.models` may be imported.
+        policy: Which modules besides the standard library may be imported.
 
     Returns:
         One entry per import that is relative or from anywhere else.
     """
     modules = [m for node in ast.walk(_tree(path)) for m in _modules_of(node)]
-    return [
-        m
-        for m in modules
-        if not _allowed(m, ports_allowed=ports_allowed, models_allowed=models_allowed)
-    ]
+    return [m for m in modules if not _allowed(m, policy)]
 
 
-def _allowed(module: str, *, ports_allowed: bool, models_allowed: bool) -> bool:
+def _allowed(module: str, policy: ImportPolicy) -> bool:
     """Tell whether a stub may import a module.
 
     Args:
         module: An absolute or relative module name.
-        ports_allowed: Whether `wio.io.ports` may be imported.
-        models_allowed: Whether `wio.models` may be imported.
+        policy: Which modules besides the standard library may be imported.
 
     Returns:
-        True for the standard library, and `wio.models` and `wio.io.ports` when
-        allowed.
+        True for the standard library, the policy's ports modules, and
+        `wio.models` when the policy allows it.
     """
     top = module.split(".", maxsplit=1)[0]
     is_models = module == "wio.models" or module.startswith("wio.models.")
     return (
         top in sys.stdlib_module_names
-        or (ports_allowed and module == "wio.io.ports")
-        or (models_allowed and is_models)
+        or module in policy.ports
+        or (policy.models_allowed and is_models)
     )
 
 
@@ -223,27 +225,32 @@ def test_every_item_of_a_stub_has_a_docstring(path: Path) -> None:
     assert missing == []
 
 
+def _import_policy(path: Path) -> ImportPolicy:
+    """Say which imports a ports stub may have.
+
+    Args:
+        path: A `ports.pyi` file.
+
+    Returns:
+        `wio.env` imports nothing from wio, `wio.io` only the shared types, and
+        a consumer also the ports of `wio.io` and `wio.env`.
+    """
+    owner = path.parent.name
+    if owner == "env":
+        return ImportPolicy(models_allowed=False)
+    if owner == "io":
+        return ImportPolicy()
+    return ImportPolicy(ports=("wio.io.ports", "wio.env.ports"))
+
+
 @pytest.mark.parametrize("path", PORTS, ids=_name)
-def test_a_port_stub_imports_only_shared_types_io_ports_and_the_stdlib(
-    path: Path,
-) -> None:
+def test_a_port_stub_imports_only_what_its_owner_may(path: Path) -> None:
     """A stub never imports a neighbor, an adapter or a third-party package."""
-    # Given a ports stub
+    # Given a ports stub and the imports its owner may have
+    policy = _import_policy(path)
 
     # When its imports that break the dependency direction are listed
-    problems = _import_problems(path, ports_allowed=True)
-
-    # Then there are none
-    assert problems == []
-
-
-def test_the_environment_ports_import_only_the_stdlib() -> None:
-    """`wio.env` imports nothing else from wio, like the shared types."""
-    # Given the ports stub of wio.env
-    path = SRC / "env" / "ports.pyi"
-
-    # When its imports other than the standard library are listed
-    problems = _import_problems(path, ports_allowed=False, models_allowed=False)
+    problems = _import_problems(path, policy)
 
     # Then there are none
     assert problems == []
@@ -260,12 +267,20 @@ def test_the_temporary_directory_rule_is_in_the_docstring() -> None:
     methods = [n for n in classes[0].body if isinstance(n, ast.FunctionDef)]
     doc = " ".join((ast.get_docstring(methods[0]) or "").split())
 
-    # When it is read
-    mentions = ("$TMPDIR", "/tmp", "/private/tmp", "non-empty", "OSError")
+    # When the phrases of the rule are looked for
+    phrases = {
+        "$TMPDIR as it is": r"\$TMPDIR.*as it is",
+        "no test of $TMPDIR": r"without testing it",
+        "empty counts as unset": r"empty `\$TMPDIR` counts as unset",
+        "Linux fallback": r"(?<!private)/tmp` on\s+Linux",
+        "macOS fallback": r"/private/tmp` on macOS",
+        "write test": r"test file can be\s+written",
+        "error": r"Raises:\s+OSError",
+    }
+    missing = [name for name, pattern in phrases.items() if not re.search(pattern, doc)]
 
-    # Then it names the variable, both system directories, the empty case and
-    # the error
-    assert [m for m in mentions if m not in doc] == []
+    # Then every phrase is there
+    assert missing == []
 
 
 @pytest.mark.parametrize("path", MODELS, ids=_name)
@@ -276,7 +291,7 @@ def test_a_shared_type_stub_imports_only_the_stdlib_and_shared_types(
     # Given a shared-type stub
 
     # When its imports that break the dependency direction are listed
-    problems = _import_problems(path, ports_allowed=False)
+    problems = _import_problems(path, ImportPolicy())
 
     # Then there are none
     assert problems == []

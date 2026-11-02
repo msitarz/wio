@@ -18,8 +18,8 @@ from wio.models.commits import Commit
 class FileSystem(Protocol):
     """Reads and writes files and lists directories.
 
-    Paths are absolute or relative to the working directory, and a failure
-    raises the `OSError` subclass that describes it.
+    Paths are absolute or relative to the working directory, and a failure to
+    reach a file raises the `OSError` subclass that describes it.
     """
 
     def read_text(self, path: Path) -> str:
@@ -33,6 +33,7 @@ class FileSystem(Protocol):
 
         Raises:
             FileNotFoundError: If the file does not exist.
+            UnicodeDecodeError: If the file is not valid UTF-8.
         """
         ...
 
@@ -231,6 +232,7 @@ class Git(Protocol):
         """Tell whether the working tree has uncommitted changes.
 
         Returns:
-            True when a tracked file differs from `HEAD` or the index.
+            True when a tracked file differs from `HEAD` or the index, or when
+            an untracked file that is not ignored exists.
         """
         ...
