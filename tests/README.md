@@ -44,7 +44,7 @@ tests/
 │   ├── conftest.py         # `wio` fixture, channel parametrization, assertrepr hook
 │   ├── channels.py         # Channel enum
 │   ├── dsl/
-│   │   ├── wio.py          # Wio facade: config(), rule(), work(), context(), trailers(), check()
+│   │   ├── wio.py          # Wio facade: config(), rules(), work(), context(), trailers(), check()
 │   │   ├── builders.py     # minimal-valid config.toml, contract, rule, template
 │   │   └── results.py      # Bundle, CheckResult, ...
 │   ├── drivers/
@@ -70,7 +70,7 @@ own package only when a second consumer (for example `wio-eval`) needs it.
 | Layer | Role |
 |---|---|
 | Scenario (test function) | States what happens, in domain terms |
-| `Wio` facade | Domain verbs: `config`, `rule`, `work`, `context`, `trailers`, `check`, `contract_new`. Applies defaults. |
+| `Wio` facade | Domain verbs: `config`, `rules`, `work`, `context`, `trailers`, `check`, `contracts_new`. Applies defaults. |
 | Builders | Produce a minimal valid repo state; tests override only what they are about |
 | `WioDriver` (Protocol) | Narrow interface: run an operation against a prepared temp repo, return a result object |
 | Drivers | In-process and CLI implementations of the Protocol |
@@ -88,7 +88,7 @@ scenario changes only the parts it tests.
 def test_reviewer_only_rules_never_reach_the_author_stage(wio):
     # Given an authoring stage and a rule tagged for review only
     wio.config(stages=[stage("architecture", tags=["architecture", "testing"])])
-    wio.rule("ARC001", tags=["architecture", "review"])
+    wio.rules("ARC001", tags=["architecture", "review"])
     wio.work("feature", id="k3m9xq")
 
     # When the context for the authoring stage is compiled
@@ -164,10 +164,10 @@ annotation-based channel selector:
 def test_check_fails_on_unknown_tag(wio):
     # Given a rule whose tag is not in the vocabulary
     wio.config(tags=["architecture"])
-    wio.rule("ARC001", tags=["nonexistent"])
+    wio.rules("ARC001", tags=["nonexistent"])
 
     # When the rules are checked
-    result = wio.rule_check()
+    result = wio.rules_check()
 
     # Then the check fails and names the tag
     assert not result.ok
