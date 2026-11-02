@@ -44,8 +44,7 @@ neighbors, so that it can be built alone against their stubs.
   `ruff check` applies no docstring rule to `.pyi` files.
 - **A-4**: The real adapters for the ports of `wio.io` other than `Stdio`, and
   for those of `wio.env`, arrive with the Work of the first component that
-  consumes the port, with one adapter per supported platform where the
-  platforms differ.
+  consumes the port, which also tests each against the port's docstring.
 
 ## Mechanisms
 
@@ -128,9 +127,9 @@ Provisional: `Stdio` is as below. `FileSystem` and `Git` of `wio.io`, and
 `Environment`, `Clock`, `Entropy` and `Directories` of `wio.env`, may start as
 documented Protocols with the members that the architecture stage finds the
 scope document needs. `Environment` reads variables and the working directory,
-`Clock` the time, `Entropy` secure random bytes, and `Directories` the temporary
-directory and the user's data directory. The adapter is `SystemStdio` in
-`wio.io.adapters`.
+`Clock` the time, `Entropy` secure random bytes, and `Directories` the
+well-known directories, starting with the temporary directory. The adapter is
+`SystemStdio` in `wio.io.adapters`.
 
 ```python
 class Stdio(Protocol):
@@ -158,10 +157,10 @@ class Stdio(Protocol):
 - **Given** the delivered stubs.
 - **When** the architecture review reads the docstring of the `Directories`
   member that returns the temporary directory.
-- **Then** it states that the result is the directory `$TMPDIR` names when it is
-  set; otherwise the platform's system temporary directory, `/tmp` on Linux and
+- **Then** it states that the result is the directory `$TMPDIR` names, as it is,
+  when `$TMPDIR` is set to a non-empty value; otherwise `/tmp` on Linux or
   `/private/tmp` on macOS, when a small test file can be written there; and
-  that it raises an error when neither can be used.
+  that it raises an error when it cannot be.
 
 ### **AC-4** The shared types are declared as far as the ports need them
 
@@ -232,10 +231,10 @@ bound to the directories that use them.
 - **When** `docs/v0.1-scope.md` is read.
 - **Then** its Overview table and its sections have no "Foundation" row or
   heading, have one each for `wio.formats`, `wio.io` and `wio.env`, the Overview
-  table's
-  first column is not headed "Component", it links to the parent Work for the
-  dependency direction instead of copying it, and its order of work lists the
-  skeleton, the tach enforcement and the test DSL before the components.
+  table's first column is not headed "Component", it links to the parent Work
+  for the dependency direction instead of copying it, and its order of work
+  lists the skeleton, the tach enforcement and the test DSL before the
+  components.
 
 #### Scoped glossaries
 

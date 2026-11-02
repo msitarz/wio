@@ -29,11 +29,12 @@ directory and its descendants; a ratify then replaces this section with links.
 
 - **Component**: the package under `src/wio` of one v0.1 subcommand, which is
   `config`, `contract`, `rule`, `trailers`, `log` or `context`; `cli` is the
-  composition root and `models`, `formats` and `io` are shared layers, so none
-  of them is a component.
+  composition root and `models`, `formats`, `io` and `env` are shared layers, so
+  none of them is a component.
 - **Port**: a `typing.Protocol` declared in a `.pyi` stub, saying what a package
   needs from the outside.
-- **Adapter**: the implementation of a port, one per port for now.
+- **Adapter**: the implementation of a port, one per port, or one for each
+  supported platform where the port's behavior differs.
 - **Command**: the object a component exposes to the command line, with a name,
   a help text, a function that configures its argparse subparser and a function
   that runs it.
@@ -59,6 +60,8 @@ directory and its descendants; a ratify then replaces this section with links.
 - **A-3**: The scope document's six components are all of v0.1, and
   `wio-define` lives outside `src`.
 - **A-4**: A component's package has the name of its subcommand.
+- **A-5**: Linux and macOS are the supported platforms, as the continuous
+  integration matrix shows.
 
 ## Mechanisms
 
@@ -89,12 +92,14 @@ directory and its descendants; a ratify then replaces this section with links.
 - **A shared-type stub is the spec until the Work that implements the type
   replaces it**: that Work writes a `.py` with the same annotations and
   docstrings and deletes the stub, while a port stays a `.pyi` for good.
-- **One adapter per port.** An extra adapter needs a reason that the contract of
-  the Work that adds it states, and fakes of ports live under `tests`, not in
-  `src`.
+- **One adapter per port**, except that a port whose behavior differs by
+  platform has one adapter for each supported platform. Any other extra adapter
+  needs a reason that the contract of the Work that adds it states, and fakes of
+  ports live under `tests`, not in `src`.
 - **Components reach the filesystem, standard streams and git only through the
-  ports of `wio.io`, and the process environment (variables, working directory,
-  clock, randomness and directories) only through those of `wio.env`.**
+  ports of `wio.io`, and the process environment (variables, working
+  directory, clock, randomness and well-known directories such as the temporary
+  directory) only through those of `wio.env`.**
 - **A dependency that exists only for a type is still a dependency**, so tach is
   set to count `TYPE_CHECKING` imports.
 - **Verification.** Tach checks the dependency direction and the use of
