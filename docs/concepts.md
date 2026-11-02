@@ -229,9 +229,9 @@ depends_on = []
 When wio creates a contract from a template, it prepares the template as a
 contract skeleton. The `[contract]` table is promoted to the top level
 (`[contract.foo]` becomes `[foo]`), and the template's own keys (`name`, `type`,
-`description` and `[actions]`) are dropped. wio always sets `id` and `template`
-itself, even if the template specifies them, and it removes comments from the
-metadata, because they belong to the template author.
+`shape`, `description` and `[actions]`) are dropped. wio always sets `id` and
+`template` itself, even if the template specifies them, and it removes comments
+from the metadata, because they belong to the template author.
 
 A contract created from a template therefore has exactly the shape the template
 describes, and the agent that fills it in sees that shape. `wio contract
@@ -987,7 +987,9 @@ rules for a stage.
 ### Rulesets on disk
 
 A ruleset is a directory of rule files with a `ruleset.toml` manifest, which
-names the ruleset and declares its families. The rulesets of a repository live
+names the ruleset and declares its families. The config binds a ruleset by its
+directory name, and the manifest's `name` must equal it, which `wio config
+check` verifies. The rulesets of a repository live
 in `.agents/wio/rules/`, one directory each:
 
 ```text
@@ -1039,10 +1041,12 @@ ERR = ["fix"]                           # the author's `bugfix` is our `fix`
   a code's override, else its family's, else the `types` in its own file. Type
   names are a repository's own, like tags, so a copied rule needs the same way
   to map them.
-- A selected rule whose effective tags or types are not all declared in the
-  config is an error that names the rule, so a copied rule never goes missing
-  silently. It is mapped or excluded. Rules that are not selected are not
-  checked against the config at all.
+- A rule the config chooses (included, or in a ruleset without a table) whose
+  effective tags or types are not all declared in the config is an error that
+  names the rule, so a copied rule never goes missing silently. It is mapped or
+  excluded. Rules the config excludes are not checked against it at all.
+  "Chosen" here is about the config, not about whether any stage selects the
+  rule.
 - Including a family includes the rules added to it later, when the ruleset is
   copied again. Rules included by code stay as they are. Codes are stable, so
   the lists survive renames.
@@ -1260,20 +1264,28 @@ abandons a Work still carries its record, and its criteria are checked against
 
 With `--result` it also writes the `review` event to the event log, with the
 items `--cite` names (such as `--cite ARC001=fail --cite AC-2=pass`), so a
-reviewer records everything with one command. The **reviewed commit** is worked
-out from the history: starting at `HEAD`, wio skips the commits that carry a
-record of this gate (the same Work, action and stage), and the first other
-commit is the artifact. So every call of a gate that takes several commits finds
-the same commit, and a gate records its result on each of its commits, because
-only the latest record counts. `--reviewed <sha>` overrides the rule, for
-example for a review of an older commit. `wio trailers --result` warns when the
-commit it works out differs from the one recorded by the gate's `context`
-event, because then the artifact changed while it was under review, and when the
-review started on a tree with uncommitted changes, because then no commit holds
-all of what was judged. The event it compares with is this session's first
-`context` event for the gate, where the review started. When wio cannot see the
-session id, it is the latest `context` event for the same Work, action and stage
-from the same working directory.
+reviewer records everything with one command. Each item is checked: one whose
+form is a rule code must name a rule the config chooses, and any other must be a
+criterion of the Work's contract, and its result must be in the vocabulary. The
+**reviewed commit** is worked out from the history: starting at `HEAD` and
+following first parents, wio skips the **pure gate commits** of this gate, those
+whose records all belong to it (the same Work, action and stage), and the first
+other commit is the artifact. A commit that carries this gate's record together
+with any other record, for example a squash merge that holds a whole pull
+request's records, is not skipped: it holds the artifact. So every call of a
+gate that takes several commits finds the same commit, and a gate records its
+result on each of its commits, because only the latest record counts. The walk
+reads records with the configured reader; it is the one place v0.1 reads records
+from the history. `--reviewed <sha>` overrides the rule, for example for a
+review of an older commit. `wio trailers --result` warns when the commit it
+works out differs from the one recorded by the gate's `context` event, because
+then the artifact changed while it was under review, and when the review started
+on a tree with uncommitted changes, because then no commit holds all of what was
+judged. The event it compares with is this session's first `context` event for
+the gate, where the review started. When wio cannot see the session id, it is
+the earliest `context` event for the same Work, action and stage from the same
+working directory since the latest `review` event for them, so a bundle injected
+again after the artifact changed does not move the start of the review.
 
 `wio trailers check` reads a commit message or a pull request body and checks
 the shape of every record in it: the keys, the id's form, action and stage names
@@ -1284,14 +1296,17 @@ records of many commits, and Works are deleted later. The readers ignore
 unknown ids for the same reason. A message without a record passes, because
 that is often right: a pull request whose commits all belong to no Work has
 none in its body. `wio trailers check --require` also fails a message without a
-record, except a message whose subject starts with `Merge `, `Revert `,
-`Reapply `, `fixup! `, `squash!` or `amend! `, git's own forms for commits that
-are merged, reverted (git writes `Reapply` for a revert of a revert) or squashed
-away. A project calls `--require` from a commit-msg hook
+record, except a message whose subject starts with `Merge`, `Revert`, `Reapply`,
+`fixup!` or `squash!`, each followed by a space: git's own forms for commits
+that are merged, reverted (git writes `Reapply` for a revert of a revert) or
+squashed into another. An `amend!` commit is not exempt, because when it is
+squashed its message replaces the target's message, so it must carry the record
+the target will end up with. A project calls `--require` from a commit-msg hook
 and the plain check from CI.
 
-Writing and checking records is part of v0.1. Reading them from the history
-comes with `wio next` in v0.2.
+Writing and checking records is part of v0.1, and so is the short walk back
+from `HEAD` that finds a gate's reviewed commit. Reading progress from the
+history comes with `wio next` in v0.2.
 
 ### Reading records
 
@@ -1353,7 +1368,11 @@ it records two events:
   the overall result, and a result for each cited item, a rule code or a
   criterion id (`ARC001=fail`, `AC-2=pass`). What is not cited was not judged.
   `wio trailers --result` writes it, and `wio log review`, with the same
-  arguments, writes it for workflows that do not use records.
+  arguments, writes it for workflows that do not use records. A gate that takes
+  several commits, or a record printed again after a hook rejected the commit,
+  writes several `review` events; the latest one for the same Work, action,
+  stage and reviewed commit replaces the earlier ones, as the latest record
+  does. An event shows what a session recorded, not that a commit exists.
 
 Results come from a vocabulary that the config declares, as tags do, so a
 misspelled result is an error:

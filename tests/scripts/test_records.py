@@ -101,6 +101,18 @@ def test_merge_revert_and_fixup_commits_need_no_record(subject: str) -> None:
     assert problems == []
 
 
+def test_an_amend_commit_needs_a_record() -> None:
+    """An amend! message replaces its target's, so it must carry the record."""
+    # Given an amend! commit message without a record
+    message = _message("amend! docs: x", "Body.")
+
+    # When its problems are computed
+    problems = records.message_problems(message)
+
+    # Then the missing record is reported
+    assert problems == ["no Wio-* record; add one, or `Wio-Work: none`"]
+
+
 def test_records_in_fenced_code_and_comments_are_ignored() -> None:
     """Quoted example records and git's comment lines do not count."""
     # Given a message whose only records are in fenced code and in a comment
