@@ -27,8 +27,10 @@ shared base before any component raises its own.
 - The errors of any component, each of which its package adds in its own
   `errors.py` when it has one.
 - An exit code per error class: every `WioError` means exit 2.
-- Changing the other ports that declare `ValueError`, such as `Environment` for
-  a relative `$WIO_HOME`: the Work of each component decides that.
+- Changing the other ports that declare exceptions, such as `Environment` for a
+  relative `$WIO_HOME`: the Work of each component decides that.
+- Committing a test that proves `tach` rejects a forbidden import; the reviewer
+  tries one locally instead.
 
 ## Assumptions
 
@@ -105,4 +107,10 @@ names both modules.
 The `README.md` of `src/wio` states, in its dependency direction, that
 `wio.errors` imports nothing from `wio`, that every package may import it, that
 errors several packages share live there, and that a package adds an
-`errors.py` extending `WioError` only when it has an error of its own.
+`errors.py` extending `WioError` only when it has an error of its own. It names
+`wio.errors` as the one `wio` module that `wio.models` and `wio.env` may import.
+
+## Additional context
+
+- [Settings port](../../../../../src/wio/ports.pyi) declares `Settings.load`,
+  whose docstring AC-4 changes.

@@ -19,8 +19,8 @@ before the first subcommand can exist.
   has, and ask which version is installed.
 - Every run ends with one exit code and its message on one stream, so a caller
   can tell success, a failed check, its own mistake and a bug in wio apart.
-- A subcommand joins the command line with one entry in a table, and the
-  component behind it never learns which adapters implement its ports.
+- A subcommand joins the command line with one entry in a table, and a name
+  that is not a component of wio is rejected before it runs.
 - Every package can raise the errors that wio reports as the user's to fix, from
   one module that depends on nothing.
 
@@ -42,9 +42,10 @@ before the first subcommand can exist.
 - Running without the package metadata of an installed distribution: the
   version and the description come from it.
 - Handling `KeyboardInterrupt`, or a `SystemExit` that a command raises.
-- Deciding whether the `ValueError` that other ports declare, such as the one
-  of a relative `$WIO_HOME`, becomes a `WioError`: the Work of each component
-  decides that for its own conditions.
+- Deciding whether the exceptions that other ports declare (`ValueError`,
+  `RuntimeError` for a directory outside a git repository, `OSError`,
+  `UnicodeDecodeError`) become `WioError`s: the Work of each component maps its
+  own.
 
 ## Assumptions
 
@@ -77,7 +78,9 @@ before the first subcommand can exist.
 - **Streams.** Standard output carries what the command was asked for, the
   findings of a check included. Standard error carries diagnostics about the run
   itself and error messages in plain text, also with `--json`. There is no color
-  and no pager, and output is deterministic: sorted, with no timestamps.
+  and no pager, also when `FORCE_COLOR` is set, and output is deterministic:
+  sorted, and without timestamps except in `wio log`, whose purpose is to report
+  when events happened.
 - **`--json`.** It is an option of each command, declared by the command's
   `configure`. On exit 0 or 1, standard output holds one JSON document and
   nothing else; on exit 2 and 70 it is empty, and the message is plain text on
@@ -86,15 +89,15 @@ before the first subcommand can exist.
   `describe` and the `configure` of its description, loads no module under that
   package other than its `__init__`.
 - **Dependency direction.** `wio.errors` imports nothing else from `wio`, and
-  every package may import it.
-- **Verification.** The leaves verify the exit codes, the streams for errors and
-  the import-light rule with fake commands. `tach check` verifies that
-  `wio.errors` depends on nothing and that only `wio.cli` imports an adapter,
-  which is what keeps a component from learning the adapters. The Work of each
-  command verifies, in its own criteria, the `--json` rule, that notes and
-  warnings leave the exit code alone, and that its output is sorted and free of
-  timestamps, because only a real command has an output to check. The parent
-  verifies the installed wheel.
+  every package may import it. Only `wio.cli` and the unit tests import an
+  adapter, so a component never learns which adapters implement its ports.
+- **Verification.** The leaves verify the exit codes, the streams, the absence
+  of color and the import-light rule with fake commands. `tach check` verifies
+  that `wio.errors` depends on nothing and that only `wio.cli` and the unit
+  tests import an adapter. The Work of each command verifies, in its own
+  criteria, the `--json` rule, that notes and warnings leave the exit code
+  alone, and that its output is sorted and free of timestamps, because only a
+  real command has an output to check. The parent verifies the installed wheel.
 
 ## Visuals
 
@@ -119,29 +122,27 @@ flowchart LR
     console --> main
 ```
 
-After: a table of entries, a description apart from the command, and errors that
-the entry point catches. Bold boxes are added, and bold dashed boxes change.
+After: a table of commands, each described apart from its wiring, and errors
+that the entry point catches. Bold boxes are added, and bold dashed boxes
+change. The names inside `wio.cli` are the leaves' to settle.
 
 ```mermaid
 flowchart LR
     subgraph cli["wio.cli"]
         console["console_main()"]
-        main["main(argv, stdio, commands)"]:::changed
-        table["COMMANDS: Entry(component, wire)"]:::new
+        main["main()"]:::changed
+        table["table of commands"]:::new
     end
     adapter["wio.io.adapters: SystemStdio"]
-    spec["CommandSpec: name, help, configure"]:::new
-    command["Command: run"]:::changed
     component["a component package"]
-    errors["wio.errors: WioError, ConfigurationError"]:::new
+    errors["wio.errors"]:::new
     every["every package"]
     console --> adapter
     console --> main
     main --> table
-    table -- "imports wio.component and calls describe()" --> component
-    table -- "wire() builds adapters and calls the factory" --> component
-    component -- "describe() returns" --> spec
-    component -- "factory returns" --> command
+    table -- "describe(), lightly" --> component
+    table -- "wire() calls the factory" --> component
+    table -- "wire() builds" --> adapter
     main -- "catches WioError, exits 2" --> errors
     every -- "may import" --> errors
     classDef new stroke-width: 3px
@@ -167,6 +168,6 @@ description and version from its own metadata, without the source tree.
 ## Additional context
 
 - [v0.1 scope](../../../../docs/v0.1-scope.md) names the command line as a part
-  and its outcome; the command-line leaf adds this Work to its order of work.
+  and its outcome; the failures leaf adds this Work to its order of work.
 - `test_wheel_imports_from_a_clean_environment` in `tests/packaging` already
   runs a built wheel in an isolated environment this way.
