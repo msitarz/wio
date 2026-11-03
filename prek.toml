@@ -46,6 +46,7 @@ hooks = [
     { id = "zizmor", name = "zizmor (workflow security)", entry = "uv run zizmor --offline", language = "system", files = '^\.github/((workflows|actions)/.*|dependabot)\.ya?ml$' },
     { id = "uv-lock", name = "uv lock --check", entry = "uv lock --check", language = "system", files = '^(pyproject\.toml|uv\.lock)$', pass_filenames = false },
     { id = "deptry", name = "deptry (dependencies)", entry = "uv run deptry .", language = "system", files = '^(pyproject\.toml|uv\.lock|src/.*\.pyi?|tests/.*\.py)$', pass_filenames = false },
+    { id = "tach", name = "tach check", entry = "uv run tach check", language = "system", files = '^(src/.*\.py|tach\.toml|pyproject\.toml)$', pass_filenames = false },
     { id = "typos", name = "typos (spell check)", entry = "uv run typos --force-exclude", language = "system", types = ["text"] },
     { id = "rumdl", name = "rumdl (markdown)", entry = "uv run rumdl check --fix", language = "system", types = ["markdown"] },
     { id = "jscpd", name = "jscpd (duplicate code)", entry = "uv run jscpd src tests", language = "system", types_or = ["python"], pass_filenames = false },
