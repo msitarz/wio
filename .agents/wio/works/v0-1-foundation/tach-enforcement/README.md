@@ -25,7 +25,8 @@ breaks it, so the repository's own gates must run one.
   yet.
 - Checking the imports inside `.pyi` files, which tach cannot read.
 - Enabling the `--tach` pytest plugin, which skips tests and enforces nothing.
-- Constraining `tests`, `scripts` or any directory other than `src/wio`.
+- Constraining `tests` or `scripts`, which no criterion requires; `tach.toml`
+  also covers them.
 
 ## Assumptions
 
@@ -41,16 +42,17 @@ breaks it, so the repository's own gates must run one.
 
 ## Mechanisms
 
-- `tach.toml` at the repository root, with `source_roots = ["src"]`, a
+- `tach.toml` at the repository root, with `source_roots = ["src", "."]`, a
   `[[modules]]` entry per package of `src/wio` and one for the stub `wio.ports`,
   each with its `depends_on`, and `exact = false`.
 - `ignore_type_checking_imports = false` in `tach.toml`, because ports are
   imported only under `TYPE_CHECKING`.
 - The nested modules `wio.io.adapters` and `wio.env.adapters`, each with
-  `visibility = ["wio.cli"]`, so only `wio.cli` can import an adapter.
+  `visibility = ["wio.cli", "tests.unit"]`, so only `wio.cli` and the unit tests
+  can import an adapter.
 - A local hook in `prek.toml` named `tach check`, running `uv run tach check`
-  with `pass_filenames = false` on changes to `src/**/*.py`, `tach.toml` and
-  `pyproject.toml`.
+  with `pass_filenames = false` on changes to `.py` files under `src`,
+  `scripts` and `tests`, `tach.toml` and `pyproject.toml`.
 
 ## Constraints
 
@@ -104,8 +106,8 @@ A dependency that exists only under `TYPE_CHECKING` is checked like any other.
 
 ### **AC-4** Only `wio.cli` imports an adapter
 
-An import of `wio.io.adapters` or `wio.env.adapters` from any module but
-`wio.cli` fails the check and names both modules.
+An import of `wio.io.adapters` or `wio.env.adapters` from any package of
+`src/wio` but `wio.cli` fails the check and names both modules.
 
 #### A component importing an adapter
 

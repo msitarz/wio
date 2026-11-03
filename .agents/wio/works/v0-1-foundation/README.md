@@ -23,21 +23,10 @@ test setup before any of them is built, so that each can be delivered alone.
 
 ## Glossary
 
-These definitions are the source until the skeleton leaf moves them to
-`src/wio/GLOSSARY.md` and `src/wio/cli/GLOSSARY.md`, which bind them to that
-directory and its descendants; a ratify then replaces this section with links.
-
-- **Component**: the package under `src/wio` of one v0.1 subcommand, which is
-  `config`, `contracts`, `rules`, `trailers`, `log` or `context`; `cli` is the
-  composition root and `models`, `formats`, `io`, `env` and `ports` are shared
-  layers, so none of them is a component.
-- **Port**: a `typing.Protocol` declared in a `.pyi` stub, saying what a package
-  needs from the outside.
-- **Adapter**: the implementation of a port, one per port, or for a port of
-  `wio.env` one for each supported platform where its behavior differs.
-- **Command**: the object a component exposes to the command line, with a name,
-  a help text, a function that configures its argparse subparser and a function
-  that runs it.
+The terms of this Work are defined in the glossaries bound to the directories
+that use them: **Component**, **Port** and **Adapter** in the [glossary of
+`src/wio`](../../../../src/wio/GLOSSARY.md), and **Command** in the [glossary of
+`src/wio/cli`](../../../../src/wio/cli/GLOSSARY.md).
 
 ## Non-Goals
 
@@ -214,14 +203,14 @@ child.
 ### **AC-2** The layout and the dependency rules describe the same packages
 
 Every package directly under `src/wio`, and the stub `wio.ports`, is a module in
-`tach.toml`, and the only other modules there are `wio.io.adapters` and
-`wio.env.adapters`, so the checked graph is the one the constraints state.
+`tach.toml`, and the only other modules under `wio` there are `wio.io.adapters`
+and `wio.env.adapters`, so the checked graph is the one the constraints state.
 
 #### Same packages
 
 - **Given** the delivered tree.
 - **When** the packages under `src/wio` and the stub `wio.ports` are compared
-  with the modules in `tach.toml`.
+  with the modules of `wio` in `tach.toml`.
 - **Then** the lists are equal apart from `wio.io.adapters` and
   `wio.env.adapters`, and each module's allowed dependencies are those of the
   dependency direction constraint.
