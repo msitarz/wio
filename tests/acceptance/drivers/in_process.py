@@ -27,8 +27,8 @@ class MemoryStdio:
 class InProcessDriver(SandboxedDriver):
     """Reaches `wio` by calling its testable core in this process.
 
-    The working directory and the home and data variables are the sandbox's
-    while the call runs, and are restored afterwards.
+    The working directory and the whole environment are the sandbox's while the
+    call runs, and are restored afterwards.
     """
 
     def run(self, args: Sequence[str]) -> RunResult:
@@ -42,11 +42,9 @@ class InProcessDriver(SandboxedDriver):
         """
         out, err = io.StringIO(), io.StringIO()
         stdio = MemoryStdio(io.StringIO(), out, err)
-        env = self._sandbox.env
-        private = {key: env[key] for key in ("HOME", "XDG_DATA_HOME")}
         with (
             contextlib.chdir(self._sandbox.root),
-            mock.patch.dict(os.environ, private),
+            mock.patch.dict(os.environ, self._sandbox.env, clear=True),
         ):
             code = cli.main(list(args), stdio)
         return RunResult(out.getvalue(), err.getvalue(), code)

@@ -2,12 +2,16 @@
 """Tests for the record script that stands in for `wio trailers check`."""
 
 import io
-import subprocess
+from typing import TYPE_CHECKING
 lazy from pathlib import Path
 
 import pytest
 
 from scripts import records
+from tests.support import enter, git
+
+if TYPE_CHECKING:
+    from tests.sandbox import Sandbox
 
 RECORD = "Wio-Work: k3m9xq\nWio-Action: deliver\nWio-Stage: architecture"
 
@@ -528,53 +532,35 @@ def test_check_command_reads_a_message_file(
     assert code == exit_code
 
 
-def _commit(repo: Path, message: str) -> None:
+def _commit(repo: Sandbox, message: str) -> None:
     """Make an empty commit in a repository.
 
     Args:
-        repo: The repository.
+        repo: The repository's sandbox.
         message: The commit message.
     """
-    subprocess.run(
-        [
-            "git",
-            "-C",
-            str(repo),
-            "-c",
-            "commit.gpgsign=false",
-            "commit",
-            "-q",
-            "--allow-empty",
-            "--no-verify",
-            "-m",
-            message,
-        ],
-        check=True,
-    )
+    git(repo, "commit", "-q", "--allow-empty", "-m", message, check=True)
 
 
 @pytest.fixture
-def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def repo(sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch) -> Sandbox:
     """Create a git repository with one root commit and work inside it.
 
     Args:
-        tmp_path: pytest's temporary directory.
+        sandbox: The test's sandbox.
         monkeypatch: pytest's monkeypatch fixture.
 
     Returns:
-        The repository's path.
+        The sandbox of the repository, whose environment the process now has.
     """
-    for key, value in {"NAME": "Test", "EMAIL": "test@example.com"}.items():
-        monkeypatch.setenv(f"GIT_AUTHOR_{key}", value)
-        monkeypatch.setenv(f"GIT_COMMITTER_{key}", value)
-    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
-    _commit(tmp_path, "chore: root")
-    monkeypatch.chdir(tmp_path)
-    return tmp_path
+    git(sandbox, "init", "-q", check=True)
+    _commit(sandbox, "chore: root")
+    enter(sandbox, monkeypatch)
+    return sandbox
 
 
 @pytest.mark.slow
-def test_commits_command_only_warns_about_a_missing_record(repo: Path) -> None:
+def test_commits_command_only_warns_about_a_missing_record(repo: Sandbox) -> None:
     """A commit made outside the hook, without a record, does not fail CI."""
     # Given a commit without a record
     _commit(repo, _message("docs: no record"))
@@ -587,7 +573,7 @@ def test_commits_command_only_warns_about_a_missing_record(repo: Path) -> None:
 
 
 @pytest.mark.slow
-def test_commits_command_fails_on_a_malformed_record(repo: Path) -> None:
+def test_commits_command_fails_on_a_malformed_record(repo: Sandbox) -> None:
     """A record that is there but malformed fails CI."""
     # Given a commit whose record names a Work but no action or stage
     _commit(repo, _message("docs: bad", "Wio-Work: k3m9xq"))
@@ -601,7 +587,7 @@ def test_commits_command_fails_on_a_malformed_record(repo: Path) -> None:
 
 @pytest.mark.slow
 def test_body_command_appends_the_commits_records(
-    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    repo: Sandbox, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """The body gets the records of the range's commits, oldest first."""
     # Given a commit with a record and a pull request body without one
@@ -618,7 +604,7 @@ def test_body_command_appends_the_commits_records(
 
 @pytest.mark.slow
 def test_body_command_prints_nothing_when_the_body_is_current(
-    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    repo: Sandbox, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """A body that already ends with the records needs no edit."""
     # Given a commit with a record and a body that ends with it, with CRLF line ends
@@ -637,7 +623,7 @@ def test_body_command_prints_nothing_when_the_body_is_current(
 @pytest.mark.slow
 @pytest.mark.parametrize("line_end", ["\n", "\r\n"])
 def test_body_command_prints_nothing_when_a_folded_body_is_current(
-    repo: Path,
+    repo: Sandbox,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
     line_end: str,
@@ -661,7 +647,7 @@ def test_body_command_prints_nothing_when_a_folded_body_is_current(
 
 @pytest.mark.slow
 def test_body_command_replaces_an_unfolded_body_once(
-    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    repo: Sandbox, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """A body with one paragraph per commit gets the folded list instead."""
     # Given two commits for two Works and a body with a paragraph for each
@@ -681,7 +667,7 @@ def test_body_command_replaces_an_unfolded_body_once(
 
 @pytest.mark.slow
 def test_block_command_prints_the_paragraphs_to_paste(
-    repo: Path, capsys: pytest.CaptureFixture[str]
+    repo: Sandbox, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """A contributor from a fork gets exactly the paragraphs to add to the body."""
     # Given a commit with a record

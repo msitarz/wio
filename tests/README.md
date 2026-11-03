@@ -39,7 +39,10 @@ skills, for example the command sequence a skill runs.
 
 ```text
 tests/
-├── conftest.py             # register_assert_rewrite, shared options and markers
+├── conftest.py             # register_assert_rewrite, shared options and markers,
+│                           # and the `sandbox` fixture
+├── sandbox.py              # Sandbox: the directory and environment of a test
+├── support.py              # helpers tests share, such as running git in a sandbox
 ├── unit/                   # mirrors src/wio/
 ├── acceptance/
 │   ├── conftest.py         # `wio` fixture, channel parametrization, assertrepr hook
@@ -48,7 +51,6 @@ tests/
 │   │   ├── wio.py          # Wio facade: config(), rules(), work(), context(), trailers(), check()
 │   │   ├── builders.py     # minimal-valid config.toml, contract, rule, template
 │   │   └── results.py      # Bundle, CheckResult, ...
-│   ├── sandbox.py          # Sandbox: the directory and environment of a test driver
 │   ├── drivers/
 │   │   ├── base.py         # WioDriver Protocol
 │   │   ├── in_process.py   # calls the library
@@ -266,11 +268,13 @@ markers = [
 
 - A test that spawns a subprocess (git, the CLI) or builds the package is
   marked `slow`. `make slow` runs those tests, and CI runs that target.
-- Use `tmp_path` for every repo; never write outside it. Set `HOME` and the
-  XDG data dir inside `tmp_path` so tests never touch the real
-  log or config.
-- Event log is disabled or redirected per test (the log must never block a
-  command).
+- Use `tmp_path` for every repo; never write outside it. The `Sandbox` sets
+  `WIO_HOME` inside `tmp_path` so tests never touch the real Wio home, and it
+  gives git an empty global config, no system config, a ceiling at `tmp_path`,
+  no variables that aim it at another repository, and a fixed identity, so a
+  developer's own git setup cannot change a result.
+- The event log is redirected per test by `WIO_HOME` (the log must never block
+  a command).
 - No sleeps. No timestamps in compared output.
 - A test that needs more than three builder overrides is a sign the builder
   default is wrong or the scenario is testing two things.
