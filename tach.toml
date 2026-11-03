@@ -1,11 +1,12 @@
 # Configuration file for `tach`, which checks the dependency direction between
-# the packages of `src/wio`. See https://docs.gauge.sh/ for more information.
+# the packages of `src/wio`, and between `scripts` and the groups of `tests`.
+# See https://docs.gauge.sh/ for more information.
 #
 # The table is the dependency direction of the v0.1 foundation Work. Ports are
 # imported only under `TYPE_CHECKING`, so type-only imports count. `exact` stays
 # off: it would fail on declared dependencies that no code uses yet.
 
-source_roots = ["src"]
+source_roots = ["src", "."]
 exact = false
 ignore_type_checking_imports = false
 
@@ -30,16 +31,16 @@ depends_on = ["wio.models"]
 path = "wio.ports"
 depends_on = ["wio.models"]
 
-# Adapters: only `wio.cli` may import them.
+# Adapters: only `wio.cli` and the unit tests may import them.
 [[modules]]
 path = "wio.io.adapters"
 depends_on = ["wio.io", "wio.models"]
-visibility = ["wio.cli"]
+visibility = ["wio.cli", "tests.unit"]
 
 [[modules]]
 path = "wio.env.adapters"
 depends_on = ["wio.env"]
-visibility = ["wio.cli"]
+visibility = ["wio.cli", "tests.unit"]
 
 # Components: they never import one another, and meet only in `wio.cli`.
 [[modules]]
@@ -82,4 +83,60 @@ depends_on = [
     "wio.trailers",
     "wio.log",
     "wio.context",
+]
+
+# The repository's own scripts. They import nothing from `src/wio` or `tests`.
+[[modules]]
+path = "scripts"
+depends_on = []
+
+# Shared test helpers: a sandbox, and helpers built on it.
+[[modules]]
+path = "tests.sandbox"
+depends_on = []
+
+[[modules]]
+path = "tests.support"
+depends_on = ["tests.sandbox"]
+
+[[modules]]
+path = "tests.conftest"
+depends_on = ["tests.sandbox"]
+
+# The acceptance setup: the `Wio` facade over test drivers that reach `wio`.
+[[modules]]
+path = "tests.acceptance"
+depends_on = ["tests.acceptance.dsl", "tests.acceptance.drivers", "tests.sandbox"]
+
+[[modules]]
+path = "tests.acceptance.dsl"
+depends_on = ["tests.acceptance.drivers"]
+
+[[modules]]
+path = "tests.acceptance.drivers"
+depends_on = ["tests.sandbox", "wio.cli", "wio.io"]
+
+# Tests of `scripts`: they never use the acceptance setup.
+[[modules]]
+path = "tests.scripts"
+depends_on = ["scripts", "tests.sandbox", "tests.support"]
+
+[[modules]]
+path = "tests.packaging"
+depends_on = []
+
+# Unit tests may import what they test, and the acceptance setup they test.
+[[modules]]
+path = "tests.unit"
+depends_on = [
+    "tests.acceptance",
+    "tests.acceptance.dsl",
+    "tests.acceptance.drivers",
+    "tests.sandbox",
+    "tests.support",
+    "wio.cli",
+    "wio.env",
+    "wio.env.adapters",
+    "wio.io",
+    "wio.io.adapters",
 ]
