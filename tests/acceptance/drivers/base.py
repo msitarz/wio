@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from tests.acceptance.sandbox import Sandbox
+
 
 @dataclass(frozen=True)
 class RunResult:
@@ -40,3 +42,19 @@ class WioDriver(Protocol):
             The streams and exit code of the run.
         """
         ...
+
+
+class SandboxedDriver:
+    """The part of a test driver that holds its sandbox.
+
+    A subclass implements `run` and reads the directory and environment from
+    the sandbox it was built from.
+    """
+
+    def __init__(self, sandbox: Sandbox) -> None:
+        """Remember the sandbox the driver runs `wio` in.
+
+        Args:
+            sandbox: The directory and environment to give `wio`.
+        """
+        self._sandbox = sandbox

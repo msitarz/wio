@@ -36,6 +36,6 @@ class Sandbox:
         home = tmp_path / "home"
         data = tmp_path / "xdg-data"
         for directory in (root, home, data):
-            directory.mkdir()
+            directory.mkdir(parents=True)
         env = {**os.environ, "HOME": str(home), "XDG_DATA_HOME": str(data)}
         return cls(root=root, env=env)
