@@ -20,7 +20,7 @@ tags = [
     "docs",            # the README and GLOSSARY files next to the code
     "promote",         # carrying a contract's guarantees into the docs
     "links",           # linking instead of copying, in any document
-    "diagrams",        # diagrams drawn from verified source, in any document
+    "diagrams",        # diagrams drawn from the current source, in any document
 ]
 
 # What a gate can decide. Records and review events use these values.
