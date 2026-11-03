@@ -52,6 +52,15 @@ error, and the run exits 2.
 - **Then** each returns 2, standard error is `error: no config` and a newline,
   and standard output is empty.
 
+#### Plain on a terminal
+
+- **Given** standard error on a pseudo-terminal from `os.openpty` and
+  `FORCE_COLOR=1`, and a command whose `run` raises
+  `ConfigurationError("no config")`.
+- **When** `main` runs it.
+- **Then** standard error is exactly `error: no config` and a newline, with no
+  escape character.
+
 ### **AC-2** A bug exits 70 with its traceback
 
 An exception that is not a `WioError`, at any of those steps, is reported with

@@ -20,7 +20,8 @@ the exit code of the command chosen.
 - Every command is described on every run, so the usage lists them all, and
   only the command that was chosen is wired and its exit code is the run's.
 - A usage mistake exits 2 with `argparse`'s message on standard error.
-- The output is plain text and the same on every channel.
+- The help is colored only where Python's color rules allow it, and the output
+  is the same on every channel.
 - No test still pins the behavior of the silent placeholder.
 
 ## Non-Goals
@@ -34,14 +35,16 @@ the exit code of the command chosen.
 - **A-1**: `argparse` on Python 3.15 prints a usage error to `sys.stderr` and
   raises `SystemExit(2)`, and `--help` and `--version` print to `sys.stdout` and
   raise `SystemExit(0)` (checked on 3.15.2 on 2026-11-03).
-- **A-2**: `ArgumentParser` colors its help and usage by default on Python 3.15,
-  also when `FORCE_COLOR` is set, and `color=False` turns that off (checked on
+- **A-2**: With its default `color=True`, `ArgumentParser` on Python 3.15 asks
+  `_colorize.can_colorize` about the stream it prints to, which decides in this
+  order: `PYTHON_COLORS`, `NO_COLOR`, `FORCE_COLOR`, `TERM=dumb`, then whether
+  the stream is a terminal (read in the 3.15.2 source and checked on
   3.15.2 on 2026-11-03).
 
 ## Mechanisms
 
-- `argparse` with `prog="wio"`, `color=False` and one subparser per entry, with
-  `SystemExit` caught around parsing.
+- `argparse` with `prog="wio"`, its default color rule and one subparser per
+  entry, with `SystemExit` caught around parsing.
 - `contextlib.redirect_stdout` and `redirect_stderr` pointing `argparse`'s
   output at the streams of `stdio`.
 - `importlib.metadata` for the `Summary` and the version of `work-it-out`.
@@ -140,18 +143,28 @@ exits 2 with `argparse`'s message on standard error, and `main` raises nothing.
 - **Then** each returns 2 without raising, standard output is empty and standard
   error names the unknown word.
 
-### **AC-7** The output is plain and the same on every channel
+### **AC-7** Color follows Python's rules and the channels agree
 
-The usage names the program `wio` and carries no color, whichever channel runs
-it and whatever `FORCE_COLOR` says, so a bare run gives the same output in
-process and as the installed command.
+The usage names the program `wio`, and its color follows Python's color rules,
+so a person on a terminal sees color while a pipe, a file or an in-memory
+stream gets plain text, and a bare run gives the same output in process and as
+the installed command.
 
-#### No color
+#### Not a terminal
 
-- **Given** `FORCE_COLOR=1` in the environment.
+- **Given** in-memory `stdio` and an environment without `PYTHON_COLORS`,
+  `NO_COLOR` or `FORCE_COLOR`.
 - **When** `main([], stdio)` and `main(["nope"], stdio)` run.
 - **Then** neither stream holds an escape character (`\x1b`), and the usage
   lines begin with `usage: wio`.
+
+#### A terminal
+
+- **Given** standard output on a pseudo-terminal from `os.openpty`, and the same
+  environment.
+- **When** `main(["--help"], stdio)` runs, then again with `NO_COLOR=1`.
+- **Then** the first output holds an escape character and the second holds
+  none.
 
 #### The two channels agree
 

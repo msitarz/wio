@@ -35,7 +35,7 @@ before the first subcommand can exist.
 
 - Implementing any subcommand, which the Work of each component does.
 - `wio init`, which comes in v0.2.
-- Color, a pager and shell completion.
+- Coloring wio's own messages, a pager and shell completion.
 - Wiring adapters that differ by platform: the first Work that adds one gives
   the wiring the platform.
 - A separate exit code for configuration errors.
@@ -77,10 +77,13 @@ before the first subcommand can exist.
   answer.
 - **Streams.** Standard output carries what the command was asked for, the
   findings of a check included. Standard error carries diagnostics about the run
-  itself and error messages in plain text, also with `--json`. There is no color
-  and no pager, also when `FORCE_COLOR` is set, and output is deterministic:
-  sorted, and without timestamps except in `wio log`, whose purpose is to report
-  when events happened.
+  itself and error messages in plain text, also with `--json`. The help and
+  usage that `argparse` prints are colored only where Python's color rules allow
+  it: on a terminal, unless `NO_COLOR`, `PYTHON_COLORS=0` or `TERM=dumb` says
+  otherwise, and anywhere when `FORCE_COLOR` or `PYTHON_COLORS=1` asks for it.
+  wio's own messages and `--json` output are never colored, there is no pager,
+  and output is deterministic: sorted, and without timestamps except in
+  `wio log`, whose purpose is to report when events happened.
 - **`--json`.** It is an option of each command, declared by the command's
   `configure`. On exit 0 or 1, standard output holds one JSON document and
   nothing else; on exit 2 and 70 it is empty, and the message is plain text on
@@ -96,7 +99,8 @@ before the first subcommand can exist.
   adapter, so a component never learns which adapters implement its ports.
 - **Verification.** Each constraint has an owner:
   - exit codes and the plain error messages: the failures leaf;
-  - the absence of color and the program name: the dispatch leaf;
+  - the color rule and the program name: the dispatch leaf, and that wio's own
+    messages stay plain: the failures leaf;
   - that the core writes only to `stdio`: the failures leaf;
   - the import-light rule: the command-table leaf, and the architecture review
     for the pure description;
