@@ -64,6 +64,12 @@ From the interview of 2026-11-03, started while defining the config Work
   version, exit codes, the describe/factory split, the import guard, the
   platform wiring, removal of the strict `xfail` of the bare scenario, and a
   line for this Work in the scope document).
+- `--json` is an option of each command, declared by its `configure`, as in
+  `uv`; an acceptance test checks that every command that offers it writes one
+  JSON document to standard output and nothing else.
+- Standard output carries what the command was asked for, a `check`'s findings
+  included. Standard error carries diagnostics about the run itself and the
+  plain-text `WioError` message, also in `--json` mode. No color and no pager
+  in v0.1.
 
-**Open:** `--json` as a global option or per command, and the rule for what
-goes to standard output versus standard error.
+**Open:** nothing yet; the criteria of the two leaves are next.

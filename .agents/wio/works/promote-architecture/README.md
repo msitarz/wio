@@ -2,7 +2,7 @@
 id = "ew60gw"
 template = "feature.draft"
 roots = []
-depends_on = []
+depends_on = ["qg33gf"]
 -->
 
 # Promote the architecture
@@ -36,9 +36,8 @@ From the interview of 2026-11-03. Decisions are made unless marked open.
 - **Packaging.** The wheel excludes `**/GLOSSARY.md` (`pyproject.toml`
   `wheel-exclude`) and a packaging test checks it; `README.md` files under
   `src/wio` need the same exclusion and check.
-- **Open:** whether the repository's workflow gets a `promote-docs` stage so
-  that every Work promotes its lasting rules into the READMEs and glossaries it
-  touches, and retires itself, which would make this Work the stage's first
-  use. It is a change of this repository's config and rules, outside the engine.
+- **How it is delivered**: through the promote-docs stage (Work qg33gf), by
+  overriding its `deliver` pipeline to `["promote-docs", "docs-review"]`, so
+  this Work is the stage's first use. It depends on that Work.
 - Work that follows (the cli Work, `wio.errors`) depends on this one, and
   changes the architecture document instead of amending a contract.
