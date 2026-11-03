@@ -18,6 +18,8 @@ breaks it, so the repository's own gates must run one.
   packages of `src/wio`.
 - A change that breaks the dependency direction fails `make lint`, and so
   continuous integration.
+- `tach.toml` also encodes the dependency direction between `scripts` and the
+  groups of `tests`, and keeps `src` and `scripts` from importing `tests`.
 
 ## Non-Goals
 
@@ -25,7 +27,7 @@ breaks it, so the repository's own gates must run one.
   yet.
 - Checking the imports inside `.pyi` files, which tach cannot read.
 - Enabling the `--tach` pytest plugin, which skips tests and enforces nothing.
-- Constraining `tests`, `scripts` or any directory other than `src/wio`.
+- Constraining a directory other than `src/wio`, `scripts` and `tests`.
 
 ## Assumptions
 
@@ -102,10 +104,10 @@ A dependency that exists only under `TYPE_CHECKING` is checked like any other.
 - **When** `uv run tach check` runs.
 - **Then** it exits non-zero and its output names `wio.models` and `wio.io`.
 
-### **AC-4** Only `wio.cli` imports an adapter
+### **AC-4** Only `wio.cli` and the unit tests import an adapter
 
 An import of `wio.io.adapters` or `wio.env.adapters` from any module but
-`wio.cli` fails the check and names both modules.
+`wio.cli` and `tests.unit` fails the check and names both modules.
 
 #### A component importing an adapter
 
@@ -122,6 +124,14 @@ An import of `wio.io.adapters` or `wio.env.adapters` from any module but
 - **When** `uv run tach check` runs.
 - **Then** it exits non-zero and its output names `wio.log` and
   `wio.env.adapters`.
+
+#### A script importing an adapter
+
+- **Given** a `.py` module in `scripts` that imports `wio.io.adapters`, added
+  locally by the reviewer and not committed.
+- **When** `uv run tach check` runs.
+- **Then** it exits non-zero and its output names `scripts` and
+  `wio.io.adapters`.
 
 ### **AC-5** The repository's gates run the check
 
@@ -146,6 +156,34 @@ it, and a violation fails them.
 - **Given** the delivered tree.
 - **When** the commands list of `AGENTS.md` is read.
 - **Then** it lists `uv run tach check`.
+
+### **AC-6** Tests and scripts keep their dependency direction
+
+A change that makes `src` or `scripts` import `tests`, or `tests/scripts` import
+the acceptance setup, fails the check and names both modules; the hook runs
+when a test or a script changes.
+
+#### Source and scripts do not import tests
+
+- **Given** a `.py` module in `wio.rules` that imports `tests.sandbox`, and
+  separately one in `scripts` that imports `tests.support`, each added locally
+  by the reviewer and not committed.
+- **When** `uv run tach check` runs.
+- **Then** it exits non-zero and its output names the two modules of each.
+
+#### Tests of scripts do not use the acceptance setup
+
+- **Given** a `.py` module in `tests/scripts` that imports
+  `tests.acceptance.dsl`, added locally by the reviewer and not committed.
+- **When** `uv run tach check` runs.
+- **Then** it exits non-zero and its output names `tests.scripts` and
+  `tests.acceptance.dsl`.
+
+#### The hook runs on a test
+
+- **Given** the import of the previous scenario in a file of `tests/scripts`.
+- **When** `uv run prek run tach --files` runs on that file.
+- **Then** the `tach check` hook is reported as failed.
 
 ## Additional context
 
