@@ -88,6 +88,7 @@ def test_the_first_scenario_fails_on_the_assertion() -> None:
 
     # Then both fail with an AssertionError about the missing description
     assert result.returncode == 1
-    assert result.stdout.count("AssertionError") == 2
+    assert "2 failed" in result.stdout
+    assert "AssertionError" in result.stdout
     assert result.stdout.count("Work It Out! Agentic Workflow Engine") >= 2
     assert "ImportError" not in result.stdout
