@@ -65,7 +65,9 @@ finished contract as current truth drift from the code.
   ([concepts](../../../../docs/concepts.md) section 4), so retiring this Work
   and the foundation Work needs no change of `9wbqyb` or `h4my0j`, and the A-2
   of `h4my0j`, that `ew60gw` creates `src/wio/README.md`, stays true of the
-  history.
+  history; the open point of concepts, that a deleted Work's dependents are
+  updated in the same change, does not apply, because section 4 reads a retired
+  dependency from its records.
 - **A-3**: At commit `d6f96e0`, only `docs/v0.1-scope.md` links to the
   foundation Work by path (two links), the header comment of `tach.toml` names
   it in prose, and `tests/scripts/test_records.py` uses its ids only as sample
@@ -91,11 +93,10 @@ finished contract as current truth drift from the code.
   and links to `src/wio/GLOSSARY.md` for the terms Component, Port and Adapter
   and to `tests/README.md` for the dependency direction of `tests`, instead of
   stating them again (`DOC001`, `WRT001`).
-- The exclusion of `README.md` from the wheel is committed before the first
-  `README.md` under `src/wio`, so no wheel built from the branch ships one.
-- The guarantees in the documents are verified by the human gate `docs-review`,
-  because no tool reads prose; the wheel exclusion is verified by the slow
-  packaging test, which `make build` and `make slow` run.
+- The human gate `docs-review` judges AC-1 to AC-8 and AC-10, because no tool
+  reads prose; `implementation-review` judges AC-9, whose exclusion the slow
+  packaging test verifies in `make build` and `make slow`; AC-11 is judged at
+  both gates.
 
 ## Visuals
 
@@ -133,9 +134,10 @@ Work changes the architecture by editing it. It states which packages of
 modules and dependencies that `tach.toml` declares, and that every package
 directly under `src/wio` and the stub `wio.ports` is a module of `tach.toml`,
 with `wio.io.adapters` and `wio.env.adapters` as the only other modules of
-`wio`. It states that no component imports another and that they meet only in
-`wio.cli`, and that a dependency that exists only for a type is still a
-dependency, which is why tach counts `TYPE_CHECKING` imports.
+`wio`. It states that no component imports another, and that `wio.cli` is the
+composition root, where they meet and which gives each component the adapters
+for the ports it consumes, and that a dependency that exists only for a type is
+still a dependency, which is why tach counts `TYPE_CHECKING` imports.
 
 #### The direction as stated
 
@@ -231,7 +233,9 @@ state, read from commit `d6f96e0`, is in `src/wio/README.md`, `tests/README.md`,
 a `GLOSSARY.md`, a stub docstring or `AGENTS.md` with its reason, or is listed
 as dropped, with why, in the body of the retiring commit of AC-10, which says
 "Dropped: none." when nothing is. Provisional items, as the Non-Goals list them,
-are not guarantees.
+are not guarantees. Of `vds425`, `tests/README.md` does not yet state that git
+in the sandbox uses no config, repository or identity of the developer's, so
+`promote-docs` adds it.
 
 #### Contract against documents
 
