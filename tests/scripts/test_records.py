@@ -2,13 +2,16 @@
 """Tests for the record script that stands in for `wio trailers check`."""
 
 import io
+from typing import TYPE_CHECKING
 lazy from pathlib import Path
 
 import pytest
 
 from scripts import records
-from tests.acceptance.sandbox import Sandbox
 from tests.support import enter, git
+
+if TYPE_CHECKING:
+    from tests.sandbox import Sandbox
 
 RECORD = "Wio-Work: k3m9xq\nWio-Action: deliver\nWio-Stage: architecture"
 
@@ -540,17 +543,16 @@ def _commit(repo: Sandbox, message: str) -> None:
 
 
 @pytest.fixture
-def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Sandbox:
+def repo(sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch) -> Sandbox:
     """Create a git repository with one root commit and work inside it.
 
     Args:
-        tmp_path: pytest's temporary directory.
+        sandbox: The test's sandbox.
         monkeypatch: pytest's monkeypatch fixture.
 
     Returns:
         The sandbox of the repository, whose environment the process now has.
     """
-    sandbox = Sandbox.under(tmp_path)
     git(sandbox, "init", "-q", check=True)
     _commit(sandbox, "chore: root")
     enter(sandbox, monkeypatch)

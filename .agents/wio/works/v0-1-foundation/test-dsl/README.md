@@ -65,7 +65,7 @@ scenarios need them.
 - `tests/acceptance/drivers/base.py`, the `WioDriver` Protocol, and the test
   drivers `in_process.py` (calls `wio.cli.main` with in-memory streams) and
   `cli.py` (runs the `wio` command in a subprocess).
-- `tests/acceptance/sandbox.py`, the `Sandbox` that each test driver is built
+- `tests/sandbox.py`, the `Sandbox` that each test driver is built
   from, holding the directory under `tmp_path` that `wio` runs in and the
   environment it sees.
 - `tests/acceptance/channels.py`, the `Channel` enum with the members

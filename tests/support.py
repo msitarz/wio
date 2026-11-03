@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import pytest
 
-    from tests.acceptance.sandbox import Sandbox
+    from tests.sandbox import Sandbox
 
 
 def git(

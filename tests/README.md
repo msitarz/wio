@@ -39,7 +39,9 @@ skills, for example the command sequence a skill runs.
 
 ```text
 tests/
-├── conftest.py             # register_assert_rewrite, shared options and markers
+├── conftest.py             # register_assert_rewrite, shared options and markers,
+│                           # and the `sandbox` fixture
+├── sandbox.py              # Sandbox: the directory and environment of a test
 ├── support.py              # helpers tests share, such as running git in a sandbox
 ├── unit/                   # mirrors src/wio/
 ├── acceptance/
@@ -49,7 +51,6 @@ tests/
 │   │   ├── wio.py          # Wio facade: config(), rules(), work(), context(), trailers(), check()
 │   │   ├── builders.py     # minimal-valid config.toml, contract, rule, template
 │   │   └── results.py      # Bundle, CheckResult, ...
-│   ├── sandbox.py          # Sandbox: the directory and environment of a test driver
 │   ├── drivers/
 │   │   ├── base.py         # WioDriver Protocol
 │   │   ├── in_process.py   # calls the library

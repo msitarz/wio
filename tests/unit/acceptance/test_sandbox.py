@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.acceptance.sandbox import Sandbox
+from tests.sandbox import Sandbox
 from tests.support import git
 
 

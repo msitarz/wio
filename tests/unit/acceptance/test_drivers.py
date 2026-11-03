@@ -13,7 +13,7 @@ from tests.acceptance.drivers.cli import SCRIPT, CliDriver
 from tests.acceptance.drivers.in_process import InProcessDriver
 from tests.acceptance.dsl.results import Output
 from tests.acceptance.dsl.wio import Wio
-from tests.acceptance.sandbox import Sandbox
+from tests.sandbox import Sandbox
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -66,11 +66,10 @@ def test_both_test_drivers_return_the_same_data(tmp_path: Path) -> None:
 
 
 def test_the_cli_driver_runs_in_the_sandbox(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The subprocess gets the sandbox's directory and environment."""
     # Given the CLI driver and a spy in place of subprocess.run
-    sandbox = Sandbox.under(tmp_path)
     calls: list[dict[str, Any]] = []
 
     def spy(
@@ -101,11 +100,10 @@ def test_the_cli_driver_runs_in_the_sandbox(
 
 
 def test_the_in_process_driver_runs_in_the_sandbox(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The call sees the sandbox's directory and environment, then restores."""
     # Given the in-process driver and a main that records its surroundings
-    sandbox = Sandbox.under(tmp_path)
     seen: list[tuple[Path, dict[str, str]]] = []
 
     def record(argv: Sequence[str], stdio: Stdio) -> int:

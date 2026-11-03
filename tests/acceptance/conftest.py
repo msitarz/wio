@@ -9,12 +9,10 @@ from tests.acceptance.channels import Channel
 from tests.acceptance.drivers.cli import CliDriver
 from tests.acceptance.drivers.in_process import InProcessDriver
 from tests.acceptance.dsl.wio import Wio
-from tests.acceptance.sandbox import Sandbox
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from tests.acceptance.drivers.base import WioDriver
+    from tests.sandbox import Sandbox
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
@@ -67,14 +65,14 @@ def driver_for(channel: Channel, sandbox: Sandbox) -> WioDriver:
 
 
 @pytest.fixture
-def wio(channel: Channel, tmp_path: Path) -> Wio:
+def wio(channel: Channel, sandbox: Sandbox) -> Wio:
     """The facade, over the test driver of the test's channel.
 
     Args:
         channel: The channel the test runs on.
-        tmp_path: The test's own temporary directory.
+        sandbox: The test's sandbox.
 
     Returns:
-        A facade over a sandbox under `tmp_path`.
+        A facade over the sandbox.
     """
-    return Wio(driver_for(channel, Sandbox.under(tmp_path)))
+    return Wio(driver_for(channel, sandbox))
