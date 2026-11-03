@@ -17,6 +17,10 @@ tags = [
     "implementation",  # the code behind the boundaries
     "testing",         # tests at any stage
     "integration",     # joining the children of a parent
+    "docs",            # the README and GLOSSARY files next to the code
+    "promote",         # carrying a contract's guarantees into the docs
+    "links",           # linking instead of copying, in any document
+    "diagrams",        # diagrams drawn from verified source, in any document
 ]
 
 # What a gate can decide. Records and review events use these values.
@@ -71,7 +75,7 @@ the better form. A change of intent is an amendment, through amend."""
 [[roots]]
 name = "contract"
 paths = [".agents/wio/works"]
-rulesets = ["contracts"]
+rulesets = ["contracts", "writing"]
 
 [[roots]]
 name = "wio"
@@ -83,14 +87,16 @@ rulesets = ["contract-upkeep"]
 [[roots]]
 name = "repo"
 paths = ["."]
-rulesets = ["contract-upkeep"]
+rulesets = ["contract-upkeep", "docs", "writing"]
 
 # Stages. A stage marked `gate` judges an artifact, and each of its records
 # carries a result. `session = "fresh"` asks for a new agent session, so the
 # reviewer does not share the author's context. The define stages select the
 # contract root; the deliver stages select the Work's roots, whose
 # contract-upkeep ruleset reminds the agent that writes code how to keep the
-# contract true.
+# contract true. The promote stages select the repo root, whose docs ruleset
+# says how to write the docs next to the code. The writing ruleset reaches the
+# contract and promote stages through the tags `links` and `diagrams`.
 
 [stages.define]
 # The wio-define skill takes over this goal once it exists; until then the goal
@@ -103,7 +109,7 @@ that template with `wio contracts template <name> --work <id>` (without \
 contract in its shape; the Intent section does not carry over. Ask the driver for anything still missing. For a parent, \
 create its children with `wio contracts new feature --parent <id> --title \
 <title>`. Check the result with `wio contracts check`."""
-tags = ["contract"]
+tags = ["contract", "links", "diagrams"]
 roots = ["contract"]
 
 [stages.review-contract]
@@ -115,7 +121,7 @@ are guesses listed as assumptions, can every criterion fail, is every goal \
 covered? Then ask the driver to confirm that the contract states what they \
 meant. Record the result with `wio trailers --result --judge human`, and `pass` \
 only once the driver has confirmed."""
-tags = ["contract", "review"]
+tags = ["contract", "review", "links", "diagrams"]
 roots = ["contract"]
 session = "fresh"
 
@@ -125,7 +131,7 @@ Change the contract's criteria, assumptions or constraints as the driver \
 decided, keep its template, and name the changed ids in the commit message. \
 For a parent, list the children the change affects. Check the result with \
 `wio contracts check`."""
-tags = ["contract", "amend"]
+tags = ["contract", "amend", "links", "diagrams"]
 roots = ["contract"]
 
 [stages.architecture]
@@ -187,7 +193,7 @@ changed ids named, and does the contract still hold together? Ask the driver \
 to confirm the amended parts state what they meant. Record the result with \
 `wio trailers --result --judge human`, and `pass` only once the driver has \
 confirmed."""
-tags = ["contract", "amend", "review"]
+tags = ["contract", "amend", "review", "links", "diagrams"]
 roots = ["contract"]
 session = "fresh"
 
@@ -195,7 +201,7 @@ session = "fresh"
 goal = """\
 Update the contract to match what was built, without changing its intent, and \
 check it with `wio contracts check`."""
-tags = ["contract", "ratify"]
+tags = ["contract", "ratify", "links", "diagrams"]
 roots = ["contract"]
 
 [stages.review-ratify]
@@ -205,8 +211,40 @@ Judge the ratify: did it only bring wording, diagrams and links in line with \
 what was built, and does every criterion still guarantee what it did? If a \
 guarantee changed, the result is `fail`, and the change belongs in an \
 amendment. Record the result with `wio trailers --result`."""
-tags = ["contract", "ratify", "review"]
+tags = ["contract", "ratify", "review", "links", "diagrams"]
 roots = ["contract"]
+session = "fresh"
+
+[stages.promote-docs]
+goal = """\
+Carry the lasting rules, reasons and diagrams of the contracts this Work \
+promotes into the README.md and GLOSSARY.md of the directories they touched, \
+linking instead of copying. The sources are the Work's contract, those of its \
+descendants, and those of the delivered Works its contract says it retires. A \
+Work with a parent only promotes: it deletes no contract, because the tree is \
+kept until its top Work has promoted. A Work without a parent then asks the \
+driver whether its contracts are spent, and keeps them until the driver \
+confirms. Once the driver confirms, the last commit of the stage deletes the \
+Work's contract, those of its descendants, and those of each Work it retires \
+with that Work's descendants. That confirmation is the driver's own, and is \
+not the judgment of docs-review."""
+tags = ["docs", "promote", "links", "diagrams"]
+roots = ["repo"]
+
+[stages.docs-review]
+gate = true
+judge = "human"
+goal = """\
+Judge whether the docs lost any guarantee of the promoted contracts. Read a \
+contract from the working tree when it was kept, and from the commit before \
+its deletion when it was deleted. Check that every guarantee it states is in \
+the README.md and GLOSSARY.md files with its reason, then ask the driver to \
+confirm the review; their confirmation of the deletion does not stand for it. \
+Record the result with `wio trailers --result --judge human`, and `pass` only \
+once the driver has confirmed. On `fail`, the deletion is reverted and \
+promote-docs is done again."""
+tags = ["docs", "promote", "review", "links", "diagrams"]
+roots = ["repo"]
 session = "fresh"
 
 [presets]
@@ -220,5 +258,7 @@ typed-boundary = [
     "wiring-review",
     "implementation",
     "implementation-review",
+    "promote-docs",
+    "docs-review",
 ]
-integrate = ["integration", "system-review"]
+integrate = ["integration", "system-review", "promote-docs", "docs-review"]
