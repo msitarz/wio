@@ -1,8 +1,9 @@
 # Known issues
 
 Problems in this repository's tooling that are known and not yet fixed. Each
-entry says what fails, how it was found, what it puts at risk and what is
-being done about it. Remove an entry in the change that fixes it.
+entry says what fails, what it puts at risk and what is being done about it. How
+an issue was found belongs in the commit that records it. Remove an entry in the
+change that fixes it.
 
 ## `tach check` sometimes passes a forbidden import
 
@@ -11,12 +12,6 @@ overlap: every file under `src` is under both. With tach 0.35.3, the latest
 release, the module a file belongs to is then not fixed from run to run, so
 `uv run tach check` passes a forbidden import in some runs. When it fails, it
 reports each violation twice.
-
-**How it was found.** On 2026-11-03, an uncommitted `src/wio/rules/zz_trial.py`
-that imports `wio.config` passed `tach check` in 4 of 10 runs, in a clean clone
-and in a working checkout alike. A component importing `wio.io.adapters`, and
-`wio.log` importing `wio.env.adapters`, passed in some runs too. With
-`source_roots = ["src"]` alone, the same import failed in 12 of 12 runs.
 
 **What it puts at risk.** A change that breaks the dependency direction of
 `src/wio` can pass `make lint` and continuous integration, so the review of each

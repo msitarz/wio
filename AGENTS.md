@@ -61,6 +61,11 @@ Single tools, for quick feedback:
   statements, 3 boolean operands per `if`. Prefer `match` with named guards over
   long `if` chains, and model variants as algebraic data types.
 - Python lines are 88 columns. Markdown lines are 80.
+- Repository files state intent: what holds and why. They never record
+  verification, such as the runs, counts or revisions something was checked
+  against: CI and prek verify. Report a manual check to the driver or in a
+  commit message. A contract's criteria, which say how a reviewer judges them,
+  are the exception.
 - Fix the cause when a check fails. Never weaken a test or loosen a rule to get
   green. If a rule seems wrong, say so and propose a config change.
 
