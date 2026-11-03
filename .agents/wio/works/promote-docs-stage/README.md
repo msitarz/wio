@@ -3,6 +3,9 @@ id = "qg33gf"
 template = "feature.leaf"
 roots = ["repo"]
 depends_on = []
+
+[actions]
+deliver = ["implementation", "implementation-review"]
 -->
 
 # The promote-docs stage
@@ -21,7 +24,8 @@ instead of drifting from what later Works change.
 - A human judges, from a fresh session, that the documents lost no guarantee
   the contract stated, before the contract is retired.
 - A contract is retired only on the driver's decision, and a Work tree is kept
-  until its top Work has promoted.
+  until its top Work has promoted. A Work can also retire delivered Works that
+  its contract names.
 - The sessions of the new stages receive the rules for writing documents and
   none of the rules for delivering code.
 - The rules for linking and for diagrams are written once and reach contract
@@ -31,8 +35,9 @@ instead of drifting from what later Works change.
 
 - **Promote**: to carry what a contract guarantees, with its reasons and
   diagrams, into the documents next to the code.
-- **Retire**: to delete a Work's contract, and those of its descendants, after
-  it was promoted. Git history keeps them.
+- **Retire**: to delete a contract after what it guarantees was promoted. Git
+  history keeps it. A Work retires its own contract, those of its descendants,
+  and those of the delivered Works its contract names as retired.
 
 ## Non-Goals
 
@@ -41,7 +46,9 @@ instead of drifting from what later Works change.
   later.
 - Deleting a contract automatically.
 - Promoting any Work: the first use is the promote-architecture Work
-  (`ew60gw`).
+  (`ew60gw`), which names the foundation Work (`zpnbj3`) as retired.
+- Delivering this Work through the stage it adds: it cannot use a stage before
+  it exists.
 - Changing the `contract-upkeep` ruleset: its rules carry the tag `delivery`,
   which the new stages do not have.
 
@@ -58,6 +65,12 @@ instead of drifting from what later Works change.
 - **A-4**: A Work that others depend on is read from the history once it is
   retired, so retiring the foundation Work needs no change of its dependents
   ([concepts](../../../../docs/concepts.md) section 4).
+- **A-5**: `wio trailers` does not exist yet. The goal of `docs-review` names it
+  as the goals of the existing gates do, and the record is written by hand
+  until it exists.
+- **A-6**: The change touches only config and rule files, so the pipeline
+  `implementation`, `implementation-review` is enough for its delivery, and the
+  driver deletes this contract by hand once it is delivered.
 
 ## Mechanisms
 
@@ -68,6 +81,8 @@ instead of drifting from what later Works change.
 - A ruleset `docs` (family `DOC`) with the rules for the documents next to the
   code, bound to the root `repo`.
 - The tags `docs`, `promote`, `links` and `diagrams` in the config's vocabulary.
+- The six contract stages gain the tags `links` and `diagrams`, so contract
+  sessions keep the two moved rules.
 - `CON008` and `VIS002` leave the `contracts` ruleset and return as `WRT001`
   and `WRT002`. Their old codes are not reused.
 
@@ -120,31 +135,42 @@ The presets gain the pair at their end:
 ### **AC-1** A stage carries a Work's lasting content into the documents
 
 The config declares the stage `promote-docs`, whose goal tells the agent to
-carry the lasting rules, reasons and diagrams of the Work into the `README.md`
-and `GLOSSARY.md` of the directories the Work touched, and to link instead of
-copying. Its `roots` are `["repo"]` and its tags are `docs`, `promote`, `links`
-and `diagrams`.
+carry the lasting rules, reasons and diagrams of the contracts it promotes (the
+Work's own and descendants', and those of the delivered Works its contract names
+as retired) into the `README.md` and `GLOSSARY.md` of the directories they
+touched, and to link instead of copying. Its `roots` are `["repo"]` and its tags
+are `docs`, `promote`, `links` and `diagrams`.
 
 #### The stage as declared
 
 - **Given** the config of the delivered tree, parsed with `tomllib`.
 - **When** a reviewer reads `stages["promote-docs"]`.
 - **Then** it has no `gate` or `judge`, `roots == ["repo"]`, exactly those four
-  tags, and a goal that names `README.md`, `GLOSSARY.md` and the Work's
-  contract as the source.
+  tags, and a goal that names `README.md`, `GLOSSARY.md`, the Work's
+  contract and the Works its contract names as the sources.
 
 ### **AC-2** A contract is retired only on the driver's decision
 
 The goal of `promote-docs` says that a Work with a parent promotes and keeps
-every contract; that a Work without a parent deletes its own contract and those
-of its descendants in the last commit of the stage; and that it deletes them
-only after the driver confirms that they are spent.
+every contract; that a Work without a parent deletes its own contract, those of
+its descendants and those of the delivered Works its contract names as retired,
+in the last commit of the stage; and that it deletes them only after the driver
+confirms that they are spent. That confirmation is the driver's own, separate
+from the judgment of `docs-review`.
 
 #### A child promotes and keeps its contract
 
 - **Given** a Work that has a parent.
 - **When** an agent follows the goal of `promote-docs` for it.
 - **Then** the goal tells it to promote and to delete nothing.
+
+#### A Work that retires another Work
+
+- **Given** a Work without a parent whose contract names a delivered Work as
+  retired.
+- **When** an agent follows the goal after the driver confirmed.
+- **Then** the goal tells it to delete the named Work's contract and those of
+  that Work's descendants, together with its own.
 
 #### A top Work whose driver has not confirmed
 
@@ -161,7 +187,8 @@ The config declares the gate `docs-review` with `gate = true`, `judge =
 `promote`, `review`, `links` and `diagrams`. Its goal tells the reviewer to read
 the contract from the commit before its deletion, to check that every guarantee
 the contract states is in the documents with its reason, and to record `pass`
-with `wio trailers --result --judge human` only once the driver confirmed.
+with `wio trailers --result --judge human` only once the driver confirmed the
+review, whatever they said when asked about the deletion.
 
 #### The gate as declared
 
@@ -200,7 +227,7 @@ the roots `contract` and `repo`.
   `contract` and `repo` list `writing`, and `contracts` is still bound to
   `contract` alone.
 
-### **AC-6** The docs rules cover the documents next to the code
+### **AC-6** Three docs rules cover the documents next to the code
 
 `.agents/wio/rules/docs/` holds `ruleset.toml` (name `docs`, family `DOC`) and
 three rules, each with the tag `docs` or `promote`, and `docs` is bound to the
@@ -214,12 +241,13 @@ root `repo` only:
 - `DOC003`: add a term to the `GLOSSARY.md` of the directory that owns it, only
   when it could be read more than one way.
 
-#### Each rule can be told from its neighbours
+#### Each rule is well formed
 
 - **Given** the three rule files.
 - **When** a reviewer reads them.
-- **Then** each has a metadata block whose `code` matches its file name, one
-  imperative sentence about one thing, and a `Why:` paragraph.
+- **Then** each has a metadata block whose `code` matches its file name, a body
+  of one paragraph whose first word is a verb, and a `Why:` paragraph, and no
+  two rules state the same instruction.
 
 ### **AC-7** Each session receives the right rules
 
@@ -227,7 +255,8 @@ A session of `promote-docs` or `docs-review` receives `WRT001`, `WRT002` and
 all three `DOC` rules, and no rule of `contracts` or `contract-upkeep`. A
 session of each of the six contract stages, `define`, `review-contract`,
 `amend`, `review-amendment`, `ratify` and `review-ratify`, still receives
-`WRT001` and `WRT002`, because their tags include `links` and `diagrams`.
+`WRT001` and `WRT002`, because their tags gain `links` and `diagrams`, and
+nothing else about their tags changes.
 
 #### Computing the selection
 
@@ -240,14 +269,17 @@ session of each of the six contract stages, `define`, `review-contract`,
 ### **AC-8** The vocabulary and the files are consistent
 
 The config declares the tags `docs`, `promote`, `links` and `diagrams` in
-`tags`, and every tag a stage or a rule uses is declared. Each ruleset's `name`
+`tags`, and every tag a stage or a rule uses is declared. The six contract
+stages keep the tags they have today and add `links` and `diagrams`. Each
+ruleset's `name`
 equals its directory, and every rule file's code and name match its file name.
 
 #### Nothing undeclared
 
 - **Given** the config and all rule files of the delivered tree.
 - **When** a reviewer collects every tag used by a stage or a rule.
-- **Then** each is in `tags`, and `make check` passes.
+- **Then** each is in `tags`, each contract stage's tags are exactly today's
+  plus `links` and `diagrams`, and `make check` passes.
 
 ## Additional context
 
