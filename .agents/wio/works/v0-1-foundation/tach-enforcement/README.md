@@ -25,8 +25,7 @@ breaks it, so the repository's own gates must run one.
   yet.
 - Checking the imports inside `.pyi` files, which tach cannot read.
 - Enabling the `--tach` pytest plugin, which skips tests and enforces nothing.
-- Constraining `tests` or `scripts`, which no criterion requires; `tach.toml`
-  also covers them.
+- Constraining `tests`, `scripts` or any directory other than `src/wio`.
 
 ## Assumptions
 
@@ -106,8 +105,8 @@ A dependency that exists only under `TYPE_CHECKING` is checked like any other.
 
 ### **AC-4** Only `wio.cli` imports an adapter
 
-An import of `wio.io.adapters` or `wio.env.adapters` from any package of
-`src/wio` but `wio.cli` fails the check and names both modules.
+An import of `wio.io.adapters` or `wio.env.adapters` from any module but
+`wio.cli` fails the check and names both modules.
 
 #### A component importing an adapter
 
