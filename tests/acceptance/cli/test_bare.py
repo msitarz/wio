@@ -39,6 +39,7 @@ def test_bare_wio_displays_its_description(wio: Wio) -> None:
     # When wio runs with no arguments
     output = wio.bare()
 
-    # Then it shows the description and succeeds
-    assert description in output.text
+    # Then it shows the description, writes no error and succeeds
+    assert description in output.stdout
+    assert output.stderr == ""
     assert output.exit_code == 0

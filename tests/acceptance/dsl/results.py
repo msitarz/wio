@@ -9,9 +9,11 @@ class Output:
     """What a verb that only prints and exits gave back.
 
     Attributes:
-        text: What `wio` wrote to standard output.
+        stdout: What `wio` wrote to standard output.
+        stderr: What `wio` wrote to standard error.
         exit_code: The exit code of the run.
     """
 
-    text: str
+    stdout: str
+    stderr: str
     exit_code: int

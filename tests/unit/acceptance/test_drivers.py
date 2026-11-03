@@ -34,19 +34,19 @@ class FakeDriver:
             The fixed result.
         """
         del args
-        return RunResult("usage\n", "", 0)
+        return RunResult("usage\n", "warning\n", 3)
 
 
 def test_the_facade_maps_a_result_to_an_output() -> None:
-    """`bare()` turns the driver's result into text and an exit code."""
+    """`bare()` turns the driver's result into both streams and an exit code."""
     # Given a fake test driver that returns a result
     wio = Wio(FakeDriver())
 
     # When wio is run bare through the facade
     output = wio.bare()
 
-    # Then the output carries the text and the exit code
-    assert output == Output(text="usage\n", exit_code=0)
+    # Then the output carries both streams and the exit code
+    assert output == Output(stdout="usage\n", stderr="warning\n", exit_code=3)
 
 
 @pytest.mark.slow

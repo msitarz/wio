@@ -27,7 +27,11 @@ class Wio:
         """Run `wio` with no arguments.
 
         Returns:
-            The text on standard output and the exit code.
+            Both output streams and the exit code.
         """
         result = self.driver.run([])
-        return Output(text=result.stdout, exit_code=result.exit_code)
+        return Output(
+            stdout=result.stdout,
+            stderr=result.stderr,
+            exit_code=result.exit_code,
+        )

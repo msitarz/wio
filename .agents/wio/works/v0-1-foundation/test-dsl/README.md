@@ -97,7 +97,8 @@ class WioDriver(Protocol):
 
 @dataclass(frozen=True)
 class Output:
-    text: str
+    stdout: str
+    stderr: str
     exit_code: int
 ```
 
@@ -113,9 +114,11 @@ drivers return data and never assert.
 
 #### The facade maps a result
 
-- **Given** a fake test driver that returns `RunResult("usage\n", "", 0)`.
+- **Given** a fake test driver that returns
+  `RunResult("usage\n", "warning\n", 3)`.
 - **When** `Wio(driver).bare()` is called.
-- **Then** it returns `Output(text="usage\n", exit_code=0)`.
+- **Then** it returns
+  `Output(stdout="usage\n", stderr="warning\n", exit_code=3)`.
 
 ### **AC-2** The channel of a scenario is chosen by a marker
 
@@ -139,7 +142,8 @@ the in-process case is fast and the CLI case is marked `slow`.
 ### **AC-3** The first scenario waits for the `cli` package
 
 The scenario for bare `wio` states that standard output contains the
-description from `pyproject.toml` and that the exit code is 0, and is expected
+description from `pyproject.toml`, that standard error is empty and that the
+exit code is 0, and is expected
 to fail until the Work of the `cli` package.
 
 ```python
