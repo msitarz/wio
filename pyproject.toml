@@ -84,6 +84,7 @@ addopts = [
   "--tb=short",
   "--import-mode=importlib",
   "-m", "not slow",  # `pytest -m slow` runs the slow tests (builds, real CLI)
+  "-p", "no:tach",  # tach is enforced by its hook; its plugin only adds a banner
 ]
 
 [tool.coverage.run]
