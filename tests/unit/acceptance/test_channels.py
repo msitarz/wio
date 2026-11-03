@@ -44,7 +44,7 @@ def _cases(*marker: str) -> list[str]:
     return sorted(
         line.split("[")[1].rstrip("]")
         for line in result.stdout.splitlines()
-        if "[" in line
+        if "::" in line and line.endswith("]")
     )
 
 
