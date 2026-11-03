@@ -23,9 +23,9 @@ instead of drifting from what later Works change.
   the Work touched.
 - A human judges, from a fresh session, that the documents lost no guarantee
   the contract stated, before the contract is retired.
-- A contract is retired only on the driver's decision, and a Work tree is kept
-  until its top Work has promoted. A Work can also retire delivered Works that
-  its contract names.
+- A contract is retired only on the driver's decision.
+- A Work tree is kept until its top Work has promoted.
+- A Work can retire delivered Works that its contract says it retires.
 - The sessions of the new stages receive the rules for writing documents and
   none of the rules for delivering code.
 - The rules for linking and for diagrams are written once and reach contract
@@ -35,45 +35,44 @@ instead of drifting from what later Works change.
 
 - **Promote**: to carry what a contract guarantees, with its reasons and
   diagrams, into the documents next to the code.
-- **Retire**: to delete a contract after what it guarantees was promoted. Git
-  history keeps it. A Work retires its own contract and those of its
-  descendants, and also those of any delivered Work, with that Work's
-  descendants, that its contract says in prose it retires.
+- **Retire**: to delete a contract once what it guarantees was promoted, which
+  git history keeps. A Work retires its own tree and each delivered Work its
+  prose says it retires, with that Work's descendants.
 
 ## Non-Goals
 
 - Changing the engine: this is a change of this repository's config and rules.
-  A per-binding choice of rules, tag aliases and any-of tag matching stay for
-  later.
+- A per-binding choice of rules, tag aliases and any-of tag matching, which
+  stay for later.
 - Deleting a contract automatically.
 - Promoting any Work: the first use is the promote-architecture Work
-  (`ew60gw`), whose contract says in prose that it retires the foundation Work
-  (`zpnbj3`). No metadata field or fixed phrase marks a retired Work.
-- Delivering this Work through the stage it adds: it cannot use a stage before
-  it exists.
+  (`ew60gw`).
+- Marking a retired Work with a metadata field or a fixed phrase: the contract
+  of `ew60gw` says in prose that it retires the foundation Work (`zpnbj3`).
+- Delivering this Work through the stage it adds, which cannot be used before it
+  exists.
 - Changing the `contract-upkeep` ruleset: its rules carry the tag `delivery`,
   which the new stages do not have.
 
 ## Assumptions
 
-- **A-1**: Nothing reads `.agents/wio/config.toml` yet, as its header says, so
-  until `wio config check` exists a reviewer reads the files and parses them
-  with `tomllib`. Verified at commit `81ae1be`.
+- **A-1**: Nothing reads `.agents/wio/config.toml` yet, as its header says at
+  commit `81ae1be`, so until `wio config check` exists a reviewer parses it with
+  `tomllib`.
 - **A-2**: A ruleset can be bound to several roots, and a rule applies to a
   stage only when every tag of the rule is among the stage's tags, as
   [concepts](../../../../docs/concepts.md) sections 8 and 9 describe.
-- **A-3**: Only this Work refers to the rules `CON008` and `VIS002`, so moving
-  them breaks no link. Verified with `grep` at commit `81ae1be`.
+- **A-3**: Only this Work refers to the rules `CON008` and `VIS002`, as `grep`
+  shows at commit `81ae1be`.
 - **A-4**: A Work that others depend on is read from the history once it is
   retired, so retiring the foundation Work needs no change of its dependents
   ([concepts](../../../../docs/concepts.md) section 4).
-- **A-5**: `wio trailers` does not exist yet. The goal of `docs-review` names it
-  as the goals of the existing gates do, and the record is written by hand
-  until it exists.
+- **A-5**: `wio trailers` does not exist yet, so the record of `docs-review` is
+  written by hand until it does.
 - **A-6**: The change touches only config and rule files, so the pipeline
-  `implementation`, `implementation-review` is enough for its delivery, and the
-  driver deletes this contract by hand once it is delivered. The config and
-  rule files are their own documentation, so nothing else needs promoting.
+  `implementation`, `implementation-review` is enough for its delivery.
+- **A-7**: The config and rule files document themselves, so the driver deletes
+  this contract by hand once it is delivered.
 
 ## Mechanisms
 
@@ -87,7 +86,7 @@ instead of drifting from what later Works change.
 - The six contract stages gain the tags `links` and `diagrams`, so contract
   sessions keep the two moved rules.
 - `CON008` and `VIS002` leave the `contracts` ruleset and return as `WRT001`
-  and `WRT002`. Their old codes are not reused.
+  and `WRT002`.
 
 ## Constraints
 
@@ -97,6 +96,14 @@ instead of drifting from what later Works change.
   retiring a contract leaves history as the only copy.
 - The rules are written in the style of the existing ones: a metadata block,
   one imperative, and a `Why:` paragraph.
+- The codes `CON008` and `VIS002` are not reused.
+- `promote-docs` deletes the retired contracts in its own last commit, not in
+  the commit of `docs-review`, which is the last stage, so that the commit
+  of the deletion belongs to the stage that decided it.
+- A `fail` of `docs-review` is recovered by reverting the deletion and redoing
+  `promote-docs`.
+- `docs-review` receives the same five rules as `promote-docs`, because no new
+  rule carries the tag `review`.
 
 ## Visuals
 
@@ -192,7 +199,7 @@ the contract from the working tree when it was kept and from the commit before
 its deletion when it was deleted, to check that every guarantee the contract
 states is in the documents with its reason, and to record `pass`
 with `wio trailers --result --judge human` only once the driver confirmed the
-review, whatever they said when asked about the deletion.
+review, which their confirmation of the deletion does not stand for.
 
 #### The gate as declared
 
@@ -218,16 +225,19 @@ The presets `typed-boundary` and `integrate` end with `promote-docs`,
 
 `.agents/wio/rules/writing/` holds `ruleset.toml` (name `writing`, family `WRT`)
 and the rules `WRT001` (link instead of copying, tag `links`) and `WRT002`
-(diagrams from verified source, tag `diagrams`), worded for any document. The
-files `CON008-*.md` and `VIS002-*.md` no longer exist, and `writing` is bound to
-the roots `contract` and `repo`.
+(diagrams from verified source, tag `diagrams`). Each is in the style of the
+existing rules and names no contract section. The files `CON008-*.md` and
+`VIS002-*.md` no longer exist, no rule file uses either code, and `writing` is
+bound to the roots `contract` and `repo`.
 
 #### Moved, not copied
 
 - **Given** the delivered tree.
 - **When** a reviewer lists `.agents/wio/rules` and reads the bindings of
   `[[roots]]`.
-- **Then** no rule file outside `writing` states either rule, the roots
+- **Then** no rule file outside `writing` states either rule, no rule file has
+  the code `CON008` or `VIS002`, the two `WRT` files each have a metadata block,
+  one paragraph and a `Why:` paragraph and name no contract section, the roots
   `contract` and `repo` list `writing`, and `contracts` is still bound to
   `contract` alone.
 
@@ -278,7 +288,9 @@ receives no `DOC` rule.
 - **Given** the config of the delivered tree, the rule files and the config of
   commit `81ae1be`.
 - **When** a reviewer applies all-of tag matching to each of the six stages in
-  both trees, over the rulesets bound to the root `contract`.
+  both trees, over the rulesets bound to the root `contract`, and to the stages
+  `architecture` to `system-review` over the rulesets of the roots `repo`,
+  `wio` and `contract`.
 - **Then** the two selections differ only by `CON008` and `VIS002` leaving and
   `WRT001` and `WRT002` arriving, and the stages `architecture` to
   `system-review` receive neither `WRT` rule nor a `DOC` rule.
@@ -306,17 +318,26 @@ The config declares the tags `docs`, `promote`, `links` and `diagrams` in
 - **When** a reviewer collects every tag used by a stage or a rule.
 - **Then** each is in `tags`.
 
-### **AC-11** The new files are well formed
+### **AC-11** The new files carry matching names and codes
 
-Each new ruleset's `name` equals its directory, every new rule file's code and
-name match its file name, and the repository's checks pass.
+Each new ruleset's `name` equals its directory, and every new rule file's code
+and name match its file name.
+
+#### Names and codes
+
+- **Given** the delivered tree.
+- **When** a reviewer reads `ruleset.toml` and the metadata block of each new
+  rule file.
+- **Then** each ruleset's `name` equals its directory name, and each rule's
+  `code` and `name` equal the parts of its file name.
+
+### **AC-12** The repository's checks pass
 
 #### The checks
 
 - **Given** the delivered tree.
-- **When** a reviewer reads `ruleset.toml` and the metadata block of each new
-  rule file, and runs `make check`.
-- **Then** the names and codes match, and `make check` exits 0.
+- **When** a reviewer runs `make check`.
+- **Then** it exits 0.
 
 ## Additional context
 
