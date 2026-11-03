@@ -40,6 +40,7 @@ skills, for example the command sequence a skill runs.
 ```text
 tests/
 ├── conftest.py             # register_assert_rewrite, shared options and markers
+├── support.py              # helpers tests share, such as running git in a sandbox
 ├── unit/                   # mirrors src/wio/
 ├── acceptance/
 │   ├── conftest.py         # `wio` fixture, channel parametrization, assertrepr hook

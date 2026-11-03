@@ -1,31 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the sandbox of the acceptance test drivers."""
 
-import subprocess
 from pathlib import Path
 
 import pytest
 
 from tests.acceptance.sandbox import Sandbox
-
-
-def _git(sandbox: Sandbox, *args: str) -> subprocess.CompletedProcess[str]:
-    """Run git in the sandbox's directory and environment.
-
-    Args:
-        *args: The arguments after `git`.
-
-    Returns:
-        The completed process, with its output decoded.
-    """
-    return subprocess.run(
-        ["git", *args],
-        cwd=sandbox.root,
-        env=sandbox.env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+from tests.support import git
 
 
 def test_the_sandbox_lies_inside_the_temporary_directory(tmp_path: Path) -> None:
@@ -108,17 +89,17 @@ def test_git_in_the_sandbox_reads_nothing_from_the_developer(
     inner = outer / "inner"
     inner.mkdir(parents=True)
     setup = Sandbox.under(tmp_path / "setup")
-    subprocess.run(["git", "init", "-q", str(outer)], env=setup.env, check=True)
+    git(setup, "init", "-q", str(outer), check=True)
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("GIT_DIR", str(outer / ".git"))
     sandbox = Sandbox.under(inner)
 
     # When git runs in the sandbox
-    name = _git(sandbox, "config", "user.name")
-    toplevel = _git(sandbox, "rev-parse", "--show-toplevel")
-    _git(sandbox, "init", "-q")
+    name = git(sandbox, "config", "user.name")
+    toplevel = git(sandbox, "rev-parse", "--show-toplevel")
+    git(sandbox, "init", "-q")
     (sandbox.root / "a.txt").write_text("a", encoding="utf-8")
-    status = _git(sandbox, "status", "--porcelain")
+    status = git(sandbox, "status", "--porcelain")
 
     # Then it has no global config, no repository above, and no global ignore
     assert name.returncode == 1
