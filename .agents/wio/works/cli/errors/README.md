@@ -17,7 +17,7 @@ shared base before any component raises its own.
 
 - Any package can raise an error that the command line reports as the user's to
   fix.
-- A package with errors of its own extends the same base without importing
+- A package with errors of its own can extend the same base without importing
   another package.
 - The configuration error that several components share has one definition.
 
@@ -27,18 +27,24 @@ shared base before any component raises its own.
 - The errors of any component, each of which its package adds in its own
   `errors.py` when it has one.
 - An exit code per error class: every `WioError` means exit 2.
+- Changing the other ports that declare `ValueError`, such as `Environment` for
+  a relative `$WIO_HOME`: the Work of each component decides that.
 
 ## Assumptions
 
 - **A-1**: Nothing raises `ValueError` for the settings yet: only the docstring
   of `Settings.load` in `src/wio/ports.pyi` mentions it, at commit
   `16dbe2d636c984a42cb976ec50c272d790f10233`.
+- **A-2**: The promote-architecture Work (`ew60gw`) creates `src/wio/README.md`
+  with the dependency direction of the packages of `src/wio`, which this Work
+  extends with `wio.errors`.
 
 ## Mechanisms
 
 - `src/wio/errors.py`, a plain module of exception classes.
 - A `wio.errors` module in `tach.toml` with no dependencies, which every other
   module of `src/wio` and the unit tests list among theirs.
+- A unit test that reads `tach.toml` with `tomllib`.
 
 ## Acceptance criteria
 
@@ -61,20 +67,25 @@ Neither is a `ValueError`, so a handler of `ValueError` never swallows them, and
 
 - **Given** `ConfigurationError("no config at /x")` raised.
 - **When** it is caught as `WioError`.
-- **Then** it is caught, `str` of it is `no config at /x`, and it is not an
-  instance of `ValueError`.
+- **Then** it is caught, `str` of it is `no config at /x`, and neither it nor
+  `WioError` is an instance of `ValueError`.
 
-### **AC-2** `wio.errors` depends on nothing and every package may use it
+### **AC-2** `tach.toml` lets every package use `wio.errors`
 
-`tach.toml` declares `wio.errors` with no dependencies and lists it among the
-dependencies of every other module of `src/wio` and of `tests.unit`.
+`tach.toml` declares `wio.errors` with no dependencies, and every other module
+of `wio` there, and `tests.unit`, lists it among its dependencies.
 
-#### A clean tree and an allowed import
+#### The table
 
-- **Given** the delivered tree, and a `.py` module in `wio.models` that imports
-  `wio.errors`, added locally by the reviewer and not committed.
-- **When** `uv run tach check` runs.
-- **Then** it exits 0.
+- **Given** `tach.toml` of the delivered tree.
+- **When** a unit test reads it.
+- **Then** `wio.errors` has an empty `depends_on`, and every other `wio.*`
+  module and `tests.unit` list `wio.errors`.
+
+### **AC-3** `wio.errors` cannot import another package
+
+An import from `wio.errors` of any other package of `wio` fails `tach check` and
+names both modules.
 
 #### A forbidden import
 
@@ -84,14 +95,14 @@ dependencies of every other module of `src/wio` and of `tests.unit`.
 - **Then** it exits non-zero and its output names `wio.errors` and
   `wio.config`.
 
-### **AC-3** The settings port names the shared error
+### **AC-4** The settings port names the shared error
 
 `Settings.load` in `src/wio/ports.pyi` documents that it raises
 `ConfigurationError` where it said `ValueError`.
 
-### **AC-4** The architecture documents state the rule
+### **AC-5** The architecture documents state the rule
 
-The `README.md` of `src/wio` states that `wio.errors` imports nothing from
-`wio`, that every package may import it, that errors several packages share live
-there, and that a package adds an `errors.py` extending `WioError` only when it
-has an error of its own. Its dependency table lists `wio.errors`.
+The `README.md` of `src/wio` states, in its dependency direction, that
+`wio.errors` imports nothing from `wio`, that every package may import it, that
+errors several packages share live there, and that a package adds an
+`errors.py` extending `WioError` only when it has an error of its own.
