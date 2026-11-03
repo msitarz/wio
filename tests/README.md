@@ -8,18 +8,19 @@ and the conventions. Examples are sketches.
 
 - **Acceptance tests speak the domain's language.** A test says
   `wio.context(work_id=..., action=..., stage=...)`, never
-  `subprocess.run(["wio", "context", ...])`. Only drivers know how
+  `subprocess.run(["wio", "context", ...])`. Only test drivers know how
   wio is reached.
 - **One acceptance criterion = one scenario.** Contract ACs are independently
   assessable; each maps to one DSL scenario.
-- **Drivers return data and never assert.** Tests assert on the returned data
-  with plain `assert`. That keeps drivers identical across channels and lets
-  pytest's assertion introspection work.
+- **Test drivers return data and never assert.** Tests assert on the returned
+  data with plain `assert`. That keeps test drivers identical across channels
+  and lets pytest's assertion introspection work.
 - **Fast by default.** `uv run pytest` runs the in-process channel. The CLI
-  channel is opt-in per test.
-- **Start small.** One DSL facade, one in-process driver, one CLI driver. Add
-  vocabulary only when a scenario needs it. Delete tests and helpers that have
-  no observed failure behind them.
+  channel is the reference for acceptance and runs the same scenarios with
+  `make slow`.
+- **Start small.** One DSL facade and two test drivers, in-process and CLI.
+  Add vocabulary only when a scenario needs it. Delete tests and helpers
+  that have no observed failure behind them.
 
 ## 2. Test layers
 
@@ -47,14 +48,16 @@ tests/
 │   │   ├── wio.py          # Wio facade: config(), rules(), work(), context(), trailers(), check()
 │   │   ├── builders.py     # minimal-valid config.toml, contract, rule, template
 │   │   └── results.py      # Bundle, CheckResult, ...
+│   ├── sandbox.py          # Sandbox: the directory and environment of a test driver
 │   ├── drivers/
 │   │   ├── base.py         # WioDriver Protocol
 │   │   ├── in_process.py   # calls the library
 │   │   └── cli.py          # subprocess; parses --json; reads exit codes
+│   ├── cli/                # the bare `wio` scenario, until the cli package grows
 │   └── config/ contracts/ rules/ context/ trailers/ log/   # one folder per v0.1 feature
 ├── golden/                 # expected bundle bytes
 ├── packaging/              # build the wheel and sdist and inspect them (slow)
-├── scripts/                # the repository's own scripts, such as records.py
+├── scripts/                # tests of the scripts in the top-level scripts/
 └── fixtures/               # static sample repos, example templates, rulesets
 ```
 
@@ -73,7 +76,7 @@ own package only when a second consumer (for example `wio-eval`) needs it.
 | `Wio` facade | Domain verbs: `config`, `rules`, `work`, `context`, `trailers`, `check`, `contracts_new`. Applies defaults. |
 | Builders | Produce a minimal valid repo state; tests override only what they are about |
 | `WioDriver` (Protocol) | Narrow interface: run an operation against a prepared temp repo, return a result object |
-| Drivers | In-process and CLI implementations of the Protocol |
+| Test drivers | In-process and CLI implementations of the Protocol |
 
 ### 4.2 Builders matter most
 
@@ -118,7 +121,7 @@ If `in` would be ambiguous (rule code vs text in the rendered output), assert on
 an explicit field instead: `assert "x" not in bundle.rules`.
 
 Make failures explain themselves with `pytest_assertrepr_compare` in
-`tests/acceptance/conftest.py`. The drivers fill `trace` by running
+`tests/acceptance/conftest.py`. The test drivers fill `trace` by running
 `wio context --explain`, so a failing assert shows why a rule was or was not
 included.
 
@@ -140,8 +143,8 @@ modules, register them in `tests/conftest.py`:
 pytest.register_assert_rewrite("tests.acceptance.dsl")
 ```
 
-Exception: if a channel is asynchronous (a future MCP or HTTP driver), use a
-polling helper such as `eventually(...)`, since a bare `assert` cannot wait.
+Exception: if a channel is asynchronous (a future MCP or HTTP test driver), use
+a polling helper such as `eventually(...)`, since a bare `assert` cannot wait.
 
 ## 5. Channels
 
@@ -155,6 +158,11 @@ files, for the bundle id) with a thin shell for file IO.
 |---|---|---|
 | `IN_PROCESS` (default) | Builds a temp repo, calls the library | Most scenarios, fast |
 | `CLI` | Same temp repo, runs `wio` via `subprocess` | Exit codes (0 ok, 1 check failed, 2 usage/config error), `--json`, finding the config, `--output`, the `uvx` entry point, byte-stable output, environment-dependent behaviour such as session-id detection |
+
+The CLI channel is the reference for acceptance: it is the command users and
+skills run. The in-process channel is the fast copy of the same scenarios, so a
+scenario that passes on one should pass on the other. Operation-shaped verbs of
+the facade are layered on the test driver's `run(args)` as scenarios need them.
 
 A test chooses channels with a marker, the pytest equivalent of an
 annotation-based channel selector:
@@ -177,9 +185,8 @@ def test_check_fails_on_unknown_tag(wio):
 `conftest.py` parametrizes `channel` from the marker and falls back to a
 `channel` fixture that returns `IN_PROCESS`. It marks the `CLI` case `slow`,
 because it spawns the real command, so `make test` runs the in-process case and
-`make slow` the CLI case of the same scenario. Run the shared scenarios against
-both channels only where the CLI wiring matters. Future channels (MCP, a skill's
-command sequence) are new drivers; scenarios do not change.
+`make slow` the CLI case of the same scenario. Future channels (MCP, a skill's
+command sequence) are new test drivers; scenarios do not change.
 
 ```python
 def pytest_generate_tests(metafunc):
@@ -272,8 +279,9 @@ markers = [
 
 1. Dataclass models with explicit validation, and the config loader (unit
    tests).
-2. `tests/acceptance/` skeleton: `Wio` facade, builders, in-process driver, CLI
-   driver, targeting `wio config check`.
+2. `tests/acceptance/` skeleton: `Wio` facade, builders, in-process test driver,
+   CLI test driver, with the bare `wio` scenario in `tests/acceptance/cli/`,
+   then targeting `wio config check`.
 3. `wio contracts new / list / check`, developed against the DSL.
 4. `wio trailers` and `wio trailers check`.
 5. `wio rules check` and `wio context`, with golden tests.
