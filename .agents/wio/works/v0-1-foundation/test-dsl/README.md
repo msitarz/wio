@@ -194,24 +194,23 @@ has `HOME` and `XDG_DATA_HOME` inside it.
   `HOME` and `XDG_DATA_HOME` are the sandbox's, and both are restored
   afterwards.
 
-### **AC-5** The test strategy says what the channels are for
+### **AC-5** The strategy document says what the channels are for
 
 `tests/README.md` states that the CLI channel is the reference for acceptance
 and that the in-process channel is the fast copy of the same scenarios, and its
 layout lists `tests/acceptance/cli/`.
 
-#### The test strategy
+#### The strategy document
 
 - **Given** the delivered documents.
 - **When** `tests/README.md` is read.
-- **Then** no sentence calls the CLI channel opt-in per test or limits both
+- **Then** no sentence calls the CLI channel opt-in per scenario or limits both
   channels to where the CLI wiring matters, a sentence gives each channel's
   role, a note says that operation-shaped verbs are layered on the test driver's
   `run(args)` as scenarios need them, the layout lists `tests/acceptance/cli/`,
-  step 2 of its order of work names the bare `wio` scenario, and `rumdl check`
-  passes.
+  and step 2 of its order of work names the bare `wio` scenario.
 
-### **AC-6** The terms of the test setup are defined where the tests use them
+### **AC-6** The terms of the test setup are defined where they are used
 
 `tests/GLOSSARY.md` defines the terms of the glossary above, binds them to
 `tests/` and its descendants, and says that its test driver narrows the root
@@ -227,10 +226,9 @@ layout lists `tests/acceptance/cli/`.
 #### The README
 
 - **Given** the delivered documents.
-- **When** `tests/README.md` is searched for the word "driver" not preceded by
-  "test".
-- **Then** nothing is found, except in code identifiers and paths such as
-  `WioDriver` and `drivers/`, and `rumdl check` passes.
+- **When** `tests/README.md` is read for the word "driver".
+- **Then** it is always preceded by "test", except in code identifiers and paths
+  such as `WioDriver` and `drivers/`.
 
 ## Additional context
 
