@@ -57,7 +57,7 @@ tests/
 │   └── config/ contracts/ rules/ context/ trailers/ log/   # one folder per v0.1 feature
 ├── golden/                 # expected bundle bytes
 ├── packaging/              # build the wheel and sdist and inspect them (slow)
-├── scripts/                # the repository's own scripts, such as records.py
+├── scripts/                # tests of the scripts in the top-level scripts/
 └── fixtures/               # static sample repos, example templates, rulesets
 ```
 
