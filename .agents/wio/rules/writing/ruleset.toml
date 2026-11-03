@@ -1,0 +1,8 @@
+# Rules for writing any document, contracts and the docs next to the code
+# alike. The config binds this ruleset to the `contract` and `repo` roots, and
+# each rule carries one narrow tag, so every stage that lists the tag gets it.
+name = "writing"
+description = "How to write any document: links and diagrams."
+
+[families]
+WRT = "Writing"
