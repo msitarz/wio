@@ -1,0 +1,85 @@
+# Configuration file for `tach`, which checks the dependency direction between
+# the packages of `src/wio`. See https://docs.gauge.sh/ for more information.
+#
+# The table is the dependency direction of the v0.1 foundation Work. Ports are
+# imported only under `TYPE_CHECKING`, so type-only imports count. `exact` stays
+# off: it would fail on declared dependencies that no code uses yet.
+
+source_roots = ["src"]
+exact = false
+ignore_type_checking_imports = false
+
+[[modules]]
+path = "wio.models"
+depends_on = []
+
+[[modules]]
+path = "wio.env"
+depends_on = []
+
+[[modules]]
+path = "wio.formats"
+depends_on = ["wio.models"]
+
+[[modules]]
+path = "wio.io"
+depends_on = ["wio.models"]
+
+# A stub-only module: tach reads no `.pyi` file, but enforces its imports.
+[[modules]]
+path = "wio.ports"
+depends_on = ["wio.models"]
+
+# Adapters: only `wio.cli` may import them.
+[[modules]]
+path = "wio.io.adapters"
+depends_on = ["wio.io", "wio.models"]
+visibility = ["wio.cli"]
+
+[[modules]]
+path = "wio.env.adapters"
+depends_on = ["wio.env"]
+visibility = ["wio.cli"]
+
+# Components: they never import one another, and meet only in `wio.cli`.
+[[modules]]
+path = "wio.config"
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+
+[[modules]]
+path = "wio.contracts"
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+
+[[modules]]
+path = "wio.rules"
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+
+[[modules]]
+path = "wio.trailers"
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+
+[[modules]]
+path = "wio.log"
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+
+[[modules]]
+path = "wio.context"
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+
+[[modules]]
+path = "wio.cli"
+depends_on = [
+    "wio.models",
+    "wio.formats",
+    "wio.io",
+    "wio.io.adapters",
+    "wio.env",
+    "wio.env.adapters",
+    "wio.ports",
+    "wio.config",
+    "wio.contracts",
+    "wio.rules",
+    "wio.trailers",
+    "wio.log",
+    "wio.context",
+]
