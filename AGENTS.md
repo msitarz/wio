@@ -36,7 +36,8 @@ Single tools, for quick feedback:
 - `uv run pyrefly check`: strict type check of `scripts`, `src` and `tests`.
 - `uv run complexipy src tests`: cognitive complexity.
 - `uv run tach check`: check the dependency direction between the packages of
-  `src/wio` (`tach.toml`), counting `TYPE_CHECKING` imports.
+  `src/wio`, and between `scripts` and the groups of `tests` (`tach.toml`),
+  counting `TYPE_CHECKING` imports.
 - `uv run jscpd src tests`: duplicate code.
 - `uv run rumdl check --fix`: lint and format Markdown, and check that every
   Mermaid block renders (`scripts/check_mermaid.py`). A diagram that renders

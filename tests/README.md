@@ -68,6 +68,13 @@ Acceptance folders follow the feature tree (`config`, `contracts`, `rules`,
 inside `tests/acceptance/` because nothing else uses it yet; promote it to its
 own package only when a second consumer (for example `wio-eval`) needs it.
 
+`tach check` enforces the dependency direction in `tach.toml`: `tests.sandbox`
+and `tests.support` depend on nothing else in `tests`, so any group may use
+them; the acceptance setup imports only `wio.cli` and `wio.io` and its own
+parts; `tests/scripts` imports `scripts` and the shared helpers, never the
+acceptance setup; and nothing in `src` or `scripts` imports `tests`. A new
+group of tests needs an entry there.
+
 ## 4. The DSL
 
 ### 4.1 Layers
