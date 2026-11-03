@@ -113,6 +113,29 @@ def test_wheel_has_no_glossary(wheel_names: list[str]) -> None:
     assert glossaries == []
 
 
+def test_wheel_has_no_readme(wheel_names: list[str]) -> None:
+    # Given the files of the built wheel
+
+    # When the README files among them are listed
+    readmes = [name for name in wheel_names if name.endswith("README.md")]
+
+    # Then there are none, because a README under src documents the source tree
+    assert readmes == []
+
+
+def test_wheel_metadata_carries_the_project_readme(wheel_path: Path) -> None:
+    # Given the built wheel and the first line of the project README
+    heading = (ROOT / "README.md").read_text(encoding="utf-8").splitlines()[0]
+
+    # When its METADATA is read
+    with zipfile.ZipFile(wheel_path) as wheel:
+        [name] = [n for n in wheel.namelist() if n.endswith(".dist-info/METADATA")]
+        metadata = wheel.read(name).decode("utf-8")
+
+    # Then the README is its long description, though README files are excluded
+    assert heading in metadata
+
+
 def test_sdist_has_no_editor_or_cache_files(sdist_names: list[str]) -> None:
     # Given the files of the built sdist
 

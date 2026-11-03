@@ -47,9 +47,10 @@ quickjs-ng = [
 [tool.uv.build-backend]
 module-name = "wio"
 # uv_build ignores .gitignore: keep editor files out of artifacts (backups ~,
-# dotfiles incl. emacs .# locks, emacs #autosave# files).
+# dotfiles incl. emacs .# locks, emacs #autosave# files). The GLOSSARY.md and
+# README.md files under src document the source tree, not the package.
 source-exclude = ["*\\~", ".*", "\\#*\\#"]
-wheel-exclude = ["*\\~", ".*", "\\#*\\#", "**/GLOSSARY.md"]
+wheel-exclude = ["*\\~", ".*", "\\#*\\#", "**/GLOSSARY.md", "**/README.md"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
