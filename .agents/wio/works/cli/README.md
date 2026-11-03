@@ -86,18 +86,28 @@ before the first subcommand can exist.
   nothing else; on exit 2 and 70 it is empty, and the message is plain text on
   standard error.
 - **Import-light commands.** Importing the package of a command, and calling its
-  `describe` and the `configure` of its description, loads no module under that
+  `describe` and the `configure` of its command spec, loads no module under that
   package other than its `__init__`.
+- **Pure description.** `describe` and `configure` do no I/O and raise nothing
+  in a working installation, because they run for every entry on every
+  invocation.
 - **Dependency direction.** `wio.errors` imports nothing else from `wio`, and
   every package may import it. Only `wio.cli` and the unit tests import an
   adapter, so a component never learns which adapters implement its ports.
-- **Verification.** The leaves verify the exit codes, the streams, the absence
-  of color and the import-light rule with fake commands. `tach check` verifies
-  that `wio.errors` depends on nothing and that only `wio.cli` and the unit
-  tests import an adapter. The Work of each command verifies, in its own
-  criteria, the `--json` rule, that notes and warnings leave the exit code
-  alone, and that its output is sorted and free of timestamps, because only a
-  real command has an output to check. The parent verifies the installed wheel.
+- **Verification.** Each constraint has an owner:
+  - exit codes and the plain error messages: the failures leaf;
+  - the absence of color and the program name: the dispatch leaf;
+  - that the core writes only to `stdio`: the failures leaf;
+  - the import-light rule: the command-table leaf, and the architecture review
+    for the pure description;
+  - the dependency of `wio.errors` and the adapter `visibility`: `tach check`,
+    with the errors leaf;
+  - the `--json` rule, that notes and warnings leave the exit code alone, that
+    output is sorted and free of timestamps, and that a failed check is
+    returned, not raised: the Work of each command, because only a real command
+    has an output to check and the core cannot tell a failed check from a
+    `WioError`;
+  - the installed wheel: this parent.
 
 ## Visuals
 
@@ -162,8 +172,8 @@ description and version from its own metadata, without the source tree.
   `uv run --no-project --isolated --with <wheel>`.
 - **When** `wio` and `wio --version` run there.
 - **Then** `wio` prints the wheel's `Summary` to standard output and exits 0,
-  and `wio --version` prints `wio` and the wheel's version and a newline, and
-  exits 0.
+  and `wio --version` prints `wio <version>` and a newline, with the wheel's
+  version, such as `wio 0.0.1`, and exits 0.
 
 ## Additional context
 

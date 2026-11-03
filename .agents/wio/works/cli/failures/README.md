@@ -24,18 +24,9 @@ errors knowing how the command line reports them.
 
 ## Non-Goals
 
-- Handling `KeyboardInterrupt`, or a `SystemExit` that a command raises: they
-  propagate.
-- Deciding whether the exceptions that other ports declare (`ValueError`,
-  `RuntimeError` for a directory outside a git repository, `OSError`,
-  `UnicodeDecodeError`) become `WioError`s: the Work of each component maps its
-  own.
+- What the parent's Non-Goals leave out, such as `KeyboardInterrupt` and the
+  exceptions that other ports declare.
 - Committing a test that proves `tach` or `pyrefly` rejects a violation.
-
-## Assumptions
-
-- **A-1**: A `describe` or a `configure` runs for every entry on every run, so
-  an exception from one of them breaks every run until it is fixed.
 
 ## Mechanisms
 
@@ -43,13 +34,6 @@ errors knowing how the command line reports them.
   catching `WioError` first.
 - `traceback.print_exc` to the stream of `stdio.stderr` for a bug.
 - `contextlib.redirect_stdout` and `redirect_stderr`, as in the dispatch leaf.
-
-## Constraints
-
-- `describe` and `configure` do no I/O and raise nothing in a working
-  installation, because they run on every invocation. The architecture review
-  verifies it, and the import-light check of the command-table leaf covers
-  their imports.
 
 ## Acceptance criteria
 
@@ -62,27 +46,38 @@ error, and the run exits 2.
 #### A configuration error
 
 - **Given** four commands, whose `describe`, `configure`, `wire` and `run` each
-  raise `ConfigurationError("no config")`.
-- **When** `main` runs each.
+  raise `ConfigurationError("no config")`, each in an entry with the `package`
+  `"config"` and injected functions.
+- **When** `main([name], stdio)` runs for each.
 - **Then** each returns 2, standard error is `error: no config` and a newline,
   and standard output is empty.
 
-### **AC-2** A bug exits 70
+### **AC-2** A bug exits 70 with its traceback
 
 An exception that is not a `WioError`, at any of those steps, is reported with
-its traceback on standard error and exits 70, and so does a `run` that returns a
-code other than 0 or 1, with a message naming the command and the code.
+its traceback on standard error and the run exits 70.
 
 #### A crashing command
 
-- **Given** commands whose `describe`, `wire` and `run` each raise
-  `RuntimeError("boom")`, and one whose `run` returns 3.
-- **When** `main` runs each.
-- **Then** each returns 70 with standard output empty, the last line of
-  standard error is `RuntimeError: boom` for the first three, and standard error
-  for the last names the command and the code 3.
+- **Given** four commands, whose `describe`, `configure`, `wire` and `run` each
+  raise `RuntimeError("boom")`.
+- **When** `main([name], stdio)` runs for each.
+- **Then** each returns 70, standard output is empty, and the last line of
+  standard error is `RuntimeError: boom`.
 
-### **AC-3** The core writes only to `stdio`
+### **AC-3** An exit code outside 0 and 1 is a bug
+
+A `run` that returns a code other than 0 or 1 is reported on standard error,
+naming the command and the code, and the run exits 70.
+
+#### A wrong code
+
+- **Given** a command whose `run` returns 3.
+- **When** `main` runs it.
+- **Then** it returns 70, standard output is empty, and standard error names the
+  command and the code 3.
+
+### **AC-4** The core writes only to `stdio`
 
 `main` leaves the process's own streams alone, including when `argparse` prints
 and when a command fails.
@@ -92,10 +87,11 @@ and when a command fails.
 - **Given** in-memory `stdio` and the process's `sys.stdout` and `sys.stderr`
   captured.
 - **When** `main(["--help"], stdio)`, `main(["--version"], stdio)`,
-  `main(["nope"], stdio)` and a run of a command that raises a `WioError` run.
+  `main(["nope"], stdio)` and a run of each of three commands run, one raising a
+  `WioError`, one raising `RuntimeError` and one returning 3.
 - **Then** the process's streams hold nothing, and the output is in `stdio`.
 
-### **AC-4** The documents state the exit codes and the structure
+### **AC-5** The documents state the exit codes and the structure
 
 The order of work in `docs/v0.1-scope.md` names the errors module and the
 command line before `wio config`, and its overview lists `wio.errors` among the

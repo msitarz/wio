@@ -17,7 +17,8 @@ the exit code of the command chosen.
 
 - `wio`, `wio --help`, `wio <subcommand> --help` and `wio --version` show what
   wio is, its subcommands and its version.
-- Only the command that was chosen is wired, and its exit code is the run's.
+- Every command is described on every run, so the usage lists them all, and
+  only the command that was chosen is wired and its exit code is the run's.
 - A usage mistake exits 2 with `argparse`'s message on standard error.
 - The output is plain text and the same on every channel.
 - No test still pins the behavior of the silent placeholder.
@@ -61,7 +62,10 @@ def main(
 ) -> int: ...
 ```
 
-`main` is required as written, with the `Entry` of the command-table leaf.
+`main` is required as written, with the `Entry` of the command-table leaf; its
+default is the table, whose name is provisional. Fake entries in the scenarios
+carry any `Component` name, such as `"config"`, with injected `describe` and
+`wire` functions.
 
 #### Bare, with two commands
 
@@ -88,14 +92,15 @@ command, so it works where the command could not run.
 
 ### **AC-3** `--version` prints the version
 
-`wio --version` prints `wio` and the version of the `work-it-out` distribution
-to standard output and exits 0.
+`wio --version` prints `wio <version>` and a newline to standard output, with
+the version of the `work-it-out` distribution, such as `wio 0.0.1`, and exits
+0.
 
 #### The version
 
 - **Given** the synchronized environment.
 - **When** `main(["--version"], stdio)` runs.
-- **Then** it returns 0, standard output is `wio` and the version from
+- **Then** it returns 0, standard output is `wio`, a space, the version from
   `importlib.metadata` and a newline, and standard error is empty.
 
 ### **AC-4** Only the chosen command is wired, once
@@ -107,8 +112,8 @@ bare `wio`, `--help` or `--version`.
 
 - **Given** a table of `ok` and `no`, each with a `wire` that records its call.
 - **When** `main(["ok"], stdio)` runs, then bare, `--help` and `--version`.
-- **Then** `ok` was wired exactly once, `no` never, and the last three called no
-  `wire`.
+- **Then** `ok` was wired exactly once, `no` never, the last three called no
+  `wire`, and the `describe` of both entries ran every time.
 
 ### **AC-5** A command's exit code is the run's exit code
 
@@ -150,10 +155,12 @@ process and as the installed command.
 
 #### The two channels agree
 
-- **Given** the in-process driver and the CLI driver of the acceptance setup,
-  each on its own prepared repository.
+- **Given** the in-process test driver and the CLI test driver of the
+  acceptance setup, each on its own prepared repository.
 - **When** each runs `wio` with no arguments.
-- **Then** their results are equal.
+- **Then** their results are equal, which
+  `test_both_test_drivers_return_the_same_data` in
+  `tests/unit/acceptance/test_drivers.py` keeps asserting.
 
 ### **AC-8** No test pins the placeholder
 
@@ -172,9 +179,7 @@ above state.
   `test_the_first_scenario_is_expected_to_fail_on_both_channels` and
   `test_the_first_scenario_fails_on_the_assertion` in
   `tests/unit/acceptance/test_channels.py`, the strict `xfail` of the bare
-  scenario in `tests/acceptance/cli/test_bare.py`, and
-  `test_both_test_drivers_return_the_same_data` in
-  `tests/unit/acceptance/test_drivers.py`, which compares two empty outputs.
+  scenario in `tests/acceptance/cli/test_bare.py`.
 - **When** the delivered tree is searched for them.
 - **Then** each is rewritten for the new behavior or removed with the behavior
   it covered, the bare scenario passes in both channels, and `make check` and

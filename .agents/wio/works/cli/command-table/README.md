@@ -39,7 +39,8 @@ dispatch that uses them.
   it imports lazily (checked on Python 3.15.2 on 2026-11-03).
 - **A-2**: The packages directly under `src/wio` that are not components are the
   layers `models`, `formats`, `io`, `env` and `ports`, the composition root
-  `cli`, and `errors`, as `src/wio/GLOSSARY.md` and the errors leaf say.
+  `cli`, and `errors`, which the glossary of `src/wio` lists once the failures
+leaf is delivered.
 
 ## Mechanisms
 
@@ -47,8 +48,8 @@ dispatch that uses them.
   the entry.
 - `importlib.import_module` of `wio.<package>` for a real entry, then its
   `describe()`.
-- A subprocess that imports a package and lists `sys.modules`, for the
-  import-light check.
+- A subprocess that imports a module and lists `sys.modules`, for the
+  import-light check, which lives in `tests/support.py`.
 
 ## Acceptance criteria
 
@@ -71,10 +72,11 @@ class Entry:
 def component_entry(package: Component, wire: Callable[[], Command]) -> Entry: ...
 ```
 
-`Component`, `Entry` and `component_entry` are required as written. The name of
-the table, `COMMANDS: Final[Sequence[Entry]]`, is provisional. The `describe` of
-an entry from `component_entry` imports `wio.<package>` and returns its
-`describe()`, a function every component's package provides.
+`Component`, `Entry` and `component_entry` are required as written, in the
+module `wio.cli.table`. The table, `COMMANDS: Final[Sequence[Entry]]` in the
+same module, is provisional in name. The `describe` of an entry from
+`component_entry` imports `wio.<package>` and returns its `describe()`, a
+function every component's package provides.
 
 #### An unknown component
 
@@ -119,29 +121,39 @@ docstring: `CommandSpec` has read-only `name` and `help` properties and
 `run(args: Namespace, stdio: Stdio) -> int`. Its module docstring no longer says
 that one invocation loads only the command it runs. The glossary of
 `src/wio/cli` defines Command, command spec and entry in place of its single
-definition of Command.
+definition of Command. The docstrings of `describe` and `configure` say they do
+no I/O and raise nothing in a working installation.
 
 ### **AC-4** The import-light rule can fail
 
-A check fails for a package whose import, or whose `describe()` and the
-`configure` of its description, loads a module under that package other than its
-`__init__`, and passes for a package that loads none.
+A check lists the modules under a package, other than its `__init__`, that are
+loaded when the package is imported and its `describe()` and the `configure` of
+the spec it returns run. An empty list means the package is light.
+
+```python
+def import_light_violations(module: str) -> list[str]: ...
+```
+
+The function and its place in `tests/support.py` are provisional. It runs in a
+fresh interpreter and takes the dotted name of the package whose `describe` it
+calls.
 
 #### A fixture package
 
 - **Given** two fixture packages under `tests`, one whose `__init__` imports an
   implementation module eagerly and one that imports it lazily, each with a
   `describe`.
-- **When** the check runs for each, in a fresh interpreter.
-- **Then** it fails for the first and names the implementation module, and
-  passes for the second.
+- **When** `import_light_violations` runs for each.
+- **Then** it returns the name of the implementation module for the first and an
+  empty list for the second.
 
 #### The real table
 
 - **Given** the real table of commands.
-- **When** the check runs for each entry's package.
-- **Then** it passes, which holds vacuously until the first component adds its
-  entry.
+- **When** a unit test calls `import_light_violations("wio." + entry.package)`
+  for each entry.
+- **Then** each returns an empty list, which holds vacuously until the first
+  component adds its entry.
 
 ## Additional context
 
