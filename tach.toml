@@ -2,9 +2,11 @@
 # the packages of `src/wio`, and between `scripts` and the groups of `tests`.
 # See https://docs.gauge.sh/ for more information.
 #
-# The table is the dependency direction of the v0.1 foundation Work. Ports are
-# imported only under `TYPE_CHECKING`, so type-only imports count. `exact` stays
-# off: it would fail on declared dependencies that no code uses yet.
+# The table is the dependency direction that src/wio/README.md states and
+# explains. Ports are imported only under `TYPE_CHECKING`, so type-only imports
+# count. `exact` stays off: it would fail on declared dependencies that no code
+# uses yet. The overlapping source roots make tach 0.35.3 pass a forbidden import in
+# some runs; see docs/known-issues.md.
 
 source_roots = ["src", "."]
 exact = false

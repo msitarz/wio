@@ -3,9 +3,11 @@
 wio (work-it-out) is a configurable, stage-gated workflow engine for coding
 agents. Use the terms defined in [GLOSSARY.md](GLOSSARY.md) in code, docs and
 commit messages. A `GLOSSARY.md` in a directory binds its terms to that
-directory and its descendants, and the nearest one wins. See `README.md` for the
-overview, `docs/README.md` for the design and `tests/README.md` for the test
-strategy.
+directory and its descendants, and the nearest one wins. A `README.md` covers
+its directory and its descendants too, but a nearer one adds to a farther one
+and never overrides it; `src/wio/README.md` is the architecture. See `README.md`
+for the overview, `docs/README.md` for the design and `tests/README.md` for the
+test strategy.
 
 ## Commands
 

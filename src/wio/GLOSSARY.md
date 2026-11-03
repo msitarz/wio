@@ -8,4 +8,4 @@ the [repository glossary](../../GLOSSARY.md).
 | --- | --- |
 | Component | The package under `src/wio` of one v0.1 subcommand: `config`, `contracts`, `rules`, `trailers`, `log` or `context`. `cli` is the composition root, and `models`, `formats`, `io`, `env` and `ports` are shared layers, so none of them is a component. |
 | Port | A `typing.Protocol` declared in a `.pyi` stub, saying what a package needs from the outside. Its consumer owns it, in `<package>/ports.pyi`, except the ports of `wio.io` and `wio.env`, which those packages own, and the ports in `src/wio/ports.pyi`, which two or more components consume identically. |
-| Adapter | The implementation of a port: one per port, or for a port of `wio.env` one for each supported platform where its behavior differs. Only `wio.cli` imports adapters. |
+| Adapter | The implementation of a port: one per port, or for a port of `wio.env` one for each supported platform where its behavior differs. Only `wio.cli` and the unit tests import adapters. |
