@@ -8,6 +8,8 @@
   each is for, delivers and how it is used.
 - [Split exercises](split-exercises.md): four paper exercises that split an
   outcome into Works, and what they showed about the v0.1 design.
+- [Known issues](known-issues.md): problems in this repository's tooling that
+  are known and not yet fixed, with what each puts at risk.
 - [Glossary](../GLOSSARY.md): the terms used across the project.
 - [Test strategy](../tests/README.md): test layers, the acceptance-test DSL and
   conventions.
