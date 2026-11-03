@@ -1,7 +1,7 @@
 <!-- wio
 id = "9wbqyb"
-template = "feature.draft"
-roots = []
+template = "feature.parent"
+roots = ["@descendants"]
 depends_on = ["ew60gw"]
 -->
 
@@ -9,67 +9,153 @@ depends_on = ["ew60gw"]
 
 ## Purpose
 
-Every subcommand of wio needs one entry point that dispatches to it, gives it
-the adapters it consumes and follows one exit-code contract, before the first
-subcommand can run.
+Every subcommand of wio needs one entry point that tells a person or an agent
+what wio is, runs the command chosen and reports every outcome the same way,
+before the first subcommand can exist.
 
-## Intent
+## Goals
 
-From the interview of 2026-11-03, started while defining the config Work
-(hwn995). Decisions are made unless marked open.
+- A person or an agent can run `wio` to see what it is and which subcommands it
+  has, and ask which version is installed.
+- Every run ends with one exit code and its message on one stream, so a caller
+  can tell success, a failed check, its own mistake and a bug in wio apart.
+- A subcommand joins the command line with one entry in a table, and the
+  component behind it never learns which adapters implement its ports.
+- Every package can raise the errors that wio reports as the user's to fix, from
+  one module that depends on nothing.
 
-- Today `wio.cli.main` ignores its arguments and returns 0. The foundation
-  Work left "the Work of the `cli` package" as a non-goal, and the scope
-  document's order of work does not list it, so the scope document needs a line
-  for it.
-- It is the composition root: argparse subparsers, one per command, each bound
-  with a lazy import; it gives each command the implementations of the ports it
-  consumes (the adapters of `wio.io` and `wio.env`).
-- It owns the exit-code contract (0 success, 1 a failed check, 2 a usage or
-  configuration error), deterministic output, a machine-readable form where a
-  tool consumes output, and fast start-up.
-- The bare `wio` command prints its description.
-- The config Work depends on this one; this one depends on promote-architecture
-  (ew60gw), so the architecture changes below are made in `src/wio/README.md`
-  and `tach.toml`, not by amending the retired foundation contracts.
+## Glossary
 
-**Decided.**
+- **Failed check**: a command's finished answer "no", reported as its output and
+  exit code 1, and never as an exception.
+- **Bug**: an exception that escapes a command and is not a `WioError`.
 
-- Bare `wio` prints the description (the installed package's `Summary`), then
-  the usage with the subcommands, to standard output, and exits 0. `--help`
-  shows the same and `--version` prints the version.
-- Every command module keeps its heavy imports lazy (`lazy import`, tested on
-  Python 3.15.2: importing such a module loads none of them), so `wio.cli`
-  imports all command modules to build the parser. A slow test guards it: after
-  bare `wio`, no implementation module of any component is loaded.
-- A component exposes a port-free `describe()` (name, help, `configure`) and a
-  factory taking the ports it consumes, such as `command(settings=...)`, which
-  returns the object whose `run` has them bound. `wio.cli` has one explicit
-  wiring function per command, builds only the adapters that command needs, and
-  takes the platform as a parameter (default `sys.platform`) so tests cover each
-  per-platform adapter branch on one machine.
-- Errors: a new `wio.errors` module holds `WioError` and the errors shared by
-  components; a package adds its own `errors.py` (such as
-  `wio.contracts.errors`) only when it has an error of its own, extending
-  `WioError`. Every package, `wio.models` and `wio.env` included, may import
-  `wio.errors`, which imports nothing from `wio`. `wio.cli` catches `WioError`,
-  prints `error: <message>` to standard error and exits 2; any other exception
-  is a bug: traceback and exit
-  70. A failed check is a result, never an exception. Usage and configuration
-  errors share code 2 (the wording is in the scope document, the testing
-  README and two docstrings, not in a Work).
-- `Settings.load` raises a `WioError` subclass instead of `ValueError`.
-- Shape: a small parent with two leaves: `wio.errors` (module, tach, the
-  architecture document, glossary), then the command line (dispatch, bare, help,
-  version, exit codes, the describe/factory split, the import guard, the
-  platform wiring, removal of the strict `xfail` of the bare scenario, and a
-  line for this Work in the scope document).
-- `--json` is an option of each command, declared by its `configure`, as in
-  `uv`; an acceptance test checks that every command that offers it writes one
-  JSON document to standard output and nothing else.
-- Standard output carries what the command was asked for, a `check`'s findings
-  included. Standard error carries diagnostics about the run itself and the
-  plain-text `WioError` message, also in `--json` mode. No color and no pager
-  in v0.1.
+## Non-Goals
 
-**Open:** nothing yet; the criteria of the two leaves are next.
+- Implementing any subcommand, which the Work of each component does.
+- `wio init`, which comes in v0.2.
+- Color, a pager and shell completion.
+- Wiring adapters that differ by platform: the first Work that adds one gives
+  the wiring the platform.
+- A separate exit code for configuration errors.
+
+## Assumptions
+
+- **A-1**: The package metadata of this project, which names the distribution
+  `work-it-out`, holds the `Summary` and the version that `wio` shows, equal to
+  the `description` and `version` of `pyproject.toml`, in the synchronized
+  environment and in an installed wheel (checked for the synchronized
+  environment on 2026-11-03).
+
+## Mechanisms
+
+- `argparse`, with one subparser per command, for the usage, the help and the
+  usage errors.
+- `importlib.metadata`, reading the `Summary` and the version of the
+  `work-it-out` distribution.
+- Python 3.15 `lazy import` in the package of every command, so that importing
+  the package to describe the command loads none of its implementation.
+- `wio.errors`, a module of exception classes that the command line catches.
+- `tach check`, for the dependency direction of `wio.errors`.
+
+## Constraints
+
+- **Exit codes.** A run exits 0 on success, 1 on a failed check, 2 on a usage
+  error or a `WioError`, and 70 on a bug. Notes and warnings never change the
+  code.
+- **A failed check is a result.** A command returns it and never raises for it;
+  it raises a `WioError` only for what the user must fix before the command can
+  answer.
+- **Streams.** Standard output carries what the command was asked for, the
+  findings of a check included. Standard error carries diagnostics about the run
+  itself and error messages in plain text, also with `--json`. There is no color
+  and no pager, and output is deterministic: sorted, with no timestamps.
+- **`--json`.** It is an option of each command, declared by the command's
+  `configure`. With it, standard output holds one JSON document and nothing
+  else.
+- **Import-light commands.** Importing the package of a command to describe it
+  loads no module of its implementation.
+- **Dependency direction.** `wio.errors` imports nothing else from `wio`, and
+  every package may import it.
+- **Verification.** The leaves verify the exit codes, the streams for errors and
+  the import-light rule with fake commands. The `--json` rule is verified by the
+  Work of each command, in its own criteria, because only a real command has an
+  output to check. The parent verifies the installed command.
+
+## Visuals
+
+The before state is drawn from `main` at commit
+`16dbe2d636c984a42cb976ec50c272d790f10233` and checked against `src/wio/cli`,
+`src/wio/ports.pyi` and `tach.toml` at that commit. The after state is
+provisional: the packages and their edges are required, and the names inside
+`wio.cli` are not.
+
+Before: the entry point ignores its arguments, and a command is one object that
+describes itself and runs.
+
+```mermaid
+flowchart LR
+    subgraph cli["wio.cli"]
+        main["main(argv, stdio): ignores argv, returns 0"]
+        command["Command: name, help, configure, run"]
+    end
+    stdio["wio.io.adapters: SystemStdio"]
+    main --> stdio
+```
+
+After: a table of entries, a description apart from the command, and errors that
+the entry point catches. Bold boxes are added, and `main` and `Command` change.
+
+```mermaid
+flowchart LR
+    subgraph cli["wio.cli"]
+        main["main(argv, stdio, commands)"]:::changed
+        table["COMMANDS: Entry(describe, wire)"]:::new
+    end
+    spec["CommandSpec: name, help, configure"]:::new
+    command["Command: run"]:::changed
+    component["a component package"]
+    errors["wio.errors: WioError, ConfigurationError"]:::new
+    every["every package"]
+    main --> table
+    table -- "describe() imports lightly" --> component
+    table -- "wire() builds adapters and calls the factory" --> component
+    component -- "exposes" --> spec
+    component -- "factory returns" --> command
+    main -- "catches WioError, exits 2" --> errors
+    every -- "may import" --> errors
+    classDef new stroke-width: 3px
+    classDef changed stroke-width: 3px,stroke-dasharray: 4 3
+```
+
+## Acceptance criteria
+
+### **AC-1** The installed `wio` introduces itself and reports mistakes
+
+An installed `wio` shows what it is, its version and a usage error without the
+source tree.
+
+#### The installed command
+
+- **Given** the wheel built from the tree, installed into a fresh environment.
+- **When** `wio`, `wio --version` and `wio nope` run there.
+- **Then** `wio` prints the package's `Summary` and the usage to standard output
+  and exits 0; `wio --version` prints `wio` and the wheel's version and exits
+  0; `wio nope` prints nothing to standard output, names `nope` on standard
+  error and exits 2.
+
+### **AC-2** The delivered command line passes every check
+
+With both children delivered, the repository's two gates, `make check` and
+`make slow`, pass.
+
+#### The whole tree
+
+- **Given** the tree with both children delivered.
+- **When** `make check` runs, and then `make slow`.
+- **Then** both exit 0.
+
+## Additional context
+
+- [v0.1 scope](../../../../docs/v0.1-scope.md) names the command line as a part
+  and its outcome; the command-line leaf adds this Work to its order of work.
