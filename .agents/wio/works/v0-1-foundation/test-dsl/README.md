@@ -24,16 +24,10 @@ channels and one working example must exist before the first component.
 
 ## Glossary
 
-These definitions are the source until this Work moves them to
-`tests/GLOSSARY.md`, which binds them to `tests/` and its descendants.
-
-- **Channel**: a way a scenario reaches `wio`, either in the same process or
-  through the installed command.
-- **Test driver**: the object that reaches `wio` for a scenario, on one channel;
-  it is not the engine's Driver, which advances a Work.
-- **Facade**: the `Wio` object whose verbs a scenario calls, in domain terms.
-- **Sandbox**: the directory under `tmp_path` and the environment that a test
-  driver gives `wio`.
+The terms of the test setup are defined in the
+[glossary of `tests`](../../../../../tests/GLOSSARY.md): **Channel**,
+**Test driver**, **Facade** and **Sandbox**. A test driver is not the engine's
+Driver, which advances a Work.
 
 ## Non-Goals
 
@@ -68,6 +62,8 @@ scenarios need them.
 - `tests/sandbox.py`, the `Sandbox` that each test driver is built
   from, holding the directory under `tmp_path` that `wio` runs in and the
   environment it sees.
+- `tests/conftest.py`, the `sandbox` fixture, and `tests/support.py`, the helper
+  that runs git in a sandbox and the one that makes a sandbox the process's own.
 - `tests/acceptance/channels.py`, the `Channel` enum with the members
   `IN_PROCESS = "in_process"` and `CLI = "cli"`, and the `pytest_generate_tests`
   hook in `tests/acceptance/conftest.py` that parametrizes the `channels` marker

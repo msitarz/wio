@@ -155,7 +155,8 @@ Provisional: `Stdio` is as below. `FileSystem` and `Git` of `wio.io`, and
 documented Protocols with the members that the architecture stage finds the
 scope document needs. `Environment` reads variables and the working directory,
 `Clock` the time, `Entropy` secure random bytes, and `Directories` the
-well-known directories, starting with the temporary directory. The adapter is
+well-known directories: the temporary directory, and the Wio home, where wio
+keeps its private state (`$WIO_HOME`, or `~/.agents/wio`). The adapter is
 `SystemStdio` in `wio.io.adapters`.
 
 ```python

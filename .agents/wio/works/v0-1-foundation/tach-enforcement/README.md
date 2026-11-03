@@ -43,16 +43,17 @@ breaks it, so the repository's own gates must run one.
 
 ## Mechanisms
 
-- `tach.toml` at the repository root, with `source_roots = ["src"]`, a
+- `tach.toml` at the repository root, with `source_roots = ["src", "."]`, a
   `[[modules]]` entry per package of `src/wio` and one for the stub `wio.ports`,
   each with its `depends_on`, and `exact = false`.
 - `ignore_type_checking_imports = false` in `tach.toml`, because ports are
   imported only under `TYPE_CHECKING`.
 - The nested modules `wio.io.adapters` and `wio.env.adapters`, each with
-  `visibility = ["wio.cli"]`, so only `wio.cli` can import an adapter.
+  `visibility = ["wio.cli", "tests.unit"]`, so only `wio.cli` and the unit tests
+  can import an adapter.
 - A local hook in `prek.toml` named `tach check`, running `uv run tach check`
-  with `pass_filenames = false` on changes to `src/**/*.py`, `tach.toml` and
-  `pyproject.toml`.
+  with `pass_filenames = false` on changes to `.py` files under `src`,
+  `scripts` and `tests`, `tach.toml` and `pyproject.toml`.
 
 ## Constraints
 
