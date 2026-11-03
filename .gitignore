@@ -223,3 +223,6 @@ __marimo__/
 *~
 .dir-locals.el
 \.?\#*
+
+# Claude Code worktrees of isolated agents
+/.claude/worktrees/
