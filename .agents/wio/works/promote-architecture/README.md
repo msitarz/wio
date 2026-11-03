@@ -22,7 +22,8 @@ From the interview of 2026-11-03. Decisions are made unless marked open.
   removed Work that others depend on is read from the history. Only
   `docs/v0.1-scope.md` (two links) and a comment in `tach.toml` refer to it.
 - **Docs live where they belong**, like `GLOSSARY.md`: a `README.md` covers the
-  directory it is in and its descendants, and the nearest one wins.
+  directory it is in and its descendants, and a nearer one adds to a farther
+  one and does not override it, unlike a glossary, where the nearest wins.
   `src/wio/README.md` is the architecture of `wio`; each component and layer may
   have its own `README.md` for what is true at its level, linking instead of
   copying. A `README.md` without a `wio` metadata block is not a Work.
