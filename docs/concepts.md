@@ -1462,9 +1462,28 @@ partly trailers when it contains a trailer git generated itself, and `scan`
 requires every line to be one. Reading records from git notes is a possible
 third reader, later.
 
+### The Wio home
+
+The directory where wio keeps its private state for one user. It is the one
+`$WIO_HOME` names when that is set to a non-empty absolute path, and
+`~/.agents/wio` otherwise. A path under the user's own home directory is the
+same on Linux and macOS, unlike the XDG directories, which map to other places
+on other platforms. An empty `$WIO_HOME` counts as unset and a relative one is
+an error, because it would put the state in a different place for each working
+directory. Wio creates the directory on the first write and never writes
+elsewhere in the user's directories. Only the adapter of the default reads the
+user's home directory, and only when `$WIO_HOME` is unset, so a test sets
+`$WIO_HOME` and no component needs to know about `HOME`. In v0.1 it holds the
+event log, and the personal workflows beyond v0.2 would live there too.
+
+A harness may forbid the session to write there. Wio then warns, names the path
+and says to add an exception to the harness's configuration so that sessions can
+always write to `~/.agents/wio`; setting `$WIO_HOME` to a directory the harness
+allows is the other way out.
+
 ### The event log
 
-An append-only JSONL file stored in the user's data directory, one file per
+An append-only JSONL file stored in the Wio home, one file per
 repository. A repository is identified by its git common directory, so the
 worktrees of one clone share a log, and each event is written as one line in a
 single append, so sessions that run at the same time do not interleave. It holds

@@ -34,3 +34,4 @@ commit messages.
 | Driver | Whoever advances the Work: a human now, an orchestrator later. It chooses the action and the stage; wio only proposes. |
 | Fold | Merging the records of a pull request body: each Work's consecutive records of a stage become one, then neighbors that differ only in the Work become one list. The commits keep every record. |
 | Event log | Append-only record kept outside the repo, personal to one machine, for evaluation and cost analysis. |
+| Wio home | The directory where wio keeps its private state for one user: the one `$WIO_HOME` names when it is set to a non-empty absolute path, otherwise `~/.agents/wio`. In v0.1 it holds the event log. |

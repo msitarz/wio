@@ -103,13 +103,13 @@ def test_the_cli_driver_runs_in_the_sandbox(
 def test_the_in_process_driver_runs_in_the_sandbox(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The call sees the sandbox's directory and variables, then restores."""
+    """The call sees the sandbox's directory and environment, then restores."""
     # Given the in-process driver and a main that records its surroundings
     sandbox = Sandbox.under(tmp_path)
-    seen: list[tuple[Path, str | None, str | None]] = []
+    seen: list[tuple[Path, dict[str, str]]] = []
 
     def record(argv: Sequence[str], stdio: Stdio) -> int:
-        """Remember the working directory and the two variables.
+        """Remember the working directory and the environment.
 
         Args:
             argv: The arguments, ignored.
@@ -119,28 +119,16 @@ def test_the_in_process_driver_runs_in_the_sandbox(
             Exit code 0.
         """
         del argv, stdio
-        seen.append(
-            (
-                Path.cwd(),
-                os.environ.get("HOME"),
-                os.environ.get("XDG_DATA_HOME"),
-            )
-        )
+        seen.append((Path.cwd(), dict(os.environ)))
         return 0
 
     monkeypatch.setattr("wio.cli.main", record)
-    before = (Path.cwd(), os.environ.get("HOME"), os.environ.get("XDG_DATA_HOME"))
+    before = (Path.cwd(), dict(os.environ))
 
     # When it runs wio
     InProcessDriver(sandbox).run([])
 
     # Then the call saw the sandbox's, and the process has its own again
-    after = (Path.cwd(), os.environ.get("HOME"), os.environ.get("XDG_DATA_HOME"))
-    assert seen == [
-        (
-            sandbox.root.resolve(),
-            sandbox.env["HOME"],
-            sandbox.env["XDG_DATA_HOME"],
-        )
-    ]
+    after = (Path.cwd(), dict(os.environ))
+    assert seen == [(sandbox.root.resolve(), sandbox.env)]
     assert after == before

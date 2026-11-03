@@ -167,15 +167,24 @@ def test_bare_wio_displays_its_description(wio: Wio) -> None: ...
 
 ### **AC-4** Scenarios cannot touch the developer's own state
 
-Each test driver is built from a `Sandbox` under `tmp_path`, whose environment
-has `HOME` and `XDG_DATA_HOME` inside it.
+Each test driver is built from a `Sandbox` under `tmp_path`. Its environment has
+`WIO_HOME` inside it, and git in it uses no config, repository or identity of
+the developer's.
 
 #### The sandbox
 
 - **Given** a `Sandbox` made from `tmp_path`.
 - **When** its root and environment are read.
-- **Then** the root is a directory under `tmp_path`, and `HOME` and
-  `XDG_DATA_HOME` in its environment are under `tmp_path`.
+- **Then** the root is a directory under `tmp_path`, and `WIO_HOME` in its
+  environment is under `tmp_path`.
+
+#### Git in the sandbox
+
+- **Given** a global git config and ignore file in the process's home, a
+  repository above `tmp_path`, and `GIT_DIR` set in the process.
+- **When** git runs in the sandbox's directory and environment.
+- **Then** it has no `user.name`, finds no repository above, and lists a new
+  file as untracked.
 
 #### The CLI test driver
 
@@ -191,8 +200,7 @@ has `HOME` and `XDG_DATA_HOME` inside it.
   replaced by a function that records the working directory and the environment.
 - **When** it runs `wio`.
 - **Then** the recorded working directory is the sandbox's root, the recorded
-  `HOME` and `XDG_DATA_HOME` are the sandbox's, and both are restored
-  afterwards.
+  environment is the sandbox's, and both are restored afterwards.
 
 ### **AC-5** The strategy document says what the channels are for
 

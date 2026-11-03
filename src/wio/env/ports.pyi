@@ -8,8 +8,7 @@ well-known directories only through them, so tests can fix all of them. They
 use only standard types, so `wio.env` imports nothing else from `wio`.
 Provisional: the members are the ones the data flows of the scope document
 need, and the Work that adds an adapter may rename or extend them; other
-well-known directories, such as the user's data directory, are added by the
-Work that first needs them.
+well-known directories are added by the Work that first needs them.
 """
 
 from pathlib import Path
@@ -63,7 +62,7 @@ class Entropy(Protocol):
         ...
 
 class Directories(Protocol):
-    """Finds the well-known directories that wio writes to."""
+    """Finds the well-known directories that wio writes to, the Wio home included."""
 
     def temp_dir(self) -> Path:
         """Find the directory for temporary files.
@@ -79,5 +78,25 @@ class Directories(Protocol):
         Raises:
             OSError: If `$TMPDIR` is not set and the system temporary directory
                 cannot be written to.
+        """
+        ...
+
+    def wio_home(self) -> Path:
+        """Find the Wio home, where wio keeps its private state for one user.
+
+        The result is the absolute path `$WIO_HOME` names when it is set to a
+        non-empty value, and `~/.agents/wio` otherwise, where `~` is the user's
+        home directory, which only the adapter of that default reads, and only
+        when `$WIO_HOME` is unset. An empty `$WIO_HOME` counts as unset. The
+        directory is neither created nor tested, because the first write
+        creates it and a failure there is a warning.
+
+        Returns:
+            The directory.
+
+        Raises:
+            ValueError: If `$WIO_HOME` is set to a relative path.
+            OSError: If `$WIO_HOME` is unset and the user's home directory
+                cannot be found.
         """
         ...
