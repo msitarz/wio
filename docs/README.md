@@ -4,6 +4,9 @@
   (Work contract, templates, nesting, actions, stage, gate, roots, rules,
   context compiler, records) and how they fit together, including the `Wio-*`
   trailers wio reads and writes.
+- [wio's own workflow](workflow.md): the process this repository runs on the
+  engine (its actions, presets, stages and gates), how a contract is defined,
+  delivered, changed and retired, and why.
 - [Scope of v0.1](v0.1-scope.md): the components of the first release, and what
   each is for, delivers and how it is used.
 - [Split exercises](split-exercises.md): four paper exercises that split an

@@ -1,10 +1,10 @@
 # wio core concepts
 
 This document explains the engine of wio: the few concepts everything else is
-built from. It does not describe a particular process. The contract-to-
-implementation flow (typed architecture, wired skeleton, implementation) is one
-preset that can run on this engine, and it appears only as an example at the
-end. Terms are defined in the [glossary](../GLOSSARY.md). Open points are
+built from. It does not describe a particular process: the process this
+repository runs on the engine, with its actions, presets and gates, is
+[wio's own workflow](workflow.md), and names from it appear here only as
+examples. Terms are defined in the [glossary](../GLOSSARY.md). Open points are
 listed in section 14.
 
 ## 1. What the engine is for
@@ -165,32 +165,21 @@ writer (using a safe load) and change the templates.
 ### Changing a contract
 
 Later stages can reveal that the contract was wrong or incomplete. That is
-normal, not a failure. The rule is that a downstream stage **proposes** a change
-and the human decides. The decision has three outcomes:
+normal, not a failure. A downstream stage **proposes** a change and the driver
+decides. The engine gives the decision two mechanisms:
 
-- **Abandon**: stop this Work by deleting its directory. Git keeps its history.
-  Every Work that depends on it must be updated in the same change (see
-  section 4). Abandoning is a change of intent, so the deleting commit carries
-  a record of the define action. A Work that is retired once it is done is
-  deleted by the commit of the last stage it belongs to, and carries that
-  stage's record.
-- **Amend**: change the acceptance criteria or assumptions, then rework whatever
-  depended on them. In this repository's config an amendment runs through an
-  on-demand action of its own, `amend`, which `deliver` lists in
-  `invalidated_by`, so the delivered stages become stale (section 5). Its gate,
-  `review-amendment`, sees the rules for amendments.
-- **Ratify**: update the contract to match what was built, without reworking
-  anything. It runs through an on-demand action of its own, `ratify`, that
-  `deliver` does not list in `invalidated_by`, so nothing becomes stale. Its
-  gate, `review-ratify`, checks that no criterion's guarantee changed; one that
-  did is an amendment.
+- A contract is edited, in a commit that carries a record of the action that
+  made the change. Which of the Work's actions become stale follows from their
+  `invalidated_by` (section 5), so a workflow decides how expensive a change is
+  by the action it runs the change through.
+- A Work is deleted with its directory. Git keeps its history, and every Work
+  that depends on it must be updated in the same change (section 4). The
+  deleting commit still carries a record, because `wio trailers` finds a Work
+  that the change deletes in `HEAD` (section 11).
 
-Ratify is the cheap option and the one to watch. Used too often, it turns the
-contract from a statement of intent into a log of what happened. Giving it its
-own action keeps it visible: its records show how often it happens. The rule
-for agents is that a commit that changes a contract carries a record of the
-action that matches the change, an amendment or a ratify, and never a record of
-the delivery stage it was found in.
+Which changes a workflow tells apart, and through which actions, is its own
+business. [wio's own workflow](workflow.md#4-changing-a-contract) tells
+abandoning, amending and ratifying apart.
 
 Changes to the contract file, including the step where a definition is finished
 and the contract takes its final shape, are changes of intent. They are made in
@@ -257,8 +246,8 @@ roots and its action overrides. wio knows no procedure for moving between
 templates, so it never decides what else to keep: the skill that knows its
 templates does. On standard error, wio lists the Work's metadata the skeleton
 does not carry, so nothing is dropped silently; standard output stays the
-skeleton. A define stage that moves a Work to another template uses `--work`,
-so the Work keeps its id and its records.
+skeleton. A stage that moves a Work to another template uses `--work`, so the
+Work keeps its id and its records.
 
 ### Types and entry templates
 
@@ -351,23 +340,15 @@ exactly the hierarchy and nothing has to skip a level. The Works directory
 itself is the only exception, and it may hold a `README.md` without a `wio`
 block, for example an index for people.
 
-### When to split
-
-For any outcome, ask one question: does it need decomposition?
-
-- **Yes**: it contains independently useful, independently deliverable
-  outcomes. Split them into child Works.
-- **No**: it is one coherent outcome. Keep it as a leaf.
-- **Unknown**: you cannot tell yet. Resolve the uncertainty with the smallest
-  exploration that answers it, within the authorized outcome. Exploration can
-  inform a split. It never authorizes building the feature.
+### Splitting
 
 The Work tree describes outcomes. It does not have to mirror the module tree or
 the directory tree of the code.
 
-How a split is carried out, and whether the pieces become nested children or
-flat siblings, is a procedure that a stage and its skill own. wio only reads the
-result: the directory layout and the metadata.
+When to split a Work, how the split is carried out, and whether the pieces
+become nested children or flat siblings, is a procedure that a stage and its
+skill own. wio only reads the result: the directory layout and the metadata.
+[wio's own workflow](workflow.md#when-to-split) shows one such procedure.
 
 ### Roots of a Work
 
@@ -389,7 +370,7 @@ config gives them.
   roots = ["e2e", "@descendants"]     # the union, plus e2e
   ```
 
-  A template sets the default: this repository's parent template uses
+  A template sets the default, so a parent template can use
   `roots = ["@descendants"]`. A parent whose roots leave out a root that one of
   its descendants uses gets a note from `wio contracts check`, not a warning,
   because a narrower list may be intended. A Work without children that lists
@@ -522,9 +503,10 @@ that lists it in `invalidated_by` becomes stale after it, and listing it in
 `after` is an error, because an order with an action that is never proposed
 could not happen. `wio contracts show` marks it. The default is `false`.
 
-`define`, `deliver`, `amend` and `ratify` are the actions this repository uses,
-and they are only examples. Nothing in the engine sets one action apart from
-another, so a project can add as many as it needs.
+`define`, `deliver`, `amend` and `ratify` are the actions
+[this repository uses](workflow.md), and they are only examples. Nothing in the
+engine sets one action apart from another, so a project can add as many as it
+needs.
 
 An action's **pipeline** is either a **preset** (an ordered list of stages, by
 preset id) or a list of **stage names**. In both, some stages may be gates.
@@ -802,25 +784,10 @@ and the tool's default cannot produce it by accident.
 There is no gate object to learn and no approval flag, only stages marked
 `gate = true` that record a result.
 
-The gate of a define action is where wio's first need is met: a human confirms
-the understanding before expensive work starts. The reviewer judges the
-contract on its own terms, by the rules, and only the driver can say whether it
-states what they meant. So in this repository's config the gate ends by asking
-the driver to confirm, and records `pass` only once they have. The contract
-holds the intent in the template's shape, not a transcript of the interview
-that produced it.
-
-### What a good gate looks like
-
-- It looks at the **exact revision** that was produced. A reviewer pinned to a
-  commit cannot be fooled by later edits. The `context` event of a gate session
-  records the commit the review starts from, and the `review` event records the
-  commit that was judged, so a change in between is visible (section 11).
-- It is done by someone other than the author, or by the human.
-- It judges the artifact against the contract. The contract is the standard, the
-  code is the subject.
-- A passing automated check is evidence, not a verdict. A type check proves the
-  types agree. It does not prove the design is right.
+A gate after a stage that defines a Work is where wio's first need is met: a
+human confirms the understanding before expensive work starts. How
+[wio's own workflow](workflow.md#5-gates) builds that gate, and what it
+expects of a good gate, is part of that workflow.
 
 ### What a gate decides
 
@@ -828,16 +795,13 @@ Three outcomes, all of which are normal:
 
 - **Pass**: the next stage starts.
 - **Back-edge**: the artifact exposes a gap in an earlier stage's work. Work
-  returns to that stage. Repeated back-edges to the same stage are a signal that
-  something unknown was treated as known, and the right response is to amend the
-  contract or split the Work.
+  returns to that stage.
 - **Contract change**: the intent was wrong. See section 2.
 
 The gate records one of the results the config declares, and the result only
-says how the artifact fared. In this repository's vocabulary `pass` means the
-next stage can start, `fail` means it cannot, and `unknown` means the gate could
-not judge. After a `fail`, whether the work goes back to an earlier stage or
-the contract changes is the driver's decision, which no record states.
+says how the artifact fared. What follows a result, whether the work goes on,
+goes back to an earlier stage or the contract changes, is the driver's
+decision, which no record states.
 
 ### What the engine enforces
 
@@ -888,14 +852,11 @@ rule tags, not by root.
 The contracts are a directory with their own tooling too, and the rules for
 writing them (how to state a criterion, what an assumption is) are a ruleset
 like any other. A project binds it to a root whose paths are the Works
-directory, named `contract` in the example. Define stages select that root with
-`roots = ["contract"]`, so a Work that is still being defined, and has no roots
-yet, gets the rules for writing contracts. An amendment or a ratify of a
-delivered leaf gets them as well, and not the rules of the code the leaf
-touches. The few rules that the agent writing code needs about its contract,
-such as asking for an amendment instead of working around a false assumption,
-are a small ruleset of their own bound to the code roots, so code stages never
-select the contract root.
+directory, named `contract` in the example. A stage that writes or reviews a
+contract selects that root with `roots = ["contract"]`, so a Work that has no
+roots yet still gets the rules for writing contracts.
+[wio's own workflow](workflow.md#the-contract-root) shows which of its stages
+select it.
 
 ### Which roots a stage selects
 
@@ -1536,42 +1497,25 @@ A **preset** is a named ordered list of stages. The engine ships none in v0.1. A
 preset becomes the pipeline of an action wherever a template or a contract names
 it, so most contracts never list stages themselves.
 
-The engine does not care what the stages are. For illustration only, one
-possible preset is the typed-boundary flow, and a template binds it to the
-`deliver` action:
+The engine does not care what the stages are. A preset is declared in the
+config, and a template binds it to an action:
 
 ```toml
 [presets]
-define-feature = ["define", "review-contract"]
-typed-boundary = [
-  "architecture",         # typed signatures and test stubs
-  "architecture-review",
-  "wiring",               # composed skeleton with stubbed leaves
-  "wiring-review",
-  "implementation",
-  "implementation-review",
-]
+reviewed = ["implement", "implement-review"]
 ```
 
-```markdown
-<!-- wio
-name = "feature.leaf"
-type = "feature"
-description = "A capability delivered directly as one coherent outcome."
-
+```toml
 [actions]
-deliver = "typed-boundary"
-
-[contract]
-roots = []
--->
+deliver = "reviewed"
 ```
 
-Other presets are equally valid: a single `implement` stage, a flow that starts
-with high-level acceptance tests in a readable DSL, or an organization-specific
-procedure with extra approval stages. Presets and rulesets can live in their own
-repositories and be used or forked by anyone. Joining presets, so that one is
-built from others, may come later.
+Any preset is equally valid: a single `implement` stage, a flow that starts with
+high-level acceptance tests in a readable DSL, the typed-boundary flow of
+[wio's own workflow](workflow.md#typed-boundaries-for-a-leaf), or an
+organization-specific procedure with extra approval stages. Presets and rulesets
+can live in their own repositories and be used or forked by anyone. Joining
+presets, so that one is built from others, may come later.
 
 A preset only names stages and orders them. What a stage produces comes from its
 goal or skill. How well it produces it comes from the rules its tags select.
@@ -1591,7 +1535,8 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - It does not lint Markdown. wio checks its own parts of a file (the metadata
   block, the directives and the sections they require), and the project's own
   tools check the rest.
-- It does not assume a language. The typed-boundary preset needs a checker that
+- It does not assume a language. The typed-boundary preset of
+  [wio's own workflow](workflow.md) needs a checker that
   can reject a skeleton cheaply (a type checker, architecture tests), but the
   engine itself only needs files, tags and text.
 
@@ -1641,10 +1586,6 @@ goal or skill. How well it produces it comes from the rules its tags select.
   constraints is not covered.
 - Giving a Work that designs a shared boundary the contracts of its sibling
   Works as context. For now a stage goal or a skill asks the agent to read them.
-- How finished contracts are retired: promote the lasting parts into
-  documentation and delete the contract in the final commit, or keep them as
-  decision records. wio works either way; a deleted Work's dependents are
-  updated in the same change.
 - The order of records in a history with merge commits, where "the order of
   the history" is not a total order. Topological order, oldest first, is the
   likely answer, for `wio next` to settle.

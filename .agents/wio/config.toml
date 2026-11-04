@@ -1,4 +1,5 @@
-# wio's own configuration, the first consumer of the engine.
+# wio's own configuration, the first consumer of the engine. docs/workflow.md
+# explains the workflow it declares.
 #
 # Nothing reads this file yet: it is the reference that the config, contract
 # and rule Works are built against. The schema is not final; see the open
