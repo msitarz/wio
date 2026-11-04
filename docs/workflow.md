@@ -37,7 +37,37 @@ Every pipeline ends in a gate, and every authoring stage is followed by one.
 and the delivery of any descendant, so redefining or amending a Work, or
 delivering one of its children again, makes its delivery stale.
 
-## 2. Defining a Work
+## 2. What a contract states
+
+The engine gives a contract no meaning beyond its metadata and headings. In
+this workflow, a contract states one outcome and the behaviors that show it
+has been achieved. It records **intent**: what should become true, and why.
+
+It is deliberately not a plan, a task list or a progress report. Intent changes
+rarely and by deliberate decision, while progress changes with every stage, and
+the engine keeps progress in the history. So whatever would change while the
+Work is built stays out of the contract.
+
+The leaf and parent templates give a contract these sections:
+
+| Section | Holds |
+| --- | --- |
+| Purpose | Why the change is needed. Required. |
+| Goals and Non-Goals | The capabilities the Work makes possible, and what it deliberately does not do. Goals are required. |
+| Glossary | Terms whose meaning could be read more than one way. A parent's is inherited by its descendants. |
+| Assumptions | What the Work takes as true without having confirmed it, each with an id such as `A-1`. Required. |
+| Mechanisms | The tools, packages, modules or data structures central to the solution, and their roles. |
+| Constraints | The constraints the Work adds. A parent's are inherited by its descendants. |
+| Visuals | Before and after diagrams of what the Work changes. Required for a parent. |
+| Acceptance criteria | The behaviors, each a `### **AC-1** ...` subheading with its own id and Given/When/Then examples. Required. |
+| Additional context | Context, risks and links that fit nowhere above. |
+
+Assumptions and criteria carry ids so that an amendment can say precisely what
+changed, and so that records and reviews can cite the criteria a commit
+addresses. The draft template has only a Purpose and an Intent section, which
+the define stage uses as working space.
+
+## 3. Defining a Work
 
 ### From draft to leaf or parent
 
@@ -99,7 +129,7 @@ asking for an amendment instead of working around a false assumption, are the
 `contract-upkeep` ruleset. It is bound to the code roots, so the deliver stages
 never select the contract root.
 
-## 3. Delivering a Work
+## 4. Delivering a Work
 
 ### Typed boundaries for a leaf
 
@@ -136,7 +166,7 @@ last commit of the stage, once the driver confirms. A Work with a parent only
 promotes, because the tree is kept until its top Work has promoted. Git keeps
 the deleted contracts, and the records keep the progress.
 
-## 4. Changing a contract
+## 5. Changing a contract
 
 Later stages can reveal that the contract was wrong or incomplete. That is
 normal, not a failure. A downstream stage **proposes** a change and the driver
@@ -165,7 +195,7 @@ that changes a contract carries a record of the action that matches the change,
 an amendment or a ratify, and never a record of the delivery stage it was found
 in.
 
-## 5. Gates
+## 6. Gates
 
 ### What a good gate looks like
 

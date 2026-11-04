@@ -5,12 +5,12 @@ commit messages.
 
 | Term | Meaning |
 | --- | --- |
-| Work | One outcome with its behaviors, described by a contract. A directory whose `README.md` has a `wio` metadata block. |
-| Work contract | The markdown file, with a metadata block, that states a Work's intent. It follows a template. |
+| Work | The unit wio runs actions on: a directory whose `README.md`, its contract, has a `wio` metadata block. |
+| Work contract | A Work's `README.md`: a metadata block that wio reads, and a Markdown body in the sections of the template it follows. What the body states is the workflow's. |
 | Leaf | A Work without child Works. |
 | Parent | A Work with child Works. Its roots are the ones it lists; `@descendants` among them adds the union of its descendants' roots. |
 | Template | A markdown file that shapes a contract: sections, directives and a metadata block with the template's name, type, optional shape (leaf or parent) and default actions. |
-| Type | A kind of outcome, such as `feature`, declared in the config with its entry template. A type groups templates. |
+| Type | A kind of Work, such as `feature`, declared in the config with its entry template. A type groups templates. |
 | Entry template | The template of a type that new Works of that type start from. Declared in the config. |
 | Metadata block | The TOML at the top of a contract, template or rule, in a hidden comment or between `+++` lines. |
 | Directive | A `wio:` instruction in an HTML comment on a template heading, such as `required` or `inherit`. |

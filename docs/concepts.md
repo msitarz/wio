@@ -7,32 +7,53 @@ repository runs on the engine, with its actions, presets and gates, is
 examples. Terms are defined in the [glossary](../GLOSSARY.md). Open points are
 listed in section 15.
 
-## 1. What the engine is for
+## 1. What the engine does
 
-A coding agent produces better work when three things are true:
+wio reads Markdown files that carry a small metadata block, and compiles each
+of them, for one step of work, into the context an agent session reads first.
+That is the whole engine:
 
-1. It knows what outcome is wanted, and the human has confirmed that
-   understanding before expensive work starts.
+1. **Read.** A **Work** is a directory whose `README.md`, its **contract**,
+   has a `wio` metadata block. The block names the Work's **template**, its
+   roots, its dependencies and its own actions. wio reads the rest of the file
+   only by its headings.
+2. **Check.** wio checks each contract against the template it names: the
+   metadata, and the sections the template's directives require.
+3. **Compile.** Given a Work, an **action** and a **stage**, `wio context`
+   prints a bundle: the stage's goal or a pointer to its skill, the contract
+   with the inheritable sections of its ancestors, and the **rules** selected
+   for the stage.
+4. **Record.** Every commit of a stage carries a **record** in its message,
+   and wio reads progress from those records, never from the files.
+
+What a contract says, which stages exist and what they produce are the
+workflow's: its templates, its config and its rulesets. In
+[wio's own workflow](workflow.md#2-what-a-contract-states), a contract states
+one outcome and the behaviors that show it was achieved, but the engine never
+relies on that.
+
+The engine exists because a coding agent produces better work when three things
+are true, and each concept serves one of them:
+
+1. It knows what is wanted, and a human has confirmed that before expensive
+   work starts.
 2. At each step it sees only the guidance that applies to that step, not every
    rule the project has.
 3. A human or a fresh reviewer can stop the work at a chosen point and look at a
    small artifact, not at a finished 800-line diff.
 
-wio's engine provides exactly these three things, through a handful of
-concepts:
-
 | Need | Concept |
 | --- | --- |
-| Know the intended outcome | **Work contract**, written from a **template** |
-| Break big outcomes into small ones | **Nesting** (parent and leaf Works) |
-| Name the kinds of work done on an outcome | **Action**, declared by the project |
+| Know what is wanted | **Work contract**, written from a **template** |
+| Break big work into small pieces | **Nesting** (parent and leaf Works) |
+| Name the kinds of work done on a Work | **Action**, declared by the project |
 | Do an action in separate steps | **Stage** |
 | Stop and decide between steps | **Gate** |
 | Give each step only its own guidance | **Rules**, selected by roots and tags and compiled into context |
 
-In one sentence: wio runs **actions** on an **outcome**. An action is a
-**preset**, an ordered list of stages, some of them gates. A **template** gives
-a contract its shape and its default actions, rules are selected for every
+In one sentence: wio runs **actions** on a **Work**. An action's pipeline is a
+**preset** or a list of stages, some of them gates. A **template** gives a
+contract its shape and its default actions, rules are selected for every
 stage, and every commit of a stage carries a **record** in the git history.
 Everything else (skills, presets, rulesets, the event log) plugs into these.
 
@@ -52,7 +73,7 @@ flowchart LR
     S --> G[Gate]
     G -->|pass| S2[Next stage]
     G -->|gap found| S
-    G -->|intent wrong| C
+    G -->|contract wrong| C
     S -->|record| H[Git history]
     R[Rules] -->|selected by roots and tags| X[wio context]
     C --> X
@@ -167,19 +188,21 @@ design but their exact form is not settled yet (section 15).
 
 ### What it is
 
-A Work contract is a markdown file that states one outcome and the behaviors
-that show it has been achieved. It records **intent**: what should become true,
-and why.
+A Work contract is the `README.md` of a Work: a metadata block that wio reads,
+and a Markdown body that agents and people read. wio uses the metadata to find
+the Work's template, roots, dependencies and actions, checks the body's
+headings against the template, and puts the body into bundles as written. What
+the body states is the template's business.
 
-It is deliberately not a plan, a task list or a progress report. The reason is
-mechanical. Intent changes rarely and by deliberate decision. Progress changes
-constantly. If both live in one file, every stage edits the same lines and the
-file turns into a conflict magnet. So the contract holds intent, and progress
-lives elsewhere (see section 12).
+A contract holds no progress: wio writes none into it and reads none from it.
+The reason is mechanical. Progress changes with every stage. If it lived in the
+file, every stage would edit the same lines and the file would turn into a
+conflict magnet. Progress lives in the history instead (section 12). The
+contract changes only when someone decides to change what it says.
 
 ### Anatomy
 
-A contract has a small block of metadata for scripts and markdown sections for
+A contract has a small block of metadata for wio and Markdown sections for
 people and agents.
 
 The metadata is TOML. It sits inside an HTML comment at the top of the file, so
@@ -196,7 +219,7 @@ depends_on = ["a7b2c4"]
 deliver = ["implementation"]
 -->
 
-# Short outcome title
+# Short title
 ```
 
 - `id`: a short random id.
@@ -229,14 +252,13 @@ ticket = ""      # in the template; the contract gets [x] ticket = ""
 The title is the first heading and is stored nowhere else. There is no `parent`
 field, because the directory layout gives the hierarchy (see section 5).
 
-The body is prose. A typical contract has a purpose, goals and non-goals, an
-explicit list of assumptions, and acceptance criteria (the behaviors).
-Assumptions and criteria carry ids (`A-1`, `AC-1`) so that a later amendment can
-say precisely what changed.
+The body is prose, in the sections the template gives it. wio reads its first
+heading as the title and its `##` headings to check them against the template
+and to find inheritable sections; the rest it passes into bundles as written.
 
 Why prose and not a strict schema? Because the reader is mostly an agent, and an
-agent reads prose well. Scripts only need the metadata and a few required
-sections, so only those are machine-checked.
+agent reads prose well. wio only needs the metadata and a few headings, so only
+those are machine-checked.
 
 ### Metadata forms
 
@@ -287,12 +309,11 @@ decides. The engine gives the decision two mechanisms:
   that the change deletes in `HEAD` (section 12).
 
 Which changes a workflow tells apart, and through which actions, is its own
-business. [wio's own workflow](workflow.md#4-changing-a-contract) tells
+business. [wio's own workflow](workflow.md#5-changing-a-contract) tells
 abandoning, amending and ratifying apart.
 
-Changes to the contract file, including the step where a definition is finished
-and the contract takes its final shape, are changes of intent. They are made in
-the repository and reviewed like any other change.
+Changes to the contract file, including the step where a contract takes its
+final shape, are made in the repository and reviewed like any other change.
 
 ## 4. Templates and types
 
@@ -369,7 +390,7 @@ feature = "feature.draft"
 bugfix = "bugfix"
 ```
 
-A type groups templates that serve one kind of outcome. A type can have any
+A type groups templates that serve one kind of Work. A type can have any
 number of templates (a draft, a leaf, a parent, or seven others), each with its
 own actions. wio gives them no level or shape: which template a contract follows
 is the contract's `template` field, and that decides its sections and its
@@ -928,7 +949,7 @@ There is no gate object to learn and no approval flag, only stages marked
 
 A gate after a stage that defines a Work is where wio's first need is met: a
 human confirms the understanding before expensive work starts. How
-[wio's own workflow](workflow.md#5-gates) builds that gate, and what it
+[wio's own workflow](workflow.md#6-gates) builds that gate, and what it
 expects of a good gate, is part of that workflow.
 
 ### What a gate decides
