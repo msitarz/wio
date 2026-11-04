@@ -198,6 +198,20 @@ and a Markdown body that agents and people read. wio uses the metadata to find
 the Work's roots, dependencies and actions, and puts the body into bundles as
 written.
 
+A Work is a directory, and its contract is that directory's `README.md`, for
+two reasons:
+
+- Forges such as GitHub render a directory's `README.md` when it is opened, so
+  browsing the Works directory shows each contract without a tool.
+- The directory keeps everything about one Work in one place. A workflow can
+  store the artifacts of its own process next to the contract: notes, an
+  investigation's findings, an evaluation's results. These are not source code.
+  They stay with the Work, and reach the code only if a stage carries them
+  there. wio ignores them (see
+  [Identity and location](#identity-and-location)) and does not put them into
+  bundles, so a stage that needs one reads it itself. Deleting the Work's
+  directory removes them with the contract, and git keeps both.
+
 Every contract also names a **template** (section 4). Contracts of one kind
 share a template, which gives them their sections, the checks those sections
 must pass and their default actions. This section describes the contract on
