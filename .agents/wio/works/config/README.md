@@ -2,7 +2,7 @@
 id = "hwn995"
 template = "feature.draft"
 roots = []
-depends_on = ["9wbqyb"]
+depends_on = ["9wbqyb", "xxbge6"]
 -->
 
 # The wio config command
@@ -38,9 +38,16 @@ The parent also proves it end to end: `wio config check` passes on this
 repository's `.agents/wio/config.toml`, its stale "Nothing reads this file yet"
 header is updated, and `wio config check` runs as a prek hook.
 
-**Schema.** The shapes of this repository's config are ratified: top-level
-`tags` and `results` arrays, tables `[types]`, `[trailers]`, `[actions.<name>]`,
-`[stages.<name>]` and `[presets]`, and `[[roots]]`. Unknown keys are an error
+**Schema.** The shapes follow the rule selection that the rule presets Work
+(xxbge6) puts into `docs/concepts.md`, which this Work waits for: a top-level
+`results` array and the top-level `rules_always_include` and
+`rules_always_exclude`; tables `[types]`, `[trailers]`, `[actions.<name>]`,
+`[stages.<name>]` (with `rules_include` and `rules_exclude`), `[stage_presets]`,
+`[rule_presets.<name>]` and `[rulesets.<name>]` (with `alias` and
+`root_independent`); and `[[roots]]` (with `rule_presets`). There is no `tags`
+vocabulary and no `[presets]`. This repository's own config is migrated to these
+shapes before this Work is delivered, so the end-to-end check above runs on the
+new shapes. Unknown keys are an error
 when loading. A stage's session policy is `session` (`"any"` by default, or
 `"fresh"`) and `continuable` (`true` by default). Defaults: `results` is
 `["pass", "fail", "unknown"]`, `[trailers] reader` is `"scan"`, `[skills] paths`
@@ -56,18 +63,24 @@ mention `wio init`, which comes in v0.2.
 
 **Commands.** `wio config` shows the effective settings, each value labelled
 `file` or `default`; `wio config list <kind>` prints the names of types,
-actions, roots, stages, presets, tags or results; `wio config check` prints one
-line per finding, `error|warning|note: <where>: <message>`, sorted, and exits 1
-on any error. All three take `--json`; output is sorted, with no timestamps. The
-bare `wio config` does not run the checks.
+actions, roots, stages, stage presets, rule presets, rulesets or results;
+`wio config check` prints one line per finding,
+`error|warning|note: <where>: <message>`, sorted, and exits 1 on any error. All
+three take `--json`; output is sorted, with no timestamps. The bare `wio config`
+does not run the checks.
 
 **Checks.** Only what config can verify alone: the cross-references among
-actions, presets, stages, tags, results and roots, `after` cycles, `judge`,
+actions, stage presets, stages, results and roots; among config rule presets
+(bare names), with their cycles; the forms of names and qualified references;
+a preset in `rules_always_exclude`; a duplicate or clashing alias; a `rules_*`
+key where none belongs; `after` cycles, `judge`,
 root paths (normalized, inside the repo, no duplicates, a missing path is a
 warning), skill lookup, and that each type's entry template file exists, taking
 the template's name to be its file name (an assumption for the contracts Work
 to settle). Checks that parse a template or a rule (a template's type, its
-directives, a ruleset's manifest and codes, rule tags and types) are deferred:
+directives, a ruleset's manifest, codes, families and presets, whether a
+qualified reference resolves, and whether a root reaches a root-independent
+ruleset) are deferred:
 each is added by the contracts or rules Work as part of its own delivery, and
 the contracts of those Works must say how they add a check.
 
