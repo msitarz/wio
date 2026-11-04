@@ -155,7 +155,7 @@ by names that exist, before the config Work turns tags into code.
   the text says "stage preset" or "rule preset".
 - Examples use the rulesets `mattpocock` (alias `mp`), `py`, `process`,
   `contracts` and `billing`, so a reader meets the same names throughout.
-- The human gate `docs-review` judges AC-1 to AC-13; all but AC-12 need a
+- The human gate `docs-review` judges AC-1 to AC-14; all but AC-12 need a
   reader because no tool reads prose.
 - Once the driver confirms that the contract is spent, the last commit of
   `promote-docs` retires this contract and changes no other.
@@ -468,6 +468,25 @@ AC-2 to AC-10 name themselves are judged there.
 - **When** a reviewer looks up each row in the documents.
 - **Then** every row's decision is stated with a reason that says the same as
   the row's.
+
+### **AC-14** The Rules section shows how a rule is selected
+
+A reader sees the whole selection at a glance, because section 10 of
+`docs/concepts.md` has a Mermaid diagram of it: the presets expanding into the
+layers, the four layers in order, the roots the stage selects feeding the
+first layer and the eligibility check, and the two outcomes, applied or left
+out, with root-independent rules passing that check whatever the roots.
+
+#### The diagram
+
+- **Given** the delivered section 10 of `docs/concepts.md`.
+- **When** a reviewer follows a rule that a root's preset includes and the stage
+  excludes, a root-independent rule in `rules_always_include` under a stage
+  with `roots = []`, and a stage's rule from a ruleset no selected root reaches,
+  through the diagram and then through the text.
+- **Then** the diagram gives the same outcome as the text for each (left out,
+  applied, left out), it shows every element above and nothing the text does
+  not state, and `rumdl check` renders it.
 
 ## Additional context
 
