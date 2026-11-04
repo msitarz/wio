@@ -31,7 +31,7 @@ each stage and which rules it got. Joined with your harness's transcripts, it
 shows the tokens each contract and each stage took, the review rounds a stage
 needed before it passed, and whether a rule earns its place.
 
-**Your process, not ours.** wio ships no stages, presets or rulesets. Your
+**Your process, not ours.** wio ships no stages, stage presets or rulesets. Your
 project decides what its contracts say, which **actions** and stages exist and
 what each one produces. [wio's own workflow](docs/workflow.md) is one example.
 
@@ -127,7 +127,7 @@ flowchart LR
     G -->|gap found| S
     G -->|contract wrong| C
     S -->|record| H[Git history]
-    R[Rules] -->|selected by roots and tags| X[wio context]
+    R[Rules] -->|selected by roots and stages| X[wio context]
     C --> X
     S --> X
     X --> AG[Agent session]
@@ -139,10 +139,11 @@ flowchart LR
 | **Template** | What contracts of one kind share: sections, checks, inherited sections and default actions. |
 | **Nesting** | A Work is a leaf or a parent; children and inherited sections are computed, never stored. |
 | **Action** | A named kind of work on a Work, such as `define` or `deliver`. None are built in. |
-| **Stage** | One step: a goal or a skill, the tags that select its rules, and a session policy. |
+| **Stage** | One step: a goal or a skill, the rules it adds to its roots' rules, and a session policy. |
 | **Gate** | A stage that judges the previous stage's artifact and records a result. |
-| **Preset** | A named, ordered list of stages that an action can run. |
-| **Rules** | Atomic do/don't instructions with a reason, grouped into rulesets and bound to roots. |
+| **Stage preset** | A named, ordered list of stages that an action can run. |
+| **Rule preset** | A named selection of rules that a root or a stage can name. |
+| **Rules** | Atomic do/don't instructions with a reason, grouped into rulesets and selected by roots and stages. |
 | **Record** | The `Wio-*` trailers in a commit message that tie it to a Work and a stage. |
 
 An action's pipeline can be as long as a typed flow (typed boundaries, a wired
@@ -166,16 +167,16 @@ this repository runs on it in [docs/workflow.md](docs/workflow.md).
   step from the records, but it never blocks one.
 - **Skills are procedures, rules are atoms, tools are checks.** Guidance with
   steps, references or scripts is a skill. One instruction with a reason is a
-  rule, and a stage loads only the rules for its roots and tags. Anything a
-  linter or a type checker can catch belongs in that tool's config, not in a
-  bundle.
+  rule, and a stage loads only the rules its roots and its own selection name.
+  Anything a linter or a type checker can catch belongs in that tool's config,
+  not in a bundle.
 
 ## Status and v0.1
 
 Pre-alpha. The v0.1 design is settled and the engine is being built. Nothing
 here is usable yet and nothing is released, so the commands in this README are
 planned, not working. The first release is the engine only: no shipped
-stages, presets or rulesets.
+stages, stage presets or rulesets.
 
 | Piece | Purpose |
 | --- | --- |

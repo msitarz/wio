@@ -5,8 +5,8 @@
   nesting, actions, stage, gate, roots, rules, context compiler, records) and
   how they fit together, including the `Wio-*` trailers wio reads and writes.
 - [wio's own workflow](workflow.md): the process this repository runs on the
-  engine (its actions, presets, stages and gates), how a contract is defined,
-  delivered, changed and retired, and why.
+  engine (its actions, stage presets, stages and gates), how a contract is
+  defined, delivered, changed and retired, and why.
 - [Scope of v0.1](v0.1-scope.md): the components of the first release, and what
   each is for, delivers and how it is used.
 - [Split exercises](split-exercises.md): four paper exercises that split an
@@ -17,7 +17,7 @@
 - [Test strategy](../tests/README.md): test layers, the acceptance-test DSL and
   conventions.
 - [This repository's config](../.agents/wio/config.toml): the roots, types,
-  actions, stages and presets wio's own development uses.
+  actions, stages and stage presets wio's own development uses.
 - [Work templates](../.agents/wio/templates): the draft, leaf and parent
   templates used to write Work contracts.
 - [Contracts ruleset](../.agents/wio/rules/contracts): the rules for writing
