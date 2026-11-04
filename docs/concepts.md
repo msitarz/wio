@@ -157,7 +157,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `[trailers] reader` | *optional* | How records are read from messages: `scan` or `git`. | [Reading records](#reading-records) |
 | Bundle settings | *optional* | A size threshold and the separator between rules; their keys are *open*. | [The context compiler](#11-the-context-compiler) |
 
-### Tokens
+### Special values
 
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
@@ -566,9 +566,9 @@ names the roots it touches in `roots`, using the names the config gives them.
   Nothing is added implicitly, so a parent's stages get the rules of the roots
   its author chose, however large its subtree is.
 - A parent can list `@descendants` to include the union of its descendants'
-  roots, computed recursively: a child that is a parent contributes whatever
-  its own `roots` resolve to, so a parent in the middle of the tree decides what
-  it passes upward. `@descendants` combines with explicit roots:
+  roots, computed recursively: a child that is a parent contributes whatever its
+  own `roots` resolve to, so a parent in the middle of the tree decides what it
+  passes upward. `@descendants` combines with explicit roots:
 
   ```toml
   roots = ["api", "web"]              # exactly these
@@ -580,8 +580,8 @@ names the roots it touches in `roots`, using the names the config gives them.
   `roots = ["@descendants"]`. A parent whose roots leave out a root that one of
   its descendants uses gets a note from `wio contracts check`, not a warning,
   because a narrower list may be intended. A Work without children that lists
-  `@descendants` gets a warning, because the token resolves to nothing there,
-  for example after a parent is demoted to a leaf.
+  `@descendants` gets a warning, because the special value resolves to nothing
+  there, for example after a parent is demoted to a leaf.
 - A `roots` list is a set: the order of its entries means nothing, and a name
   listed twice counts once. Nothing in the output depends on that order
   ([The context compiler](#11-the-context-compiler)).
@@ -1103,7 +1103,7 @@ rules: it picks the roots that count, and each of them brings its
 - A stage with `roots` uses exactly those. The entry `@work` stands for the
   Work's roots, so a contract review that checks criteria against real modules
   can use `roots = ["contract", "@work"]`. Root and action names cannot
-  contain `@`, so the `@` tokens never clash with them.
+  contain `@`, so the `@` values never clash with them.
 - If the stage selects the Work's roots, without `roots` or through `@work`, and
   the Work has none, `wio context` fails loudly, whatever other roots the list
   names. A Work whose roots were never set fails at the first stage that needs
