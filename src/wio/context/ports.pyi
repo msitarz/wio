@@ -34,8 +34,7 @@ class RuleSelection(Protocol):
         """Select the rules for a stage of a Work.
 
         Args:
-            contract: The Work's resolved contract, which gives its roots and
-                its template's type.
+            contract: The Work's resolved contract, which gives its roots.
             stage: The name of a stage in the config.
 
         Returns:
