@@ -1086,7 +1086,16 @@ select it.
 
 ### Which roots a stage selects
 
-Rules are selected by the root the stage edits:
+Rules are selected by the root the stage edits. A stage's `roots` holds no
+rules: it picks the roots that count, and each of them brings its
+`rule_presets`:
+
+| Stage's `roots` | Roots that count |
+| --- | --- |
+| *(not set)* | the Work's roots, from the contract, with `@descendants` expanded |
+| `["contract"]` | exactly `contract`, whatever the Work's roots are |
+| `["contract", "@work"]` | `contract` and the Work's roots |
+| `[]` | none, so only [root-independent](#rulesets-on-disk) rules |
 
 - A stage without `roots` uses the Work's roots, with `@descendants` expanded
   ([Roots of a Work](#roots-of-a-work)).
