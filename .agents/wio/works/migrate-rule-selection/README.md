@@ -46,11 +46,16 @@ excludes, without changing the rules any stage gets.
 
 - **A-1**: Nothing reads `.agents/wio/config.toml` yet, as its header says, so
   it can change shape without breaking a command.
-- **A-2**: Every Work that has roots today names only `wio` and `repo`, and only
+- **A-2**: Every Work's roots are `wio`, `repo`, both, none, or
+  `@descendants` that expands to them, and only
   the define, amend and ratify stages and their gates select the `contract`
   root, so today's rules need to hold only for those roots.
 - **A-3**: The repository's only rulesets are `contracts`, `contract-upkeep`,
   `docs` and `writing`, and none needs an alias or `root_independent`.
+- **A-4**: A `rules_exclude` entry that names a family its layer never
+  included is valid and removes nothing, as "Checking rules" in
+  `docs/concepts.md` says, so a stage can exclude `docs.DOC` for a Work rooted
+  only at `wio`.
 
 ## Mechanisms
 
@@ -91,6 +96,11 @@ excludes, without changing the rules any stage gets.
 - The roots select whole rulesets or the `contracts` presets: `contract` takes
   `contracts.authoring` and `writing.all`, `wio` takes `contract-upkeep.all`,
   and `repo` takes `contract-upkeep.all`, `docs.all` and `writing.all`.
+- The contract stages add the `contracts` presets their row needs:
+  `review-contract` includes `contracts.review`, `amend` `contracts.amend`,
+  `review-amendment` `contracts.amend` and `contracts.review`, `ratify`
+  `contracts.ratify`, and `review-ratify` `contracts.ratify` and
+  `contracts.review`. No other stage has a `rules_include`.
 - Where a root brings rules a stage does not get today, the stage excludes
   them by family, and a comment says why: the code reviews exclude
   `contract-upkeep.UPK`, `docs.DOC` and `writing.WRT`; the four authoring
@@ -107,10 +117,31 @@ excludes, without changing the rules any stage gets.
 ## Visuals
 
 Before: a rule carries tags, a root's `rulesets` binds rulesets, and a stage's
-`tags` pick the rules whose tags it has all of. After: a root's `rule_presets`
-selects and reaches rulesets, a stage adds a `contracts` preset or excludes
-families its roots bring, and a rule file carries no tags. The table under
-Constraints is the same before and after.
+`tags` pick the rules whose tags it has all of.
+
+```toml
+[[roots]]
+name = "wio"
+rulesets = ["contract-upkeep"]
+
+[stages.architecture-review]
+tags = ["architecture", "testing", "review"]
+```
+
+After: a root's `rule_presets` selects and reaches rulesets, a stage adds a
+`contracts` preset or excludes families its roots bring, and a rule file
+carries no tags. The table under Constraints is the same before and after.
+
+```toml
+[[roots]]
+name = "wio"
+rule_presets = ["contract-upkeep.all"]
+
+[stages.architecture-review]
+# Reviews judge the code against the contract; they keep no rule for writing
+# code or docs.
+rules_exclude = ["contract-upkeep.UPK", "docs.DOC", "writing.WRT"]
+```
 
 ## Acceptance criteria
 
@@ -161,27 +192,31 @@ No rule file under `.agents/wio/rules/` has a `tags` or `types` key, no
 
 `docs/workflow.md` explains which roots bring which rulesets, which stages add
 a `contracts` preset, and which stages exclude what their roots bring and why,
-says "stage preset" where it means a list of stages, and links to
+has no bare "preset" that could mean either kind, and links to
 `docs/concepts.md` for the design instead of restating it.
 
 #### The workflow
 
 - **Given** the delivered `docs/workflow.md`.
 - **When** a reviewer reads its sections on the contract root and on delivery.
-- **Then** it agrees with the config, names no tag, and every "preset" names
-  its kind.
+- **Then** it agrees with the config, names no tag, and no "preset" stands
+  without its kind.
 
 ### **AC-5** The concepts example names the authoring preset
 
-The examples of `docs/concepts.md` that name the contract ruleset's presets use
-`contracts.authoring` and `[rule_presets.authoring]` in place of `writing`, and
-nothing else in `docs/concepts.md` changes.
+The examples of `docs/concepts.md` that name the contract ruleset's authoring
+preset call it `authoring` in place of `writing`: the `contract` root's
+`rule_presets = ["contracts.authoring"]`, the manifest's
+`[rule_presets.authoring]`, and its `review` preset's
+`rules_include = ["authoring", "ACC009"]`. Nothing else in `docs/concepts.md`
+changes.
 
 #### The example
 
 - **Given** the delivered `docs/concepts.md`.
-- **When** a reviewer compares it with the commit before this Work.
-- **Then** only the example's preset name differs.
+- **When** a reviewer compares it with the commit before the first
+  `promote-docs` commit of this Work.
+- **Then** only those three names differ.
 
 ### **AC-6** No trace of tags remains in the workflow's files
 
@@ -194,5 +229,5 @@ A search of `.agents/wio/config.toml`, `.agents/wio/rules/` and
 - **Given** the delivered branch.
 - **When** a reviewer runs
   `ggrep -rniwE 'tags?' .agents/wio/config.toml .agents/wio/rules docs/workflow.md`
-  and `uv run make check` in a clean clone.
+  and `make check` in a clean clone.
 - **Then** the search prints nothing and every check passes.
