@@ -1,7 +1,6 @@
 <!-- wio
 code = "ACC002"
 name = "name-the-guarantee"
-tags = ["contract"]
 -->
 
 Name each criterion's guarantee in its heading, after its id, and start the

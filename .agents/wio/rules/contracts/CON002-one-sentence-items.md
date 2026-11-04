@@ -1,7 +1,6 @@
 <!-- wio
 code = "CON002"
 name = "one-sentence-items"
-tags = ["contract"]
 -->
 
 Write each goal, non-goal, assumption and mechanism as one sentence.

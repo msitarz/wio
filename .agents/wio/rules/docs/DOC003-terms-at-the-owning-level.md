@@ -1,7 +1,6 @@
 <!-- wio
 code = "DOC003"
 name = "terms-at-the-owning-level"
-tags = ["docs"]
 -->
 
 Add a term to the `GLOSSARY.md` of the directory that owns it, and only when it

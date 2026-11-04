@@ -1,7 +1,6 @@
 <!-- wio
 code = "ACC001"
 name = "one-criterion-per-guarantee"
-tags = ["contract"]
 -->
 
 Give each guarantee that can be assessed on its own its own criterion, keep the

@@ -1,7 +1,6 @@
 <!-- wio
 code = "CON006"
 name = "mechanisms-are-specific"
-tags = ["contract"]
 -->
 
 Name each mechanism precisely, such as a tool with its subcommand, a package, a

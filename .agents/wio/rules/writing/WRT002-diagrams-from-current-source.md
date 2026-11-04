@@ -1,7 +1,6 @@
 <!-- wio
 code = "WRT002"
 name = "diagrams-from-current-source"
-tags = ["diagrams"]
 -->
 
 Draw a diagram from the current source and documents and check the whole

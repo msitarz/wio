@@ -1,7 +1,6 @@
 <!-- wio
 code = "CON010"
 name = "each-thing-at-its-level"
-tags = ["contract"]
 -->
 
 Keep what several children share in their parent, and what one Work owns, its

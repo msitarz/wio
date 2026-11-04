@@ -1,7 +1,6 @@
 <!-- wio
 code = "CST003"
 name = "say-how-it-is-measured"
-tags = ["contract"]
 -->
 
 State a quantitative requirement with its threshold and the workload and

@@ -1,7 +1,6 @@
 <!-- wio
 code = "DOC001"
 name = "readme-owns-its-level"
-tags = ["docs"]
 -->
 
 State in a `README.md` only what is true at its directory's level, for that

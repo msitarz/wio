@@ -1,7 +1,6 @@
 <!-- wio
 code = "VIS003"
 name = "show-only-what-changes"
-tags = ["contract"]
 -->
 
 Show only the context the change affects, distinguish proposed additions,

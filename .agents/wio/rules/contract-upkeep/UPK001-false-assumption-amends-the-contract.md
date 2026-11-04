@@ -1,7 +1,6 @@
 <!-- wio
 code = "UPK001"
 name = "false-assumption-amends-the-contract"
-tags = ["delivery"]
 -->
 
 When an assumption proves false, stop and ask the driver to amend the contract

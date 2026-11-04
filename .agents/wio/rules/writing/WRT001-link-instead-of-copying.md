@@ -1,7 +1,6 @@
 <!-- wio
 code = "WRT001"
 name = "link-instead-of-copying"
-tags = ["links"]
 -->
 
 Link to material a document needs instead of copying it, with a relative link

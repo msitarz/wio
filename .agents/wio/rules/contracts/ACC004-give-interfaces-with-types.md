@@ -1,7 +1,6 @@
 <!-- wio
 code = "ACC004"
 name = "give-interfaces-with-types"
-tags = ["contract"]
 -->
 
 Give the affected interfaces with the signatures and types needed to decide

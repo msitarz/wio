@@ -1,7 +1,6 @@
 <!-- wio
 code = "ACC008"
 name = "criteria-for-non-code-outcomes"
-tags = ["contract"]
 -->
 
 When the outcome is guidance, an investigation or an evaluation, state the

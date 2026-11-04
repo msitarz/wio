@@ -1,7 +1,6 @@
 <!-- wio
 code = "CST001"
 name = "inherited-constraints-stay-as-they-are"
-tags = ["contract"]
 -->
 
 State only the constraints this Work adds: never restate a constraint it

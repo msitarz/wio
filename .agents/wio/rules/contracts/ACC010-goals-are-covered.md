@@ -1,7 +1,6 @@
 <!-- wio
 code = "ACC010"
 name = "goals-are-covered"
-tags = ["contract", "review"]
 -->
 
 Check that every goal is established by at least one acceptance criterion.

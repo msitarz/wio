@@ -1,7 +1,6 @@
 <!-- wio
 code = "CON001"
 name = "purpose-says-why"
-tags = ["contract"]
 -->
 
 State the purpose in one sentence that says why the change is needed.
