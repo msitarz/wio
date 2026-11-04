@@ -1,9 +1,9 @@
 # Documentation
 
-- [Core concepts](concepts.md): the few concepts the engine is built from
-  (Work contract, templates, nesting, actions, stage, gate, roots, rules,
-  context compiler, records) and how they fit together, including the `Wio-*`
-  trailers wio reads and writes.
+- [Core concepts](concepts.md): an index of the names and markers wio reads,
+  and the few concepts the engine is built from (Work contract, templates,
+  nesting, actions, stage, gate, roots, rules, context compiler, records) and
+  how they fit together, including the `Wio-*` trailers wio reads and writes.
 - [wio's own workflow](workflow.md): the process this repository runs on the
   engine (its actions, presets, stages and gates), how a contract is defined,
   delivered, changed and retired, and why.
