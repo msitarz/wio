@@ -5,7 +5,7 @@ built from. It does not describe a particular process: the process this
 repository runs on the engine, with its actions, presets and gates, is
 [wio's own workflow](workflow.md), and names from it appear here only as
 examples. Terms are defined in the [glossary](../GLOSSARY.md). Open points are
-listed in section 15.
+listed under [Open points](#15-open-points).
 
 ## 1. What the engine does
 
@@ -89,7 +89,7 @@ else in them. This section lists them by the file they appear in, each with its
 presence, its purpose and the section that defines it. Presence is *required*,
 *optional* or *reserved* where the design says so, and *open* where it does
 not say yet; elsewhere, too, *open* marks a form that is not settled
-(section 15). A dash means presence does not apply.
+([Open points](#15-open-points)). A dash means presence does not apply.
 
 ### A Work's `README.md`
 
@@ -212,16 +212,17 @@ two reasons:
   bundles, so a stage that needs one reads it itself. Deleting the Work's
   directory removes them with the contract, and git keeps both.
 
-Every contract also names a **template** (section 4). Contracts of one kind
-share a template, which gives them their sections, the checks those sections
-must pass and their default actions. This section describes the contract on
-its own, and section 4 adds what the template supplies.
+Every contract also names a **template**
+([Templates and types](#4-templates-and-types)). Contracts of one kind share a
+template, which gives them their sections, the checks those sections must pass
+and their default actions. This section describes the contract on its own, and
+[Templates and types](#4-templates-and-types) adds what the template supplies.
 
 A contract holds no progress: wio writes none into it and reads none from it.
 The reason is mechanical. Progress changes with every stage. If it lived in the
 file, every stage would edit the same lines and the file would turn into a
-conflict magnet. Progress lives in the history instead (section 12). The
-contract changes only when someone decides to change what it says.
+conflict magnet. Progress lives in the history instead ([Records](#records)).
+The contract changes only when someone decides to change what it says.
 
 ### Anatomy
 
@@ -246,14 +247,16 @@ deliver = ["implementation"]
 ```
 
 - `id`: a short random id.
-- `template`: the name of the template this contract follows (section 4).
-  Required.
-- `roots`: the names of the roots the Work touches (see section 5). It may be
-  empty, for example while a Work is still being defined.
+- `template`: the name of the template this contract follows
+  ([What a template is](#what-a-template-is)). Required.
+- `roots`: the names of the roots the Work touches (see
+  [Roots of a Work](#roots-of-a-work)). It may be empty, for example while a
+  Work is still being defined.
 - `depends_on`: an optional array of Work ids that this Work waits for (see
-  section 5).
+  [Dependencies](#dependencies)).
 - `[actions]`: optional. The pipelines of the Work's actions, where it differs
-  from its template's defaults (see section 6).
+  from its template's defaults (see
+  [Where the pipeline comes from](#where-the-pipeline-comes-from)).
 
 Contract metadata carries no comments. Explanations belong to the template.
 
@@ -272,11 +275,13 @@ ticket = "PAY-142"
 ```
 
 The title is the first heading and is stored nowhere else. There is no `parent`
-field, because the directory layout gives the hierarchy (see section 5).
+field, because the directory layout gives the hierarchy (see
+[Parent and leaf](#parent-and-leaf)).
 
 The body is prose. wio reads its first heading as the title and its `##`
-headings, which section 4 checks against the template; the rest it passes into
-bundles as written.
+headings, which are
+[checked against the template](#checking-a-contract-against-its-template); the
+rest it passes into bundles as written.
 
 Why prose and not a strict schema? Because the reader is mostly an agent, and an
 agent reads prose well. wio only needs the metadata and a few headings, so only
@@ -321,9 +326,10 @@ wio has no notion of a kind of change. A contract is a file: it is edited, or
 its Work's directory is deleted, in a commit like any other, and the commit
 carries a record of whichever action the driver ran. The rest follows from
 mechanisms described where they belong: which actions become stale is their
-`invalidated_by` (section 6), a dependency on a deleted Work is reported by
-`wio contracts check` (section 5), and the deleting commit's record is checked
-against `HEAD` (section 12).
+`invalidated_by` ([What `wio next` proposes](#what-wio-next-proposes)), a
+dependency on a deleted Work is reported by `wio contracts check`
+([Dependencies](#dependencies)), and the deleting commit's record is checked
+against `HEAD` ([Records](#records)).
 
 Which changes a workflow tells apart, and through which actions, is the
 workflow's business. [wio's own workflow](workflow.md#5-changing-a-contract)
@@ -379,7 +385,8 @@ depends_on = []
   for a moment during every split. wio still has no levels: the tree decides
   what a Work is, and `shape` only states what the template's author expected.
 - `[actions]` holds the default actions of every contract that follows the
-  template (see section 6).
+  template (see
+  [Where the pipeline comes from](#where-the-pipeline-comes-from)).
 - `[contract]` is the metadata of the contracts the template produces.
 
 ### From template to contract
@@ -469,14 +476,14 @@ parseable by a markdown parser. The grammar is small:
 | `required` | The heading is present in the contract. It says nothing about what is under it. |
 | `items>=N` | The section holds at least `N` items. |
 | `pattern=<regex>` | The section's items match the regular expression, and the matches are their **item ids**. |
-| `inherit` | The section is inheritable: a descendant's resolved view includes it (section 5). |
+| `inherit` | The section is inheritable: a descendant's resolved view includes it ([Inheritance, computed](#inheritance-computed)). |
 
 Sections are **optional until marked required**, so the agent can choose
 sections based on what the Work needs. Authoring comments do not count as
 content, so a Work fresh from its template passes a check that only requires
 headings, and a template that wants content says so with `items`. What counts
 as an item, and how a `pattern` that holds a comma or `-->` is written, are
-open (section 15).
+open ([Open points](#15-open-points)).
 
 ### Item ids
 
@@ -491,7 +498,7 @@ and the flag is `--criteria`, named after that common use. Ids belong to their
 Work: `AC-1` of one Work and `AC-1` of another are different items.
 
 This is the direction for v0.1, not a settled grammar: how wio finds the items
-of a section, and so their ids, is open (section 15).
+of a section, and so their ids, is open ([Open points](#15-open-points)).
 
 A contract created from a template keeps the template's authoring comments in
 its body, because they are the guidance the agent follows while it fills each
@@ -549,8 +556,8 @@ skill own. wio only reads the result: the directory layout and the metadata.
 ### Roots of a Work
 
 A **root** is a set of directories bound to one toolchain and its rulesets
-(section 9). A Work names the roots it touches in `roots`, using the names the
-config gives them.
+([Roots and rulesets](#9-roots-and-rulesets)). A Work names the roots it touches
+in `roots`, using the names the config gives them.
 
 - A Work's roots are exactly the ones it lists, for a leaf and a parent alike.
   Nothing is added implicitly, so a parent's stages get the rules of the roots
@@ -575,7 +582,8 @@ config gives them.
 - An empty `roots` list and a missing one mean the same: no roots. Templates can
   therefore keep `roots = []` as a placeholder.
 - `roots` may be empty. That is not an error in `wio contracts check`. It fails
-  only when a stage selects rules by the Work's roots (section 7), and then
+  only when a stage selects rules by the Work's roots
+  ([Which roots a stage selects](#which-roots-a-stage-selects)), and then
   loudly.
 
 How many roots a leaf may have is a choice of the workflow. A preset can ask
@@ -597,13 +605,14 @@ into each child, a parent's template marks sections as **inheritable** with the
 To resolve a Work, wio walks up the directory tree to the Works directory. For
 each ancestor it reads the template that the ancestor's `template` field names,
 takes the `##` headings marked `inherit` there, and finds the ancestor
-contract's sections with the same heading text, matched as in "Checking a
-contract against its template" (section 4). The directive is read from the
-template and never from the contract, because contracts carry no directives.
-`wio contracts show` prints the Work together with those sections, and so does
-the resolved contract in a bundle (section 11). The agent reads one resolved
+contract's sections with the same heading text, matched as in
+[Checking a contract against its template](#checking-a-contract-against-its-template).
+The directive is read from the template and never from the contract, because
+contracts carry no directives. `wio contracts show` prints the Work together
+with those sections, and so does the resolved contract in a bundle
+([The context compiler](#11-the-context-compiler)). The agent reads one resolved
 view and never needs to open whole parent contracts. How the inherited sections
-are rendered is open (section 15).
+are rendered is open ([Open points](#15-open-points)).
 
 A leaf's own Constraints section holds only the constraints the leaf adds. The
 inherited ones are not restated, so they cannot drift.
@@ -636,13 +645,13 @@ depends_on = ["a7b2c4", "k3m9xq"]
   cannot tell why the Work was deleted; the driver reads the note and decides
   whether the dependents still hold, and `wio contracts show` lists them.
 - A dependency means the other Work comes first. Which of its actions must have
-  run is open (section 15). It applies to the Work that lists it and to no
-  other: a parent's dependency holds back only that parent, and a child that
-  needs the same Work lists it itself. So the graph is exactly the listed edges
-  plus each parent's implicit dependency on its children, and that is the graph
-  the cycle check walks. A sibling may build on one child of a parent while the
-  parent's integration waits for the sibling. Whether a dependency also holds
-  back the dependent's definition is an open point.
+  run is open ([Open points](#15-open-points)). It applies to the Work that
+  lists it and to no other: a parent's dependency holds back only that parent,
+  and a child that needs the same Work lists it itself. So the graph is exactly
+  the listed edges plus each parent's implicit dependency on its children, and
+  that is the graph the cycle check walks. A sibling may build on one child of a
+  parent while the parent's integration waits for the sibling. Whether a
+  dependency also holds back the dependent's definition is an open point.
 
 ### Tracking items (planned)
 
@@ -757,7 +766,7 @@ Work from its entry template to its final one: these are procedures. Each is a
 stage with a skill, and wio does not know how they work. wio has no concept of a
 stub, a draft or a level, and it does not know whether a Work is "defined".
 Which actions a Work has done is progress, and progress is read from history
-(section 12).
+([Records](#records)).
 
 What wio does is provide context to each stage, select its rules, log what
 happens and check invariants afterwards.
@@ -766,17 +775,17 @@ happens and check invariants afterwards.
 
 This comes in v0.2 and is not part of v0.1, and this section is a sketch. It
 records the direction chosen (currency from records, `after` for order,
-`invalidated_by` for staleness, on-demand actions, gates with results). The
-Work that builds `wio next` settles the details against the records v0.1
-produces. The record format is fixed in v0.1. Config keys may be added in v0.2,
-and the keys v0.1 defines keep their meaning: `results` stays the vocabulary,
-and which results let the next stage start becomes a key of its own, such as
+`invalidated_by` for staleness, on-demand actions, gates with results). The Work
+that builds `wio next` settles the details against the records v0.1 produces.
+The record format is fixed in v0.1. Config keys may be added in v0.2, and the
+keys v0.1 defines keep their meaning: `results` stays the vocabulary, and which
+results let the next stage start becomes a key of its own, such as
 `[gates] continue = ["pass"]`. The cases it must settle are listed in the
-open points (section 15).
+[open points](#15-open-points).
 
 `wio next` proposes the next action and stage for a Work. It is a heuristic over
-the records in the git history (section 12), and the driver may do something
-else. Every proposal says so in one fixed line.
+the records in the git history ([Records](#records)), and the driver may do
+something else. Every proposal says so in one fixed line.
 
 - Actions are considered in the order that `after` gives: an action comes after
   the actions it lists, and actions with no relation between them are ordered by
@@ -792,8 +801,8 @@ else. Every proposal says so in one fixed line.
   than the latest record of every earlier stage in the same pipeline. When an
   earlier stage is done again after a back-edge, the stages after it stop being
   current, and `wio next` proposes them again.
-- A record says that a commit is work on a stage, not that the stage is
-  finished (section 12). So after the first commit of a stage, `wio next`
+- A record says that a commit is work on a stage, not that the stage is finished
+  ([Records](#records)). So after the first commit of a stage, `wio next`
   proposes the stage after it. Whether the work is really done is the driver's
   call, and the next gate's result is the only judgement the history holds.
 - An action can declare what **invalidates** its work:
@@ -878,10 +887,10 @@ A stage definition has these parts:
 | `name` | Identifier used in config, rules, records and logs. |
 | `goal` | A short text that says what to produce. Used when the instructions fit in a few lines. |
 | `skill` | A skill name, used instead of a goal when the procedure needs references, templates or scripts. |
-| `tags` | Which rules apply (section 10). |
-| `roots` | Optional. Which roots the stage selects rules from (section 9). Without it, the stage uses the Work's roots. |
-| `gate` | Optional. `true` when the stage judges an artifact, so each of its records carries a result (section 8). |
-| `judge` | Optional, for a gate. `"human"` when a person must judge it (section 8). |
+| `tags` | Which rules apply ([Tags](#tags)). |
+| `roots` | Optional. Which roots the stage selects rules from ([Which roots a stage selects](#which-roots-a-stage-selects)). Without it, the stage uses the Work's roots. |
+| `gate` | Optional. `true` when the stage judges an artifact, so each of its records carries a result ([Gate](#8-gate)). |
+| `judge` | Optional, for a gate. `"human"` when a person must judge it ([Gate](#8-gate)). |
 | `session` | Optional. `"fresh"` when the stage needs a new session (see "Sessions" below). |
 
 ```toml
@@ -897,7 +906,8 @@ gate = true
 session = "fresh"
 ```
 
-The key that marks a stage as not continuable is open (section 15).
+The key that marks a stage as not continuable is open
+([Open points](#15-open-points)).
 
 A stage with only a goal and tags is valid. A stage with a skill hands its
 procedure to that skill. The engine does not care which; it prints the goal or
@@ -939,18 +949,20 @@ valid, and its session still gets the contract and the rules.
 
 Real work goes back and forth. Implementation may show that the architecture
 needs redoing. A review may send the work back one step. The engine therefore
-treats stages as a **set of named steps**, and the order is a preset (section
-13) that a driver follows, not a rule the engine enforces.
+treats stages as a **set of named steps**, and the order is a preset
+([Presets](#13-presets-process-built-on-the-engine)) that a driver follows, not
+a rule the engine enforces.
 
 ### Who knows which stage is current
 
 Nobody stores it. "Which stage is the Work at" is a decision, not a fact that
 the repository can answer. A stage may have produced a valid artifact that did
 not pass its review, and with back-and-forth the answer is not even monotonic.
-So the **driver** names the stage: the human in v0.1, an orchestrator later.
-The command that starts a session (`wio context`, given the Work, the action and
-the stage) is the declaration. What the history can say is which stages left a
-record, and `wio next` proposes from that (section 6).
+So the **driver** names the stage: the human in v0.1, an orchestrator later. The
+command that starts a session (`wio context`, given the Work, the action and the
+stage) is the declaration. What the history can say is which stages left a
+record, and `wio next` proposes from that
+([What `wio next` proposes](#what-wio-next-proposes)).
 
 ### Sessions
 
@@ -971,10 +983,10 @@ The engine records how the artifact fared, and nothing about the decision.
 In the engine a gate is not a separate object. It is a stage marked
 `gate = true`, whose job is to judge the previous stage's artifact, and every
 record of it carries a **result** from the `results` vocabulary in the config
-(section 12). It is a normal stage with its own rules (tagged for review) and
-usually a fresh session. The mark lets wio require the result: `wio trailers`
-refuses a gate's record without one, and a stage that is not a gate cannot
-record one. The bundle's header says when a stage is a gate.
+([Records](#records)). It is a normal stage with its own rules (tagged for
+review) and usually a fresh session. The mark lets wio require the result:
+`wio trailers` refuses a gate's record without one, and a stage that is not a
+gate cannot record one. The bundle's header says when a stage is a gate.
 
 Who judges is the workflow's business. A review can be done by an agent in a
 fresh session with a different ruleset, or by a human. A human approval is a
@@ -1068,7 +1080,7 @@ select it.
 Rules are selected by the root the stage edits:
 
 - A stage without `roots` uses the Work's roots, with `@descendants` expanded
-  (section 5).
+  ([Roots of a Work](#roots-of-a-work)).
 - A stage with `roots` uses exactly those. The entry `@work` stands for the
   Work's roots, so a contract review that checks criteria against real modules
   can use `roots = ["contract", "@work"]`. Root and action names cannot
@@ -1088,7 +1100,7 @@ In v0.1 `paths` are descriptive. Rules are selected by root name, never by
 path, so paths are used for three things:
 
 - the header of each group of rules in a bundle, so the agent knows which files
-  the rules are for (section 11);
+  the rules are for ([The context compiler](#11-the-context-compiler));
 - the scope that `wio contracts tree` shows;
 - `wio rules list --path <file>`, which answers "which rules apply to this
   file?": every root whose paths contain the file, then the rules of their
@@ -1128,9 +1140,10 @@ Why: a dict hides the contract from the type checker, so drift appears at runtim
 Example: `fetch_user(id) -> User | NotFound`, not `fetch_user(id) -> dict`.
 ```
 
-Everything after the metadata block is the rule's **body**, and the bundle
-shows it exactly as written (section 11). wio does not parse it, so the author
-controls its formatting. A convention keeps rules alike:
+Everything after the metadata block is the rule's **body**, and the bundle shows
+it exactly as written ([The context compiler](#11-the-context-compiler)). wio
+does not parse it, so the author controls its formatting. A convention keeps
+rules alike:
 
 - The first paragraph is the instruction. `wio rules list` shows it as the
   rule's summary.
@@ -1295,7 +1308,7 @@ in `wio rules check`.
 ### What else filters a rule
 
 - **Roots**: only rulesets bound to the roots the stage selects are considered
-  (section 9).
+  ([Roots and rulesets](#9-roots-and-rulesets)).
 - **Template type**: an optional `types` list restricts a rule to certain types
   of Work. The names must be declared types.
 - **Stage**, through its tags. A stage lists the tags of the rules it should
@@ -1456,10 +1469,11 @@ Wio-Result: pass
   twice, and `none` is never listed. A record of a parent says nothing about its
   children, because progress is read for each Work, action and stage on its own.
   Two cautions follow from that. The order of the ids matters when one Work's
-  staleness depends on another's record (section 6), so list dependencies and
-  children before the Works that depend on them. And item ids belong to their
-  Work, so `Wio-Criteria: AC-1` on a list means each Work's own `AC-1`: list
-  Works together only when that is what the record means.
+  staleness depends on another's record
+  ([What `wio next` proposes](#what-wio-next-proposes)), so list dependencies
+  and children before the Works that depend on them. And item ids belong to
+  their Work, so `Wio-Criteria: AC-1` on a list means each Work's own `AC-1`:
+  list Works together only when that is what the record means.
 - **Every commit of a stage carries the stage's record.** A stage that takes
   four commits has four records, and only the latest counts. No record says
   that a stage is finished: that is a judgement, and the next gate's result
@@ -1473,8 +1487,8 @@ Wio-Result: pass
   early stage may be specified, not yet satisfied.
 - **The latest record of a stage counts** for whether the stage is current.
   Order is the order of the history, and within one commit the order of the
-  paragraphs, and within a list the order of the ids (see `wio next` in
-  section 6).
+  paragraphs, and within a list the order of the ids (see
+  [What `wio next` proposes](#what-wio-next-proposes)).
 - **A stage's item ids are the union of its current run.** Each record names the
   ids its own commit addresses, so an agent writes only what it knows. The ids a
   stage addressed are the union over its records that are newer than the latest
@@ -1497,12 +1511,12 @@ Wio-Result: pass
     the latest result and judge. This loses nothing a reader uses, because only
     the latest record of a stage counts, and the ids of a stage are read from
     the window of its earlier stages alone, not from `invalidated_by`.
-  - Then consecutive records that differ only in the Work become one list,
-    in the order of the history; records with any other difference stay apart.
-    Only neighbors merge, because a record between two others can matter: a
-    child delivered again after its parent integrated makes the parent stale
-    (section 6), and merging the two deliveries would move one past that
-    record.
+  - Then consecutive records that differ only in the Work become one list, in
+    the order of the history; records with any other difference stay apart. Only
+    neighbors merge, because a record between two others can matter: a child
+    delivered again after its parent integrated makes the parent stale
+    ([What `wio next` proposes](#what-wio-next-proposes)), and merging the two
+    deliveries would move one past that record.
 
   Records that are not consecutive, such as a stage done again after another,
   stay as they are. The fold is a function of the commits, so running it again
@@ -1788,19 +1802,20 @@ goal or skill. How well it produces it comes from the rules its tags select.
   has no channel for shared constraints; passing inheritable sections along
   `depends_on` could close that.
 - Tracing a parent's items to the child items that establish them (v0.2 or
-  v0.3). The proposed design is under "Tracking items" in
-  section 5, and the shape of its `[tracks]` table is open. Tracing a parent's
-  constraints is not covered.
+  v0.3). The proposed design is under [Tracking items](#tracking-items-planned),
+  and the shape of its `[tracks]` table is open. Tracing a parent's constraints
+  is not covered.
 - Giving a Work that designs a shared boundary the contracts of its sibling
   Works as context. For now a stage goal or a skill asks the agent to read them.
 - The order of records in a history with merge commits, where "the order of
   the history" is not a total order. Topological order, oldest first, is the
   likely answer, for `wio next` to settle.
-- How wio finds the items of a section, and so their ids (section 4), and what
-  `items` and `pattern` count. This repository's criteria are `### **AC-1** ...`
-  subheadings, not list items, so the directive grammar must be able to apply to
-  subheadings. How a `pattern` that contains a comma or `-->` is written is open
-  too. The directive-grammar Work settles both.
+- How wio finds the items of a section, and so their ids
+  ([Item ids](#item-ids)), and what `items` and `pattern` count. This
+  repository's criteria are `### **AC-1** ...` subheadings, not list items, so
+  the directive grammar must be able to apply to subheadings. How a `pattern`
+  that contains a comma or `-->` is written is open too. The directive-grammar
+  Work settles both.
 - How the resolved view renders inherited sections: their heading levels,
   their order relative to the Work's own sections, and how each names the
   ancestor it comes from. The contract Work settles it before golden tests fix
