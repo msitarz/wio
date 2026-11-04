@@ -14,8 +14,8 @@ results = ["pass", "fail", "unknown"]
 # find them.
 reader = "scan"
 
-# Each type and the template new Works of that type start from.
-[types]
+# Each kind and the template new Works of that kind start from.
+[kinds]
 feature = "feature.draft"
 
 # `wio next` proposes actions in the order that `after` gives, ties by name, and

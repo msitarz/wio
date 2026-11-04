@@ -1,6 +1,6 @@
 <!-- wio
 name = "feature.parent"
-type = "feature"
+kind = "feature"
 shape = "parent"
 description = "A capability delivered by child Works, with constraints they share."
 

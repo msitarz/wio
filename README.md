@@ -67,7 +67,7 @@ illustrative: the bundle's exact format is not fixed yet.
 
 **1. Write down what is wanted.** `wio contracts new feature --title "Read
 config.toml"` creates a Work: a directory whose `README.md` is its contract,
-started from the type's template. A define stage fills it in, and a gate lets
+started from the kind's template. A define stage fills it in, and a gate lets
 a human confirm it.
 
 **2. Compile the context for a stage.** The agent's first command in a session

@@ -21,7 +21,7 @@ metadata.
 - The project declares the actions `define` and `deliver`. A contract inherits
   its template's actions, and each action its own `[actions]` names replaces
   the template's.
-- A new Work starts from its type's entry template. Define stages select the
+- A new Work starts from its kind's entry template. Define stages select the
   `contract` root, so they get the rules for writing contracts.
 - A Work lists its roots. A parent lists `@descendants` to include the union of
   its descendants' roots.

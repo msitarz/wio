@@ -10,6 +10,6 @@ class Config:
     """The effective settings read from `.agents/wio/config.toml`.
 
     It is immutable once loaded, so every component that holds it sees the same
-    types, actions, roots, stages, stage presets, rule presets, ruleset aliases,
+    kinds, actions, roots, stages, stage presets, rule presets, ruleset aliases,
     always fields and results.
     """

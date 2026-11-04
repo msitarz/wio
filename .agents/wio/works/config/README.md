@@ -41,7 +41,7 @@ header is updated, and `wio config check` runs as a prek hook.
 **Schema.** The shapes follow the rule selection that the rule presets Work
 (xxbge6) puts into `docs/concepts.md`, which this Work waits for: a top-level
 `results` array and the top-level `rules_always_include` and
-`rules_always_exclude`; tables `[types]`, `[trailers]`, `[actions.<name>]`,
+`rules_always_exclude`; tables `[kinds]`, `[trailers]`, `[actions.<name>]`,
 `[stages.<name>]` (with `rules_include` and `rules_exclude`), `[stage_presets]`,
 `[rule_presets.<name>]` and `[rulesets.<name>]` (with `alias` and
 `root_independent`); and `[[roots]]` (with `rule_presets`). There is no `tags`
@@ -62,7 +62,7 @@ override. Outside a git repository, or with no file, is a configuration error
 mention `wio init`, which comes in v0.2.
 
 **Commands.** `wio config` shows the effective settings, each value labelled
-`file` or `default`; `wio config list <kind>` prints the names of types,
+`file` or `default`; `wio config list <kind>` prints the names of kinds,
 actions, roots, stages, stage presets, rule presets, rulesets or results;
 `wio config check` prints one line per finding,
 `error|warning|note: <where>: <message>`, sorted, and exits 1 on any error. All
@@ -75,9 +75,9 @@ actions, stage presets, stages, results and roots; among config rule presets
 a preset in `rules_always_exclude`; a duplicate or clashing alias; a `rules_*`
 key where none belongs; `after` cycles, `judge`,
 root paths (normalized, inside the repo, no duplicates, a missing path is a
-warning), skill lookup, and that each type's entry template file exists, taking
+warning), skill lookup, and that each kind's entry template file exists, taking
 the template's name to be its file name (an assumption for the contracts Work
-to settle). Checks that parse a template or a rule (a template's type, its
+to settle). Checks that parse a template or a rule (a template's kind, its
 directives, a ruleset's manifest, codes, families and presets, whether a
 qualified reference resolves, and whether a root reaches a root-independent
 ruleset) are deferred:
