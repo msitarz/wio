@@ -38,39 +38,83 @@ what each one produces. [wio's own workflow](docs/workflow.md) is one example.
 **Not only for code.** Documentation, research, an investigation, a data
 analysis: any agentic work that git tracks fits the same shape.
 
-## Status
-
-Pre-alpha. The v0.1 design is settled and the engine is being built. Nothing
-here is usable yet and nothing is released. The commands below are planned, not
-working.
+**Status: pre-alpha.** The design is settled and the engine is being built.
+Nothing is usable or released yet.
 
 ## Why
 
-An AI agent does better work when three things are true:
+When an agent's work goes wrong, it is usually for one of three reasons, and
+none of them is a lack of skill:
 
-1. It knows what is wanted, and a human confirmed that before expensive work
-   started.
-2. At each step it sees only the guidance that applies to that step, not every
-   rule the project has.
-3. A human or a fresh reviewer can stop the work at a chosen point and look at a
-   small artifact, not at a finished 800-line diff.
+- **It builds the wrong thing.** The request lived in a chat, and nobody
+  confirmed what "done" means. *With wio,* what is wanted is written into a
+  contract, and a gate lets a human confirm it before the expensive work
+  starts.
+- **It drowns in guidance.** Every rule the project has sits in one file, for
+  every step, and the rule that matters now is lost among the forty that do
+  not. *With wio,* each stage sees only the rules for that step and those
+  files.
+- **It hands you everything at once.** Your first chance to look is a finished
+  800-line diff or a finished report, when changing course costs the most.
+  *With wio,* the work runs in stages, and a gate stops it after each one, so
+  you review a small artifact while it is still cheap to change.
 
-## Core concepts
+## How it works
 
-| Need | Concept |
-| --- | --- |
-| Know what is wanted | **Work contract** |
-| Give contracts of one kind the same shape, checks and defaults | **Template** |
-| Break big work into small pieces | **Nesting** (parent and leaf Works) |
-| Name the kinds of work done on a Work | **Action**, declared by the project |
-| Do an action in separate steps | **Stage** |
-| Stop and decide between steps | **Gate** |
-| Give each step only its own guidance | **Rules**, selected by roots and tags |
+One Work in [wio's own workflow](docs/workflow.md), from its contract to a
+reviewed stage. The commands are planned, and the output below is
+illustrative: the bundle's exact format is not fixed yet.
 
-In one sentence: wio runs **actions** on a **Work**. An action's pipeline is a
-**preset** or a list of stages, some of them gates. A **template** gives a
-contract its shape and its default actions, rules are selected for every
-stage, and every commit of a stage carries a **record** in the git history.
+**1. Write down what is wanted.** `wio contracts new feature --title "Read
+config.toml"` creates a Work: a directory whose `README.md` is its contract,
+started from the type's template. A define stage fills it in, and a gate lets
+a human confirm it.
+
+**2. Compile the context for a stage.** The agent's first command in a session
+names the Work, the action and the stage:
+
+```text
+$ wio context k3m9xq deliver implementation
+Work k3m9xq "Read config.toml" · action deliver · stage implementation
+Session: may continue the previous stage's session
+Rules: 2 · 4,812 bytes, 96 lines · bundle 7f3a9c2e
+
+Goal: Implement the stubbed leaves until the tests and checks pass.
+
+# Read config.toml
+...the contract, with the sections it inherits from its parents...
+
+Rules for root wio (src, tests, scripts):
+
+UPK001 false-assumption-amends-the-contract
+When an assumption proves false, stop and ask the driver to amend the contract
+through the amend action, instead of working around it in the code.
+
+Why: A workaround hides the changed intent from every reader of the contract,
+and the next stage builds on the wrong premise.
+
+UPK002 correct-diagrams-to-the-implementation
+...
+
+If this session's context was compacted, run the command in the header again.
+```
+
+**3. Commit with a record.** Every commit of the stage says what it is:
+
+```text
+feat(config): read config.toml
+
+Wio-Work: k3m9xq
+Wio-Action: deliver
+Wio-Stage: implementation
+Wio-Criteria: AC-1, AC-2
+```
+
+**4. Stop at the gate.** `implementation-review` runs in a fresh session with
+its own rules, judges the commit against the contract, and records
+`Wio-Result: pass` or `fail`. The driver decides what comes next.
+
+The pieces, and how they connect:
 
 ```mermaid
 flowchart LR
@@ -89,52 +133,23 @@ flowchart LR
     X --> AG[Agent session]
 ```
 
-- **Work contract.** A Work's `README.md`: a metadata block that wio reads,
-  with the Work's id, template, roots, dependencies and actions, and a Markdown
-  body that agents and people read. wio checks the body's headings and passes
-  the rest into bundles as written; what the body states is the workflow's. A
-  contract holds no progress.
-- **Template.** A Markdown file that contracts of one kind follow. It gives
-  them their starting metadata and sections, the checks those sections must
-  pass, the sections children inherit and the default actions. Each template
-  belongs to a type, so projects add their own, and new Works start from their
-  type's entry template.
-- **Nesting.** A Work is either a leaf or a parent with child Works in its
-  directory. Children and inherited sections are computed, never stored, and a
-  parent can compute its roots from its descendants with `@descendants`.
-- **Action.** A named kind of work done on a Work, such as `define` or
-  `deliver`. The project declares its actions, each with a description that
-  helps an agent choose one; none are built in. Splitting, promoting and
-  demoting Works are procedures that stages and skills own; wio checks the
-  invariants afterwards.
-- **Stage.** One named step with a goal (or a skill), tags that select its
-  rules, optional roots and a session policy. A project defines its own stages,
-  and a single stage is valid.
-- **Gate.** A stage that judges the previous stage's artifact and records a
-  result, done by an agent in a fresh session or by a human. What follows a
-  result is the driver's decision.
-- **Rules.** Atomic do/don't instructions with a one-line reason, tagged and
-  grouped into **rulesets**. A repo binds rulesets to **roots**, which are
-  directories with their own toolchain. A stage selects the rules of the Work's
-  roots, or of the roots it names itself, and a rule applies only when every
-  one of its tags is among the stage's tags.
-- **Context compiler.** `wio context` joins the contract, the stage and the
-  matching rules into one deterministic bundle that the agent reads first in
-  each session.
-- **Records.** Every commit of a stage carries a record: a paragraph of `Wio-*`
-  git trailers in its message, for one Work or a list of Works. wio reads
-  progress from the records reachable from `HEAD`, whatever workflow put them
-  there.
+| Term | In one line |
+| --- | --- |
+| **Work** | A directory whose `README.md`, its contract, has a `wio` metadata block. |
+| **Template** | What contracts of one kind share: sections, checks, inherited sections and default actions. |
+| **Nesting** | A Work is a leaf or a parent; children and inherited sections are computed, never stored. |
+| **Action** | A named kind of work on a Work, such as `define` or `deliver`. None are built in. |
+| **Stage** | One step: a goal or a skill, the tags that select its rules, and a session policy. |
+| **Gate** | A stage that judges the previous stage's artifact and records a result. |
+| **Preset** | A named, ordered list of stages that an action can run. |
+| **Rules** | Atomic do/don't instructions with a reason, grouped into rulesets and bound to roots. |
+| **Record** | The `Wio-*` trailers in a commit message that tie it to a Work and a stage. |
 
-Terms are defined in [GLOSSARY.md](GLOSSARY.md), and the design is described
-in [docs/](docs/README.md): the engine in
-[docs/concepts.md](docs/concepts.md), and the process this repository runs on
-it in [docs/workflow.md](docs/workflow.md).
-
-On top of the engine, a **preset** is a named, ordered list of stages, and it
-can be the pipeline of an action. A typed flow (typed boundaries, wired
-skeleton, implementation, with a review after each step) is one example. A
-single `implement` stage is another.
+An action's pipeline can be as long as a typed flow (typed boundaries, a wired
+skeleton, the implementation, with a review after each) or as short as a
+single `implement` stage. Terms are defined in [GLOSSARY.md](GLOSSARY.md), the
+engine is described in [docs/concepts.md](docs/concepts.md), and the process
+this repository runs on it in [docs/workflow.md](docs/workflow.md).
 
 ## Principles
 
@@ -149,13 +164,18 @@ single `implement` stage is another.
 - **The driver decides.** Which action and stage is current is a decision by the
   human (or a later orchestrator), not a recorded fact. wio can propose the next
   step from the records, but it never blocks one.
-- **Skills are procedures, rules are atoms, tools are checks.** A stage loads
-  only the rules for its roots and tags, so guidance reaches the sessions that
-  need it and no others.
+- **Skills are procedures, rules are atoms, tools are checks.** Guidance with
+  steps, references or scripts is a skill. One instruction with a reason is a
+  rule, and a stage loads only the rules for its roots and tags. Anything a
+  linter or a type checker can catch belongs in that tool's config, not in a
+  bundle.
 
-## Planned for v0.1
+## Status and v0.1
 
-The first release is the engine only: no shipped stages, presets or rulesets.
+Pre-alpha. The v0.1 design is settled and the engine is being built. Nothing
+here is usable yet and nothing is released, so the commands in this README are
+planned, not working. The first release is the engine only: no shipped
+stages, presets or rulesets.
 
 | Piece | Purpose |
 | --- | --- |
