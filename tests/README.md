@@ -92,7 +92,7 @@ group of tests needs an entry there.
 The config, contract metadata, rule files, templates and roots are fixtures
 that interact. Without builders every test hand-writes TOML and markdown, and
 any format change breaks every test. The `Wio` facade starts from a minimal
-valid repo (one root, one action, one stage, one type with its entry template)
+valid repo (one root, one action, one stage, one kind with its entry template)
 and each
 scenario changes only the parts it tests.
 
