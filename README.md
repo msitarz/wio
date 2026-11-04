@@ -1,12 +1,19 @@
 # wio: a configurable, stage-gated workflow engine for coding agents
 
-**Work It Out** (`wio`) is a small, fully configurable engine for coding
-agents. A **Work** is a directory whose `README.md`, its **contract**, carries
-a small metadata block. wio reads that block, checks the contract against its
-**template**, and for each step of work compiles the contract, the step's goal
-and the **rules** that apply to it into the context an agent session reads
-first. Every commit records which step it belongs to, so progress lives in the
-git history.
+**Work It Out** (`wio`) gives a coding agent exactly the context it needs for
+the step it is on, and nothing else. Before a session starts, `wio context`
+compiles one bundle for it: what is wanted (the Work's **contract**), what this
+step must produce (the **stage**'s goal, or the skill that holds its
+procedure), and only the project's **rules** that apply to this step and these
+files. The bundle is deterministic, so two sessions with the same bundle saw
+the same context. Between steps, **gates** let a fresh agent or a human review
+a small artifact before the next, more expensive one is built.
+
+Everything wio compiles from is a plain file in the repository. A **Work** is a
+directory whose `README.md`, its contract, carries a small metadata block, and
+a **template** gives contracts of one kind their shape. The config declares the
+actions, stages and rules. Every commit records which stage it belongs to, so
+progress lives in the git history, not in the files.
 
 wio does not prescribe a process. The engine provides the building blocks, and
 a project decides what its contracts say, which **actions** and **stages**
@@ -137,10 +144,14 @@ The first release is the engine only: no shipped stages, presets or rulesets.
 | `wio config` | Read, show and validate `.agents/wio/config.toml` |
 | `wio contracts` | Create, list, check and show Work contracts |
 | `wio rules` | Create, check and list rule files, also for a given path |
-| `wio context` | Compile the contract and rules for a stage |
+| `wio context` | Compile the contract, the stage's goal or skill, and the rules for a stage |
 | `wio trailers` | Write and check the records that tie commits to stages |
 | `wio log` | Record context and review events |
-| `wio-define` skill | Interview, then write and check a contract |
+
+[wio's own workflow](docs/workflow.md) adds one piece that is not part of the
+engine: the `wio-define` skill, which interviews the driver, then writes and
+checks a contract. It lives in this repository at `.agents/skills/wio-define/`,
+and another project can copy it, like a ruleset.
 
 ## Development
 
