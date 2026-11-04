@@ -1,6 +1,6 @@
-# wio: a configurable, stage-gated workflow engine for coding agents
+# wio: a configurable, stage-gated workflow engine for AI agents
 
-**Work It Out** (`wio`) gives a coding agent exactly the context it needs for
+**Work It Out** (`wio`) gives an AI agent exactly the context it needs for
 the step it is on, and nothing else. Before a session starts, `wio context`
 compiles one bundle for it: what is wanted (the Work's **contract**), what this
 step must produce (the **stage**'s goal, or the skill that holds its
@@ -28,6 +28,11 @@ a project decides what its contracts say, which **actions** and **stages**
 exist, how they are ordered and what each one produces.
 [wio's own workflow](docs/workflow.md) is one example.
 
+Nor is wio only for code. Any agentic work tracked by git fits the same
+shape: documentation, research, an investigation or a data analysis can have a
+contract that states what is wanted, stages with their own rules, gates where a
+human looks, and commits that record each step.
+
 ## Status
 
 Pre-alpha. The v0.1 design is settled and the engine is being built. Nothing
@@ -36,7 +41,7 @@ working.
 
 ## Why
 
-A coding agent does better work when three things are true:
+An AI agent does better work when three things are true:
 
 1. It knows what is wanted, and a human confirmed that before expensive work
    started.

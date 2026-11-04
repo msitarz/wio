@@ -1,6 +1,6 @@
 # AGENTS.md
 
-wio (work-it-out) is a configurable, stage-gated workflow engine for coding
+wio (work-it-out) is a configurable, stage-gated workflow engine for AI
 agents. Use the terms defined in [GLOSSARY.md](GLOSSARY.md) in code, docs and
 commit messages. A `GLOSSARY.md` in a directory binds its terms to that
 directory and its descendants, and the nearest one wins. A `README.md` covers
