@@ -44,16 +44,15 @@ header is updated, and `wio config check` runs as a prek hook.
 `rules_always_exclude`; tables `[types]`, `[trailers]`, `[actions.<name>]`,
 `[stages.<name>]` (with `rules_include` and `rules_exclude`), `[stage_presets]`,
 `[rule_presets.<name>]` and `[rulesets.<name>]` (with `alias` and
-`root_independent`); and `[[roots]]` (with `rule_presets`). There is no `tags`
-vocabulary and no `[presets]`. This repository's own config is migrated to these
-shapes before this Work is delivered, so the end-to-end check above runs on the
-new shapes. Unknown keys are an error
-when loading. A stage's session policy is `session` (`"any"` by default, or
-`"fresh"`) and `continuable` (`true` by default). Defaults: `results` is
-`["pass", "fail", "unknown"]`, `[trailers] reader` is `"scan"`, `[skills] paths`
-is empty, `[bundle] separator` is a blank line (`"\n\n"`), and `[bundle]
-size_threshold` (characters) is absent, meaning no warning. The other tables
-default to empty.
+`root_independent`); and `[roots.<name>]` (with `rule_presets`). There is no
+`tags` vocabulary and no `[presets]`. This repository's own config is migrated
+to these shapes before this Work is delivered, so the end-to-end check above
+runs on the new shapes. Unknown keys are an error when loading. A stage's
+session policy is `session` (`"any"` by default, or `"fresh"`) and `continuable`
+(`true` by default). Defaults: `results` is `["pass", "fail", "unknown"]`,
+`[trailers] reader` is `"scan"`, `[skills] paths` is empty, `[bundle] separator`
+is a blank line (`"\n\n"`), and `[bundle] size_threshold` (characters) is
+absent, meaning no warning. The other tables default to empty.
 
 **Discovery.** The config is `<git root>/.agents/wio/config.toml`, where the git
 root is that of the working directory. There is no walk-up and no per-directory

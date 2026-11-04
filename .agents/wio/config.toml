@@ -56,20 +56,17 @@ the better form. A change of intent is an amendment, through amend."""
 
 # Each root's rule_presets are the rules of every stage that selects the root,
 # and they reach those rulesets, so a stage can add or exclude their rules.
-[[roots]]
-name = "contract"
+[roots.contract]
 paths = [".agents/wio/works"]
 rule_presets = ["contracts.authoring", "writing.all"]
 
-[[roots]]
-name = "wio"
+[roots.wio]
 paths = ["src", "tests", "scripts"]
 rule_presets = ["contract-upkeep.all"]
 
 # Everything else in the repository: docs, CI, the Makefile, skills. It
 # overlaps the other roots, which is allowed: roots select rules by name.
-[[roots]]
-name = "repo"
+[roots.repo]
 paths = ["."]
 rule_presets = ["contract-upkeep.all", "docs.all", "writing.all"]
 

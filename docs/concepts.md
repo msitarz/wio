@@ -146,7 +146,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `results` | *open* | The results a gate can record. | [The event log](#the-event-log) |
 | `[types]` | *open* | The valid types, each with its entry template. | [Types and entry templates](#types-and-entry-templates) |
 | `[actions.<name>]` | *open* | An action, with its `description`, `after`, `invalidated_by` and `on_demand`. | [What an action is](#what-an-action-is), [What `wio next` proposes](#what-wio-next-proposes) |
-| `[[roots]]` | *open* | A root: its `name`, its `paths`, and its `rule_presets` (*optional*), which select its rules. | [Roots and rulesets](#9-roots-and-rulesets) |
+| `[roots.<name>]` | *open* | A root: its `paths`, and its `rule_presets` (*optional*), which select its rules. | [Roots and rulesets](#9-roots-and-rulesets) |
 | `[stages.<name>]` | *open* | A stage: a `goal` or a `skill` is required, and `rules_include`, `rules_exclude`, `roots`, `gate`, `judge` and `session` are optional. | [Stage](#7-stage) |
 | `[stage_presets]` | *open* | Named, ordered lists of stages. | [Stage presets](#13-stage-presets-process-built-on-the-engine) |
 | `[rule_presets.<name>]` | *optional* | Named selections of rules, with `rules_include` and `rules_exclude`. | [Rule presets](#rule-presets) |
@@ -582,6 +582,9 @@ names the roots it touches in `roots`, using the names the config gives them.
   because a narrower list may be intended. A Work without children that lists
   `@descendants` gets a warning, because the token resolves to nothing there,
   for example after a parent is demoted to a leaf.
+- A `roots` list is a set: the order of its entries means nothing, and a name
+  listed twice counts once. Nothing in the output depends on that order
+  ([The context compiler](#11-the-context-compiler)).
 - An empty `roots` list and a missing one mean the same: no roots. Templates can
   therefore keep `roots = []` as a placeholder.
 - `roots` may be empty. That is not an error in `wio contracts check`. It fails
@@ -868,7 +871,8 @@ on, and they do not judge how a workflow is built:
   exists, `after` has no cycle and names no on-demand action, the names in
   `invalidated_by` are declared actions with a known prefix, and every stage's
   skill can be found.
-- Every root a contract or a stage names is a root in the config.
+- Every root a contract or a stage names is a root in the config. The config
+  keys roots by name, so TOML itself rejects a duplicate name.
 - Every `depends_on` id exists, and there are no cycles in the graph of listed
   dependencies plus each parent's implicit dependency on its children.
 - No stage appears twice in one pipeline. Records key on the Work, the action
@@ -1044,29 +1048,26 @@ its rules ([Rule presets](#rule-presets)), and a root's rule presets bind
 the rulesets they name to it:
 
 ```toml
-[[roots]]
-name         = "api"
+[roots.api]
 paths        = ["services/api"]
 rule_presets = ["py.recommended", "backend"]
 
-[[roots]]
-name         = "web"
+[roots.web]
 paths        = ["apps/web"]
 rule_presets = ["mp.recommended"]
 
-[[roots]]
-name         = "contract"
+[roots.contract]
 paths        = [".agents/wio/works"]
 rule_presets = ["contracts.authoring"]
 ```
 
-A root has a `name`, which contracts and stages use, `paths`, a list of
-directories, and `rule_presets`, which take rule presets only: a root reads as
-the guidelines of its code, and picking single rules lives in rule presets that
-can be reused. Why bind at the repo level and not inside the ruleset? Because a
-ruleset must work in any repo. It does not know where the API service lives. The
-repo does. A root reaches a ruleset when its rule presets name something in it,
-which is all the binding there is
+A root is named by its table key, which contracts and stages use, and has
+`paths`, a list of directories, and `rule_presets`, which take rule presets
+only: a root reads as the guidelines of its code, and picking single rules lives
+in rule presets that can be reused. Why bind at the repo level and not inside
+the ruleset? Because a ruleset must work in any repo. It does not know where the
+API service lives. The repo does. A root reaches a ruleset when its rule presets
+name something in it, which is all the binding there is
 ([How a rule is selected](#how-a-rule-is-selected)).
 
 A root is a **toolchain boundary**, not a kind of directory. Tests and sources
@@ -1360,8 +1361,7 @@ built so far:
 rules_always_include = ["process.FIX001"]   # "fix the underlying problem"
 rules_always_exclude = ["mp.TSX012"]
 
-[[roots]]
-name = "api"
+[roots.api]
 paths = ["services/api"]
 rule_presets = ["py.recommended", "backend"]
 
@@ -1438,8 +1438,7 @@ Rules that follow an area of code belong to a root. A Work that touches legacy
 billing code lists a `billing-legacy` root, and the rules come with the code:
 
 ```toml
-[[roots]]
-name = "billing-legacy"
+[roots.billing-legacy]
 paths = ["services/billing/legacy"]
 rule_presets = ["billing.all"]
 ```
@@ -1573,7 +1572,10 @@ Output, printed to the session:
    Root-independent rules come first, under `Rules for every root:`, because
    rules about how to work frame the rest. Then the rules are grouped by the set
    of roots they apply to, each group under one line that names the roots and
-   their paths, such as `Rules for root api (services/api):`. Within a group
+   their paths, such as `Rules for root api (services/api):`. The roots in that
+   line are sorted by name, and the groups are sorted by their sorted root
+   names, so the order of a `roots` list or of the config's tables never changes
+   the bundle. Within a group
    they are ordered by ruleset, then by family, under the topic its
    `ruleset.toml` declares, such as `mattpocock: Error handling (ERR)`, then by
    code, so the bundle's bytes stay deterministic. A rule arrives through any
