@@ -96,7 +96,7 @@ design but their exact form is not settled yet (section 15).
 | `id` | The Work's short random id, which dependencies, records and the event log key on. | [Identity and location](#identity-and-location) |
 | `template` | The template the contract follows, which gives its sections, checks and default actions. | [Anatomy](#anatomy) |
 | `roots` | The roots the Work touches, which select its rules. | [Roots of a Work](#roots-of-a-work) |
-| `depends_on` | The Works that must be delivered first. | [Dependencies](#dependencies) |
+| `depends_on` | The Works this one waits for. | [Dependencies](#dependencies) |
 | `[actions]` | The actions whose pipelines the Work replaces. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
 | `[x]` | The one table for the project's own data: wio skips its contents, while any other unknown key gets a warning. | [Anatomy](#anatomy) |
 | `tracks` | Reserved: which items of other Works an item contributes to. | [Tracking items](#tracking-items-planned) |
@@ -227,7 +227,7 @@ deliver = ["implementation"]
   carries the type, the sections and the default actions.
 - `roots`: the names of the roots the Work touches (see section 5). It may be
   empty, for example while a Work is still being defined.
-- `depends_on`: an optional array of Work ids that must be delivered first (see
+- `depends_on`: an optional array of Work ids that this Work waits for (see
   section 5).
 - `[actions]`: optional. Each action it names replaces that action of the
   template, and the others are inherited (see section 6).
@@ -489,11 +489,11 @@ A contract is checked against the template it names, and only against it:
 
 ### Parent and leaf
 
-A Work either is a **leaf** (it has no child Works) or a **parent** (it is
-delivered by its children). A child's directory sits inside its parent's
-directory, so the hierarchy is the directory tree. There is no `parent` field
-and no `children` list, because both are **computed** from the layout. Stored
-lists drift; computed ones cannot.
+A Work either is a **leaf** (it has no child Works) or a **parent** (it has
+child Works). A child's directory sits inside its parent's directory, so the
+hierarchy is the directory tree. There is no `parent` field and no `children`
+list, because both are **computed** from the layout. Stored lists drift;
+computed ones cannot.
 
 Between the Works directory and any Work, every directory must itself be a Work.
 A directory without a contract between two Works is an error, so the tree means
@@ -503,8 +503,8 @@ block, for example an index for people.
 
 ### Splitting
 
-The Work tree describes outcomes. It does not have to mirror the module tree or
-the directory tree of the code.
+The Work tree divides the work as its contracts do. It does not have to mirror
+the module tree or the directory tree of the code.
 
 When to split a Work, how the split is carried out, and whether the pieces
 become nested children or flat siblings, is a procedure that a stage and its
@@ -544,7 +544,7 @@ config gives them.
   loudly.
 
 How many roots a leaf may have is a choice of the workflow. A preset can ask
-for exactly one root per leaf, so that an outcome spanning a FastAPI backend
+for exactly one root per leaf, so that a Work spanning a FastAPI backend
 and a Next.js frontend becomes a parent with one leaf per root. wio does not
 enforce it.
 
@@ -589,8 +589,8 @@ depends_on = ["a7b2c4", "k3m9xq"]
   ordering graph on top of it. Nesting only decides what is inherited;
   `depends_on` works the same for nested and flat Works.
 - `wio contracts check` verifies that every id exists and that there are no
-  cycles. For delivery, each parent implicitly depends on its children, and
-  that edge counts too.
+  cycles. Each parent also depends implicitly on its children, and that edge
+  counts too.
 - A `depends_on` id that is not in the tree is looked up in the history: wio
   reads the latest record of that Work reachable from `HEAD`, with the
   configured reader. With no record at all it is an **error**, because the id is
@@ -602,14 +602,14 @@ depends_on = ["a7b2c4", "k3m9xq"]
   When a Work was abandoned, its dependents should be rethought, and
   `wio contracts show` lists them. When it was retired after delivery, the edge
   stays true and nothing needs to change.
-- A dependency means the other Work must be delivered first. It applies to the
-  Work that lists it and to no other: a parent's dependency holds back only that
-  parent, and a child that needs the same Work lists it itself. So the graph is
-  exactly the listed edges plus each parent's implicit dependency on its
-  children, and that is the graph the cycle check walks. A sibling may build on
-  one child of a parent while the parent's integration waits for the sibling.
-  Whether a dependency also holds back the dependent's definition is an open
-  point.
+- A dependency means the other Work comes first. Which of its actions must have
+  run is open (section 15). It applies to the Work that lists it and to no
+  other: a parent's dependency holds back only that parent, and a child that
+  needs the same Work lists it itself. So the graph is exactly the listed edges
+  plus each parent's implicit dependency on its children, and that is the graph
+  the cycle check walks. A sibling may build on one child of a parent while the
+  parent's integration waits for the sibling. Whether a dependency also holds
+  back the dependent's definition is an open point.
 
 ### Tracking items (planned)
 
@@ -793,11 +793,12 @@ else. Every proposal says so in one fixed line.
 - A gate's latest record carries its result, and which results let the next
   stage start is declared with the results, when `wio next` is built.
 
-For a whole tree, defining runs top-down and delivering runs bottom-up. A parent
-is defined before the Works its split creates, and a parent is delivered after
-its children. The leaves to deliver, with `depends_on`, form a graph that can be
-sorted into batches, and the Works in one batch can run in parallel, for
-example `(("32sa4k", "97fqmz"), "213asx", ("8asd2w", "732sfa"))`.
+In a workflow like [wio's own](workflow.md), defining runs top-down and
+delivering runs bottom-up over a tree. A parent is defined before the Works its
+split creates, and a parent is delivered after its children. The leaves to
+deliver, with `depends_on`, form a graph that can be sorted into batches, and
+the Works in one batch can run in parallel, for example
+`(("32sa4k", "97fqmz"), "213asx", ("8asd2w", "732sfa"))`.
 
 Stages of different Works do not interleave. A boundary that several leaves
 share is extracted as a leaf of its own and delivered first, and the other
@@ -815,8 +816,8 @@ on, and they do not judge how a workflow is built:
   and a Work is itself a Work.
 - The actions a contract resolves to are not empty, and each pipeline has at
   least one stage. An empty list in a contract's `[actions]` removes that
-  action; it is not an empty pipeline. An outcome with nothing to deliver
-  belongs in the ticketing system, not in the repository.
+  action; it is not an empty pipeline. Work with no stage to run belongs in a
+  ticketing system, not in the repository.
 - Every action name, preset id and stage name in a template or a contract
   exists, `after` has no cycle and names no on-demand action, the names in
   `invalidated_by` are declared actions with a known prefix, and every stage's
@@ -899,7 +900,7 @@ signature is redone.
 
 The engine does not decide which stages exist. Projects define stages in the
 config file. A project may have one stage or twelve. A single-stage contract is
-valid, and still benefits from the intent captured in the contract.
+valid, and its session still gets the contract and the rules.
 
 ### Stages are not a pipeline
 
@@ -976,7 +977,7 @@ Three outcomes, all of which are normal:
 - **Pass**: the next stage starts.
 - **Back-edge**: the artifact exposes a gap in an earlier stage's work. Work
   returns to that stage.
-- **Contract change**: the intent was wrong. See section 3.
+- **Contract change**: the contract was wrong. See section 3.
 
 The gate records one of the results the config declares, and the result only
 says how the artifact fared. What follows a result, whether the work goes on,
@@ -1048,15 +1049,14 @@ Rules are selected by the root the stage edits:
   Work's roots, so a contract review that checks criteria against real modules
   can use `roots = ["contract", "@work"]`. Root and action names cannot
   contain `@`, so the `@` tokens never clash with them.
-- If the stage selects the Work's roots, without `roots` or through `@work`,
-  and the Work has none, `wio context` fails loudly, whatever other roots the
-  list names. A Work that skipped its definition fails the moment it is
-  delivered. A stage that runs while roots are still being decided, such as a
-  review of a parent whose children have no roots yet, should not select
-  `@work`, or it fails too. An empty `@work`
-  that adds nothing would hide exactly that mistake behind the other roots'
-  rules. A form for "the Work's roots, if any" can come later if a stage needs
-  one.
+- If the stage selects the Work's roots, without `roots` or through `@work`, and
+  the Work has none, `wio context` fails loudly, whatever other roots the list
+  names. A Work whose roots were never set fails at the first stage that needs
+  them. A stage that runs while roots are still being decided, such as a review
+  of a parent whose children have no roots yet, should not select `@work`, or it
+  fails too. An empty `@work` that adds nothing would hide exactly that mistake
+  behind the other roots' rules. A form for "the Work's roots, if any" can come
+  later if a stage needs one.
 
 ### Paths
 
@@ -1289,9 +1289,9 @@ dimensions are enough. More would make rules hard to write and reason about.
 `wio context` is the piece that joins everything. It answers: *what should this
 agent session read before it starts?*
 
-Inputs: a Work id, an action and a stage. The Work always exists first: a new
-intent starts with `wio contracts new <type>`, which creates the Work from the
-type's entry template, and its definition then runs as stages of an action like
+Inputs: a Work id, an action and a stage. The Work always exists first: new work
+starts with `wio contracts new <type>`, which creates the Work from the type's
+entry template, and writing its contract then runs as stages of an action like
 any other. `wio context` reads the contract and its ancestors, the stage
 definition, the rulesets bound to the roots the stage selects, and the rule
 files.
@@ -1332,12 +1332,12 @@ Properties that matter:
   testable with golden files and lets two evaluation runs be compared by bundle
   id ("these saw identical context").
 - **Pull, not push**: the agent runs `wio context` itself as the first step of a
-  stage. For a new intent the Work must exist first, so the first step of its
-  definition is `wio contracts new`, run by the driver or by the define skill,
-  and `wio context` follows. That works with any harness that can run a command,
-  it makes the command the session's own declaration of its stage, and it lets
-  the `context` event be written from inside the session, with the session's id.
-  A wrong stage is caught by reading the header, which shows the Work, action,
+  stage. For new work the Work must exist first, so the first step is
+  `wio contracts new`, run by the driver or by a stage's skill, and
+  `wio context` follows. That works with any harness that can run a command, it
+  makes the command the session's own declaration of its stage, and it lets the
+  `context` event be written from inside the session, with the session's id. A
+  wrong stage is caught by reading the header, which shows the Work, action,
   stage and goal first.
 - **Loud failures**: an unknown Work, action, stage or root is an error, and so
   is a stage that selects the Work's roots when the Work has none. An empty
@@ -1368,13 +1368,13 @@ Properties that matter:
   changed. Hooks that do this automatically are harness integration, not part of
   the engine.
 
-## 12. Intent in the repo, progress in the history
+## 12. Contracts in the repo, progress in the history
 
 The engine keeps a strict line:
 
 | Lives in the working tree | Lives outside the contracts |
 | --- | --- |
-| Contracts (intent) | Which action and stage is current (the driver's decision) |
+| Contracts | Which action and stage is current (the driver's decision) |
 | Templates, rules, config | Whether a Work is done (a ticket, or the human) |
 | Artifacts produced by stages | Which stages were done, with their results: records in the git history |
 | | Event log: which sessions ran, which rules they received, review results |
@@ -1389,10 +1389,10 @@ current stage. The working tree can still be queried for what is
 **derivable**: the Work tree, each Work's roots, and what a contract inherits.
 Which Works exist is whatever is in the working tree, committed or not.
 
-A change of intent is different from progress. A contract that takes its final
-shape, or that gets its own `[actions]`, is an edit of intent that is made and
-reviewed in the repository. Which stage the Work is in, and whether the outcome
-is truly done, stay outside.
+A change to a contract is different from progress. A contract that takes its
+final shape, or that gets its own `[actions]`, is an edit of a file that is made
+and reviewed in the repository. Which stage the Work is in, and whether it is
+truly done, stay outside.
 
 Progress comes from two places: records in the git history, which are shared,
 and the event log, which is personal.
@@ -1737,10 +1737,10 @@ goal or skill. How well it produces it comes from the rules its tags select.
   such as `style = "implementation"`. Family overrides cover most cases.
 - Two rulesets that claim the same family prefix cannot both be bound. Renaming
   a prefix when binding could solve it later.
-- Stage-level ordering across the tree. A parent is delivered after its
-  children, and a shared boundary is a leaf of its own, so interleaved stages
-  are not needed. Records and the log key on the Work, the action and the
-  stage, so they can be added later.
+- Stage-level ordering across the tree. A parent waits for its children,
+  and a shared boundary is a leaf of its own, so interleaved stages
+  are not needed. Records and the log key on the Work, the action and the stage,
+  so they can be added later.
 - Whether defining a Work holds back on its dependencies, so the dependent's
   contract can cite the dependency's contract, while independent Works are
   defined in parallel. The first split exercise leans towards yes.
@@ -1820,15 +1820,15 @@ goal or skill. How well it produces it comes from the rules its tags select.
     the same lock id still means the same workflow.
   - **In a repository that does not use wio.** Contracts cannot live in its tree
     and `Wio-*` trailers cannot go into a history the team did not agree to, so
-    intent lives in the user's directory, such as
+    contracts live in the user's directory, such as
     `~/.agents/wio/projects/<repo>/works/`, keyed by the repository's identity
     as the event log is, and progress lives somewhere personal, such as the
-    event log or git notes in a local ref. "The working tree stores intent, the
-    history stores progress" becomes "the user's directory stores intent, local
-    notes store progress": coherent for one person, not shared. Open questions:
-    where personal Works and progress live, how the repository is identified,
-    and how personal Works move into the project, as its first contracts, when
-    the team adopts wio.
+    event log or git notes in a local ref. "The working tree stores contracts,
+    the history stores progress" becomes "the user's directory stores contracts,
+    local notes store progress": coherent for one person, not shared. Open
+    questions: where personal Works and progress live, how the repository is
+    identified, and how personal Works move into the project, as its first
+    contracts, when the team adopts wio.
 - Making an unknown metadata key an error when it is a near miss of a known key,
   within a small edit distance, while other unknown keys stay warnings.
 - The environment variables that harnesses set for their temp directory, to
