@@ -82,6 +82,11 @@ apply: a leaf gets the typed-boundary delivery, and a parent gets
 `roots = ["@descendants"]` and the integrate delivery. The intent section does
 not carry over.
 
+The draft requires only a Purpose, because that is all a fresh Work can supply.
+Works created by a split can sit in the tree for a while before they are
+defined, and they must still pass `wio contracts check`. The leaf and parent
+templates carry the stricter directives.
+
 The draft, the leaf and the parent are written together with the define stage,
 as one package. The engine knows none of this: it only checks the result
 against the template the contract names.

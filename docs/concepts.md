@@ -303,25 +303,18 @@ writer (using a safe load) and change the templates.
 
 ### Changing a contract
 
-Later stages can reveal that the contract was wrong or incomplete. That is
-normal, not a failure. A downstream stage **proposes** a change and the driver
-decides. The engine gives the decision two mechanisms:
+wio has no notion of a kind of change. A contract is a file: it is edited, or
+its Work's directory is deleted, in a commit like any other, and the commit
+carries a record of whichever action the driver ran. The rest follows from
+mechanisms described where they belong: which actions become stale is their
+`invalidated_by` (section 6), a dependency on a deleted Work is reported by
+`wio contracts check` (section 5), and the deleting commit's record is checked
+against `HEAD` (section 12).
 
-- A contract is edited, in a commit that carries a record of the action that
-  made the change. Which of the Work's actions become stale follows from their
-  `invalidated_by` (section 6), so a workflow decides how expensive a change is
-  by the action it runs the change through.
-- A Work is deleted with its directory. Git keeps its history, and every Work
-  that depends on it must be updated in the same change (section 5). The
-  deleting commit still carries a record, because `wio trailers` finds a Work
-  that the change deletes in `HEAD` (section 12).
-
-Which changes a workflow tells apart, and through which actions, is its own
-business. [wio's own workflow](workflow.md#5-changing-a-contract) tells
-abandoning, amending and ratifying apart.
-
-Changes to the contract file, including the step where a contract takes its
-final shape, are made in the repository and reviewed like any other change.
+Which changes a workflow tells apart, and through which actions, is the
+workflow's business. [wio's own workflow](workflow.md#5-changing-a-contract)
+tells amending, ratifying and abandoning apart, and
+[retires](workflow.md#retiring-a-contract) a contract once it is spent.
 
 ## 4. Templates and types
 
@@ -504,11 +497,10 @@ A contract is checked against the template it names, and only against it:
 - A `##` heading that the template does not have is a warning. A misspelled
   `## Constraint` would otherwise lose its inheritance without any error.
   Deeper headings are free.
-- An entry template should require only what a fresh Work can supply, such as a
-  purpose. Works created by a split can sit in the tree for a while before they
-  are defined, and they must still pass the check. Stricter templates, such as
-  a leaf or a parent, carry the stricter directives. This is guidance for
-  template authors; the engine rule is only "check against your template".
+- A fresh Work must pass the check too, so what an entry template requires
+  decides what a Work needs from its first commit. How strict each template is
+  belongs to the workflow; [wio's own](workflow.md#from-draft-to-leaf-or-parent)
+  is one example.
 - Changing a template changes the checks for every contract that follows it. A
   template change is a reviewed change, and `wio contracts check` lists the
   contracts it breaks, so they are fixed in the same change or moved to a new
@@ -627,10 +619,8 @@ depends_on = ["a7b2c4", "k3m9xq"]
   shows that record ("depends on removed Work `y4k2mq`, last record:
   `deliver`/`system-review`, pass"), and the dependency counts as satisfied for
   ordering and for the cycle check. wio does not interpret action names, so it
-  cannot tell a retired Work from an abandoned one; the driver reads the note.
-  When a Work was abandoned, its dependents should be rethought, and
-  `wio contracts show` lists them. When it was retired after delivery, the edge
-  stays true and nothing needs to change.
+  cannot tell why the Work was deleted; the driver reads the note and decides
+  whether the dependents still hold, and `wio contracts show` lists them.
 - A dependency means the other Work comes first. Which of its actions must have
   run is open (section 15). It applies to the Work that lists it and to no
   other: a parent's dependency holds back only that parent, and a child that
@@ -961,9 +951,8 @@ prints this advice. The driver follows it.
 
 ### What it is
 
-A gate is a point where work stops until a decision is made. The decision is one
-of: continue to the next stage, go back to an earlier stage, or change the
-contract.
+A gate is a point where work stops until the driver decides what comes next.
+The engine records how the artifact fared, and nothing about the decision.
 
 In the engine a gate is not a separate object. It is a stage marked
 `gate = true`, whose job is to judge the previous stage's artifact, and every
@@ -994,24 +983,16 @@ and the tool's default cannot produce it by accident.
 There is no gate object to learn and no approval flag, only stages marked
 `gate = true` that record a result.
 
-A gate after a stage that defines a Work is where wio's first need is met: a
-human confirms the understanding before expensive work starts. How
-[wio's own workflow](workflow.md#6-gates) builds that gate, and what it
-expects of a good gate, is part of that workflow.
+A gate is also where wio's first need is met: a human can confirm what is
+wanted before expensive work starts.
 
 ### What a gate decides
 
-Three outcomes, all of which are normal:
-
-- **Pass**: the next stage starts.
-- **Back-edge**: the artifact exposes a gap in an earlier stage's work. Work
-  returns to that stage.
-- **Contract change**: the contract was wrong. See section 3.
-
 The gate records one of the results the config declares, and the result only
 says how the artifact fared. What follows a result, whether the work goes on,
-goes back to an earlier stage or the contract changes, is the driver's
-decision, which no record states.
+goes back to an earlier stage (a **back-edge**) or the contract changes, is the
+driver's decision, which no record states. What each result means, and what a
+good gate looks like, are the [workflow's](workflow.md#6-gates).
 
 ### What the engine enforces
 
@@ -1418,9 +1399,9 @@ current stage. The working tree can still be queried for what is
 **derivable**: the Work tree, each Work's roots, and what a contract inherits.
 Which Works exist is whatever is in the working tree, committed or not.
 
-A change to a contract is different from progress. A contract that takes its
-final shape, or that gets its own `[actions]`, is an edit of a file that is made
-and reviewed in the repository. Which stage the Work is in, and whether it is
+A change to a contract is different from progress. An edit of a contract,
+including its own `[actions]`, is made and reviewed in the repository like an
+edit of any other file. Which stage the Work is in, and whether it is
 truly done, stay outside.
 
 Progress comes from two places: records in the git history, which are shared,
