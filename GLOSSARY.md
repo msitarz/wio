@@ -9,14 +9,14 @@ commit messages.
 | Work contract | A Work's `README.md`: a metadata block that wio reads, and a Markdown body in the sections of the template it follows. What the body states is the workflow's. |
 | Leaf | A Work without child Works. |
 | Parent | A Work with child Works. Its roots are the ones it lists; `@descendants` among them adds the union of its descendants' roots. |
-| Template | A markdown file that shapes a contract: sections, directives and a metadata block with the template's name, type, optional shape (leaf or parent) and default actions. |
-| Type | A kind of Work, such as `feature`, declared in the config with its entry template. A type groups templates. |
-| Entry template | The template of a type that new Works of that type start from. Declared in the config. |
+| Template | A markdown file that shapes a contract: sections, directives and a metadata block with the template's name, kind, optional shape (leaf or parent) and default actions. |
+| Kind | A sort of Work, such as `feature`, declared in the config with its entry template. A kind groups templates. |
+| Entry template | The template of a kind that new Works of that kind start from. Declared in the config. |
 | Metadata block | The TOML at the top of a contract, template or rule, in a hidden comment or between `+++` lines. |
 | Directive | A `wio:` instruction in an HTML comment on a template heading, such as `required` or `inherit`. |
 | Dependency | A Work id in `depends_on`: that Work must be delivered first. |
 | Action | A named kind of work done on a Work, such as `define` or `deliver`. Declared in the config with a description, the actions it comes after, what invalidates its work, and whether it is on demand; none are built in. Its pipeline is a stage preset or a list of stages. |
-| Config | The `.agents/wio/config.toml` file: types, actions, roots, stages, stage presets, rule presets, ruleset aliases, the always fields, results, skill directories, the trailer reader, and bundle settings. |
+| Config | The `.agents/wio/config.toml` file: kinds, actions, roots, stages, stage presets, rule presets, ruleset aliases, the always fields, results, skill directories, the trailer reader, and bundle settings. |
 | Root | A named set of directories (its `paths`) with one toolchain, whose rule presets select the rules for its code. Works and stages refer to it by name. |
 | Ruleset | A reusable collection of rule files with a `ruleset.toml` manifest, which may declare rule presets, named by its directory under `.agents/wio/rules/`. Bound to a root when the root's presets name it, or marked root-independent; the config may give it one alias. |
 | Stage | A named step: a goal or a skill, optional roots, the rules it includes and excludes, and a session policy. |

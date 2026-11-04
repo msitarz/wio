@@ -1,7 +1,7 @@
 # wio's own workflow
 
 The [core concepts](concepts.md) describe the engine and no process. This
-document describes the process this repository runs on the engine: its types,
+document describes the process this repository runs on the engine: its kinds,
 actions, stage presets, stages and gates, the rules each stage gets, and the
 reasons behind them. It is one
 workflow among many, and it shows how the concepts are meant to be combined.
@@ -12,7 +12,7 @@ defined in the [glossary](../GLOSSARY.md).
 
 ## 1. Overview
 
-The repository declares one type, `feature`, with three templates: a draft that
+The repository declares one kind, `feature`, with three templates: a draft that
 every new Work starts from, a leaf and a parent. Four actions work on a Work:
 
 | Action | Pipeline | What it does |
