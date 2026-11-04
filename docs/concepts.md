@@ -32,7 +32,7 @@ workflow's: its templates, its config and its rulesets. In
 one outcome and the behaviors that show it was achieved, but the engine never
 relies on that.
 
-The engine exists because a coding agent produces better work when three things
+The engine exists because an AI agent produces better work when three things
 are true, and each concept serves one of them:
 
 1. It knows what is wanted, and a human has confirmed that before expensive
