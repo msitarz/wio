@@ -46,14 +46,21 @@ working.
 
 ## Why
 
-An AI agent does better work when three things are true:
+When an agent's work goes wrong, it is usually for one of three reasons, and
+none of them is a lack of skill:
 
-1. It knows what is wanted, and a human confirmed that before expensive work
-   started.
-2. At each step it sees only the guidance that applies to that step, not every
-   rule the project has.
-3. A human or a fresh reviewer can stop the work at a chosen point and look at a
-   small artifact, not at a finished 800-line diff.
+- **It builds the wrong thing.** The request lived in a chat, and nobody
+  confirmed what "done" means. *With wio,* what is wanted is written into a
+  contract, and a gate lets a human confirm it before the expensive work
+  starts.
+- **It drowns in guidance.** Every rule the project has sits in one file, for
+  every step, and the rule that matters now is lost among the forty that do
+  not. *With wio,* each stage sees only the rules for that step and those
+  files.
+- **It hands you everything at once.** Your first chance to look is a finished
+  800-line diff or a finished report, when changing course costs the most.
+  *With wio,* the work runs in stages, and a gate stops it after each one, so
+  you review a small artifact while it is still cheap to change.
 
 ## Core concepts
 
