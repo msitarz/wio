@@ -48,6 +48,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Only the Ubuntu job is a required check on main. GitHub's macOS
+        # runners are often unavailable or time out, so macOS informs a merge
+        # but never blocks one.
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
