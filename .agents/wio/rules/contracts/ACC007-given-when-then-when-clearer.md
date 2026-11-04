@@ -1,7 +1,6 @@
 <!-- wio
 code = "ACC007"
 name = "given-when-then-when-clearer"
-tags = ["contract"]
 -->
 
 Use Given/When/Then for a criterion only when it makes the condition easier to

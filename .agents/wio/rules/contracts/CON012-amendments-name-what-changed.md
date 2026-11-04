@@ -1,7 +1,6 @@
 <!-- wio
 code = "CON012"
 name = "amendments-name-what-changed"
-tags = ["contract", "amend"]
 -->
 
 Name the ids of the criteria, assumptions and constraints an amendment changes

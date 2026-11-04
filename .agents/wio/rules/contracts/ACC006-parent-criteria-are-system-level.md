@@ -1,7 +1,6 @@
 <!-- wio
 code = "ACC006"
 name = "parent-criteria-are-system-level"
-tags = ["contract"]
 -->
 
 In a parent, state only the guarantees that the integrated result establishes; a

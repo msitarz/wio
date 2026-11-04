@@ -1,7 +1,6 @@
 <!-- wio
 code = "ACC003"
 name = "state-the-boundaries"
-tags = ["contract"]
 -->
 
 Include the preconditions and the expected results, and the failure, refusal,

@@ -1,7 +1,6 @@
 <!-- wio
 code = "CON013"
 name = "ratify-never-changes-a-guarantee"
-tags = ["contract", "ratify"]
 -->
 
 In a ratify, change wording, diagrams and links, but never what a criterion

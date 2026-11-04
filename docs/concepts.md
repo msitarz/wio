@@ -1057,7 +1057,7 @@ rule_presets = ["mp.recommended"]
 [[roots]]
 name         = "contract"
 paths        = [".agents/wio/works"]
-rule_presets = ["contracts.writing"]
+rule_presets = ["contracts.authoring"]
 ```
 
 A root has a `name`, which contracts and stages use, `paths`, a list of
@@ -1246,11 +1246,11 @@ description = "How to write and review Work contracts."
 CON = "Contract sections"
 ACC = "Acceptance criteria"
 
-[rule_presets.writing]
+[rule_presets.authoring]
 rules_include = ["CON", "ACC"]
 
 [rule_presets.review]
-rules_include = ["writing", "ACC009"]
+rules_include = ["authoring", "ACC009"]
 ```
 
 A ruleset is data: it can be copied from another repository, and copied again

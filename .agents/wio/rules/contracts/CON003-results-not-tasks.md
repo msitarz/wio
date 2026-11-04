@@ -1,7 +1,6 @@
 <!-- wio
 code = "CON003"
 name = "results-not-tasks"
-tags = ["contract"]
 -->
 
 State goals and acceptance criteria as results the Work makes possible, not as

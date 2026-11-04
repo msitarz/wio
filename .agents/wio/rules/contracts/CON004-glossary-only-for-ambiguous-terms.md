@@ -1,7 +1,6 @@
 <!-- wio
 code = "CON004"
 name = "glossary-only-for-ambiguous-terms"
-tags = ["contract"]
 -->
 
 Define a term in the Glossary only when its meaning in this Work could be read

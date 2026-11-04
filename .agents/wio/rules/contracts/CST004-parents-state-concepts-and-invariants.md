@@ -1,7 +1,6 @@
 <!-- wio
 code = "CST004"
 name = "parents-state-concepts-and-invariants"
-tags = ["contract"]
 -->
 
 In a parent, state the concepts and invariants, the responsibilities, the

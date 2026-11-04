@@ -1,7 +1,6 @@
 <!-- wio
 code = "DOC002"
 name = "describe-the-current-state"
-tags = ["promote"]
 -->
 
 Describe in a `README.md` its directory as it is now, with its architecture,

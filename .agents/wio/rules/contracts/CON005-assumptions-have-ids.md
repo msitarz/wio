@@ -1,7 +1,6 @@
 <!-- wio
 code = "CON005"
 name = "assumptions-have-ids"
-tags = ["contract"]
 -->
 
 Give every assumption an id (A-1, A-2, ...), and write "None." when there are

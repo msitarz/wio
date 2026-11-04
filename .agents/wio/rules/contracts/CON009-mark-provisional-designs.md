@@ -1,7 +1,6 @@
 <!-- wio
 code = "CON009"
 name = "mark-provisional-designs"
-tags = ["contract"]
 -->
 
 Say which designs in the contract are required and which are provisional.

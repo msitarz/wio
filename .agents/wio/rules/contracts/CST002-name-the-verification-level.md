@@ -1,7 +1,6 @@
 <!-- wio
 code = "CST002"
 name = "name-the-verification-level"
-tags = ["contract"]
 -->
 
 For every non-functional requirement, say whether the Work itself, an

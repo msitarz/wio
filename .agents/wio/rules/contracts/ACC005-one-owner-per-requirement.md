@@ -1,7 +1,6 @@
 <!-- wio
 code = "ACC005"
 name = "one-owner-per-requirement"
-tags = ["contract"]
 -->
 
 Give each requirement one owning Work, and link to it from other Works instead

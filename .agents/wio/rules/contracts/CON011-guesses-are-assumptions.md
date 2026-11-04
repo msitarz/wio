@@ -1,7 +1,6 @@
 <!-- wio
 code = "CON011"
 name = "guesses-are-assumptions"
-tags = ["contract", "review"]
 -->
 
 Check that everything the contract takes as given without the driver having

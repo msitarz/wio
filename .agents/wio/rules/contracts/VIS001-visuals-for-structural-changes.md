@@ -1,7 +1,6 @@
 <!-- wio
 code = "VIS001"
 name = "visuals-for-structural-changes"
-tags = ["contract"]
 -->
 
 Show proportionate before and after diagrams, in a Mermaid type GitHub renders,
