@@ -267,7 +267,7 @@ leaf, so the outcome becomes a parent with two leaves.
 
 - Parent criteria do not trace to the child criteria that establish them (v0.2
   or v0.3). The proposal is in
-  [concepts](concepts.md#tracking-criteria-planned). Parent constraints are not
+  [concepts](concepts.md#tracking-items-planned). Parent constraints are not
   covered.
 - Sibling contracts are not injected into context.
 - A flat split has no channel for shared constraints.
