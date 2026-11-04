@@ -115,7 +115,12 @@ and nothing is blocked. A known key with a wrong type, such as a string where a
 list belongs, is an error. Keys planned for later, such as `tracks` for tracking
 criteria, are reserved and do not warn. Data of a project's own goes under
 `[x]`, a table wio never reads and never warns about, so a template can carry,
-for example, a ticket key through `[contract.x]`.
+for example, a ticket key through `[contract.x]`:
+
+```toml
+[contract.x]
+ticket = ""      # in the template; the contract gets [x] ticket = ""
+```
 
 The title is the first heading and is stored nowhere else. There is no `parent`
 field, because the directory layout gives the hierarchy (see section 4).
@@ -284,17 +289,33 @@ block are ignored.
 
 ### Directives
 
-Directives tell `wio contracts check` what is mandatory. They live in HTML
-comments on the heading they govern, for example
-`## Goals <!-- wio: required, items>=1 -->`. They are invisible when the
-template is rendered, readable in the source, and parseable by a markdown
-parser. The grammar is small: `required`, `items` and `pattern`, and `inherit`.
+Directives tell wio what a template's sections mean: which are mandatory, what
+their content must look like, and which ones children inherit. A directive
+list is an HTML comment that starts with `wio:` at the end of a `##` heading of
+a template, with the directives separated by commas:
+
+```markdown
+## Purpose <!-- wio: required -->
+## Glossary <!-- wio: inherit -->
+## Acceptance criteria <!-- wio: required, items>=1, pattern=AC-\d+ -->
+```
+
+They are invisible when the template is rendered, readable in the source, and
+parseable by a markdown parser. The grammar is small:
+
+| Directive | Meaning |
+| --- | --- |
+| `required` | The heading is present in the contract. It says nothing about what is under it. |
+| `items>=N` | The section holds at least `N` items. |
+| `pattern=<regex>` | The section's items match the regular expression. |
+| `inherit` | The section is inheritable: a descendant's resolved view includes it (section 4). |
+
 Sections are **optional until marked required**, so the agent can choose
-sections based on the intent it gathered. `required` means the heading is
-present; it says nothing about what is under it, and authoring comments do not
-count as content. `items` and `pattern` check the content. So a Work fresh
-from its template passes a check that only requires headings, and a template
-that wants content says so with `items`.
+sections based on the intent it gathered. Authoring comments do not count as
+content, so a Work fresh from its template passes a check that only requires
+headings, and a template that wants content says so with `items`. What counts
+as an item, and how a `pattern` that holds a comma or `-->` is written, are
+open (section 14).
 
 A contract created from a template keeps the template's authoring comments in
 its body, because they are the guidance the agent follows while it fills each
@@ -391,10 +412,23 @@ enforce it.
 
 A child often needs constraints that its parent states. Instead of copying them
 into each child, a parent's template marks sections as **inheritable** with the
-`inherit` directive, for example its Glossary and its Constraints.
-`wio contracts show` can then print the leaf together with the inheritable
-sections of its ancestors. The agent reads one resolved view and never needs to
-open whole parent contracts.
+`inherit` directive on their headings:
+
+```markdown
+## Glossary <!-- wio: inherit -->
+## Constraints <!-- wio: inherit -->
+```
+
+To resolve a Work, wio walks up the directory tree to the Works directory. For
+each ancestor it reads the template that the ancestor's `template` field names,
+takes the `##` headings marked `inherit` there, and finds the ancestor
+contract's sections with the same heading text, matched as in "Checking a
+contract against its template" (section 3). The directive is read from the
+template and never from the contract, because contracts carry no directives.
+`wio contracts show` prints the Work together with those sections, and so does
+the resolved contract in a bundle (section 10). The agent reads one resolved
+view and never needs to open whole parent contracts. How the inherited sections
+are rendered is open (section 14).
 
 A leaf's own Constraints section holds only the constraints the leaf adds. The
 inherited ones are not restated, so they cannot drift.
@@ -672,7 +706,7 @@ A stage definition has these parts:
 | `roots` | Optional. Which roots the stage selects rules from (section 8). Without it, the stage uses the Work's roots. |
 | `gate` | Optional. `true` when the stage judges an artifact, so each of its records carries a result (section 7). |
 | `judge` | Optional, for a gate. `"human"` when a person must judge it (section 7). |
-| session policy | Whether the stage needs a fresh session, and whether later stages may continue its session. |
+| `session` | Optional. `"fresh"` when the stage needs a new session (see "Sessions" below). |
 
 ```toml
 [stages.define]
@@ -684,7 +718,10 @@ roots = ["contract"]
 goal = "Review the typed boundaries against the contract."
 tags = ["architecture", "review"]
 gate = true
+session = "fresh"
 ```
+
+The key that marks a stage as not continuable is open (section 14).
 
 A stage with only a goal and tags is valid. A stage with a skill hands its
 procedure to that skill. The engine does not care which; it prints the goal or
@@ -695,9 +732,10 @@ stage's skill exists and tell when it changed. A skill is a directory named
 after it that holds a `SKILL.md`, which is the shape harnesses use. wio looks
 for it in this order, and the first match wins:
 
-1. the directories in the config's `[skills] paths`, for skills meant only for
-   wio, which no harness loads by default and whose descriptions therefore never
-   take up an agent's context;
+1. the directories in the config's `[skills] paths`, such as
+   `paths = [".agents/wio/skills"]`, for skills meant only for wio, which no
+   harness loads by default and whose descriptions therefore never take up an
+   agent's context;
 2. the project directories harnesses read, such as `.agents/skills` and
    `.claude/skills`;
 3. the same directories in the user's home.
@@ -1054,7 +1092,11 @@ ERR = ["fix"]                           # the author's `bugfix` is our `fix`
 Tags connect rules to stages. A tag is a label from a vocabulary declared in the
 config (a rule's tags here are its effective tags, see above), similar to the
 categories in a linter (style, complexity, security). The vocabulary is declared
-so a misspelled tag is an error, not a rule that silently never loads.
+so a misspelled tag is an error, not a rule that silently never loads:
+
+```toml
+tags = ["contract", "architecture", "implementation", "testing", "review"]
+```
 
 A stage lists tags, and a rule lists tags. In v0.1 the matching rule is
 **all-of**: a rule applies to a stage only when **every** tag of the rule is
@@ -1592,7 +1634,8 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - Where `wio trailers` finds a contract's criterion ids, and what `items` and
   `pattern` count. Criteria are `### **AC-1** ...` subheadings in the templates,
   not list items, so the directive grammar must be able to apply to
-  subheadings. The directive-grammar Work settles it.
+  subheadings. How a `pattern` that contains a comma or `-->` is written is
+  open too. The directive-grammar Work settles both.
 - How the resolved view renders inherited sections: their heading levels,
   their order relative to the Work's own sections, and how each names the
   ancestor it comes from. The contract Work settles it before golden tests fix
