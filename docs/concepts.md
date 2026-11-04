@@ -44,7 +44,8 @@ are true, and each concept serves one of them:
 
 | Need | Concept |
 | --- | --- |
-| Know what is wanted | **Work contract**, written from a **template** |
+| Know what is wanted | **Work contract** |
+| Give contracts of one kind the same shape, checks and defaults | **Template** |
 | Break big work into small pieces | **Nesting** (parent and leaf Works) |
 | Name the kinds of work done on a Work | **Action**, declared by the project |
 | Do an action in separate steps | **Stage** |
@@ -190,9 +191,13 @@ design but their exact form is not settled yet (section 15).
 
 A Work contract is the `README.md` of a Work: a metadata block that wio reads,
 and a Markdown body that agents and people read. wio uses the metadata to find
-the Work's template, roots, dependencies and actions, checks the body's
-headings against the template, and puts the body into bundles as written. What
-the body states is the template's business.
+the Work's roots, dependencies and actions, and puts the body into bundles as
+written.
+
+Every contract also names a **template** (section 4). Contracts of one kind
+share a template, which gives them their sections, the checks those sections
+must pass and their default actions. This section describes the contract on
+its own, and section 4 adds what the template supplies.
 
 A contract holds no progress: wio writes none into it and reads none from it.
 The reason is mechanical. Progress changes with every stage. If it lived in the
@@ -223,14 +228,14 @@ deliver = ["implementation"]
 ```
 
 - `id`: a short random id.
-- `template`: the name of the template this contract follows. The template
-  carries the type, the sections and the default actions.
+- `template`: the name of the template this contract follows (section 4).
+  Required.
 - `roots`: the names of the roots the Work touches (see section 5). It may be
   empty, for example while a Work is still being defined.
 - `depends_on`: an optional array of Work ids that this Work waits for (see
   section 5).
-- `[actions]`: optional. Each action it names replaces that action of the
-  template, and the others are inherited (see section 6).
+- `[actions]`: optional. The pipelines of the Work's actions, where it differs
+  from its template's defaults (see section 6).
 
 Contract metadata carries no comments. Explanations belong to the template.
 
@@ -241,20 +246,19 @@ and nothing is blocked. A known key with a wrong type, such as a string where a
 list belongs, is an error. Keys planned for later, such as `tracks` for tracking
 items, are reserved and do not warn. Data of a project's own goes in a table
 named exactly `[x]`. wio skips whatever it holds and never warns about it, while
-a table of any other unknown name warns like any unknown key. A template can
-carry, for example, a ticket key through `[contract.x]`:
+a table of any other unknown name warns like any unknown key:
 
 ```toml
-[contract.x]
-ticket = ""      # in the template; the contract gets [x] ticket = ""
+[x]
+ticket = "PAY-142"
 ```
 
 The title is the first heading and is stored nowhere else. There is no `parent`
 field, because the directory layout gives the hierarchy (see section 5).
 
-The body is prose, in the sections the template gives it. wio reads its first
-heading as the title and its `##` headings to check them against the template
-and to find inheritable sections; the rest it passes into bundles as written.
+The body is prose. wio reads its first heading as the title and its `##`
+headings, which section 4 checks against the template; the rest it passes into
+bundles as written.
 
 Why prose and not a strict schema? Because the reader is mostly an agent, and an
 agent reads prose well. wio only needs the metadata and a few headings, so only
@@ -319,9 +323,24 @@ final shape, are made in the repository and reviewed like any other change.
 
 ### What a template is
 
-A template is a markdown file that shapes a contract: instructional comments,
-directives and a metadata block. Its metadata describes the template itself and
-what the contracts made from it look like:
+A template is a markdown file that contracts of one kind follow. A contract
+names it in `template`, and the template supplies the rest of what the
+contract means to wio. Only the starting metadata is copied; everything else
+is read from the template whenever wio reads the contract, so a change to the
+template reaches every contract that follows it:
+
+| The template supplies | How |
+| --- | --- |
+| The starting metadata, such as `roots`, `depends_on` and `[x]` | Copied once, when `wio contracts new` creates the contract |
+| The starting body: headings and authoring comments | Copied once, the same way |
+| The default actions | Read live; a contract's own `[actions]` replace them per action |
+| The type, which rules can be restricted to | Read live |
+| The directives: the checks on its sections, item ids and inheritance | Read live; contracts carry no directives |
+| The expected `shape`, leaf or parent | Read live |
+
+On disk, a template holds instructional comments, directives and a metadata
+block. Its metadata describes the template itself and what the contracts made
+from it look like:
 
 ```markdown
 <!-- wio
@@ -359,7 +378,13 @@ contract skeleton. The `[contract]` table is promoted to the top level
 (`[contract.foo]` becomes `[foo]`), and the template's own keys (`name`, `type`,
 `shape`, `description` and `[actions]`) are dropped. wio always sets `id` and
 `template` itself, even if the template specifies them, and it removes comments
-from the metadata, because they belong to the template author.
+from the metadata, because they belong to the template author. So a template
+can, for example, give every contract a ticket key to fill in:
+
+```toml
+[contract.x]
+ticket = ""      # in the template; the contract gets [x] ticket = ""
+```
 
 A contract created from a template therefore has exactly the shape the template
 describes, and the agent that fills it in sees that shape. `wio contracts
