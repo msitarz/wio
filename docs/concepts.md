@@ -954,7 +954,7 @@ valid, and its session still gets the contract and the rules.
 Real work goes back and forth. Implementation may show that the architecture
 needs redoing. A review may send the work back one step. The engine therefore
 treats stages as a **set of named steps**, and the order is a stage preset
-([Stage rule presets](#13-stage-presets-process-built-on-the-engine)) that a
+([Stage presets](#13-stage-presets-process-built-on-the-engine)) that a
 driver follows, not a rule the engine enforces.
 
 ### Who knows which stage is current
@@ -1603,8 +1603,8 @@ Properties that matter:
   of the given action for this Work is only a warning, because the driver
   decides. wio checks the pair: `deliver` with the stage `define` warns even
   though `define` is one of the Work's stages.
-- **Explainable**: `wio context` can list why each rule was included or
-  excluded.
+- **Explainable**: `wio rules list --explain` lists why each rule was included
+  or excluded, without changing the bundle.
 - **Sized**: harnesses truncate long command output, and a truncated bundle
   looks complete. The header states the size, an optional threshold in the
   config turns an oversized bundle into a warning, and `--output` writes the
