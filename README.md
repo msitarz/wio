@@ -15,11 +15,11 @@ compiled: which stages an action runs, which rules a stage sees, and
 which sections a contract inherits from its parents. There is no server and no
 database.
 
-Progress lives where the code does. Every commit carries `Wio-*` git trailers
-that say which Work and stage it belongs to, so wio reads where each Work
-stands from the git history, and a contract never needs a status field. A
-personal event log adds which agent session ran each stage and which rules it
-received. Joined with the harness's transcripts, it tells you what each
+Progress lives in the commit messages, not in the files. Every commit carries
+`Wio-*` git trailers that say which Work and stage it belongs to, so wio reads
+where each Work stands from the git history, and a contract never needs a status
+field. A personal event log adds which agent session ran each stage and which
+rules it received. Joined with the harness's transcripts, it tells you what each
 contract and each stage cost in tokens, how many review rounds a stage needed
 before it passed, and whether a rule earns its place.
 
