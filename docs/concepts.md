@@ -86,104 +86,108 @@ flowchart LR
 
 wio reads a small set of names and markers in a project's files, and nothing
 else in them. This section lists them by the file they appear in, each with its
-purpose and the section that defines it. Entries marked *open* are named by the
-design but their exact form is not settled yet (section 15).
+presence, its purpose and the section that defines it. Presence is *required*,
+*optional* or *reserved* where the design says so, and *open* where it does
+not say yet; elsewhere, too, *open* marks a form that is not settled
+(section 15). A dash means presence does not apply.
 
 ### A Work's `README.md`
 
-| Symbol | Purpose | See |
-| --- | --- | --- |
-| `<!-- wio ... -->` or `+++` | The metadata block that makes a directory's `README.md` a Work. | [Anatomy](#anatomy), [Metadata forms](#metadata-forms) |
-| `id` | The Work's short random id, which dependencies, records and the event log key on. | [Identity and location](#identity-and-location) |
-| `template` | The template the contract follows, which gives its sections, checks and default actions. | [Anatomy](#anatomy) |
-| `roots` | The roots the Work touches, which select its rules. | [Roots of a Work](#roots-of-a-work) |
-| `depends_on` | The Works this one waits for. | [Dependencies](#dependencies) |
-| `[actions]` | The actions whose pipelines the Work replaces. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
-| `[x]` | The one table for the project's own data: wio skips its contents, while any other unknown key gets a warning. | [Anatomy](#anatomy) |
-| `tracks` | Reserved: which items of other Works an item contributes to. | [Tracking items](#tracking-items-planned) |
-| First heading | The Work's title. | [Anatomy](#anatomy) |
-| `##` headings | The sections checked against the template, and the ones a descendant inherits. | [Checking a contract](#checking-a-contract-against-its-template) |
-| Directory layout | A subdirectory that is a Work is a child, so the tree is the hierarchy. | [Parent and leaf](#parent-and-leaf) |
+| Symbol | Presence | Purpose | See |
+| --- | --- | --- | --- |
+| `<!-- wio ... -->` or `+++` | *required* | The metadata block that makes a directory's `README.md` a Work. | [Anatomy](#anatomy), [Metadata forms](#metadata-forms) |
+| `id` | *required* | The Work's short random id, which dependencies, records and the event log key on. | [Identity and location](#identity-and-location) |
+| `template` | *required* | The template the contract follows, which gives its sections, checks and default actions. | [Anatomy](#anatomy) |
+| `roots` | *optional* | The roots the Work touches, which select its rules. | [Roots of a Work](#roots-of-a-work) |
+| `depends_on` | *optional* | The Works this one waits for. | [Dependencies](#dependencies) |
+| `[actions]` | *optional* | The actions whose pipelines the Work replaces. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
+| `[x]` | *optional* | The one table for the project's own data: wio skips its contents, while any other unknown key gets a warning. | [Anatomy](#anatomy) |
+| `tracks` | *reserved* | Planned: which items of other Works an item contributes to. | [Tracking items](#tracking-items-planned) |
+| First heading | *open* | The Work's title. | [Anatomy](#anatomy) |
+| `##` headings | — | The sections checked against the template, and the ones a descendant inherits. | [Checking a contract](#checking-a-contract-against-its-template) |
+| Directory layout | — | A subdirectory that is a Work is a child, so the tree is the hierarchy. | [Parent and leaf](#parent-and-leaf) |
 
 ### A template
 
-| Symbol | Purpose | See |
-| --- | --- | --- |
-| `name` | The template's unique name, which contracts and `[types]` refer to. | [What a template is](#what-a-template-is) |
-| `type` | The declared type the template serves. | [Types and entry templates](#types-and-entry-templates) |
-| `description` | What tools show when they list templates. | [What a template is](#what-a-template-is) |
-| `shape` | `"leaf"` or `"parent"`, the shape of Work the author expected. | [What a template is](#what-a-template-is) |
-| `[actions]` | The default pipeline of each action. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
-| `[contract]` | The metadata of the contracts the template produces. | [From template to contract](#from-template-to-contract) |
-| `<!-- wio: required -->` | The section must be present in the contract. | [Directives](#directives) |
-| `<!-- wio: items>=N -->` | The section must hold at least `N` items; what counts is *open*. | [Directives](#directives) |
-| `<!-- wio: pattern=... -->` | The section's items must match a regular expression, and the matches are their item ids; its quoting is *open*. | [Directives](#directives), [Item ids](#item-ids) |
-| `<!-- wio: inherit -->` | The section is included in every descendant's resolved view. | [Inheritance, computed](#inheritance-computed) |
+| Symbol | Presence | Purpose | See |
+| --- | --- | --- | --- |
+| `name` | *required* | The template's unique name, which contracts and `[types]` refer to. | [What a template is](#what-a-template-is) |
+| `type` | *required* | The declared type the template serves. | [Types and entry templates](#types-and-entry-templates) |
+| `description` | *open* | What tools show when they list templates. | [What a template is](#what-a-template-is) |
+| `shape` | *optional* | `"leaf"` or `"parent"`, the shape of Work the author expected. | [What a template is](#what-a-template-is) |
+| `[actions]` | *open* | The default pipeline of each action. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
+| `[contract]` | *open* | The metadata of the contracts the template produces. | [From template to contract](#from-template-to-contract) |
+| `<!-- wio: required -->` | *optional* | The section must be present in the contract. | [Directives](#directives) |
+| `<!-- wio: items>=N -->` | *optional* | The section must hold at least `N` items; what counts is *open*. | [Directives](#directives) |
+| `<!-- wio: pattern=... -->` | *optional* | The section's items must match a regular expression, and the matches are their item ids; its quoting is *open*. | [Directives](#directives), [Item ids](#item-ids) |
+| `<!-- wio: inherit -->` | *optional* | The section is included in every descendant's resolved view. | [Inheritance, computed](#inheritance-computed) |
 
 ### A rule file
 
-| Symbol | Purpose | See |
-| --- | --- | --- |
-| `code` | The rule's identifier, whose letters are its family. | [Codes and families](#codes-and-families) |
-| `name` | The rule's readable name, shown with its code. | [Codes and families](#codes-and-families) |
-| `tags` | Which stages see the rule: every tag must be among the stage's. | [Tags](#tags) |
-| `types` | Optional: the types of Work the rule is restricted to. | [What else filters a rule](#what-else-filters-a-rule) |
-| Body | The text a bundle shows as written: instruction, `Why:` and `Example:`. | [What a rule is](#what-a-rule-is) |
+| Symbol | Presence | Purpose | See |
+| --- | --- | --- | --- |
+| `code` | *required* | The rule's identifier, whose letters are its family. | [Codes and families](#codes-and-families) |
+| `name` | *required* | The rule's readable name, shown with its code. | [Codes and families](#codes-and-families) |
+| `tags` | *optional* | Which stages see the rule: every tag must be among the stage's. | [Tags](#tags) |
+| `types` | *optional* | The types of Work the rule is restricted to. | [What else filters a rule](#what-else-filters-a-rule) |
+| Body | — | The text a bundle shows as written: instruction, `Why:` and `Example:`. | [What a rule is](#what-a-rule-is) |
 
 ### A ruleset's `ruleset.toml`
 
-| Symbol | Purpose | See |
-| --- | --- | --- |
-| `name` | The ruleset's name, equal to its directory's. | [Rulesets on disk](#rulesets-on-disk) |
-| `description` | What the ruleset is for. | [Rulesets on disk](#rulesets-on-disk) |
-| `[families]` | The code prefixes the ruleset owns, with their topics. | [Codes and families](#codes-and-families) |
+| Symbol | Presence | Purpose | See |
+| --- | --- | --- | --- |
+| `name` | *required* | The ruleset's name, equal to its directory's. | [Rulesets on disk](#rulesets-on-disk) |
+| `description` | *open* | What the ruleset is for. | [Rulesets on disk](#rulesets-on-disk) |
+| `[families]` | *open* | The code prefixes the ruleset owns, with their topics. | [Codes and families](#codes-and-families) |
 
 ### The config
 
-| Symbol | Purpose | See |
-| --- | --- | --- |
-| `tags` | The tag vocabulary, so a misspelled tag is an error. | [Tags](#tags) |
-| `results` | The results a gate can record. | [The event log](#the-event-log) |
-| `[types]` | The valid types, each with its entry template. | [Types and entry templates](#types-and-entry-templates) |
-| `[actions.<name>]` | An action, with its `description`, `after`, `invalidated_by` and `on_demand`. | [What an action is](#what-an-action-is), [What `wio next` proposes](#what-wio-next-proposes) |
-| `[[roots]]` | A root: its `name`, its `paths` and the `rulesets` bound to it. | [Roots and rulesets](#9-roots-and-rulesets) |
-| `[stages.<name>]` | A stage, with its `goal` or `skill`, `tags`, `roots`, `gate`, `judge` and `session`. | [Stage](#7-stage) |
-| `[presets]` | Named, ordered lists of stages. | [Presets](#13-presets-process-built-on-the-engine) |
-| `[rulesets.<name>]` | Which rules of a ruleset are chosen, with `include`, `exclude`, `tags` and `types`. | [Choosing rules from a ruleset](#choosing-rules-from-a-ruleset) |
-| `[skills] paths` | Where wio looks for skills first. | [Stage](#7-stage) |
-| `[trailers] reader` | How records are read from messages: `scan` or `git`. | [Reading records](#reading-records) |
-| Bundle settings | A size threshold and the separator between rules; their keys are *open*. | [The context compiler](#11-the-context-compiler) |
+| Symbol | Presence | Purpose | See |
+| --- | --- | --- | --- |
+| `tags` | *open* | The tag vocabulary, so a misspelled tag is an error. | [Tags](#tags) |
+| `results` | *open* | The results a gate can record. | [The event log](#the-event-log) |
+| `[types]` | *open* | The valid types, each with its entry template. | [Types and entry templates](#types-and-entry-templates) |
+| `[actions.<name>]` | *open* | An action, with its `description`, `after`, `invalidated_by` and `on_demand`. | [What an action is](#what-an-action-is), [What `wio next` proposes](#what-wio-next-proposes) |
+| `[[roots]]` | *open* | A root: its `name`, its `paths` and the `rulesets` bound to it. | [Roots and rulesets](#9-roots-and-rulesets) |
+| `[stages.<name>]` | *open* | A stage: a `goal` or a `skill` is required, `tags` is *open*, and `roots`, `gate`, `judge` and `session` are optional. | [Stage](#7-stage) |
+| `[presets]` | *open* | Named, ordered lists of stages. | [Presets](#13-presets-process-built-on-the-engine) |
+| `[rulesets.<name>]` | *optional* | Which rules of a ruleset are chosen, with `include`, `exclude`, `tags` and `types`. | [Choosing rules from a ruleset](#choosing-rules-from-a-ruleset) |
+| `[skills] paths` | *open* | Where wio looks for skills first. | [Stage](#7-stage) |
+| `[trailers] reader` | *optional* | How records are read from messages: `scan` or `git`. | [Reading records](#reading-records) |
+| Bundle settings | *optional* | A size threshold and the separator between rules; their keys are *open*. | [The context compiler](#11-the-context-compiler) |
 
 ### Tokens
 
-| Symbol | Purpose | See |
-| --- | --- | --- |
-| `@descendants` | In `roots`, the union of the descendants' roots. | [Roots of a Work](#roots-of-a-work) |
-| `@work` | In a stage's `roots`, the Work's roots. | [Which roots a stage selects](#which-roots-a-stage-selects) |
-| `@descendants:<action>` | In `invalidated_by`, that action on any descendant. | [What `wio next` proposes](#what-wio-next-proposes) |
-| `@dependencies:<action>` | In `invalidated_by`, that action on the Works in `depends_on`. | [What `wio next` proposes](#what-wio-next-proposes) |
+| Symbol | Presence | Purpose | See |
+| --- | --- | --- | --- |
+| `@descendants` | — | In `roots`, the union of the descendants' roots. | [Roots of a Work](#roots-of-a-work) |
+| `@work` | — | In a stage's `roots`, the Work's roots. | [Which roots a stage selects](#which-roots-a-stage-selects) |
+| `@descendants:<action>` | — | In `invalidated_by`, that action on any descendant. | [What `wio next` proposes](#what-wio-next-proposes) |
+| `@dependencies:<action>` | — | In `invalidated_by`, that action on the Works in `depends_on`. | [What `wio next` proposes](#what-wio-next-proposes) |
 
 ### Commit messages
 
-| Symbol | Purpose | See |
-| --- | --- | --- |
-| `Wio-Work`, `Wio-Action`, `Wio-Stage` | The Works, action and stage a commit is work on. | [Records](#records) |
-| `Wio-Criteria` | The item ids the commit addresses, such as acceptance criteria. | [Records](#records) |
-| `Wio-Result`, `Wio-Judge` | A gate's result, and who judged it. | [Records](#records) |
-| `Merge`, `Revert`, `Reapply`, `fixup!`, `squash!` | Subjects of commits that need no record. | [Records](#records) |
-| `This reverts commit <sha>.` | Takes the records of the reverted commit back. | [Records](#records) |
+| Symbol | Presence | Purpose | See |
+| --- | --- | --- | --- |
+| `Wio-Work` | *required* | The Works a commit is work on, or `none`. | [Records](#records) |
+| `Wio-Action`, `Wio-Stage` | *required* unless `Wio-Work: none` | The action and stage the commit is work on. | [Records](#records) |
+| `Wio-Criteria` | *optional* | The item ids the commit addresses, such as acceptance criteria. | [Records](#records) |
+| `Wio-Result` | *required* on a gate, absent elsewhere | The gate's result. | [Records](#records) |
+| `Wio-Judge` | *optional*, on a gate | Who judged the gate; without it, a human did. | [Records](#records) |
+| `Merge`, `Revert`, `Reapply`, `fixup!`, `squash!` | — | Subjects of commits that need no record. | [Records](#records) |
+| `This reverts commit <sha>.` | — | Takes the records of the reverted commit back. | [Records](#records) |
 
 ### Environment and paths
 
-| Symbol | Purpose | See |
-| --- | --- | --- |
-| `$WIO_HOME` | The Wio home, where the event log lives; `~/.agents/wio` by default. | [The Wio home](#the-wio-home) |
-| `$TMPDIR` | Where a bundle is written when no path is given. | [The context compiler](#11-the-context-compiler) |
-| `.agents/wio/config.toml` | The config. | [Glossary](../GLOSSARY.md) |
-| `.agents/wio/works/` | The Works directory. | [Identity and location](#identity-and-location) |
-| Templates directory | The templates; a file without a `wio` block is ignored. | [Types and entry templates](#types-and-entry-templates) |
-| `.agents/wio/rules/` | The repository's rulesets, one directory each. | [Rulesets on disk](#rulesets-on-disk) |
-| `<dir>/<skill>/SKILL.md` | A skill a stage names, in the skill paths or a harness's skill directories. | [Stage](#7-stage) |
+| Symbol | Presence | Purpose | See |
+| --- | --- | --- | --- |
+| `$WIO_HOME` | *optional* | The Wio home, where the event log lives; `~/.agents/wio` by default. | [The Wio home](#the-wio-home) |
+| `$TMPDIR` | — | Where a bundle is written when no path is given. | [The context compiler](#11-the-context-compiler) |
+| `.agents/wio/config.toml` | — | The config. | [Glossary](../GLOSSARY.md) |
+| `.agents/wio/works/` | — | The Works directory. | [Identity and location](#identity-and-location) |
+| Templates directory | — | The templates; a file without a `wio` block is ignored. | [Types and entry templates](#types-and-entry-templates) |
+| `.agents/wio/rules/` | — | The repository's rulesets, one directory each. | [Rulesets on disk](#rulesets-on-disk) |
+| `<dir>/<skill>/SKILL.md` | — | A skill a stage names, in the skill paths or a harness's skill directories. | [Stage](#7-stage) |
 
 ## 3. Work contract
 
