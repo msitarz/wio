@@ -112,8 +112,8 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
-| `name` | *required* | The template's unique name, which contracts and `[types]` refer to. | [What a template is](#what-a-template-is) |
-| `type` | *required* | The declared type the template serves. | [Types and entry templates](#types-and-entry-templates) |
+| `name` | *required* | The template's unique name, which contracts and `[kinds]` refer to. | [What a template is](#what-a-template-is) |
+| `kind` | *required* | The declared kind the template serves. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `description` | *open* | What tools show when they list templates. | [What a template is](#what-a-template-is) |
 | `shape` | *optional* | `"leaf"` or `"parent"`, the shape of Work the author expected. | [What a template is](#what-a-template-is) |
 | `[actions]` | *open* | The default pipeline of each action. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
@@ -144,7 +144,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
 | `results` | *open* | The results a gate can record. | [The event log](#the-event-log) |
-| `[types]` | *open* | The valid types, each with its entry template. | [Types and entry templates](#types-and-entry-templates) |
+| `[kinds]` | *open* | The valid kinds, each with its entry template. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `[actions.<name>]` | *open* | An action, with its `description`, `after`, `invalidated_by` and `on_demand`. | [What an action is](#what-an-action-is), [What `wio next` proposes](#what-wio-next-proposes) |
 | `[roots.<name>]` | *open* | A root: its `paths`, and its `rule_presets` (*optional*), which select its rules. | [Roots and rulesets](#9-roots-and-rulesets) |
 | `[stages.<name>]` | *open* | A stage: a `goal` or a `skill` is required, and `rules_include`, `rules_exclude`, `roots`, `gate`, `judge` and `session` are optional. | [Stage](#7-stage) |
@@ -188,7 +188,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `$TMPDIR` | — | Where a bundle is written when no path is given. | [The context compiler](#11-the-context-compiler) |
 | `.agents/wio/config.toml` | — | The config. | [Glossary](../GLOSSARY.md) |
 | `.agents/wio/works/` | — | The Works directory. | [Identity and location](#identity-and-location) |
-| Templates directory | — | The templates; a file without a `wio` block is ignored. | [Types and entry templates](#types-and-entry-templates) |
+| Templates directory | — | The templates; a file without a `wio` block is ignored. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `.agents/wio/rules/` | — | The repository's rulesets, one directory each. | [Rulesets on disk](#rulesets-on-disk) |
 | `<dir>/<skill>/SKILL.md` | — | A skill a stage names, in the skill paths or a harness's skill directories. | [Stage](#7-stage) |
 
@@ -216,10 +216,10 @@ two reasons:
   directory removes them with the contract, and git keeps both.
 
 Every contract also names a **template**
-([Templates and types](#4-templates-and-types)). Contracts of one kind share a
+([Templates and kinds](#4-templates-and-kinds)). Contracts of one kind share a
 template, which gives them their sections, the checks those sections must pass
 and their default actions. This section describes the contract on its own, and
-[Templates and types](#4-templates-and-types) adds what the template supplies.
+[Templates and kinds](#4-templates-and-kinds) adds what the template supplies.
 
 A contract holds no progress: wio writes none into it and reads none from it.
 The reason is mechanical. Progress changes with every stage. If it lived in the
@@ -339,7 +339,7 @@ workflow's business. [wio's own workflow](workflow.md#5-changing-a-contract)
 tells amending, ratifying and abandoning apart, and
 [retires](workflow.md#retiring-a-contract) a contract once it is spent.
 
-## 4. Templates and types
+## 4. Templates and kinds
 
 ### What a template is
 
@@ -354,7 +354,7 @@ template reaches every contract that follows it:
 | The starting metadata, such as `roots`, `depends_on` and `[x]` | Copied once, when `wio contracts new` creates the contract |
 | The starting body: headings and authoring comments | Copied once, the same way |
 | The default actions | Read live; a contract's own `[actions]` replace them per action |
-| The type | Read live |
+| The kind | Read live |
 | The directives: the checks on its sections, item ids and inheritance | Read live; contracts carry no directives |
 | The expected `shape`, leaf or parent | Read live |
 
@@ -365,7 +365,7 @@ from it look like:
 ```markdown
 <!-- wio
 name = "feature.leaf"
-type = "feature"
+kind = "feature"
 description = "A capability delivered directly as one coherent outcome."
 
 [actions]
@@ -379,7 +379,7 @@ depends_on = []
 
 - `name` is the template's unique name. Two templates cannot share a name, and
   the file name does not matter.
-- `type` is the template's type, one of the types the config declares.
+- `kind` is the template's kind, one of the kinds the config declares.
 - `description` is what tools show when they list templates.
 - `shape` is optional: `"leaf"` or `"parent"`, the shape of Work the template
   is for. `wio contracts check` warns when a Work's children do not match it:
@@ -396,7 +396,7 @@ depends_on = []
 
 When wio creates a contract from a template, it prepares the template as a
 contract skeleton. The `[contract]` table is promoted to the top level
-(`[contract.foo]` becomes `[foo]`), and the template's own keys (`name`, `type`,
+(`[contract.foo]` becomes `[foo]`), and the template's own keys (`name`, `kind`,
 `shape`, `description` and `[actions]`) are dropped. wio always sets `id` and
 `template` itself, even if the template specifies them, and it removes comments
 from the metadata, because they belong to the template author. So a template
@@ -425,18 +425,18 @@ does not carry, so nothing is dropped silently; standard output stays the
 skeleton. A stage that moves a Work to another template uses `--work`, so the
 Work keeps its id and its records.
 
-### Types and entry templates
+### Kinds and entry templates
 
-The config declares the valid types, and for each type its **entry template**:
-the template that new Works of that type start from.
+The config declares the valid kinds, and for each kind its **entry template**:
+the template that new Works of that kind start from.
 
 ```toml
-[types]
+[kinds]
 feature = "feature.draft"
 bugfix = "bugfix"
 ```
 
-A type groups templates that serve one kind of Work. A type can have any
+A kind groups templates that serve one sort of Work. A kind can have any
 number of templates (a draft, a leaf, a parent, or seven others), each with its
 own actions. wio gives them no level or shape: which template a contract follows
 is the contract's `template` field, and that decides its sections and its
@@ -445,16 +445,16 @@ template can also be chosen by name.
 
 How a Work moves from its entry template to another one, for example from a
 draft to a leaf or a parent, is a procedure of the stages that define it. wio
-does not know about it. It only checks the result. So a type's templates and
+does not know about it. It only checks the result. So a kind's templates and
 the skills of its define stages are written together, as one package: the
-skills know which templates the type has, name them, and print them with
+skills know which templates the kind has, name them, and print them with
 `wio contracts template <name> --work <id>`, and the agent rewrites the contract
 in the chosen shape. wio does not rewrite contracts itself.
 
-`wio config check` fails when a type's entry template does not exist or has
-another type, and when a template names a type that is not declared.
+`wio config check` fails when a kind's entry template does not exist or has
+another kind, and when a template names a kind that is not declared.
 
-Anyone can add a template, and with it a type, and that is the main extension
+Anyone can add a template, and with it a kind, and that is the main extension
 point for projects. Files in the templates directory without a `wio` metadata
 block are ignored.
 
@@ -859,8 +859,8 @@ this.
 `wio contracts check` and `wio config check` verify mechanically what wio relies
 on, and they do not judge how a workflow is built:
 
-- Every contract names an existing template, and the template's type is a
-  declared type. Every type's entry template exists and has that type.
+- Every contract names an existing template, and the template's kind is a
+  declared kind. Every kind's entry template exists and has that kind.
 - No two contracts share an id, and every directory between the Works directory
   and a Work is itself a Work.
 - The actions a contract resolves to are not empty, and each pipeline has at
@@ -1342,7 +1342,7 @@ rules_exclude = ["mp.DOC004"]
   ruleset cannot define a rule preset of that name.
 
 A rule preset that several roots or stages share is how a repository says
-something once. Three templates of one type that need the same rules for
+something once. Three templates of one kind that need the same rules for
 delivery give their `deliver` pipelines stages that include one rule preset, so
 a change for every such Work is made once.
 
@@ -1451,9 +1451,9 @@ selection:
 - One action runs different stages in different templates: a parent's
   `deliver` is not a leaf's. Rules for a whole action would reach stages they
   were never written for.
-- Guidance for writing a contract of one type belongs in its template's
+- Guidance for writing a contract of one kind belongs in its template's
   authoring comments and directives, next to the sections it is about.
-- A procedure that only one type needs is a stage of that template's pipeline,
+- A procedure that only one kind needs is a stage of that template's pipeline,
   such as a `reproduce` stage in a bugfix template's `deliver`, and that stage
   selects the rules it needs. A different procedure is a different stage.
 - Rules that a Work needs because of the code it touches belong to a root the
@@ -1542,7 +1542,7 @@ be noise.
 agent session read before it starts?*
 
 Inputs: a Work id, an action and a stage. The Work always exists first: new work
-starts with `wio contracts new <type>`, which creates the Work from the type's
+starts with `wio contracts new <kind>`, which creates the Work from the kind's
 entry template, and writing its contract then runs as stages of an action like
 any other. `wio context` reads the contract and its ancestors, the stage
 definition, the rule presets of the roots the stage selects, the always fields,
@@ -2005,7 +2005,7 @@ and its own selection give it.
   only to hooks. If not, events join to transcripts by time window and working
   directory.
 - The config schema: the exact field names for stage session policy, and the
-  names of the config tables (`[types]`, `[actions]`, `[stages]`,
+  names of the config tables (`[kinds]`, `[actions]`, `[stages]`,
   `[stage_presets]`, `[rule_presets]`, `[rulesets]`, `[trailers]`).
 - Whether rule files accept `+++` front matter as well. The rule example above
   uses the `<!-- wio -->` block, as contracts do.
@@ -2081,7 +2081,7 @@ and its own selection give it.
     up as a mismatch.
   - It is the natural unit of evaluation: two commits, each with its
     `wio.lock`, run the same Work, and the results are compared by a skill, a
-    human gate, or both. An evaluation is then a Work of its own type, with its
+    human gate, or both. An evaluation is then a Work of its own kind, with its
     own template and actions, so the evaluation harness uses the engine rather
     than sitting beside it.
 - Personal workflows, beyond v0.2: a user's own `~/.agents/wio` providing a

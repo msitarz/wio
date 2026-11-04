@@ -7,8 +7,17 @@
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*## "} /^[a-z-]+:.*## / {printf "  %-8s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
+# A linked worktree gets its own hooks directory through a per-worktree
+# core.hooksPath, so installing there never rewrites the hooks of another
+# worktree, which would point at the venv of the worktree that ran it last.
 install: ## Sync the environment and install the git hooks
 	uv sync --locked
+	@if [ "$$(git rev-parse --absolute-git-dir)" != "$$(git rev-parse --path-format=absolute --git-common-dir)" ]; then \
+		hooks="$$(git rev-parse --absolute-git-dir)/hooks"; \
+		mkdir -p "$$hooks"; \
+		git config extensions.worktreeConfig true; \
+		git config --worktree core.hooksPath "$$hooks"; \
+	fi
 	uv run prek install
 
 # Extra hook ids to skip, e.g. `make lint SKIP=gitleaks` (prek's --skip flag

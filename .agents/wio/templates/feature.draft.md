@@ -1,6 +1,6 @@
 <!-- wio
 name = "feature.draft"
-type = "feature"
+kind = "feature"
 description = "A new feature intent, before it is defined as a leaf or a parent."
 
 [actions]
