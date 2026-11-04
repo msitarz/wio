@@ -9,11 +9,19 @@ files. The bundle is deterministic, so two sessions with the same bundle saw
 the same context. Between steps, **gates** let a fresh agent or a human review
 a small artifact before the next, more expensive one is built.
 
-Everything wio compiles from is a plain file in the repository. A **Work** is a
-directory whose `README.md`, its contract, carries a small metadata block, and
-a **template** gives contracts of one kind their shape. The config declares the
-actions, stages and rules. Every commit records which stage it belongs to, so
-progress lives in the git history, not in the files.
+Everything wio compiles from is a plain file in the repository: contracts,
+templates, rules and one config. Their metadata decides how the bundle is
+compiled: which stages an action runs, which rules a stage sees, and
+which sections a contract inherits from its parents. There is no server and no
+database.
+
+Progress lives where the code does. Every commit carries `Wio-*` git trailers
+that say which Work and stage it belongs to, so wio reads where each Work
+stands from the git history, and a contract never needs a status field. A
+personal event log adds which agent session ran each stage and which rules it
+received. Joined with the harness's transcripts, it tells you what each
+contract and each stage cost in tokens, how many review rounds a stage needed
+before it passed, and whether a rule earns its place.
 
 wio does not prescribe a process. The engine provides the building blocks, and
 a project decides what its contracts say, which **actions** and **stages**
@@ -147,11 +155,6 @@ The first release is the engine only: no shipped stages, presets or rulesets.
 | `wio context` | Compile the contract, the stage's goal or skill, and the rules for a stage |
 | `wio trailers` | Write and check the records that tie commits to stages |
 | `wio log` | Record context and review events |
-
-[wio's own workflow](docs/workflow.md) adds one piece that is not part of the
-engine: the `wio-define` skill, which interviews the driver, then writes and
-checks a contract. It lives in this repository at `.agents/skills/wio-define/`,
-and another project can copy it, like a ruleset.
 
 ## Development
 
