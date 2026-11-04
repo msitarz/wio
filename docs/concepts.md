@@ -135,7 +135,6 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
-| `name` | *required* | The ruleset's name, equal to its directory's. | [Rulesets on disk](#rulesets-on-disk) |
 | `description` | *open* | What the ruleset is for. | [Rulesets on disk](#rulesets-on-disk) |
 | `[families]` | *open* | The code prefixes the ruleset owns, with their topics. | [Codes and families](#codes-and-families) |
 | `[rule_presets.<name>]` | *optional* | The ruleset's rule presets, with `rules_include` and `rules_exclude` naming its own items by bare name. | [Rule presets](#rule-presets) |
@@ -1216,10 +1215,12 @@ Rules are identified the way linter rules are. A rule has a **code**, such as
 ### Rulesets on disk
 
 A ruleset is a directory of rule files with a `ruleset.toml` manifest, which
-names the ruleset, declares its families and may declare rule presets. A
-ruleset is known by its directory under `.agents/wio/rules/`, and the
-manifest's `name` must equal the directory's name, which `wio config check`
-verifies:
+declares its families and may declare rule presets. A ruleset's name is its
+directory's name under `.agents/wio/rules/`. The name is a bare TOML key in
+`[rulesets.<name>]`, so it follows wio's form for ruleset names: a lowercase
+letter, then lowercase letters, digits, `-` and `_`. A directory there without a
+`ruleset.toml` is an error, because its rules would otherwise be skipped without
+anyone knowing.
 
 ```text
 .agents/wio/rules/
@@ -1230,7 +1231,6 @@ verifies:
 ```
 
 ```toml
-name = "contracts"
 description = "How to write and review Work contracts."
 
 [families]
@@ -1282,10 +1282,10 @@ looks a name up to learn what it is, and a reader can tell at a glance:
 
 | Kind | Form | Examples |
 | --- | --- | --- |
-| Ruleset name, alias | a lowercase letter, then lowercase letters, digits, `-` and `_` | `mattpocock`, `mp`, `process` |
+| Ruleset name, alias | a lowercase letter, then lowercase letters, digits, `-` and `_` | `mattpocock`, `mp`, `contract-upkeep` |
 | Family | uppercase letters | `ARC`, `PY`, `TSX` |
 | Code | a family followed by digits | `ARC001`, `PY301` |
-| Rule preset | a lowercase letter, then lowercase letters, digits and `_` | `docs`, `feature_rules`, `define_bugfix` |
+| Rule preset | a lowercase letter, then lowercase letters, digits, `-` and `_` | `docs`, `feature_rules`, `define-bugfix` |
 
 - `<ruleset>.<item>`, with exactly one dot, names a family, a code or a rule
   preset of a ruleset: `mp.TSX`, `mp.TSX012` and `mp.docs` can never be
@@ -1495,7 +1495,8 @@ Errors:
 
 - a reference that does not resolve, with the reference and where it is: an
   unknown ruleset, alias, family, code or rule preset;
-- a name of the wrong form;
+- a name of the wrong form, a ruleset directory's name included;
+- a directory under `.agents/wio/rules/` without a `ruleset.toml`;
 - a qualified reference inside a `ruleset.toml`;
 - a cycle between rule presets;
 - a rule preset in `rules_always_exclude`;
@@ -1506,8 +1507,7 @@ Errors:
   code or about how to work, not both;
 - a `rules_*` key on a template, a contract or an action, `rules_exclude` on a
   root, or an always field anywhere but the config's top level: those layers do
-  not exist, and a key there would be read by nobody;
-- a manifest whose `name` is not its directory's.
+  not exist, and a key there would be read by nobody.
 
 Warnings:
 

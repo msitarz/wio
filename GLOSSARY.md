@@ -18,7 +18,7 @@ commit messages.
 | Action | A named kind of work done on a Work, such as `define` or `deliver`. Declared in the config with a description, the actions it comes after, what invalidates its work, and whether it is on demand; none are built in. Its pipeline is a stage preset or a list of stages. |
 | Config | The `.agents/wio/config.toml` file: types, actions, roots, stages, stage presets, rule presets, ruleset aliases, the always fields, results, skill directories, the trailer reader, and bundle settings. |
 | Root | A named set of directories (its `paths`) with one toolchain, whose rule presets select the rules for its code. Works and stages refer to it by name. |
-| Ruleset | A reusable collection of rule files with a `ruleset.toml` manifest, which may declare rule presets. Bound to a root when the root's presets name it, or marked root-independent; the config may give it one alias. |
+| Ruleset | A reusable collection of rule files with a `ruleset.toml` manifest, which may declare rule presets, named by its directory under `.agents/wio/rules/`. Bound to a root when the root's presets name it, or marked root-independent; the config may give it one alias. |
 | Stage | A named step: a goal or a skill, optional roots, the rules it includes and excludes, and a session policy. |
 | Skill | A packaged procedure, with references, templates or scripts, that a stage can hand its work to. A directory with a `SKILL.md`, found in the config's skill directories or in those harnesses read. |
 | Gate | A stage marked `gate = true`, which judges the previous stage's artifact; each of its records carries a result. A human approval is a gate too. |
