@@ -98,9 +98,14 @@ scenario changes only the parts it tests.
 
 ```python
 def test_reviewer_only_rules_never_reach_the_author_stage(wio):
-    # Given an authoring stage and a rule tagged for review only
-    wio.config(stages=[stage("architecture", tags=["architecture", "testing"])])
-    wio.rules("ARC001", tags=["architecture", "review"])
+    # Given an authoring stage and a rule that only the review stage includes
+    wio.config(
+        stages=[
+            stage("architecture"),
+            stage("architecture-review", rules_include=["py.ARC001"]),
+        ]
+    )
+    wio.rules("py.ARC001")
     wio.work("feature", id="k3m9xq")
 
     # When the context for the authoring stage is compiled
@@ -178,17 +183,17 @@ annotation-based channel selector:
 
 ```python
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-def test_check_fails_on_unknown_tag(wio):
-    # Given a rule whose tag is not in the vocabulary
-    wio.config(tags=["architecture"])
-    wio.rules("ARC001", tags=["nonexistent"])
+def test_check_fails_on_unknown_rule_reference(wio):
+    # Given a stage that names a rule no ruleset has
+    wio.config(stages=[stage("architecture", rules_include=["py.ARC999"])])
+    wio.rules("py.ARC001")
 
     # When the rules are checked
     result = wio.rules_check()
 
-    # Then the check fails and names the tag
+    # Then the check fails and names the reference
     assert not result.ok
-    assert "nonexistent" in result.errors[0]
+    assert "py.ARC999" in result.errors[0]
 ```
 
 `conftest.py` parametrizes `channel` from the marker and falls back to a

@@ -37,7 +37,7 @@ has five child Works:
 .agents/wio/works/context/                (parent, id c4n7xt)
   bundle-model/      id b2m5qa   types only: the bundle's sections and header
   rule-files/        id r7f3kd   read and validate rule files
-  rule-selection/    id s9t2wy   select by roots, type, stage tags  depends_on r7f3kd
+  rule-selection/    id s9t2wy   select by layers, filter by roots  depends_on r7f3kd
   bundle-render/     id d4r8hz   deterministic text output          depends_on b2m5qa
   context-command/   id x6c1ne   wires inputs to a printed bundle   depends_on s9t2wy, d4r8hz
 ```
@@ -58,8 +58,8 @@ bundle) and its Glossary (bundle, stage, rule code).
 - The parent's criteria are system-level: the command prints the right bundle
   for a Work and stage on real files; two runs give identical bytes; an unknown
   Work or stage exits non-zero with no bundle.
-- The leaves' criteria are local: `rule-selection` filters by roots, by type and
-  by all-of tags; `bundle-render` fixes the order of sections and builds the
+- The leaves' criteria are local: `rule-selection` resolves the four layers and
+  filters by roots; `bundle-render` fixes the order of sections and builds the
   bundle id from the text; `context-command` wires the pieces and exits non-zero
   for unknown input.
 - Determinism is established by two leaves and verified only at the parent.
@@ -153,7 +153,7 @@ needed.
 
 `rule-selection` (id `s9t2wy`) is a leaf whose `architecture` stage has a
 record and whose review is under way. The agent finds two independent pieces:
-filtering by roots and type, and matching tags. `context-command` depends on it.
+filtering by roots, and resolving the layers. `context-command` depends on it.
 
 **Procedure A, promote in place.** The Work keeps its id and becomes a parent:
 
@@ -161,20 +161,20 @@ filtering by roots and type, and matching tags. `context-command` depends on it.
 before:  context/rule-selection/                  (leaf s9t2wy)
 after:   context/rule-selection/                  (parent, still s9t2wy)
            scope-filtering/   id v6k2jd           (new, from the leaf template)
-           tag-matching/      id m3p8cq           (new, from the leaf template)
+           layer-resolution/  id m3p8cq           (new, from the leaf template)
 ```
 
 - The leaf's criteria move to the children that can establish them: filtering to
-  `scope-filtering`, matching to `tag-matching`. A parent states only
+  `scope-filtering`, resolving to `layer-resolution`. A parent states only
   system-level guarantees (rule ACC006), so the parent gets new criteria for
   what only the joined result establishes, such as "a stage gets exactly the
-  rules that pass both filters". The skill prints the parent template with
-  `wio contracts template feature.parent --work s9t2wy`, without `--keep`, so
-  the parent gets the template's roots, `["@descendants"]`, and its pipelines
-  instead of the leaf's, and wio lists the leaf's roots and overrides it did not
-  carry. It adds Constraints and Visuals and rewrites the contract in that
-  shape. Each child that takes over
-  criteria is created from the leaf template
+  rules that the layers select and its roots allow". The skill prints the parent
+  template with `wio contracts template feature.parent --work s9t2wy`, without
+  `--keep`, so the parent gets the template's roots, `["@descendants"]`, and its
+  pipelines instead of the leaf's, and wio lists the leaf's roots and overrides
+  it did not carry. It adds Constraints and Visuals and rewrites the contract in
+  that shape. Each child that takes over criteria is created from the leaf
+  template
   (`wio contracts new feature --template feature.leaf --parent s9t2wy`), because
   the draft has no place for them.
 - Dependents need no change: `context-command` depends on `s9t2wy`, which still
@@ -182,8 +182,8 @@ after:   context/rule-selection/                  (parent, still s9t2wy)
 - The leaf's own dependencies need a change. `s9t2wy` depended on `r7f3kd`
   (`rule-files`), and a parent's dependency holds back only its integration. The
   children that take over the work also take over the dependency they need:
-  `scope-filtering` and `tag-matching` list `r7f3kd`, or they would be delivered
-  next to `rule-files` instead of after it.
+  `scope-filtering` and `layer-resolution` list `r7f3kd`, or they would be
+  delivered next to `rule-files` instead of after it.
 - The `architecture` record for `s9t2wy` stays in the history. The parent's
   pipeline is `["integration", "system-review"]`, which does not contain
   `architecture`, so `wio next` ignores it.
