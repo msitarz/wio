@@ -2,7 +2,7 @@
 
 This document explains the engine of wio: the few concepts everything else is
 built from. It does not describe a particular process: the process this
-repository runs on the engine, with its actions, presets and gates, is
+repository runs on the engine, with its actions, stage presets and gates, is
 [wio's own workflow](workflow.md), and names from it appear here only as
 examples. Terms are defined in the [glossary](../GLOSSARY.md). Open points are
 listed under [Open points](#15-open-points).
@@ -50,13 +50,14 @@ are true, and each concept serves one of them:
 | Name the kinds of work done on a Work | **Action**, declared by the project |
 | Do an action in separate steps | **Stage** |
 | Stop and decide between steps | **Gate** |
-| Give each step only its own guidance | **Rules**, selected by roots and tags and compiled into context |
+| Give each step only its own guidance | **Rules**, selected by roots and stages and compiled into context |
 
 In one sentence: wio runs **actions** on a **Work**. An action's pipeline is a
-**preset** or a list of stages, some of them gates. A **template** gives a
-contract its shape and its default actions, rules are selected for every
-stage, and every commit of a stage carries a **record** in the git history.
-Everything else (skills, presets, rulesets, the event log) plugs into these.
+**stage preset** or a list of stages, some of them gates. A **template** gives a
+contract its shape and its default actions, rules are selected for every stage,
+and every commit of a stage carries a **record** in the git history. Everything
+else (skills, stage presets, rule presets, rulesets, the event log) plugs into
+these.
 
 The engine prepares and describes the work; it does not move it forward. That is
 the job of a **driver**: whoever advances a Work through its stages. Today the
@@ -76,7 +77,7 @@ flowchart LR
     G -->|gap found| S
     G -->|contract wrong| C
     S -->|record| H[Git history]
-    R[Rules] -->|selected by roots and tags| X[wio context]
+    R[Rules] -->|selected by roots and stages| X[wio context]
     C --> X
     S --> X
     X --> AG[Agent session]
@@ -128,8 +129,6 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | --- | --- | --- | --- |
 | `code` | *required* | The rule's identifier, whose letters are its family. | [Codes and families](#codes-and-families) |
 | `name` | *required* | The rule's readable name, shown with its code. | [Codes and families](#codes-and-families) |
-| `tags` | *optional* | Which stages see the rule: every tag must be among the stage's. | [Tags](#tags) |
-| `types` | *optional* | The types of Work the rule is restricted to. | [What else filters a rule](#what-else-filters-a-rule) |
 | Body | — | The text a bundle shows as written: instruction, `Why:` and `Example:`. | [What a rule is](#what-a-rule-is) |
 
 ### A ruleset's `ruleset.toml`
@@ -139,19 +138,22 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `name` | *required* | The ruleset's name, equal to its directory's. | [Rulesets on disk](#rulesets-on-disk) |
 | `description` | *open* | What the ruleset is for. | [Rulesets on disk](#rulesets-on-disk) |
 | `[families]` | *open* | The code prefixes the ruleset owns, with their topics. | [Codes and families](#codes-and-families) |
+| `[rule_presets.<name>]` | *optional* | The ruleset's rule presets, with `rules_include` and `rules_exclude` naming its own items by bare name. | [Rule presets](#rule-presets) |
 
 ### The config
 
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
-| `tags` | *open* | The tag vocabulary, so a misspelled tag is an error. | [Tags](#tags) |
 | `results` | *open* | The results a gate can record. | [The event log](#the-event-log) |
 | `[types]` | *open* | The valid types, each with its entry template. | [Types and entry templates](#types-and-entry-templates) |
 | `[actions.<name>]` | *open* | An action, with its `description`, `after`, `invalidated_by` and `on_demand`. | [What an action is](#what-an-action-is), [What `wio next` proposes](#what-wio-next-proposes) |
-| `[[roots]]` | *open* | A root: its `name`, its `paths` and the `rulesets` bound to it. | [Roots and rulesets](#9-roots-and-rulesets) |
-| `[stages.<name>]` | *open* | A stage: a `goal` or a `skill` is required, `tags` is *open*, and `roots`, `gate`, `judge` and `session` are optional. | [Stage](#7-stage) |
-| `[presets]` | *open* | Named, ordered lists of stages. | [Presets](#13-presets-process-built-on-the-engine) |
-| `[rulesets.<name>]` | *optional* | Which rules of a ruleset are chosen, with `include`, `exclude`, `tags` and `types`. | [Choosing rules from a ruleset](#choosing-rules-from-a-ruleset) |
+| `[[roots]]` | *open* | A root: its `name`, its `paths`, and its `rule_presets` (*optional*), which select its rules. | [Roots and rulesets](#9-roots-and-rulesets) |
+| `[stages.<name>]` | *open* | A stage: a `goal` or a `skill` is required, and `rules_include`, `rules_exclude`, `roots`, `gate`, `judge` and `session` are optional. | [Stage](#7-stage) |
+| `[stage_presets]` | *open* | Named, ordered lists of stages. | [Stage presets](#13-stage-presets-process-built-on-the-engine) |
+| `[rule_presets.<name>]` | *optional* | Named selections of rules, with `rules_include` and `rules_exclude`. | [Rule presets](#rule-presets) |
+| `[rulesets.<name>]` | *optional* | A ruleset's `alias` (*optional*, at most one) and `root_independent` (*optional*, `false` by default). | [Rulesets on disk](#rulesets-on-disk) |
+| `rules_always_include` | *optional* | Rules every stage gets, over any root's or stage's exclude. | [How a rule is selected](#how-a-rule-is-selected) |
+| `rules_always_exclude` | *optional* | Codes and families no stage gets: the final veto. | [How a rule is selected](#how-a-rule-is-selected) |
 | `[skills] paths` | *open* | Where wio looks for skills first. | [Stage](#7-stage) |
 | `[trailers] reader` | *optional* | How records are read from messages: `scan` or `git`. | [Reading records](#reading-records) |
 | Bundle settings | *optional* | A size threshold and the separator between rules; their keys are *open*. | [The context compiler](#11-the-context-compiler) |
@@ -161,6 +163,8 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
 | `@descendants` | — | In `roots`, the union of the descendants' roots. | [Roots of a Work](#roots-of-a-work) |
+| `<ruleset>.<item>` | — | In `rules_*` and `rule_presets`, a family, code or preset of a ruleset, by name or alias. | [Names and references](#names-and-references) |
+| `all` | — | After `<ruleset>.`, the preset that holds the whole ruleset. | [Rule presets](#rule-presets) |
 | `@work` | — | In a stage's `roots`, the Work's roots. | [Which roots a stage selects](#which-roots-a-stage-selects) |
 | `@descendants:<action>` | — | In `invalidated_by`, that action on any descendant. | [What `wio next` proposes](#what-wio-next-proposes) |
 | `@dependencies:<action>` | — | In `invalidated_by`, that action on the Works in `depends_on`. | [What `wio next` proposes](#what-wio-next-proposes) |
@@ -351,7 +355,7 @@ template reaches every contract that follows it:
 | The starting metadata, such as `roots`, `depends_on` and `[x]` | Copied once, when `wio contracts new` creates the contract |
 | The starting body: headings and authoring comments | Copied once, the same way |
 | The default actions | Read live; a contract's own `[actions]` replace them per action |
-| The type, which rules can be restricted to | Read live |
+| The type | Read live |
 | The directives: the checks on its sections, item ids and inheritance | Read live; contracts carry no directives |
 | The expected `shape`, leaf or parent | Read live |
 
@@ -449,7 +453,7 @@ skills know which templates the type has, name them, and print them with
 in the chosen shape. wio does not rewrite contracts itself.
 
 `wio config check` fails when a type's entry template does not exist or has
-another type, and when a template or a rule names a type that is not declared.
+another type, and when a template names a type that is not declared.
 
 Anyone can add a template, and with it a type, and that is the main extension
 point for projects. Files in the templates directory without a `wio` metadata
@@ -555,9 +559,9 @@ skill own. wio only reads the result: the directory layout and the metadata.
 
 ### Roots of a Work
 
-A **root** is a set of directories bound to one toolchain and its rulesets
-([Roots and rulesets](#9-roots-and-rulesets)). A Work names the roots it touches
-in `roots`, using the names the config gives them.
+A **root** is a set of directories with one toolchain, whose rule presets select
+the rules for its code ([Roots and rulesets](#9-roots-and-rulesets)). A Work
+names the roots it touches in `roots`, using the names the config gives them.
 
 - A Work's roots are exactly the ones it lists, for a leaf and a parent alike.
   Nothing is added implicitly, so a parent's stages get the rules of the roots
@@ -586,7 +590,7 @@ in `roots`, using the names the config gives them.
   ([Which roots a stage selects](#which-roots-a-stage-selects)), and then
   loudly.
 
-How many roots a leaf may have is a choice of the workflow. A preset can ask
+How many roots a leaf may have is a choice of the workflow. A workflow can ask
 for exactly one root per leaf, so that a Work spanning a FastAPI backend
 and a Next.js frontend becomes a parent with one leaf per root. wio does not
 enforce it.
@@ -726,8 +730,9 @@ could not happen. `wio contracts show` marks it. The default is `false`.
 engine sets one action apart from another, so a project can add as many as it
 needs.
 
-An action's **pipeline** is either a **preset** (an ordered list of stages, by
-preset id) or a list of **stage names**. In both, some stages may be gates.
+An action's **pipeline** is either a **stage preset** (an ordered list of
+stages, by its id) or a list of **stage names**. In both, some stages may be
+gates.
 
 ### Where the pipeline comes from
 
@@ -748,11 +753,11 @@ contract can add an action the template does not have, as long as the config
 declares it. A contract's `[actions]` customizes its pipelines and has no other
 meaning.
 
-A string value is a preset id and an array is a list of stage names, so a
-one-stage pipeline is a one-element array. Action names, stage names and preset
-ids must exist in the config. A contract that names stages is free to skip any
-of them, including gates. Hygiene is the project's business, and guidance and
-presets can encourage good practice.
+A string value is a stage preset id and an array is a list of stage names, so a
+one-stage pipeline is a one-element array. Action names, stage names and stage
+preset ids must exist in the config. A contract that names stages is free to
+skip any of them, including gates. Hygiene is the project's business, and
+guidance and stage presets can encourage good practice.
 
 Inherited actions follow the template when it changes. The actions a contract
 overrides stay as the contract states them, and wio does not update them when
@@ -860,7 +865,7 @@ on, and they do not judge how a workflow is built:
   least one stage. An empty list in a contract's `[actions]` removes that
   action; it is not an empty pipeline. Work with no stage to run belongs in a
   ticketing system, not in the repository.
-- Every action name, preset id and stage name in a template or a contract
+- Every action name, stage preset id and stage name in a template or a contract
   exists, `after` has no cycle and names no on-demand action, the names in
   `invalidated_by` are declared actions with a known prefix, and every stage's
   skill can be found.
@@ -887,7 +892,7 @@ A stage definition has these parts:
 | `name` | Identifier used in config, rules, records and logs. |
 | `goal` | A short text that says what to produce. Used when the instructions fit in a few lines. |
 | `skill` | A skill name, used instead of a goal when the procedure needs references, templates or scripts. |
-| `tags` | Which rules apply ([Tags](#tags)). |
+| `rules_include`, `rules_exclude` | Optional. Which rules the stage adds and drops, after its roots' rule presets ([How a rule is selected](#how-a-rule-is-selected)). |
 | `roots` | Optional. Which roots the stage selects rules from ([Which roots a stage selects](#which-roots-a-stage-selects)). Without it, the stage uses the Work's roots. |
 | `gate` | Optional. `true` when the stage judges an artifact, so each of its records carries a result ([Gate](#8-gate)). |
 | `judge` | Optional, for a gate. `"human"` when a person must judge it ([Gate](#8-gate)). |
@@ -896,12 +901,11 @@ A stage definition has these parts:
 ```toml
 [stages.define]
 skill = "wio-define"
-tags = ["contract"]
 roots = ["contract"]
 
 [stages.architecture-review]
 goal = "Review the typed boundaries against the contract."
-tags = ["architecture", "review"]
+rules_include = ["py.review"]
 gate = true
 session = "fresh"
 ```
@@ -909,7 +913,7 @@ session = "fresh"
 The key that marks a stage as not continuable is open
 ([Open points](#15-open-points)).
 
-A stage with only a goal and tags is valid. A stage with a skill hands its
+A stage with only a goal is valid. A stage with a skill hands its
 procedure to that skill. The engine does not care which; it prints the goal or
 names the skill, and compiles the rules.
 
@@ -949,9 +953,9 @@ valid, and its session still gets the contract and the rules.
 
 Real work goes back and forth. Implementation may show that the architecture
 needs redoing. A review may send the work back one step. The engine therefore
-treats stages as a **set of named steps**, and the order is a preset
-([Presets](#13-presets-process-built-on-the-engine)) that a driver follows, not
-a rule the engine enforces.
+treats stages as a **set of named steps**, and the order is a stage preset
+([Stage rule presets](#13-stage-presets-process-built-on-the-engine)) that a
+driver follows, not a rule the engine enforces.
 
 ### Who knows which stage is current
 
@@ -983,16 +987,16 @@ The engine records how the artifact fared, and nothing about the decision.
 In the engine a gate is not a separate object. It is a stage marked
 `gate = true`, whose job is to judge the previous stage's artifact, and every
 record of it carries a **result** from the `results` vocabulary in the config
-([Records](#records)). It is a normal stage with its own rules (tagged for
-review) and usually a fresh session. The mark lets wio require the result:
-`wio trailers` refuses a gate's record without one, and a stage that is not a
-gate cannot record one. The bundle's header says when a stage is a gate.
+([Records](#records)). It is a normal stage with its own rules, such as
+reviewer-only ones, and usually a fresh session. The mark lets wio require the
+result: `wio trailers` refuses a gate's record without one, and a stage that is
+not a gate cannot record one. The bundle's header says when a stage is a gate.
 
 Who judges is the workflow's business. A review can be done by an agent in a
-fresh session with a different ruleset, or by a human. A human approval is a
-review stage too, for example `architecture-approval`, whose goal says that a
-person approves the artifact. A review that changes no files records its result
-in an empty commit.
+fresh session with different rules, or by a human. A human approval is a review
+stage too, for example `architecture-approval`, whose goal says that a person
+approves the artifact. A review that changes no files records its result in an
+empty commit.
 
 A gate's record says who judged it, in `Wio-Judge`. A commit's author cannot,
 because agents commit under the person's git identity and a squash merge gives
@@ -1035,42 +1039,48 @@ single-language repo the code is one root. In a monorepo with a backend, a
 frontend and Terraform, there are three roots with three different toolchains
 and three different sets of guidance.
 
-A **ruleset** is a reusable collection of rule files, for example "python" or
-"fastapi". The repo's config **binds** rulesets to roots:
+A **ruleset** is a reusable collection of rule files, for example `py` or
+`mattpocock`. The repo's config gives each root the **rule presets** that select
+its rules ([Rule presets](#rule-presets)), and a root's rule presets bind
+the rulesets they name to it:
 
 ```toml
 [[roots]]
-name     = "api"
-paths    = ["services/api"]
-rulesets = ["python", "fastapi"]
+name         = "api"
+paths        = ["services/api"]
+rule_presets = ["py.recommended", "backend"]
 
 [[roots]]
-name     = "infra"
-paths    = ["infra"]
-rulesets = ["terraform"]
+name         = "web"
+paths        = ["apps/web"]
+rule_presets = ["mp.recommended"]
 
 [[roots]]
-name     = "contract"
-paths    = [".agents/wio/works"]
-rulesets = ["contracts"]
+name         = "contract"
+paths        = [".agents/wio/works"]
+rule_presets = ["contracts.writing"]
 ```
 
-A root has a `name`, which contracts and stages use, and `paths`, a list of
-directories. Why bind at the repo level and not inside the ruleset? Because a
-ruleset must work in any repo. It does not know where the FastAPI service lives.
-The repo does.
+A root has a `name`, which contracts and stages use, `paths`, a list of
+directories, and `rule_presets`, which take rule presets only: a root reads as
+the guidelines of its code, and picking single rules lives in rule presets that
+can be reused. Why bind at the repo level and not inside the ruleset? Because a
+ruleset must work in any repo. It does not know where the API service lives. The
+repo does. A root reaches a ruleset when its rule presets name something in it,
+which is all the binding there is
+([How a rule is selected](#how-a-rule-is-selected)).
 
 A root is a **toolchain boundary**, not a kind of directory. Tests and sources
 written in the same language under the same tools share a root. They differ by
-rule tags, not by root.
+the rules their stages select, not by root.
 
 ### The contract root
 
 The contracts are a directory with their own tooling too, and the rules for
 writing them (how to state a criterion, what an assumption is) are a ruleset
-like any other. A project binds it to a root whose paths are the Works
-directory, named `contract` in the example. A stage that writes or reviews a
-contract selects that root with `roots = ["contract"]`, so a Work that has no
+like any other. A project gives its rule presets to a root whose paths are the
+Works directory, named `contract` in the example. A stage that writes or reviews
+a contract selects that root with `roots = ["contract"]`, so a Work that has no
 roots yet still gets the rules for writing contracts.
 [wio's own workflow](workflow.md#the-contract-root) shows which of its stages
 select it.
@@ -1104,10 +1114,10 @@ path, so paths are used for three things:
 - the scope that `wio contracts tree` shows;
 - `wio rules list --path <file>`, which answers "which rules apply to this
   file?": every root whose paths contain the file, then the rules of their
-  rulesets, optionally narrowed by a stage's tags. No Work is given, so rules
-  restricted by `types` are listed with their types marked rather than
-  filtered. An agent can ask it about a file it is about to change, and a
-  driver can ask it when auditing the rules of a large repo.
+  rule presets, and the always fields, optionally with a stage's selection too
+  ([Listing rules](#listing-rules)). An agent can ask it about a file it is
+  about to change, and a driver can ask it when auditing the rules of a large
+  repo.
 
 Paths are plain directories, without globs, relative to the repo root.
 `wio config check` verifies that they are normalized and stay inside the repo,
@@ -1129,8 +1139,6 @@ is a small markdown file.
 <!-- wio
 code = "ARC001"
 name = "adapters-return-typed-results"
-tags = ["architecture", "review"]
-types = ["feature"]            # optional
 -->
 
 Adapters return typed results, not raw dicts.
@@ -1139,6 +1147,11 @@ Why: a dict hides the contract from the type checker, so drift appears at runtim
 
 Example: `fetch_user(id) -> User | NotFound`, not `fetch_user(id) -> dict`.
 ```
+
+The metadata holds the code and the name, and nothing about where the rule
+applies. Which stages see a rule is decided by the roots and stages that name
+it ([How a rule is selected](#how-a-rule-is-selected)), so a rule copied from
+another repository carries no labels that must be mapped onto this one's.
 
 Everything after the metadata block is the rule's **body**, and the bundle shows
 it exactly as written ([The context compiler](#11-the-context-compiler)). wio
@@ -1172,8 +1185,9 @@ What is **not** a rule:
   it, it should not cost tokens in the bundle.
 
 What a project puts in its `AGENTS.md` is its own business. A rule that applies
-to every stage can still be a rule (see "Tags" below): it then reaches only wio
-sessions for its roots, not everyone who opens the repository with an agent.
+to every stage can still be a rule, through `rules_always_include`
+([How a rule is selected](#how-a-rule-is-selected)): it then reaches only wio
+sessions, not everyone who opens the repository with an agent.
 
 ### Codes and families
 
@@ -1182,30 +1196,30 @@ Rules are identified the way linter rules are. A rule has a **code**, such as
 (the first paragraph of its body). The letters of the code are its
 **family**, which groups rules by topic.
 
-- A ruleset declares its families and owns their prefixes. `wio rules new`
-  assigns the number after the highest existing code in a family, and never
-  fills a gap, so codes cannot clash inside a ruleset. `wio config check` fails
-  when two rulesets bound in the same repo claim the same prefix.
+- A ruleset declares its families. `wio rules new` assigns the number after the
+  highest existing code in a family, and never fills a gap, so codes cannot
+  clash inside a ruleset.
+- Codes are unique within a ruleset, and two rulesets may use the same code or
+  family. Everywhere outside its ruleset a rule is named with its ruleset, such
+  as `mattpocock.ERR003`, and a qualified name is unique, so two rulesets bound
+  in one repository never conflict over a prefix.
 - The code identifies a rule within a ruleset as it currently is, and renaming
   the rule does not change it. It is not a permanent registry entry: rules are
   cheap to try and drop, and a deleted code may come back. So the events that
-  cite rules record each rule's code together with a hash of its file, and
-  evidence never confuses two rules that shared a code, nor a rule with an
-  edited version of itself.
+  cite rules record each rule's qualified code together with a hash of its
+  file, and evidence never confuses two rules that shared a code, nor a rule
+  with an edited version of itself.
 - A rule file is named `<code>-<name>.md`, so listings sort by family.
 - Wherever a rule is shown to a person or an agent, the code and the name appear
   together, so the code is never opaque.
 
-Family and tags are independent: a family groups rules by topic, and tags select
-rules for a stage.
-
 ### Rulesets on disk
 
 A ruleset is a directory of rule files with a `ruleset.toml` manifest, which
-names the ruleset and declares its families. The config binds a ruleset by its
-directory name, and the manifest's `name` must equal it, which `wio config
-check` verifies. The rulesets of a repository live
-in `.agents/wio/rules/`, one directory each:
+names the ruleset, declares its families and may declare rule presets. A
+ruleset is known by its directory under `.agents/wio/rules/`, and the
+manifest's `name` must equal the directory's name, which `wio config check`
+verifies:
 
 ```text
 .agents/wio/rules/
@@ -1222,104 +1236,297 @@ description = "How to write and review Work contracts."
 [families]
 CON = "Contract sections"
 ACC = "Acceptance criteria"
+
+[rule_presets.writing]
+rules_include = ["CON", "ACC"]
+
+[rule_presets.review]
+rules_include = ["writing", "ACC009"]
 ```
 
 A ruleset is data: it can be copied from another repository, and copied again
 when it is updated. So nothing that a repository decides about a ruleset lives
-in the ruleset's own files.
+in the ruleset's own files, and a ruleset's rule presets refer only to the
+ruleset's own families, codes and rule presets, by bare name: a ruleset must not
+depend on what else a repository has installed. A repository uses a copied
+ruleset by naming its rule presets and codes, with nothing to map onto its own
+names.
 
-### Choosing rules from a ruleset
-
-A repository rarely wants all of a ruleset written by someone else, and that
-ruleset's tags rarely match the repository's vocabulary. The config chooses
-the rules and maps their tags, in a table per ruleset:
+The config may give a ruleset a table, which is optional:
 
 ```toml
 [rulesets.mattpocock]
-include = ["TSX", "ERR003", "ERR007"]   # families or codes; omitted = everything
-exclude = ["TSX012"]                    # taken out of an included family
+alias = "mp"
 
-[rulesets.mattpocock.tags]              # override the ruleset author's tags
-TSX = ["implementation"]                # for a whole family
-ERR003 = ["implementation", "review"]   # for one rule; wins over its family
-
-[rulesets.mattpocock.types]             # override the ruleset author's types
-ERR = ["fix"]                           # the author's `bugfix` is our `fix`
+[rulesets.process]
+root_independent = true
 ```
 
-- A ruleset without a table is used whole, with the tags its rules declare.
-- A rule's **effective tags** are its code's override if there is one, else its
-  family's, else the tags in its own file. Everything that matches tags works
-  on the effective tags: selection for a stage, the vocabulary check, the note
-  about always-on rules and the warning about rules that reach no stage.
-- A rule's **effective types** work the same way, through the `types` table:
-  a code's override, else its family's, else the `types` in its own file. Type
-  names are a repository's own, like tags, so a copied rule needs the same way
-  to map them.
-- A rule the config chooses (included, or in a ruleset without a table) whose
-  effective tags or types are not all declared in the config is an error that
-  names the rule, so a copied rule never goes missing silently. It is mapped or
-  excluded. Rules the config excludes are not checked against it at all.
-  "Chosen" here is about the config, not about whether any stage selects the
-  rule.
-- Including a family includes the rules added to it later, when the ruleset is
-  copied again. Rules included by code stay as they are. Codes are stable, so
-  the lists survive renames.
+- `alias` is a short name that works wherever the ruleset's name does in a
+  reference. A ruleset has at most one alias, because several names for one
+  ruleset make the config harder to search. An alias is shorthand for typing:
+  records, bundles and `wio rules list` always show the canonical name, so
+  renaming an alias never rewrites the history.
+- `root_independent` marks a ruleset whose rules are about how to work rather
+  than about code in a place, such as "fix the underlying problem". Roots do
+  not filter its rules ([How a rule is selected](#how-a-rule-is-selected)).
 
-### Tags
+Updating a copied ruleset can change what its rule presets hold, as it can add
+rules to a family. The bundle id changes with the rules, so the change is
+visible in the next session's header.
 
-Tags connect rules to stages. A tag is a label from a vocabulary declared in the
-config (a rule's tags here are its effective tags, see above), similar to the
-categories in a linter (style, complexity, security). The vocabulary is declared
-so a misspelled tag is an error, not a rule that silently never loads:
+### Names and references
+
+A reference names something to select. Its form tells its kind, so wio never
+looks a name up to learn what it is, and a reader can tell at a glance:
+
+| Kind | Form | Examples |
+| --- | --- | --- |
+| Ruleset name, alias | a lowercase letter, then lowercase letters, digits, `-` and `_` | `mattpocock`, `mp`, `process` |
+| Family | uppercase letters | `ARC`, `PY`, `TSX` |
+| Code | a family followed by digits | `ARC001`, `PY301` |
+| Rule preset | a lowercase letter, then lowercase letters, digits and `_` | `docs`, `feature_rules`, `define_bugfix` |
+
+- `<ruleset>.<item>`, with exactly one dot, names a family, a code or a rule
+  preset of a ruleset: `mp.TSX`, `mp.TSX012` and `mp.docs` can never be
+  confused.
+- A bare name is a rule preset of the config, such as `feature_rules`. It has
+  no dot, so it never clashes with a ruleset, an alias or anything inside one.
+- Inside a `ruleset.toml`, a bare name is one of that ruleset's own items, and
+  a qualified reference is an error.
+- Names are case-sensitive, and a name of the wrong form is an error, so `Docs`
+  is never guessed to be `docs`.
+
+Each field takes the names it needs:
+
+| Field | Takes |
+| --- | --- |
+| A root's `rule_presets` | qualified ruleset rule presets and config rule presets |
+| `rules_always_exclude` | qualified codes and families |
+| A stage's `rules_include` and `rules_exclude`, `rules_always_include`, and a config rule preset's fields | qualified families, codes and rule presets, and config rule presets |
+
+A root names the guidelines of its code, so it takes rule presets. A veto names
+exact rules, so editing a rule preset never widens it. The other fields compose
+selections, so they take every kind of name.
+
+### Rule presets
+
+A **rule preset** is a named selection of rules, declared in the config or in a
+`ruleset.toml`, with `rules_include` and `rules_exclude`:
 
 ```toml
-tags = ["contract", "architecture", "implementation", "testing", "review"]
+[rule_presets.backend]
+rules_include = ["mp.docs", "py.API"]
+rules_exclude = ["mp.DOC004"]
 ```
 
-A stage lists tags, and a rule lists tags. In v0.1 the matching rule is
-**all-of**: a rule applies to a stage only when **every** tag of the rule is
-among the stage's tags.
+- The table is keyed by name, so TOML itself rejects a duplicate name.
+- A rule preset resolves to a set of rules before anything uses it: its
+  includes, then its excludes. An exclude inside a nested rule preset therefore
+  never reaches outside it.
+- A rule preset may include other rule presets. A cycle between rule presets is
+  an error that names the cycle, such as `backend → api → backend`, because a
+  cycle has no resolved set.
+- Every ruleset has a rule preset `all`, which holds all its rules, so a root or
+  an always field can take a whole ruleset while taking rule presets only. A
+  ruleset cannot define a rule preset of that name.
 
-An example shows why. Suppose the architecture stage has tags `[architecture,
-testing]`, and the review stage has `[architecture, review]`.
+A rule preset that several roots or stages share is how a repository says
+something once. Three templates of one type that need the same rules for
+delivery give their `deliver` pipelines stages that include one rule preset, so
+a change for every such Work is made once.
 
-| Rule tags | Architecture stage | Review stage |
+### How a rule is selected
+
+Rules are selected by name, in four **layers**, applied in this order to the set
+built so far:
+
+1. **Roots**: the `rule_presets` of each root the stage selects
+   ([Which roots a stage selects](#which-roots-a-stage-selects)).
+2. **Stage**: the stage's `rules_include`, then its `rules_exclude`.
+3. **`rules_always_include`**, at the config's top level.
+4. **`rules_always_exclude`**, at the config's top level.
+
+```toml
+rules_always_include = ["process.FIX001"]   # "fix the underlying problem"
+rules_always_exclude = ["mp.TSX012"]
+
+[[roots]]
+name = "api"
+paths = ["services/api"]
+rule_presets = ["py.recommended", "backend"]
+
+[stages.implementation-review]
+goal = "Judge the implementation against the contract."
+rules_include = ["py.review"]
+rules_exclude = ["py.DOC"]
+```
+
+- Within a layer the exclude runs after the include, so a layer can take a
+  rule preset minus a few of its rules.
+- The stage comes after the roots because it is the specific procedure: it can
+  drop a rule its roots bring, such as an authoring rule a review does not need,
+  and add one they do not, such as a reviewer-only rule.
+- `rules_always_include` adds its rules over any exclude of the layers before
+  it. "Always" then means always, and a default that a stage may drop belongs to
+  a root or a stage instead. It is for project-wide rules: "fix the underlying
+  problem", in a root-independent `process` ruleset, is the example.
+- `rules_always_exclude` is the final veto. It takes codes and families only, so
+  editing a rule preset never widens it.
+
+The layers decide which rules are wanted. The roots decide which of them apply,
+because a ruleset that is not root-independent is about code in a place:
+
+```text
+applies = selected by the layers
+          AND (its ruleset is root_independent
+               OR its ruleset is reached by a root the stage selects)
+```
+
+A root **reaches** a ruleset when the `rules_include` entries of its
+`rule_presets`, with config rule presets expanded, name any family, code or rule
+preset of that ruleset, even if excludes leave none of its rules selected.
+Binding is then implicit: a separate list of rulesets on a root would repeat
+what its rule presets already name, and it does not change when a rule preset's
+contents do. A `rules_exclude` entry reaches nothing.
+
+| Rule | Selected by the layers? | Ruleset | Roots the stage selects | Applies? |
+| --- | --- | --- | --- | --- |
+| `py.API001` | yes | `py`, reached by `api` | `api` | yes |
+| `py.API001` | yes | `py`, reached by `api` | `web` | no, roots cut it |
+| `py.API002` | no | `py`, reached by `api` | `api` | no, nothing selected it |
+| `process.FIX001` | yes, always | `process`, root-independent | any, or none | yes |
+
+- Eligibility is per ruleset, not per rule. If it were per rule, a stage could
+  only narrow what its roots chose, and a reviewer-only rule from a code ruleset
+  would be impossible. So `implementation-review` above adds `py.review` for a
+  Work in `api`.
+- `root_independent` is explicit. If a ruleset that no root reaches counted as
+  root-independent, forgetting to bind `py` would leak its rules into every
+  bundle.
+- A stage with `roots = []` selects no root and gets only root-independent
+  rules, because a stage about something other than code needs only the rules
+  about how to work. A stage that selects `@work` for a Work with no roots still
+  fails, because an empty `@work` would hide a Work whose roots were never set
+  ([Which roots a stage selects](#which-roots-a-stage-selects)).
+
+```mermaid
+flowchart LR
+    rp["rule presets (config and ruleset.toml)"] -. "expand" .-> l1
+    rp -. "expand" .-> l2
+    rp -. "expand" .-> l3
+    sr["roots the stage selects"] --> l1
+    l1["1. their rule_presets"] --> l2["2. stage rules_include, rules_exclude"]
+    l2 --> l3["3. rules_always_include"]
+    l3 --> l4["4. rules_always_exclude"]
+    l4 --> elig{"ruleset root-independent, or reached by a selected root?"}
+    sr --> elig
+    elig -- "yes" --> bundle["applies: in the bundle"]
+    elig -- "no" --> cut["left out"]
+```
+
+Rules that follow an area of code belong to a root. A Work that touches legacy
+billing code lists a `billing-legacy` root, and the rules come with the code:
+
+```toml
+[[roots]]
+name = "billing-legacy"
+paths = ["services/billing/legacy"]
+rule_presets = ["billing.all"]
+```
+
+### Why only roots and stages select
+
+No action, template or contract selects rules, and a Work's children inherit no
+selection:
+
+- One action runs different stages in different templates: a parent's
+  `deliver` is not a leaf's. Rules for a whole action would reach stages they
+  were never written for.
+- Guidance for writing a contract of one type belongs in its template's
+  authoring comments and directives, next to the sections it is about.
+- A procedure that only one type needs is a stage of that template's pipeline,
+  such as a `reproduce` stage in a bugfix template's `deliver`, and that stage
+  selects the rules it needs. A different procedure is a different stage.
+- Rules that a Work needs because of the code it touches belong to a root the
+  Work lists, as `billing-legacy` above shows, not to the Work.
+
+Rules about code thus live with the roots, rules about procedures with the
+stages, and the rules every session needs in the always fields. A rule's
+presence is explained by shared config that is reviewed once, never by
+metadata one contract's author edited.
+
+### Listing rules
+
+`wio rules list` shows what any selection holds. Each flag applies the layers
+its object owns, and the always fields apply whenever one of the four layers
+does:
+
+| Flags | Layers applied | Roots |
 | --- | --- | --- |
-| `[architecture]` | applies | applies |
-| `[architecture, review]` | does not apply | applies |
-| `[testing]` | applies | does not apply |
-| `[]` | applies | applies |
+| `--preset <name>` | the rule preset, expanded, without the always fields | not applied |
+| `--root <name>` | that root's rule presets, always fields | that root |
+| `--stage <name>` | the stage, always fields | not applied |
+| `--root` and `--stage` | the root's rule presets, the stage, always fields | that root |
+| `--work <id> --stage <name>` | what `wio context` selects | the roots the stage selects for that Work |
+| `--path <file>` | the rule presets of the roots containing the file, always fields | those roots |
+| `--path` and `--stage` | as for `--path`, and the stage | those roots |
 
-The second rule is reviewer-only: a check that the reviewer applies but the
-author is not told in advance. Reviewer-only rules cost tokens only when a
-reviewer runs, and a rule that keeps being violated can be promoted by adding
-the author's tag.
+- `--preset` is outside the four layers, so it takes no flag but `--explain`: a
+  rule preset is inspected on its own.
+- At most one of `--root`, `--path` and `--work` is given, because each decides
+  the roots and two would conflict.
+- `--work` needs `--stage`, because the stage's `roots` decide which of the
+  Work's roots count.
+- `--action` and `--template` are not flags, because neither owns a layer.
+- The header names the layers applied, so a partial view never looks like a
+  complete one. When roots are not applied, each rule that is not
+  root-independent is listed with the roots that reach its ruleset.
+- `--explain` gives each rule's source, such as
+  `py.API002 ← root api ← backend ← py.API`, and why a rule is out: excluded by
+  a layer, vetoed by `rules_always_exclude`, or cut by roots. Nested rule
+  presets are otherwise hard to trace, and the bundle leaves the source out.
 
-The last rule has no tags, so it applies to every stage that selects its root.
-That is valid, and it is how a project states a rule that is always on within
-its roots. `wio rules list` marks such rules, and `wio rules check` reports them
-as a note that does not change its exit code, so the driver can review them.
+### Checking rules
 
-A rule whose tags no single stage has all of, so that it can never be selected,
-is a warning
-in `wio rules check`.
+`wio config check` and `wio rules check` report these about rule selection.
 
-### What else filters a rule
+Errors:
 
-- **Roots**: only rulesets bound to the roots the stage selects are considered
-  ([Roots and rulesets](#9-roots-and-rulesets)).
-- **Template type**: an optional `types` list restricts a rule to certain types
-  of Work. The names must be declared types.
-- **Stage**, through its tags. A stage lists the tags of the rules it should
-  see, so an authoring stage and its review stage get different rules without
-  any rule naming a stage. Stage names are chosen by each project and a ruleset
-  has to work in any repo, so rules refer to tags and never to stage names. To
-  scope a rule to exactly one stage, add a tag named after that stage to the
-  vocabulary and list it in that stage's tags.
+- a reference that does not resolve, with the reference and where it is: an
+  unknown ruleset, alias, family, code or rule preset;
+- a name of the wrong form;
+- a qualified reference inside a `ruleset.toml`;
+- a cycle between rule presets;
+- a rule preset in `rules_always_exclude`;
+- a ruleset that defines a rule preset named `all`, which is reserved for the
+  whole ruleset;
+- a duplicate or clashing alias;
+- a root-independent ruleset that a root reaches, because a ruleset is about
+  code or about how to work, not both;
+- a `rules_*` key on a template, a contract or an action, `rules_exclude` on a
+  root, or an always field anywhere but the config's top level: those layers do
+  not exist, and a key there would be read by nobody;
+- a manifest whose `name` is not its directory's.
 
-So selection is: roots, then template type, then the stage's tags. Three
-dimensions are enough. More would make rules hard to write and reason about.
+Warnings:
+
+- a rule that nothing selects;
+- a ruleset that is neither reached nor, when root-independent, selected: it is
+  data on disk that may be waiting to be used, so it is not an error;
+- a selection, in a stage or in `rules_always_include`, from a ruleset that is
+  not root-independent and that no root the stage can select reaches: for a
+  stage with `roots`, those roots; for a stage that selects the Work's roots, or
+  for `rules_always_include`, any root. Roots always cut such a selection, so
+  the reference is dead;
+- a rule in both always fields: the veto wins, but one of the two entries is
+  usually stale;
+- a Markdown heading in a rule body.
+
+A note lists `rules_always_include`, because every session receives those rules
+and a driver should see them. An exclude of a rule its layer never included is
+not reported: excluding ahead of a ruleset update is common, and a warning would
+be noise.
 
 ## 11. The context compiler
 
@@ -1330,8 +1537,8 @@ Inputs: a Work id, an action and a stage. The Work always exists first: new work
 starts with `wio contracts new <type>`, which creates the Work from the type's
 entry template, and writing its contract then runs as stages of an action like
 any other. `wio context` reads the contract and its ancestors, the stage
-definition, the rulesets bound to the roots the stage selects, and the rule
-files.
+definition, the rule presets of the roots the stage selects, the always fields,
+and the rule files.
 
 Output, printed to the session:
 
@@ -1353,13 +1560,26 @@ Output, printed to the session:
    usual.
 3. The resolved contract: the Work plus inheritable sections from its
    ancestors.
-4. The selected rules. They are grouped by the set of roots they apply to, each
-   group under one line that names the roots and their paths, such as
-   `Rules for root api (services/api):`, and then by the set of their tags, in
-   a stable order. Each rule is a line with its code and name, followed by its
-   body exactly as written, and rules are separated by two newlines, or by the
-   separator the config sets. A ruleset bound to two roots of the Work gives
-   each rule once, in the group for both roots.
+4. The selected rules ([How a rule is selected](#how-a-rule-is-selected)).
+   Root-independent rules come first, under `Rules for every root:`, because
+   rules about how to work frame the rest. Then the rules are grouped by the set
+   of roots they apply to, each group under one line that names the roots and
+   their paths, such as `Rules for root api (services/api):`. Within a group
+   they are ordered by ruleset, then by family, under the topic its
+   `ruleset.toml` declares, such as `mattpocock: Error handling (ERR)`, then by
+   code, so the bundle's bytes stay deterministic. A rule arrives through any
+   number of rule presets, so it is grouped by its family, never by a rule
+   preset: moving it between rule presets does not move it in the bundle. Each
+   rule is a line with its qualified canonical name and its name, such as
+   `mattpocock.ERR003 errors-carry-context`, followed by its body exactly as
+   written, and rules are separated by two newlines, or by the separator the
+   config sets. A bare code would be ambiguous across rulesets, so gates and
+   events cite rules by the same qualified name. A ruleset reached by two roots
+   of the Work gives each rule once, in the group for both roots. The bundle
+   does not say why a rule was selected: the agent needs the rule, and the
+   bundle id then stays the same when rule presets are reorganised without
+   changing the rules. `wio rules list --explain` gives the source
+   ([Listing rules](#listing-rules)).
 5. One fixed closing line: if the session's context was compacted, run the
    command from the header again.
 
@@ -1696,8 +1916,8 @@ it records two events:
   stage and reviewed commit replaces the earlier ones, as the latest record
   does. An event shows what a session recorded, not that a commit exists.
 
-Results come from a vocabulary that the config declares, as tags do, so a
-misspelled result is an error:
+Results come from a vocabulary that the config declares, so a misspelled
+result is an error:
 
 ```toml
 results = ["pass", "fail", "unknown"]
@@ -1712,17 +1932,23 @@ own transcripts. That gives token and cost totals per Work and per stage, which
 is how a project learns what each stage costs and whether a rule earns its
 place.
 
-## 13. Presets: process built on the engine
+## 13. Stage presets: process built on the engine
 
-A **preset** is a named ordered list of stages. The engine ships none in v0.1. A
-preset becomes the pipeline of an action wherever a template or a contract names
-it, so most contracts never list stages themselves.
+A **preset** is a named, reusable selection, of one of two kinds. A **stage
+preset** is a named, ordered list of stages, and this section is about it. A
+**rule preset** selects rules ([Rule presets](#rule-presets)). The two kinds are
+named apart, in the config and in the text, because one word for both would
+make every mention ambiguous.
 
-The engine does not care what the stages are. A preset is declared in the
-config, and a template binds it to an action:
+The engine ships no stage presets in v0.1. A stage preset becomes the pipeline
+of an action wherever a template or a contract names it, so most contracts
+never list stages themselves.
+
+The engine does not care what the stages are. A stage preset is declared in
+the config, and a template binds it to an action:
 
 ```toml
-[presets]
+[stage_presets]
 reviewed = ["implement", "implement-review"]
 ```
 
@@ -1731,15 +1957,16 @@ reviewed = ["implement", "implement-review"]
 deliver = "reviewed"
 ```
 
-Any preset is equally valid: a single `implement` stage, a flow that starts with
-high-level acceptance tests in a readable DSL, the typed-boundary flow of
-[wio's own workflow](workflow.md#typed-boundaries-for-a-leaf), or an
-organization-specific procedure with extra approval stages. Presets and rulesets
-can live in their own repositories and be used or forked by anyone. Joining
-presets, so that one is built from others, may come later.
+Any stage preset is equally valid: a single `implement` stage, a flow that
+starts with high-level acceptance tests in a readable DSL, the typed-boundary
+flow of [wio's own workflow](workflow.md#typed-boundaries-for-a-leaf), or an
+organization-specific procedure with extra approval stages. Stage presets and
+rulesets can live in their own repositories and be used or forked by anyone.
+Joining stage presets, so that one is built from others, may come later.
 
-A preset only names stages and orders them. What a stage produces comes from its
-goal or skill. How well it produces it comes from the rules its tags select.
+A stage preset only names stages and orders them. What a stage produces comes
+from its goal or skill. How well it produces it comes from the rules its roots
+and its own selection give it.
 
 ## 14. What the engine deliberately does not do
 
@@ -1756,10 +1983,10 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - It does not lint Markdown. wio checks its own parts of a file (the metadata
   block, the directives and the sections they require), and the project's own
   tools check the rest.
-- It does not assume a language. The typed-boundary preset of
+- It does not assume a language. The typed-boundary stage preset of
   [wio's own workflow](workflow.md) needs a checker that
   can reject a skeleton cheaply (a type checker, architecture tests), but the
-  engine itself only needs files, tags and text.
+  engine itself only needs files, names and text.
 
 ## 15. Open points
 
@@ -1767,14 +1994,10 @@ goal or skill. How well it produces it comes from the rules its tags select.
   only to hooks. If not, events join to transcripts by time window and working
   directory.
 - The config schema: the exact field names for stage session policy, and the
-  names of the config tables (`[types]`, `[actions]`, `[stages]`, `[presets]`,
-  `[trailers]`).
+  names of the config tables (`[types]`, `[actions]`, `[stages]`,
+  `[stage_presets]`, `[rule_presets]`, `[rulesets]`, `[trailers]`).
 - Whether rule files accept `+++` front matter as well. The rule example above
   uses the `<!-- wio -->` block, as contracts do.
-- Mapping tag names when a ruleset's vocabulary is close to the repository's,
-  such as `style = "implementation"`. Family overrides cover most cases.
-- Two rulesets that claim the same family prefix cannot both be bound. Renaming
-  a prefix when binding could solve it later.
 - Stage-level ordering across the tree. A parent waits for its children,
   and a shared boundary is a leaf of its own, so interleaved stages
   are not needed. Records and the log key on the Work, the action and the stage,
@@ -1786,9 +2009,16 @@ goal or skill. How well it produces it comes from the rules its tags select.
   `pass` continues and `fail` goes back.
 - Path hints for rules inside a root, so a ruleset can say which files of the
   root it is for, for example tests colocated with sources. The preferred shape
-  is paths on a binding, such as
-  `rulesets = ["python", { name = "pytest", paths = ["**/*_test.py"] }]`. It
-  changes only how bundles and `wio rules list --path` show rules, not which
+  is paths on a root's rule preset:
+
+  ```toml
+  rule_presets = [
+      "py.recommended",
+      { preset = "py.pytest", paths = ["**/*_test.py"] },
+  ]
+  ```
+
+  It changes only how bundles and `wio rules list --path` show rules, not which
   rules a stage selects.
 - A scope check that warns when a change touches files outside the roots of the
   Work its records name. It needs the record reader, so it belongs with v0.2.
@@ -1798,9 +2028,9 @@ goal or skill. How well it produces it comes from the rules its tags select.
   command that rewrites contracts and templates. Templates must keep their
   comments, so the rewrite either swaps only the delimiters or reads with a
   style-preserving parser.
-- Flat splits and the joining of presets, which come after v0.1. A flat split
-  has no channel for shared constraints; passing inheritable sections along
-  `depends_on` could close that.
+- Flat splits and the joining of stage presets, which come after v0.1. A flat
+  split has no channel for shared constraints; passing inheritable sections
+  along `depends_on` could close that.
 - Tracing a parent's items to the child items that establish them (v0.2 or
   v0.3). The proposed design is under [Tracking items](#tracking-items-planned),
   and the shape of its `[tracks]` table is open. Tracing a parent's constraints
@@ -1820,12 +2050,10 @@ goal or skill. How well it produces it comes from the rules its tags select.
   their order relative to the Work's own sections, and how each names the
   ancestor it comes from. The contract Work settles it before golden tests fix
   it.
-- Whether all-of tag matching is enough. It is the simplest rule that works, and
-  it can be replaced later without changing the file formats.
 - Recipes for harness hooks that inject the bundle again after compaction.
 - A lock file for the whole workflow, like `uv.lock`, for v0.3 or later.
   `.agents/wio/wio.lock` records everything `wio context` compiles bundles from:
-  the config, each template, each rule the config chooses (its ruleset, code,
+  the config, each template, each rule a layer selects (its ruleset, code,
   name and file hash), and each skill a stage names (where it was found and a
   hash of its files), and later where a copied ruleset came from.
   - `wio lock` rewrites it on purpose, so a change to the workflow shows up in
@@ -1848,15 +2076,15 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - Personal workflows, beyond v0.2: a user's own `~/.agents/wio` providing a
   workflow for a repository, in two cases with different problems.
   - **Inside a repository that uses wio.** A team member layers their own
-    rulesets, stages, presets or templates over the project's config. Personal
-    rulesets bound to the project's roots are the easy start, because rulesets
-    are already data and leave no trace in shared history. Personal stages are
-    harder: their records name stages teammates' configs do not know, and a
-    personal pipeline can skip the team's gates. Open questions: precedence and
-    name clashes between the user's and the project's config; whether a project
-    can forbid overlays, or allow personal rules but not personal stages; and
-    making an overlay visible in the bundle header and in the lock id, so that
-    the same lock id still means the same workflow.
+    rulesets, stages, stage or rule presets, or templates over the project's
+    config. Personal rule presets for the project's roots are the easy start,
+    because rulesets are already data and leave no trace in shared history.
+    Personal stages are harder: their records name stages teammates' configs do
+    not know, and a personal pipeline can skip the team's gates. Open questions:
+    precedence and name clashes between the user's and the project's config;
+    whether a project can forbid overlays, or allow personal rules but not
+    personal stages; and making an overlay visible in the bundle header and in
+    the lock id, so that the same lock id still means the same workflow.
   - **In a repository that does not use wio.** Contracts cannot live in its tree
     and `Wio-*` trailers cannot go into a history the team did not agree to, so
     contracts live in the user's directory, such as
