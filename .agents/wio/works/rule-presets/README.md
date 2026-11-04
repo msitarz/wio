@@ -122,6 +122,8 @@ by names that exist, before the config Work turns tags into code.
   | A preset resolves to a set first | An exclude inside a nested preset never reaches outside it. |
   | `rules_always_include` overrides earlier excludes | "Always" then means always; a default that a stage may drop belongs to a root or a stage. |
   | Every ruleset has a reserved `all` preset | A root or an always field can then take a whole ruleset while taking presets only. |
+  | A ruleset directory's name must be a valid ruleset name | The directory's name is the ruleset's name, a bare TOML key in `[rulesets.<name>]`. |
+  | A directory under `.agents/wio/rules/` without a `ruleset.toml` is an error | Skipped silently, its rules would never be selected and nobody would know. |
   | At most one alias per ruleset | Several names for one ruleset make the config harder to search. |
   | Codes may repeat across rulesets, and the prefix-clash check goes | A qualified name is unique, so two rulesets can share a family. |
   | A preset cycle is an error | A cycle has no resolved set. |
@@ -222,21 +224,22 @@ rules, and a ruleset with presets and an optional alias.
 ### **AC-2** A rule file and a ruleset manifest hold only what selection needs
 
 `docs/concepts.md` states that a rule file's metadata is `code` and `name` only,
-and that a `ruleset.toml` holds `name`, `description`, `[families]` and
-`[rule_presets.<name>]`, whose references are bare names of the ruleset's own
-families, codes and presets because a ruleset is portable data, and that a
-repository uses a ruleset copied from elsewhere by naming its presets and codes,
-with nothing to map onto its own names. It states that
-every ruleset has a reserved preset `all`, that codes are unique within a
-ruleset and need not be unique across rulesets, and why the family prefix-clash
-check is no longer needed.
+that a ruleset's name is its directory's name, and that a `ruleset.toml` holds
+`description`, `[families]` and `[rule_presets.<name>]` and no `name`, whose
+references are bare names of the ruleset's own families, codes and presets
+because a ruleset is portable data, and that a repository uses a ruleset copied
+from elsewhere by naming its presets and codes, with nothing to map onto its own
+names. It states that every ruleset has a reserved preset `all`, that codes are
+unique within a ruleset and need not be unique across rulesets, and why the
+family prefix-clash check is no longer needed.
 
 #### The rule and the manifest
 
 - **Given** the delivered `docs/concepts.md`.
 - **When** a reviewer reads section 10 and the symbol tables of section 2.
 - **Then** a rule file shows no `tags` or `types`, the manifest shows
-  `[rule_presets.<name>]`, and each statement above has its reason.
+  `[rule_presets.<name>]` and no `name`, and each statement above but the
+  ruleset's name has its reason.
 
 ### **AC-3** The config declares rule selection in named places
 
@@ -272,13 +275,11 @@ and bare config presets. Each key in the table has its presence marker.
 
 `docs/concepts.md` states the forms of names and references: `<ruleset>.<item>`
 with exactly one dot; a family as uppercase letters, a code as a family and
-digits, a preset as a lowercase letter followed by lowercase letters, digits
-and `_`; a ruleset name or alias as a lowercase letter followed by lowercase
-letters, digits, `-` and `_`; and a bare name as a config preset.
-It states that names are case-sensitive, that an alias works wherever a
-ruleset prefix does while records, bundles and `wio rules list` show the
-canonical name, and that a cycle between presets is an error that names the
-cycle.
+digits, and a preset, a ruleset name or an alias as a lowercase letter followed
+by lowercase letters, digits, `-` and `_`; and a bare name as a config preset.
+It states that names are case-sensitive, that an alias works wherever a ruleset
+prefix does while records, bundles and `wio rules list` show the canonical name,
+and that a cycle between presets is an error that names the cycle.
 
 #### The forms
 
@@ -401,18 +402,19 @@ are not flags, because neither owns a layer.
 ### **AC-10** The checks of rule selection are listed by severity
 
 `docs/concepts.md` states as errors an unresolved reference, whose message names
-the reference and where it is, a name of the wrong form, a qualified reference
-in a `ruleset.toml`, a preset cycle, a preset in `rules_always_exclude`, a
-ruleset preset named `all`, a duplicate or clashing alias, a root-independent
-ruleset reached by a root, a `rules_*` key on a template, a contract or an
-action, `rules_exclude` on a root, and an always field anywhere but the config's
-top level; as warnings a rule nothing selects, a ruleset that is neither reached
-nor, when root-independent, selected, a selection in a stage or in
-`rules_always_include` from a ruleset that is not root-independent and that no
-root the stage can select reaches (for a stage with `roots`, those roots; for a
-stage that selects the Work's roots, or for `rules_always_include`, any root),
-and a rule in both always fields; and as a note the list of
-`rules_always_include`.
+the reference and where it is, a name of the wrong form (a ruleset directory's
+name included), a directory under `.agents/wio/rules/` without a `ruleset.toml`,
+a qualified reference in a `ruleset.toml`, a preset cycle, a preset in
+`rules_always_exclude`, a ruleset preset named `all`, a duplicate or clashing
+alias, a root-independent ruleset reached by a root, a `rules_*` key on a
+template, a contract or an action, `rules_exclude` on a root, and an always
+field anywhere but the config's top level; as warnings a rule nothing selects, a
+ruleset that is neither reached nor, when root-independent, selected, a
+selection in a stage or in `rules_always_include` from a ruleset that is not
+root-independent and that no root the stage can select reaches (for a stage with
+`roots`, those roots; for a stage that selects the Work's roots, or for
+`rules_always_include`, any root), and a rule in both always fields; and as a
+note the list of `rules_always_include`.
 
 #### The checks
 
