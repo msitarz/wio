@@ -77,7 +77,7 @@ design but their exact form is not settled yet (section 15).
 | `roots` | The roots the Work touches, which select its rules. | [Roots of a Work](#roots-of-a-work) |
 | `depends_on` | The Works that must be delivered first. | [Dependencies](#dependencies) |
 | `[actions]` | The actions whose pipelines the Work replaces. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
-| `[x]` | The project's own data, which wio never reads. | [Anatomy](#anatomy) |
+| `[x]` | The one table for the project's own data: wio skips its contents, while any other unknown key gets a warning. | [Anatomy](#anatomy) |
 | `tracks` | Reserved: which criteria of other Works a criterion contributes to. | [Tracking criteria](#tracking-criteria-planned) |
 | First heading | The Work's title. | [Anatomy](#anatomy) |
 | `##` headings | The sections checked against the template, and the ones a descendant inherits. | [Checking a contract](#checking-a-contract-against-its-template) |
@@ -216,9 +216,10 @@ templates and rules alike, naming the key and the known key it is close to, if
 any ("unknown key `depend_on`; did you mean `depends_on`?"). A typo is visible
 and nothing is blocked. A known key with a wrong type, such as a string where a
 list belongs, is an error. Keys planned for later, such as `tracks` for tracking
-criteria, are reserved and do not warn. Data of a project's own goes under
-`[x]`, a table wio never reads and never warns about, so a template can carry,
-for example, a ticket key through `[contract.x]`:
+criteria, are reserved and do not warn. Data of a project's own goes in a
+table named exactly `[x]`. wio skips whatever it holds and never warns about
+it, while a table of any other unknown name warns like any unknown key. A
+template can carry, for example, a ticket key through `[contract.x]`:
 
 ```toml
 [contract.x]
