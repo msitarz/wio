@@ -99,7 +99,7 @@ design but their exact form is not settled yet (section 15).
 | `depends_on` | The Works that must be delivered first. | [Dependencies](#dependencies) |
 | `[actions]` | The actions whose pipelines the Work replaces. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
 | `[x]` | The one table for the project's own data: wio skips its contents, while any other unknown key gets a warning. | [Anatomy](#anatomy) |
-| `tracks` | Reserved: which criteria of other Works a criterion contributes to. | [Tracking criteria](#tracking-criteria-planned) |
+| `tracks` | Reserved: which items of other Works an item contributes to. | [Tracking items](#tracking-items-planned) |
 | First heading | The Work's title. | [Anatomy](#anatomy) |
 | `##` headings | The sections checked against the template, and the ones a descendant inherits. | [Checking a contract](#checking-a-contract-against-its-template) |
 | Directory layout | A subdirectory that is a Work is a child, so the tree is the hierarchy. | [Parent and leaf](#parent-and-leaf) |
@@ -116,7 +116,7 @@ design but their exact form is not settled yet (section 15).
 | `[contract]` | The metadata of the contracts the template produces. | [From template to contract](#from-template-to-contract) |
 | `<!-- wio: required -->` | The section must be present in the contract. | [Directives](#directives) |
 | `<!-- wio: items>=N -->` | The section must hold at least `N` items; what counts is *open*. | [Directives](#directives) |
-| `<!-- wio: pattern=... -->` | The section's items must match a regular expression; its quoting is *open*. | [Directives](#directives) |
+| `<!-- wio: pattern=... -->` | The section's items must match a regular expression, and the matches are their item ids; its quoting is *open*. | [Directives](#directives), [Item ids](#item-ids) |
 | `<!-- wio: inherit -->` | The section is included in every descendant's resolved view. | [Inheritance, computed](#inheritance-computed) |
 
 ### A rule file
@@ -167,7 +167,7 @@ design but their exact form is not settled yet (section 15).
 | Symbol | Purpose | See |
 | --- | --- | --- |
 | `Wio-Work`, `Wio-Action`, `Wio-Stage` | The Works, action and stage a commit is work on. | [Records](#records) |
-| `Wio-Criteria` | The acceptance criteria the commit addresses. | [Records](#records) |
+| `Wio-Criteria` | The item ids the commit addresses, such as acceptance criteria. | [Records](#records) |
 | `Wio-Result`, `Wio-Judge` | A gate's result, and who judged it. | [Records](#records) |
 | `Merge`, `Revert`, `Reapply`, `fixup!`, `squash!` | Subjects of commits that need no record. | [Records](#records) |
 | `This reverts commit <sha>.` | Takes the records of the reverted commit back. | [Records](#records) |
@@ -239,10 +239,10 @@ templates and rules alike, naming the key and the known key it is close to, if
 any ("unknown key `depend_on`; did you mean `depends_on`?"). A typo is visible
 and nothing is blocked. A known key with a wrong type, such as a string where a
 list belongs, is an error. Keys planned for later, such as `tracks` for tracking
-criteria, are reserved and do not warn. Data of a project's own goes in a
-table named exactly `[x]`. wio skips whatever it holds and never warns about
-it, while a table of any other unknown name warns like any unknown key. A
-template can carry, for example, a ticket key through `[contract.x]`:
+items, are reserved and do not warn. Data of a project's own goes in a table
+named exactly `[x]`. wio skips whatever it holds and never warns about it, while
+a table of any other unknown name warns like any unknown key. A template can
+carry, for example, a ticket key through `[contract.x]`:
 
 ```toml
 [contract.x]
@@ -432,15 +432,30 @@ parseable by a markdown parser. The grammar is small:
 | --- | --- |
 | `required` | The heading is present in the contract. It says nothing about what is under it. |
 | `items>=N` | The section holds at least `N` items. |
-| `pattern=<regex>` | The section's items match the regular expression. |
+| `pattern=<regex>` | The section's items match the regular expression, and the matches are their **item ids**. |
 | `inherit` | The section is inheritable: a descendant's resolved view includes it (section 5). |
 
 Sections are **optional until marked required**, so the agent can choose
-sections based on the intent it gathered. Authoring comments do not count as
+sections based on what the Work needs. Authoring comments do not count as
 content, so a Work fresh from its template passes a check that only requires
 headings, and a template that wants content says so with `items`. What counts
 as an item, and how a `pattern` that holds a comma or `-->` is written, are
 open (section 15).
+
+### Item ids
+
+Item ids are the only content of a section that wio keeps track of: the ids
+that a `pattern` directive gives the items of a section, such as `AC-1`.
+They let records and reviews say which parts of a contract a commit addresses
+or a gate judged, without wio knowing what the parts mean. A template decides
+which sections carry ids and what they look like; a workflow decides what they
+stand for. In [wio's own workflow](workflow.md#2-what-a-contract-states) they
+are acceptance criteria, so the trailer that carries them is `Wio-Criteria`
+and the flag is `--criteria`, named after that common use. Ids belong to their
+Work: `AC-1` of one Work and `AC-1` of another are different items.
+
+This is the direction for v0.1, not a settled grammar: how wio finds the items
+of a section, and so their ids, is open (section 15).
 
 A contract created from a template keeps the template's authoring comments in
 its body, because they are the guidance the agent follows while it fills each
@@ -558,7 +573,7 @@ are rendered is open (section 15).
 A leaf's own Constraints section holds only the constraints the leaf adds. The
 inherited ones are not restated, so they cannot drift.
 
-Marking individual acceptance criteria as inheritable is possible later.
+Marking individual items, by their ids, as inheritable is possible later.
 
 ### Dependencies
 
@@ -596,15 +611,16 @@ depends_on = ["a7b2c4", "k3m9xq"]
   Whether a dependency also holds back the dependent's definition is an open
   point.
 
-### Tracking criteria (planned)
+### Tracking items (planned)
 
 This is planned for v0.2 or v0.3 and is not part of v0.1.
 
-A parent's acceptance criteria are usually established by its descendants
-together, and the parent is written before they exist. So the link runs from the
-child upward: a criterion of a Work can track a criterion of another Work, such
-as a parent, a grandparent or a sibling. The links live in the contract's
-metadata block, in a `[tracks]` table keyed by the Work's own criterion ids:
+A parent's items, such as its acceptance criteria, are usually established by
+its descendants together, and the parent is written before they exist. So the
+link runs from the child upward: an item of a Work can track an item of
+another Work, such as a parent, a grandparent or a sibling. The links live in
+the contract's metadata block, in a `[tracks]` table keyed by the Work's own
+item ids:
 
 ```toml
 [tracks]
@@ -613,21 +629,22 @@ AC-2 = ["31as8f AC-3", "871df7 AC-4"]
 ```
 
 - To track means to contribute to, not to be enough for. Several children
-  together establish one parent criterion.
-- `wio contracts check` verifies that every referenced Work and criterion
-  exists, so an amendment that removes a criterion shows up as a dangling link.
-- The parent never lists its children. The criteria that track a parent
-  criterion are computed from the descendants.
-- A parent criterion that nothing tracks is a warning, not an error. Some
-  system-level criteria are verified only at the parent's integration stage.
+  together establish one parent item.
+- `wio contracts check` verifies that every referenced Work and item exists,
+  so a change that removes an item shows up as a dangling link.
+- The parent never lists its children. The items that track a parent item are
+  computed from the descendants.
+- A parent item that nothing tracks is a warning, not an error. Some items are
+  established only by a stage of the parent itself.
 - Records carry no extra trailer for this. Their `Wio-Criteria` together with
   the contract's links gives the same information.
-- Constraints are not covered. They are inherited, not traced.
+- Inherited sections, such as a parent's constraints, are not covered. They
+  are inherited, not traced.
 
 The exact shape of the table is open. A flat table with one string per target,
 as above, is the simplest. Nested tables per target Work, such as
-`[tracks.31as8f]` with `AC-1 = ["AC-3"]`, keep the Work id and the criterion id
-as separate pieces of data.
+`[tracks.31as8f]` with `AC-1 = ["AC-3"]`, keep the Work id and the item id as
+separate pieces of data.
 
 ## 6. Actions
 
@@ -765,11 +782,11 @@ else. Every proposal says so in one fixed line.
   An amendment therefore makes every `deliver` stage stale, and `wio next`
   proposes delivery again from its first stage. This is coarse: it cannot tell
   which stages a change really affects, and the driver can skip ahead. Tracking
-  criteria could make it finer later. `invalidated_by` implies no order and
-  `after` implies no staleness, so `deliver` lists `define` in both, because it
-  is ordered after definition and also redone after it. Without
-  `invalidated_by`, nothing invalidates an action. Names that start with `@`
-  are reserved, as in `@work`, so they cannot clash with an action's name.
+  items could make it finer later. `invalidated_by` implies no order and `after`
+  implies no staleness, so `deliver` lists `define` in both, because it is
+  ordered after definition and also redone after it. Without `invalidated_by`,
+  nothing invalidates an action. Names that start with `@` are reserved, as in
+  `@work`, so they cannot clash with an action's name.
 - Only stages in the Work's current pipeline count. Records of a stage that the
   pipeline no longer contains are ignored, for example after a leaf is promoted
   to a parent with a different pipeline.
@@ -1367,7 +1384,7 @@ becomes true after the commit lands (merged, approved, done). Recording such
 facts in the files needs follow-up commits, and the follow-up commits need
 recording too.
 
-So there is no status field in a contract, no per-criterion state, and no stored
+So there is no status field in a contract, no per-item state, and no stored
 current stage. The working tree can still be queried for what is
 **derivable**: the Work tree, each Work's roots, and what a contract inherits.
 Which Works exist is whatever is in the working tree, committed or not.
@@ -1398,13 +1415,13 @@ Wio-Result: pass
 | `Wio-Work` | The Work's id; several ids separated by a comma and one space, for Works that share the rest of the record; or `none` for a commit that belongs to no Work. Required. |
 | `Wio-Action` | The action the stage belongs to. Required unless the Work is `none`. |
 | `Wio-Stage` | The stage the commit works on. Required unless the Work is `none`. |
-| `Wio-Criteria` | The acceptance criteria this commit addresses, separated by commas. Optional. |
+| `Wio-Criteria` | The item ids this commit addresses, such as acceptance criteria, separated by commas. Optional. |
 | `Wio-Result` | The gate's result, one of the `results` in the config. Only for stages that judge an artifact. |
 | `Wio-Judge` | Who judged a gate: `human` or `agent`. Optional; a gate's record without it was judged by a human. |
 
 - **One record is one paragraph.** A commit message can hold several records,
   each in its own paragraph. Repeating keys inside one paragraph would lose
-  which criteria belong to which stage, so a record never does.
+  which ids belong to which stage, so a record never does.
 - **A record names one Work or a list of Works.** `Wio-Work: a7b2c4, k3m9xq` is
   shorthand for two records that are identical except for the id, in the order
   written, and the Work listed later counts as recorded later. A commit that
@@ -1416,9 +1433,9 @@ Wio-Result: pass
   children, because progress is read for each Work, action and stage on its own.
   Two cautions follow from that. The order of the ids matters when one Work's
   staleness depends on another's record (section 6), so list dependencies and
-  children before the Works that depend on them. And criteria ids belong to
-  their Work, so `Wio-Criteria: AC-1` on a list means each Work's own `AC-1`:
-  list Works together only when that is what the record means.
+  children before the Works that depend on them. And item ids belong to their
+  Work, so `Wio-Criteria: AC-1` on a list means each Work's own `AC-1`: list
+  Works together only when that is what the record means.
 - **Every commit of a stage carries the stage's record.** A stage that takes
   four commits has four records, and only the latest counts. No record says
   that a stage is finished: that is a judgement, and the next gate's result
@@ -1428,18 +1445,18 @@ Wio-Result: pass
   workflow: a squash-merged `main`, the commits of the current branch, and a
   repository without branches are read the same way. A branch that was
   abandoned is not reachable and does not count. Uncommitted work leaves no
-  record. Records are a signal, not proof: a criterion addressed at the
-  architecture stage is specified, not satisfied.
+  record. Records are a signal, not proof: an item addressed at an
+  early stage may be specified, not yet satisfied.
 - **The latest record of a stage counts** for whether the stage is current.
   Order is the order of the history, and within one commit the order of the
   paragraphs, and within a list the order of the ids (see `wio next` in
   section 6).
-- **A stage's criteria are the union of its current run.** Each record names
-  the criteria its own commit addresses, so an agent writes only what it knows.
-  The criteria a stage addressed are the union over its records that are newer
-  than the latest record of every earlier stage in its pipeline, the same window
-  that decides currency. When an earlier stage is redone, the run starts over,
-  and so do its criteria. A record without `Wio-Criteria` adds none.
+- **A stage's item ids are the union of its current run.** Each record names the
+  ids its own commit addresses, so an agent writes only what it knows. The ids a
+  stage addressed are the union over its records that are newer than the latest
+  record of every earlier stage in its pipeline, the same window that decides
+  currency. When an earlier stage is redone, the run starts over, and so do its
+  ids. A record without `Wio-Criteria` adds none.
 - **Unknown ids are ignored.** A record of a Work that was deleted refers to
   nothing and does no harm.
 - **A revert takes its commit's records back.** `git revert` writes
@@ -1452,11 +1469,10 @@ Wio-Result: pass
   record, and a squash merge keeps only the body, so the body carries what a
   reader needs and no repetition. The fold takes two steps, in this order.
   - For each Work, consecutive records of the same action and stage become one
-    record at the later position, with the criteria united in order of
-    appearance and the latest result and judge. This loses nothing a reader
-    uses, because only the latest record of a stage counts, and the criteria of
-    a stage are read from the window of its earlier stages alone, not from
-    `invalidated_by`.
+    record at the later position, with the ids united in order of appearance and
+    the latest result and judge. This loses nothing a reader uses, because only
+    the latest record of a stage counts, and the ids of a stage are read from
+    the window of its earlier stages alone, not from `invalidated_by`.
   - Then consecutive records that differ only in the Work become one list,
     in the order of the history; records with any other difference stay apart.
     Only neighbors merge, because a record between two others can matter: a
@@ -1468,7 +1484,7 @@ Wio-Result: pass
   stay as they are. The fold is a function of the commits, so running it again
   gives the same body. After a squash merge the folded body is the only record
   of the pull request, so a reader may rely on nothing more than the latest
-  record of each Work, action and stage, its criteria and the order of those
+  record of each Work, action and stage, its ids and the order of those
   records. How many times a stage was recorded is lost; a back-edge is not,
   because it needs a record of another stage between the two.
 
@@ -1478,24 +1494,24 @@ wio trailers <work>[,<work>...] <action> <stage> [--criteria ...]
 ```
 
 It prints a checked record: each Work exists in the working tree or in `HEAD`,
-the criteria exist in the contract of every Work listed, the result is in the
+the item ids exist in the contract of every Work listed, the result is in the
 vocabulary and present exactly when the stage is a gate, and the stage is in
 each Work's actions (a warning, as in `wio context`). On the command line the
 ids are separated by commas alone, and the record separates them with a comma
 and a space, in the order given. A list names no Work twice. A Work found only
 in `HEAD` is one that the change being committed deletes, so the commit that
-retires or abandons a Work still carries its record, and its criteria are
-checked against `HEAD`'s contract.
+retires or abandons a Work still carries its record, and its ids are checked
+against `HEAD`'s contract.
 
 With `--result` it also writes the `review` event to the event log, with the
 items `--cite` names (such as `--cite ARC001=fail --cite AC-2=pass`), so a
 reviewer records everything with one command. For a list of Works, each cited
-criterion must exist in every Work's contract, the event is written once per
-Work, and the comparison with the `context` event below runs for each Work. Each
-item is checked: one whose form is a rule code must name a rule the config
-chooses, and any other must be a criterion of the Work's contract, and its
-result must be in the vocabulary. The **reviewed commit** is worked out from the
-history: starting at `HEAD` and following first parents, wio skips the
+item id must exist in every Work's contract, the event is written once per Work,
+and the comparison with the `context` event below runs for each Work. Each item
+is checked: one whose form is a rule code must name a rule the config chooses,
+and any other must be an item id of the Work's contract, and its result must be
+in the vocabulary. The **reviewed commit** is worked out from the history:
+starting at `HEAD` and following first parents, wio skips the
 **pure gate commits** of this gate, those with at least one record, all of which
 belong to its action and stage once the lists are expanded (for this Work or for
 others, as when one gate approves a parent and its children), and the first
@@ -1520,23 +1536,23 @@ again after the artifact changed does not move the start of the review.
 `wio trailers check` reads a commit message or a pull request body. It has two
 modes, because a message is checked either when it is written or long after.
 
-- **At commit time, `--require`.** It checks every record as `wio trailers`
-  does when it writes one: the Work exists in the index or in `HEAD`, its
-  criteria exist, the names are in the config, and a result is present exactly
-  on gates. Failures are errors, because the message is checked against the
-  config it was written for. It also fails a message without a record, except a
-  message whose subject starts with `Merge`, `Revert`, `Reapply`, `fixup!` or
-  `squash!`, each followed by a space: git's own forms for commits that are
-  merged, reverted (git writes `Reapply` for a revert of a revert) or squashed
-  into another. An `amend!` commit is not exempt, because when it is squashed
-  its message replaces the target's message, so it must carry the record the
-  target will end up with. A project calls it from a commit-msg hook.
+- **At commit time, `--require`.** It checks every record as `wio trailers` does
+  when it writes one: the Work exists in the index or in `HEAD`, its item ids
+  exist, the names are in the config, and a result is present exactly on gates.
+  Failures are errors, because the message is checked against the config it was
+  written for. It also fails a message without a record, except a message whose
+  subject starts with `Merge`, `Revert`, `Reapply`, `fixup!` or `squash!`, each
+  followed by a space: git's own forms for commits that are merged, reverted
+  (git writes `Reapply` for a revert of a revert) or squashed into another. An
+  `amend!` commit is not exempt, because when it is squashed its message
+  replaces the target's message, so it must carry the record the target will end
+  up with. A project calls it from a commit-msg hook.
 - **Afterwards, without `--require`,** for a pull request body or a range of
   commits in CI. It checks the shape of every record (the keys, the id's form, a
   result's value, the ids of a list), and reports names that the current config
   does not know as **warnings**: a record that was valid when it was written
   never fails later because the config changed. It does not check that Works and
-  criteria exist, because Works are deleted later and the readers ignore unknown
+  item ids exist, because Works are deleted later and the readers ignore unknown
   ids. A message without a record passes: a pull request whose commits all
   belong to no Work has none in its body.
 
@@ -1633,7 +1649,7 @@ it records two events:
   whether the context changed.
 - `review`: a gate finished, with the Work, action, stage, the reviewed commit,
   the judge, the overall result, and a result for each cited item, a rule code
-  (with its file's hash) or a criterion id (`ARC001=fail`, `AC-2=pass`). What is
+  (with its file's hash) or an item id (`ARC001=fail`, `AC-2=pass`). What is
   not cited was not judged.
   `wio trailers --result` writes it, and `wio log review`, with the same
   arguments, writes it for workflows that do not use records. A gate that takes
@@ -1747,8 +1763,8 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - Flat splits and the joining of presets, which come after v0.1. A flat split
   has no channel for shared constraints; passing inheritable sections along
   `depends_on` could close that.
-- Tracing a parent's acceptance criteria to the child criteria that establish
-  them (v0.2 or v0.3). The proposed design is under "Tracking criteria" in
+- Tracing a parent's items to the child items that establish them (v0.2 or
+  v0.3). The proposed design is under "Tracking items" in
   section 5, and the shape of its `[tracks]` table is open. Tracing a parent's
   constraints is not covered.
 - Giving a Work that designs a shared boundary the contracts of its sibling
@@ -1756,11 +1772,11 @@ goal or skill. How well it produces it comes from the rules its tags select.
 - The order of records in a history with merge commits, where "the order of
   the history" is not a total order. Topological order, oldest first, is the
   likely answer, for `wio next` to settle.
-- Where `wio trailers` finds a contract's criterion ids, and what `items` and
-  `pattern` count. Criteria are `### **AC-1** ...` subheadings in the templates,
-  not list items, so the directive grammar must be able to apply to
-  subheadings. How a `pattern` that contains a comma or `-->` is written is
-  open too. The directive-grammar Work settles both.
+- How wio finds the items of a section, and so their ids (section 4), and what
+  `items` and `pattern` count. This repository's criteria are `### **AC-1** ...`
+  subheadings, not list items, so the directive grammar must be able to apply to
+  subheadings. How a `pattern` that contains a comma or `-->` is written is open
+  too. The directive-grammar Work settles both.
 - How the resolved view renders inherited sections: their heading levels,
   their order relative to the Work's own sections, and how each names the
   ancestor it comes from. The contract Work settles it before golden tests fix
