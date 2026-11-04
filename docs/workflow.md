@@ -2,7 +2,8 @@
 
 The [core concepts](concepts.md) describe the engine and no process. This
 document describes the process this repository runs on the engine: its types,
-actions, presets, stages and gates, and the reasons behind them. It is one
+actions, stage presets, stages and gates, the rules each stage gets, and the
+reasons behind them. It is one
 workflow among many, and it shows how the concepts are meant to be combined.
 The workflow itself is the [config](../.agents/wio/config.toml), the
 [templates](../.agents/wio/templates) and the
@@ -122,23 +123,42 @@ not a transcript of the interview that produced it.
 
 ### The contract root
 
-The rules for writing contracts are the `contracts` ruleset, bound to the
-`contract` root, whose path is the Works directory. The define, amend and
-ratify stages select that root with `roots = ["contract"]`. So a Work that is
-still being defined, and has no roots yet, gets the rules for writing
-contracts, and an amendment or a ratify of a delivered leaf gets them too,
-rather than the rules of the code the leaf touches.
+The rules for writing contracts are the `contracts` ruleset. The `contract`
+root, whose path is the Works directory, selects its `authoring` rule preset
+and the whole `writing` ruleset, which holds the rules for links and diagrams.
+The define, amend and ratify stages and their gates select that root with
+`roots = ["contract"]`. So a Work that is still being defined, and has no roots
+yet, gets the rules for writing contracts, and an amendment or a ratify of a
+delivered leaf gets them too, rather than the rules of the code the leaf
+touches.
+
+Each of those stages adds the `contracts` rule preset for its own work, which
+the root reaches, so the stage needs no root of its own:
+
+| Stage | Adds |
+| --- | --- |
+| `define` | nothing |
+| `review-contract` | `contracts.review` |
+| `amend` | `contracts.amend` |
+| `review-amendment` | `contracts.amend`, `contracts.review` |
+| `ratify` | `contracts.ratify` |
+| `review-ratify` | `contracts.ratify`, `contracts.review` |
+
+`authoring` excludes those three rule presets, so the rules that only a review,
+an amendment or a ratify needs stay out of the define stage. How the roots, the
+stages and the rule presets combine is
+[how a rule is selected](concepts.md#how-a-rule-is-selected).
 
 The few rules that the agent writing code needs about its contract, such as
 asking for an amendment instead of working around a false assumption, are the
-`contract-upkeep` ruleset. It is bound to the code roots, so the deliver stages
-never select the contract root.
+`contract-upkeep` ruleset. The code roots select it, so the deliver stages get
+it and never select the contract root.
 
 ## 4. Delivering a Work
 
 ### Typed boundaries for a leaf
 
-A leaf is delivered by the `typed-boundary` preset:
+A leaf is delivered by the `typed-boundary` stage preset:
 
 | Stage | Produces |
 | --- | --- |
@@ -151,14 +171,31 @@ Each is followed by its gate, in a fresh session. The order puts the cheapest
 artifact first: a signature costs a few lines to review, and if it is wrong,
 only the signature is redone. It relies on a checker that can reject a
 skeleton cheaply, such as a type checker or architecture tests, which is why
-this preset suits a typed language and is not part of the engine.
+this stage preset suits a typed language and is not part of the engine.
 
 ### Integration for a parent
 
-A parent is delivered by the `integrate` preset: the `integration` stage joins
-the delivered children and adds the tests for the parent's system-level
+A parent is delivered by the `integrate` stage preset: the `integration` stage
+joins the delivered children and adds the tests for the parent's system-level
 criteria, `system-review` judges the result against those criteria, and the
 promote stages follow.
+
+### The rules of the delivery stages
+
+The deliver stages select the Work's roots, and the promote stages select the
+`repo` root. A root's rule presets reach every stage that selects it, so the
+`wio` root brings `contract-upkeep`, and the `repo` root brings
+`contract-upkeep`, `docs` and `writing`. Each stage excludes, by family, what
+it does not need, and the config says why next to the exclude:
+
+| Stages | Exclude | Why |
+| --- | --- | --- |
+| `architecture`, `wiring`, `implementation`, `integration` | `docs.DOC`, `writing.WRT` | Writing code needs no rule for writing docs. |
+| their gates | `contract-upkeep.UPK`, `docs.DOC`, `writing.WRT` | A review judges the code against the contract, and writes neither. |
+| `promote-docs`, `docs-review` | `contract-upkeep.UPK` | The docs are written after the code, so keeping the contract true while coding does not apply. |
+
+An exclude of a family that the stage's roots do not bring removes nothing, so a
+stage can exclude `docs.DOC` whether or not the Work names the `repo` root.
 
 ### Retiring a contract
 
