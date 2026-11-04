@@ -1,37 +1,42 @@
 # wio: a configurable, stage-gated workflow engine for AI agents
 
-**Work It Out** (`wio`) gives an AI agent exactly the context it needs for
-the step it is on, and nothing else. Before a session starts, `wio context`
-compiles one bundle for it: what is wanted (the Work's **contract**), what this
-step must produce (the **stage**'s goal, or the skill that holds its
-procedure), and only the project's **rules** that apply to this step and these
-files. The bundle is deterministic, so two sessions with the same bundle saw
-the same context. Between steps, **gates** let a fresh agent or a human review
-a small artifact before the next, more expensive one is built.
+**Every agent session starts with exactly the context its step needs. Nothing
+more.**
 
-Everything wio compiles from is a plain file in the repository: contracts,
-templates, rules and one config. Their metadata decides how the bundle is
-compiled: which stages an action runs, which rules a stage sees, and
-which sections a contract inherits from its parents. There is no server and no
-database.
+Before a session starts, **Work It Out** (`wio`) compiles one bundle for it:
 
-Progress lives in the commit messages, not in the files. Every commit carries
-`Wio-*` git trailers that say which Work and stage it belongs to, so wio reads
-where each Work stands from the git history, and a contract never needs a status
-field. A personal event log adds which agent session ran each stage and which
-rules it received. Joined with the harness's transcripts, it tells you what each
-contract and each stage cost in tokens, how many review rounds a stage needed
-before it passed, and whether a rule earns its place.
+- **What is wanted:** the Work's **contract**.
+- **What this step produces:** the **stage**'s goal, or the skill that holds
+  its procedure.
+- **How to do it well:** only the project's **rules** for this step and these
+  files.
 
-wio does not prescribe a process. The engine provides the building blocks, and
-a project decides what its contracts say, which **actions** and **stages**
-exist, how they are ordered and what each one produces.
-[wio's own workflow](docs/workflow.md) is one example.
+Same inputs, same bytes. Two sessions with the same bundle id saw the same
+context, so a run can be repeated, compared and trusted.
 
-Nor is wio only for code. Any agentic work tracked by git fits the same
-shape: documentation, research, an investigation or a data analysis can have a
-contract that states what is wanted, stages with their own rules, gates where a
-human looks, and commits that record each step.
+**Small steps, real stops.** Between stages, a **gate** hands the artifact to a
+fresh agent or to a human. A wrong design is caught while it is a few lines,
+before anything expensive is built on it.
+
+**Plain files, no server.** Contracts, templates, rules and one config, all in
+your repository. Their metadata decides which stages run, which rules each one
+sees, and what a contract inherits from its parents.
+
+**Progress in your git history.** Every commit carries `Wio-*` trailers that
+name its Work and stage. wio reads where each Work stands from the commit
+messages, so no file holds a status field that goes stale.
+
+**Know what it cost.** A personal event log records which agent session ran
+each stage and which rules it got. Joined with your harness's transcripts, it
+shows the tokens each contract and each stage took, the review rounds a stage
+needed before it passed, and whether a rule earns its place.
+
+**Your process, not ours.** wio ships no stages, presets or rulesets. Your
+project decides what its contracts say, which **actions** and stages exist and
+what each one produces. [wio's own workflow](docs/workflow.md) is one example.
+
+**Not only for code.** Documentation, research, an investigation, a data
+analysis: any agentic work that git tracks fits the same shape.
 
 ## Status
 
