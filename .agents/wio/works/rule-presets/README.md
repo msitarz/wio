@@ -45,7 +45,7 @@ by names that exist, before the config Work turns tags into code.
   `.agents/wio/rules/` and `docs/workflow.md`, which explains that config, so
   they change together in a later step.
 - Changing any code, a module of `tach.toml` or a stub's declarations; only
-  the docstrings of two stubs change.
+  the docstrings of three stubs change.
 - Joining stage presets, so that one is built from others.
 - Globs or file types in a root's `paths`.
 - A layer for actions, templates or contracts, or rules inherited down the Work
@@ -58,13 +58,15 @@ by names that exist, before the config Work turns tags into code.
 - **A-2**: The `config` Work is still a `feature.draft`, so its Intent changes
   under `define` and needs no `amend`.
 - **A-3**: At commit `c2bce06`, no code in `src` implements tags, presets or
-  rule selection, and only the docstrings of `src/wio/models/rules.pyi` and
-  `src/wio/models/config.pyi` mention tags.
+  rule selection; only the docstrings of `src/wio/models/rules.pyi` and
+  `src/wio/models/config.pyi` mention tags, and only the docstring of
+  `RuleSelection.select` in `src/wio/context/ports.pyi` says that a template's
+  type selects rules.
 - **A-4**: At commit `c2bce06`, the files outside `.agents/wio/` that describe
   tags or a preset as a list of stages are `docs/concepts.md`, `GLOSSARY.md`,
   `README.md`, `docs/README.md`, `docs/v0.1-scope.md`,
-  `docs/split-exercises.md`, `docs/workflow.md`, `tests/README.md` and those
-  two stubs.
+  `docs/split-exercises.md`, `docs/workflow.md`, `tests/README.md` and the two
+  stubs of `src/wio/models`.
 - **A-5**: `wio trailers` does not exist yet, so the records of this Work are
   written by hand.
 - **A-6**: Until the migration that follows this Work, `docs/workflow.md` and
@@ -75,26 +77,31 @@ by names that exist, before the config Work turns tags into code.
 
 - `docs/concepts.md`, sections 2 (the symbol tables), 7 (Stage), 9 (Roots and
   rulesets), 10 (Rules), 11 (The context compiler) and 13 (Presets), states the
-  design.
+  design, and every other mention of tags or presets in it follows, such as the
+  "preset id" of section 6, which becomes "stage preset id".
 - `GLOSSARY.md` defines the terms, and `README.md`, `docs/README.md`,
   `docs/v0.1-scope.md`, `docs/split-exercises.md` and `tests/README.md` follow
   them.
 - The docstrings of `Rule`, `Decision` and the config model in
-  `src/wio/models/rules.pyi` and `src/wio/models/config.pyi` state how a rule
-  is selected.
+  `src/wio/models/rules.pyi` and `src/wio/models/config.pyi`, and of
+  `RuleSelection.select` in `src/wio/context/ports.pyi`, state how a rule is
+  selected.
 - The stage `promote-docs` writes these files, and `docs-review` judges them
   against this contract.
 
 ## Constraints
 
-- `promote-docs` writes `docs/concepts.md`, the other documents of AC-11 and
-  the two stub docstrings, beyond the README and GLOSSARY files its goal names,
+- `promote-docs` writes `docs/concepts.md`, the other documents of AC-11 and the
+  three stub docstrings, beyond the README and GLOSSARY files its goal names,
   because this Work's guarantees are a design and that is where the design
   lives.
-- A root **reaches** a ruleset when its `rule_presets`, with config presets
-  expanded, name any family, code or preset of that ruleset, even if excludes
-  leave none of its rules selected, so that binding does not change when a
-  preset's contents do.
+- A root **reaches** a ruleset when the `rules_include` entries of its
+  `rule_presets`, with config presets expanded, name any family, code or preset
+  of that ruleset, even if excludes leave none of its rules selected, so that
+  binding does not change when a preset's contents do; a `rules_exclude` entry
+  reaches nothing.
+- Every design in this contract is required, except the exact header texts of a
+  bundle and the example names, which are provisional.
 - Each decision is stated with its reason in one or two sentences. The reasons
   are those below, or those of the Intent committed in `c2bce06` where this
   table has none:
@@ -107,7 +114,7 @@ by names that exist, before the config Work turns tags into code.
   | Binding is implicit, by reach | A separate list of rulesets on a root would repeat what its presets already name. |
   | Eligibility is per ruleset, not per rule | Per rule, a stage could only narrow what roots chose, and a reviewer-only rule from a code ruleset would be impossible. |
   | `root_independent` is explicit | If an unbound ruleset counted as root-independent, a forgotten binding would leak its rules into every bundle. |
-  | A Work with no roots gets only root-independent rules | A Work still being defined has no code yet, so only the rules about how to work apply. |
+  | A stage that selects no root gets only root-independent rules | A stage about something other than code, such as writing a contract, needs only the rules about how to work; a stage that selects `@work` for a Work with no roots still fails, as section 9 says. |
   | Roots, then stage | The stage is the specific procedure, so it can drop a rule its roots bring. |
   | Exclude after include within a layer | A layer can then take a preset minus a few of its rules. |
   | A preset resolves to a set first | An exclude inside a nested preset never reaches outside it. |
@@ -120,20 +127,23 @@ by names that exist, before the config Work turns tags into code.
   | A bundle groups by family, not by preset | A rule can arrive through several presets, and moving it between presets should not move it in the bundle. |
   | A bundle does not say why a rule is selected | The agent needs the rule, and the bundle id stays the same when presets are reorganised. |
   | `--work` needs `--stage` | The stage's `roots` decide which of the Work's roots count. |
-  | A ruleset nothing reaches is a warning | It is data on disk that may be waiting to be used. |
+  | `--preset` takes no other selecting flag, and `--root` takes neither `--path` nor `--work` | A preset is inspected alone, and each of `--root`, `--path` and `--work` decides the roots, so two of them would conflict. |
+  | Each field takes the names it states | A root names guidelines, a veto names exact rules, and every other field can name anything, so each place says only what it needs. |
+  | A ruleset nothing reaches or selects is a warning | It is data on disk that may be waiting to be used; a root-independent ruleset is never reached, so only its selection counts. |
+  | A stage or `rules_always_include` naming a ruleset no root reaches is a warning | Roots always cut that selection, so the reference is dead. |
   | A rule in both always fields is a warning | The veto wins, but one of the two entries is usually stale. |
   | An exclude of a rule its layer never included is not reported | Excluding ahead of a ruleset update is common, and a warning would be noise. |
 
 - The documents describe the design as it holds, not the discussion that led to
   it and not the tags it replaces
   ([`DOC002`](../../rules/docs/DOC002-describe-the-current-state.md)), except
-  where the design says why it has no tag, type, action, template or contract
-  selection.
+  where the design says why it has no action, template or contract selection;
+  the reasons for selecting by name stand without naming tags.
 - The word "preset" alone is used only where both kinds are meant; elsewhere
   the text says "stage preset" or "rule preset".
 - Examples use the rulesets `mattpocock` (alias `mp`), `py`, `process`,
   `contracts` and `billing`, so a reader meets the same names throughout.
-- The human gate `docs-review` judges AC-1 to AC-12; AC-1 to AC-11 need a
+- The human gate `docs-review` judges AC-1 to AC-13; all but AC-12 need a
   reader because no tool reads prose.
 - Once the driver confirms that the contract is spent, the last commit of
   `promote-docs` retires this contract and changes no other.
@@ -167,6 +177,7 @@ flowchart LR
     l1["1. root rule_presets"] --> l2["2. stage rules_include, rules_exclude"]
     l2 --> l3["3. rules_always_include"]
     l3 --> l4["4. rules_always_exclude"]
+    sr["roots the stage selects"] --> elig
     l4 --> elig{"root-independent, or reached by a selected root?"}
     elig -- "yes" --> bundle["bundle"]
     elig -- "no" --> cut["left out"]
@@ -197,7 +208,9 @@ rules, and a ruleset with presets and an optional alias.
 `docs/concepts.md` states that a rule file's metadata is `code` and `name` only,
 and that a `ruleset.toml` holds `name`, `description`, `[families]` and
 `[rule_presets.<name>]`, whose references are bare names of the ruleset's own
-families, codes and presets because a ruleset is portable data. It states that
+families, codes and presets because a ruleset is portable data, and that a
+repository uses a ruleset copied from elsewhere by naming its presets and codes,
+with nothing to map onto its own names. It states that
 every ruleset has a reserved preset `all`, that codes are unique within a
 ruleset and need not be unique across rulesets, and why the family prefix-clash
 check is no longer needed.
@@ -220,14 +233,19 @@ and `rules_always_include` and `rules_always_exclude` at the top level, with no
 `tags` vocabulary. It states that the preset tables are keyed, that a root's
 `rule_presets` takes presets only, that a ruleset is bound to a root implicitly
 when the root reaches it, with reach as the Constraints define it, and that a
-ruleset has at most one alias.
+ruleset has at most one alias. It states what each field takes: a root's
+`rule_presets` takes qualified ruleset presets and bare config presets;
+`rules_always_exclude` takes qualified codes and families; every other
+`rules_*` field and a config preset take qualified families, codes and presets
+and bare config presets. Each key in the table has its presence marker.
 
 #### The config symbols
 
 - **Given** the delivered `docs/concepts.md`.
 - **When** a reviewer compares the config's symbol table with sections 7, 9, 10
   and 13.
-- **Then** each key above is in the table with its section, no table or
+- **Then** each key above is in the table with its section and presence, each
+  field says what it takes, no table or
   section names a tag vocabulary, `[presets]`, a ruleset's `include`,
   `exclude`, `tags` or `types`, or a root's `rulesets`, and each statement has
   its reason.
@@ -236,8 +254,9 @@ ruleset has at most one alias.
 
 `docs/concepts.md` states the forms of names and references: `<ruleset>.<item>`
 with exactly one dot; a family as uppercase letters, a code as a family and
-digits, a preset as lowercase letters, digits and `_`; a ruleset name or alias
-as lowercase letters, digits, `-` and `_`; and a bare name as a config preset.
+digits, a preset as a lowercase letter followed by lowercase letters, digits
+and `_`; a ruleset name or alias as a lowercase letter followed by lowercase
+letters, digits, `-` and `_`; and a bare name as a config preset.
 It states that names are case-sensitive, that an alias works wherever a
 ruleset prefix does while records, bundles and `wio rules list` show the
 canonical name, and that a cycle between presets is an error that names the
@@ -298,8 +317,9 @@ ruleset, the same rule when the stage selects another root, a rule nothing
 selects, and a selected root-independent rule with any roots or none. It states
 that eligibility is per ruleset, so a stage can add a reviewer-only rule from a
 ruleset its roots reach, that `root_independent` is explicit so a forgotten
-binding never leaks rules, and that a Work with no roots gets only
-root-independent rules.
+binding never leaks rules, and that a stage that selects no root gets only
+root-independent rules, while a stage that selects `@work` for a Work with no
+roots still fails as section 9 says.
 
 #### The applies table
 
@@ -345,27 +365,32 @@ these rows:
 | `--path <file>` | the presets of the roots containing the file, always fields | those roots |
 | `--path` and `--stage` | as for `--path`, and the stage | those roots |
 
-`--work` without `--stage` is an error, and `--action` and `--template` are
-not flags, because neither owns a layer.
+`--work` without `--stage` is an error, `--preset` with any flag but
+`--explain` is an error, `--root` with `--path` or `--work` is an error, and
+`--action` and `--template` are not flags, because neither owns a layer.
 
 #### The flags
 
 - **Given** the delivered `docs/concepts.md`.
 - **When** a reviewer compares the description of `wio rules list` with the
   table above.
-- **Then** every row is stated with the same layers and roots, `--work` without
-  `--stage` is an error, and no flag selects by tag, type, action or template.
+- **Then** every row is stated with the same layers and roots, the three
+  combinations above are errors, and no flag selects by tag, type, action or
+  template.
 
 ### **AC-10** The checks of rule selection are listed by severity
 
-`docs/concepts.md` states as errors an unresolved reference, a name of the wrong
-form, a qualified reference in a `ruleset.toml`, a preset cycle, a preset in
-`rules_always_exclude`, a ruleset preset named `all`, a duplicate or clashing
-alias, a root-independent ruleset reached by a root, a `rules_*` key on a
-template, a contract or an action, `rules_exclude` on a root, and an always
-field anywhere but the config's top level; as warnings a rule nothing selects, a
-ruleset nothing reaches, a stage's selection from a ruleset no root reaches, and
-a rule in both always fields; and as a note the list of `rules_always_include`.
+`docs/concepts.md` states as errors an unresolved reference, whose message names
+the reference and where it is, a name of the wrong form, a qualified reference
+in a `ruleset.toml`, a preset cycle, a preset in `rules_always_exclude`, a
+ruleset preset named `all`, a duplicate or clashing alias, a root-independent
+ruleset reached by a root, a `rules_*` key on a template, a contract or an
+action, `rules_exclude` on a root, and an always field anywhere but the config's
+top level; as warnings a rule nothing selects, a ruleset that is neither reached
+nor, when root-independent, selected, a stage's or `rules_always_include`'s
+selection from a ruleset that is not root-independent and that no root reaches,
+and a rule in both always fields; and as a note the list of
+`rules_always_include`.
 
 #### The checks
 
@@ -378,11 +403,13 @@ a rule in both always fields; and as a note the list of `rules_always_include`.
 ### **AC-11** The other documents follow the design
 
 `README.md`, `docs/README.md`, `docs/v0.1-scope.md`, `docs/split-exercises.md`,
-`tests/README.md` and the docstrings of `src/wio/models/rules.pyi` and
-`src/wio/models/config.pyi` describe rule selection by roots, stages and the
-always fields, say "stage preset" for a list of stages, and do not mention
-tags or rule types. `docs/split-exercises.md` replaces its `tag-matching` and
-the tag and type parts of `rule-selection` with the layers of this design.
+`tests/README.md` and the docstrings of `src/wio/models/rules.pyi`,
+`src/wio/models/config.pyi` and `RuleSelection.select` in
+`src/wio/context/ports.pyi` describe rule selection by roots, stages and the
+always fields, say "stage preset" for a list of stages, and do not mention tags,
+rule types or a template's type as a selector. `docs/split-exercises.md`
+replaces its `tag-matching` and the tag and type parts of `rule-selection` with
+the layers of this design.
 
 #### No tag outside the follow-ups
 
@@ -390,18 +417,33 @@ the tag and type parts of `rule-selection` with the layers of this design.
 - **When** a reviewer searches the files that git tracks, outside
   `.agents/wio/`, `docs/workflow.md` and `pyproject.toml` (whose
   `preset = "strict"` is a tool setting), with
-  `git grep -n -i -E '\btag|preset'`, which matches `tags` and `tagged` but not
-  `stage`.
+  `git grep -n -i -E '(^|[^[:alnum:]_])tag|preset'`, which matches `tags` and
+  `tagged` but not `stage`, with BSD and GNU regular expressions alike.
 - **Then** no match describes a tag or a rule type, every `preset` names its
   kind or means both, and the stub docstrings match AC-7.
 
 ### **AC-12** The repository's checks pass
+
+The delivered documents pass every hook, so the design can be merged as it is.
 
 #### The checks
 
 - **Given** the delivered tree.
 - **When** a reviewer runs `make check`.
 - **Then** it exits 0, and `rumdl check` renders every Mermaid block.
+
+### **AC-13** Every decision carries its reason
+
+A later Work can tell what it would break by changing a decision, because
+`docs/concepts.md` or `GLOSSARY.md` states each row of the reasons table in the
+Constraints with that row's reason, in one or two sentences.
+
+#### The reasons
+
+- **Given** the delivered documents and the reasons table of this contract.
+- **When** a reviewer looks up each row in the documents.
+- **Then** every decision is stated with a reason that says the same as the
+  row's, and no decision of AC-2 to AC-10 is stated without one.
 
 ## Additional context
 
