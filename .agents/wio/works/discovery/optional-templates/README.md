@@ -61,12 +61,12 @@ Settled with the driver on 2026-11-05. A leaf of `2fh1ar`; planned roots:
     defaults that need directives, such as a section required in every
     adopted spec; setting it together with `[works.defaults]` would be an
     error;
-  - where a template's `shape` lives and how it relates to wio now: it stays in
-    the template's metadata, or moves to config beside the kinds, such as a
-    table `[templates.kinds.<name>]` holding the entry template and the
-    shapes; and what `shape` still means when the hierarchy is `flat`, where it
-    is not checked. The define stage settles it with the driver or records it
-    as open;
+  - where a template's `shape` lives: it stays in the template's metadata, or
+    moves to config beside the kinds, such as a table
+    `[templates.kinds.<name>]` holding the entry template and the shapes. What
+    `shape` means under `flat` is settled by the hierarchy leaf (`jsymcg`): it
+    is not checked, and its meaning is the workflow's. The define stage settles
+    where it lives with the driver or records it as open;
   - the roadmap of the parent (`2fh1ar`): `wio init` and
     `wio contracts adopt` in v0.2, and generated integrations with workflows
     such as Kiro later.
