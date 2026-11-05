@@ -384,6 +384,56 @@ An unreadable `<!-- wio` block, or unreadable front matter that contains
 `wio =`, is not among these reasons: it is the error that
 [Metadata forms](#metadata-forms) states.
 
+### Example: adopting wio in a flat folder of specs
+
+A project already keeps its specs as dated files in one folder, as superpowers
+does, and wants wio to run its actions on them without moving, renaming or
+templating them:
+
+```text
+docs/superpowers/specs/
+  2026-11-02-login-design.md
+  2026-11-04-export-design.md
+```
+
+Each file gains a `+++` block on its first line, with the marker and a
+generated id, and keeps the rest of its text as it was. Ids are generated, not
+made up ([Identity and location](#identity-and-location)); until
+`wio contracts adopt` writes the block in v0.2
+([Open points](#15-open-points)), a person or a script adds it:
+
+```markdown
++++
+wio = 1
+id = "q7w2ke"
++++
+
+# Login design
+```
+
+Next to the actions and stages its config already declares, the project adds
+two settings, and nothing else:
+
+```toml
+[works]
+dir = "docs/superpowers/specs"
+
+[works.defaults.actions]
+deliver = ["implementation"]
+```
+
+wio then finds two Works, one per marked file
+([Which files are Works](#which-files-are-works)). The config sets no
+`hierarchy`, so the mode is `flat` and neither Work has a parent
+([Parent and leaf](#parent-and-leaf)). Neither names a template, so each takes
+its title from its first heading, has its sections checked only by the
+directives it carries, here none, and has one action, `deliver`, whose pipeline
+comes from the config defaults, as `wio contracts show` says
+([Without a template](#without-a-template),
+[Where the pipeline comes from](#where-the-pipeline-comes-from)). No step
+needs a template, a kinds table, a moved or renamed file, or a directory per
+spec.
+
 ### Identity and location
 
 - The `id` is random and short: 6 to 8 characters of lowercase Crockford base32.
