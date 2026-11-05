@@ -10,6 +10,7 @@ docstring.
 
 | Package | Role |
 | --- | --- |
+| `wio.errors` | The errors that several packages share, and their base |
 | `wio.models` | The shared types the ports name |
 | `wio.env` | Ports for what the process knows about its surroundings |
 | `wio.formats` | Pure codecs between text and the shared types |
@@ -30,6 +31,11 @@ below the components, and no component imports another, so each can be built
 and changed alone. A dependency that exists only for a type is still a
 dependency, so imports under `TYPE_CHECKING` count.
 
+`wio.errors` imports nothing from `wio`, and every package may import it: it is
+the one `wio` module that `wio.models` and `wio.env` may import. Errors that
+several packages share live there. A package adds an `errors.py` that extends
+`WioError` only when it has an error of its own.
+
 ```mermaid
 flowchart LR
     cli["wio.cli (composition root)"]
@@ -48,6 +54,9 @@ flowchart LR
     sharedports["wio.ports (shared ports)"]
     formats["wio.formats (codecs)"]
     models["wio.models (shared types)"]
+    errors["wio.errors (shared errors)"]
+    every["every package"]
+    every -- "may import" --> errors
     cli --> components
     cli --> ioadapters
     cli --> envadapters
