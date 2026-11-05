@@ -30,8 +30,9 @@ so adopting wio takes a marker and an id per file and a few lines of config.
 - Splitting `wio contracts` from `wio templates`, which the templates-command
   leaf (`be2081`) does.
 - What `shape` means under `flat`, which the hierarchy leaf (`jsymcg`) settles.
-- A named file template as the default, moving `shape` into the config, and
-  `wio init` and `wio contracts adopt`, which this leaf records for later.
+- A named file template as the default, which this leaf records for later.
+- Moving `shape` into the config, which this leaf records for later.
+- `wio init` and `wio contracts adopt`, which this leaf records for later.
 
 ## Assumptions
 
@@ -43,6 +44,8 @@ None.
   a template is", "From template to contract", "Kinds and entry templates",
   "Directives" and "Checking a contract against its template" state what a
   template gives a contract.
+- `docs/concepts.md`, "Anatomy" and "Identity and location" in section 3,
+  which state a contract's title and what `wio contracts new` writes.
 - `docs/concepts.md`, "Inheritance, computed" in section 5, "Where the pipeline
   comes from" in section 6, "Invariants wio checks", the symbol tables of
   section 2, and section 15 "Open points".
@@ -87,6 +90,8 @@ without writing one. It states these rules:
 - A contract without a template gets the metadata checks of every contract,
   takes its title from its first heading, and has its `##` headings checked
   only by its own directives (AC-3).
+- A contract without a template has no `shape`, so the check of its children
+  against a `shape` does not apply to it, under either mode.
 - The row for `template` in the symbol table of section 2 says it is optional,
   and the table of what a template supplies says what a contract without one
   takes instead.
@@ -109,8 +114,8 @@ states these rules:
 - They apply only to a contract without a template and are never layered under
   a named template, so every contract has one source of default actions.
 - `[works.defaults.actions]` is checked as a contract's `[actions]` is: its
-  actions, stage presets and stages exist, and an empty list removes the
-  action.
+  actions, stage presets and stages exist; an empty list there is the same as
+  leaving the action out.
 - A contract with neither a template nor defaults needs its own `[actions]`,
   and a Work that resolves to no action is the error "Invariants wio checks"
   already lists.
@@ -160,12 +165,14 @@ it names a template. It states these rules:
 
 `docs/concepts.md`, in "Identity and location", and the Create outcome of
 `docs/v0.1-scope.md` state what `new` writes without a template, so a project
-without templates can create Works. They state these rules:
+without templates can create Works. This leaf owns the optional kind and the
+bare contract; the signature of `new` is written once, in the command section
+of the templates-command leaf (`be2081`). They state these rules:
 
-- The kind is optional: `wio contracts new [<kind>]`. `new <kind>` and
-  `new --template <name>` work as before.
-- With neither, `new` writes a bare contract in the comment form, holding only
-  the generated `id` and a first heading for the title:
+- `new` may be given no kind; `new <kind>` and `new --template <name>` work as
+  before.
+- Given neither, `new` writes a bare contract in the comment form, holding
+  only the generated `id` and a first heading for the title:
 
   ```markdown
   <!-- wio
@@ -187,16 +194,25 @@ section 2, states the `[templates]` table, so a project configures templates
 in one place or leaves it out. It states these rules:
 
 - `[templates] dir` is a path relative to the repository root whose default is
-  `.agents/wio/templates`. A missing default directory holds no templates; a
-  `[templates] dir` that is set and missing, that is not a directory or that
-  is a symbolic link is an error. The walk of that directory follows the rules
-  of the marked-files leaf (`bgctsc`), linking to them, and a file without a
-  `wio` block is still ignored.
+  `.agents/wio/templates`; a path that leaves the repository is an error. A
+  missing default directory holds no templates; a `[templates] dir` that is
+  set and missing, that is not a directory or that is a symbolic link is an
+  error.
+- The walk of that directory follows these rules of the marked-files leaf
+  (`bgctsc`), linking to them: names end in `.md`, matched case-sensitively;
+  directories below it whose names start with `.` are skipped; no symbolic
+  link is followed; and a file that cannot be read or decoded as UTF-8 is an
+  error that names it.
+- A file there is a template when its `<!-- wio` block, or `+++` front matter
+  with the marker, starts on its first line, as for a Work; any other file is
+  ignored.
 - The kinds are declared in `[templates.kinds]`, because a kind exists only to
   choose an entry template; both tables are optional.
 - A template keeps a required `kind`, and `shape` stays in its metadata.
 - A `[kinds]` table left at the top level of the config is an unknown key,
-  with the warning every unknown key gets.
+  with the warning every unknown key gets, and no other mention of `[kinds]`
+  remains in `docs/concepts.md`, the `name` row of section 2 and section 14
+  included.
 - The config table of section 2 lists `[templates] dir` and
   `[templates.kinds]` in place of `[kinds]`.
 - `.agents/wio/config.toml` declares its kinds in `[templates.kinds]`, with no
