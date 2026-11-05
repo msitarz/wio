@@ -58,6 +58,9 @@ or writing templates first.
   when they regenerate a file.
 - **A-3**: The survey below matches each tool's current documentation, which
   the driver has not confirmed.
+- **A-4**: The `config` Work (`hwn995`), still a draft, takes up the `[works]`
+  and `[templates]` tables when it is defined, so this Work needs no change to
+  it.
 
 ## Mechanisms
 
@@ -83,8 +86,11 @@ or writing templates first.
   - parents, children and the hierarchy modes: the hierarchy leaf (`jsymcg`);
   - templates, kinds, `[templates]` and `[works.defaults.actions]`: the
     optional-templates leaf (`ms5t0t`);
-  - the commands `wio contracts` and `wio templates`: the templates-command
-    leaf (`be2081`).
+  - the split into `wio contracts` and `wio templates`, their subcommands and
+    the `wio.templates` component: the templates-command leaf (`be2081`); each
+    other leaf owns what its own topic adds to a subcommand, such as the
+    reasons `wio contracts show <file>` gives or the bare contract of
+    `wio contracts new`, and links to the command section `be2081` writes.
 
   Verified by each child's review for its own sections, and, for the rules it
   names, by this parent's integration under AC-1.
@@ -128,7 +134,7 @@ flowchart LR
 
 After: any marked file is a Work, the hierarchy is a mode, templates are
 optional, and templates have a command of their own. Bold boxes are added,
-bold dashed boxes change, and the error of the no-gap rule is removed.
+bold dashed boxes change, and the thin dotted box is removed.
 
 ```mermaid
 flowchart LR
@@ -141,6 +147,7 @@ flowchart LR
     mode["[works] hierarchy"]:::new
     tree["parent and children: one Work per directory"]:::changed
     none["no parents or children (the default)"]:::new
+    gap["removed: the error for a directory without a contract between Works"]:::removed
     contracts["wio contracts: new, list, check, show"]:::changed
     templates["wio templates: list, show, check"]:::new
     dir -- "a wio comment block, or +++ with wio = 1" --> work
@@ -154,6 +161,7 @@ flowchart LR
     templates --> tpl
     classDef new stroke-width: 3px
     classDef changed stroke-width: 3px,stroke-dasharray: 4 3
+    classDef removed stroke-dasharray: 2 2,color: #888
 ```
 
 ## Acceptance criteria
@@ -176,7 +184,8 @@ The documents are `README.md`, `docs/README.md`, `docs/concepts.md`,
   `@descendants` and to the `shape` check, and where a contract without a
   template takes its default actions from.
 - `GLOSSARY.md` defines Marked file, Marker and Hierarchy mode as this Work's
-  Glossary does, and no document uses those terms in another sense.
+  Glossary does, and every occurrence of those three terms in the documents
+  uses them in that sense.
 
 ### **AC-2** The documents show a project adopting wio without restructuring
 
@@ -199,13 +208,17 @@ actions in config together make possible.
 
 ### **AC-3** wio's own Works follow the joined rules unchanged
 
-wio's own Works satisfy the rules of the marked-files and optional-templates
-leaves together, without a contract that existed before this Work being edited.
-That they also meet the `nesting` rules is the hierarchy leaf's (`jsymcg`).
+wio's own Works satisfy the rules of the marked-files, hierarchy and
+optional-templates leaves together under wio's `nesting` config, without a
+contract that existed before this Work being edited. Each bullet applies a
+rule that its leaf's section states, and links to it.
 
-- Every contract under `.agents/wio/works` is a marked file by the documented
-  rules, in the comment form without the marker, and names a template that
-  `[templates.kinds]` and `[templates] dir` reach.
+- Every contract under `.agents/wio/works` is a marked file, in the comment
+  form without the marker.
+- Every directory under `.agents/wio/works` holds at most one marked file, and
+  none sits directly in `.agents/wio/works`.
+- Every contract names a template that `[templates.kinds]` and
+  `[templates] dir` reach.
 - No contract that exists at commit `55706d117db746a0269431956c65777c4dfa0afe`
   outside `.agents/wio/works/discovery` is edited, as
   `git diff 55706d1 -- .agents/wio/works` shows.
