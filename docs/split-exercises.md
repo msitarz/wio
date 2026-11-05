@@ -117,7 +117,7 @@ whole outcome, and the other leaves depend on it. In the example that is
   The procedure should give leaves separate modules where it can, and git
   reports the conflicts that remain.
 
-## Exercise 2: a flat split
+## Exercise 2: a sibling split
 
 The outcome: rules have stable codes and families. The slices are siblings with
 no parent:
@@ -145,7 +145,7 @@ needed.
 - Inheritance is lost. The slices are not under the original, so its
   Constraints and Glossary do not reach them. They would be copied into each
   slice, where they drift, or linked by hand.
-- A flat split is lighter than a nested one, and it is a choice of the split
+- A sibling split is lighter than a nested one, and it is a choice of the split
   procedure. A way to pass inheritable sections along `depends_on` could close
   the gap later.
 
@@ -270,6 +270,6 @@ leaf, so the outcome becomes a parent with two leaves.
   [concepts](concepts.md#tracking-items-planned). Parent constraints are not
   covered.
 - Sibling contracts are not injected into context.
-- A flat split has no channel for shared constraints.
+- A sibling split has no channel for shared constraints.
 - Leaves in a batch can touch the same files. The scope check planned for v0.2
   shows when a leaf touches files outside its roots.

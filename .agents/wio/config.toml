@@ -8,6 +8,10 @@
 # What a gate can decide. Records and review events use these values.
 results = ["pass", "fail", "unknown"]
 
+# wio's own Works keep one directory per Work, nested under their parents.
+[works]
+hierarchy = "nesting"
+
 [trailers]
 # GitHub's squash merge appends a Co-authored-by paragraph after the records
 # that the Records workflow copies into the body, so git's own parser would not
