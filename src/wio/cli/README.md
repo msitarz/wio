@@ -68,3 +68,26 @@ process's own streams. [`dispatch.py`](dispatch.py) holds what it does.
   the stream, so a terminal gets color and a pipe or a file does not. The
   program is named `wio`, and its output is the same in process and as the
   installed command.
+
+## Failures and exit codes
+
+A run ends with one of four exit codes, and `main` never lets an exception out:
+
+| Code | Meaning |
+| --- | --- |
+| 0 | Success, including the summary, the help and the version. |
+| 1 | A command's failed check: its finished answer "no". |
+| 2 | A usage mistake, or a `WioError`: something the user must fix. |
+| 70 | A bug: any other exception, or a command's code other than 0 and 1. |
+
+- A failed check is a result that the command returns, never an exception. A
+  command raises a `WioError`, from [`wio.errors`](../errors.py), only for what
+  the user must fix before it can answer.
+- Any step can raise: describing and configuring the commands, wiring the chosen
+  one, and running it. A `WioError` at any of them is written as `error:` and
+  its message in plain text to standard error, whatever the color rules say.
+- A bug is written to standard error with its traceback, and a wrong exit code
+  with the command's name and the code.
+- Everything, the failures included, is written to the streams of `stdio`, so
+  the process's own streams stay untouched.
+- `KeyboardInterrupt` and a `SystemExit` that a command raises are not handled.

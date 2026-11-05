@@ -3,118 +3,19 @@
 
 import argparse
 import importlib.metadata
-import io
-import os
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, TextIO
+from typing import TYPE_CHECKING
 
 import pytest
 
-from wio import cli
+from tests.unit.cli.fakes import Fake, Spec, run_main, run_on_terminal
 from wio.cli import dispatch
-from wio.cli.table import Entry
 
 if TYPE_CHECKING:
-    from argparse import ArgumentParser, Namespace
+    from argparse import Namespace
     from collections.abc import Sequence
 
-    from wio.cli.ports import Command, CommandSpec
-    from wio.io.ports import Stdio
 
 COLOR_VARIABLES = ("PYTHON_COLORS", "NO_COLOR", "FORCE_COLOR")
-
-
-@dataclass
-class FakeStdio:
-    """In-memory standard streams that satisfy the `Stdio` port."""
-
-    stdin: TextIO = field(default_factory=io.StringIO)
-    stdout: TextIO = field(default_factory=io.StringIO)
-    stderr: TextIO = field(default_factory=io.StringIO)
-
-
-@dataclass
-class Spec:
-    """A command spec with a name, a help text and an optional `--flag`."""
-
-    name: str
-    help: str
-    flag: bool = False
-
-    def configure(self, parser: ArgumentParser) -> None:
-        """Add `--flag` to the subparser when the spec has one.
-
-        Args:
-            parser: The subparser of the command.
-        """
-        if self.flag:
-            parser.add_argument("--flag", action="store_true")
-
-
-@dataclass
-class Fake:
-    """A command that counts how often it is described, wired and run."""
-
-    spec: Spec
-    code: int = 0
-    described: int = 0
-    wired: int = 0
-    received: list[Namespace] = field(default_factory=list)
-
-    def entry(self) -> Entry:
-        """Make the table entry for this fake, under the package `config`.
-
-        Returns:
-            An entry whose functions count their calls.
-        """
-        return Entry(package="config", describe=self.describe, wire=self.wire)
-
-    def describe(self) -> CommandSpec:
-        """Count the call and return the spec.
-
-        Returns:
-            The spec of the fake.
-        """
-        self.described += 1
-        return self.spec
-
-    def wire(self) -> Command:
-        """Count the call and return the fake as the command.
-
-        Returns:
-            This fake.
-        """
-        self.wired += 1
-        return self
-
-    def run(self, args: Namespace, stdio: Stdio) -> int:
-        """Remember the arguments and answer with the fixed code.
-
-        Args:
-            args: The parsed arguments.
-            stdio: Ignored.
-
-        Returns:
-            The exit code this fake was made with.
-        """
-        del stdio
-        self.received.append(args)
-        return self.code
-
-
-def _run(argv: list[str], table: list[Entry]) -> tuple[int, str, str]:
-    """Run `main` on in-memory streams.
-
-    Args:
-        argv: The arguments after the program name.
-        table: The entries of the subcommands.
-
-    Returns:
-        The exit code, standard output and standard error.
-    """
-    out, err = io.StringIO(), io.StringIO()
-    code = cli.main(argv, FakeStdio(stdout=out, stderr=err), table)
-    return code, out.getvalue(), err.getvalue()
 
 
 def _summary() -> str:
@@ -147,7 +48,7 @@ def test_bare_and_help_print_the_summary_and_the_commands_by_name() -> None:
     ]
 
     # When main([], stdio) and main(["--help"], stdio) run
-    bare, helped = _run([], table), _run(["--help"], table)
+    bare, helped = run_main([], table), run_main(["--help"], table)
 
     # Then both return 0 with the same standard output, which holds the Summary,
     # then the help text of alpha before that of zeta; standard error is empty
@@ -166,7 +67,7 @@ def test_the_help_of_a_subcommand_wires_nothing() -> None:
     ok = Fake(Spec("ok", "Works.", flag=True))
 
     # When main(["ok", "--help"], stdio) runs
-    code, out, _ = _run(["ok", "--help"], [ok.entry()])
+    code, out, _ = run_main(["ok", "--help"], [ok.entry()])
 
     # Then it returns 0, standard output names --flag, and wire was not called
     assert code == 0
@@ -179,7 +80,7 @@ def test_version_prints_the_version_of_the_distribution() -> None:
     # Given the synchronized environment
 
     # When main(["--version"], stdio) runs
-    code, out, err = _run(["--version"], [])
+    code, out, err = run_main(["--version"], [])
 
     # Then it returns 0, standard output is wio, a space, the version from
     # importlib.metadata and a newline, and standard error is empty
@@ -194,11 +95,11 @@ def test_only_the_chosen_command_is_wired_once() -> None:
     table = [ok.entry(), no.entry()]
 
     # When main(["ok"], stdio) runs, then bare, --help and --version
-    _run(["ok"], table)
+    run_main(["ok"], table)
     wired_after_ok = (ok.wired, no.wired)
     others: list[list[str]] = [[], ["--help"], ["--version"]]
     for argv in others:
-        _run(argv, table)
+        run_main(argv, table)
 
     # Then ok was wired exactly once, no never, the last three called no wire,
     # and the describe of both entries ran every time
@@ -216,7 +117,7 @@ def test_a_commands_exit_code_is_the_runs() -> None:
     table = [ok.entry(), no.entry()]
 
     # When main(["ok", "--flag"], stdio) and main(["no"], stdio) run
-    codes = _run(["ok", "--flag"], table)[0], _run(["no"], table)[0]
+    codes = run_main(["ok", "--flag"], table)[0], run_main(["no"], table)[0]
 
     # Then they return 0 and 1, and ok received --flag in its arguments
     assert codes == (0, 1)
@@ -233,7 +134,7 @@ def test_a_usage_mistake_exits_two(argv: list[str], word: str) -> None:
     table = [Fake(Spec("ok", "Works.")).entry()]
 
     # When main runs with a mistake
-    code, out, err = _run(argv, table)
+    code, out, err = run_main(argv, table)
 
     # Then it returns 2 without raising, standard output is empty and standard
     # error names the unknown word
@@ -251,8 +152,8 @@ def test_the_output_is_plain_when_the_streams_are_not_terminals(
     table = [Fake(Spec("ok", "Works.")).entry()]
 
     # When main([], stdio) and main(["nope"], stdio) run
-    _, out, _ = _run([], table)
-    _, _, err = _run(["nope"], table)
+    _, out, _ = run_main([], table)
+    _, _, err = run_main(["nope"], table)
 
     # Then neither stream holds an escape character, and every usage line starts
     # with the program name wio
@@ -260,22 +161,6 @@ def test_the_output_is_plain_when_the_streams_are_not_terminals(
     assert "\x1b" not in out + err
     assert usages
     assert all(line.startswith("usage: wio") for line in usages)
-
-
-def _help_on_a_terminal() -> str:
-    """Run `wio --help` with standard output on a pseudo-terminal.
-
-    Returns:
-        What `main` wrote to the terminal.
-    """
-    master, slave = os.openpty()
-    try:
-        with os.fdopen(slave, "w") as terminal:
-            cli.main(["--help"], FakeStdio(stdout=terminal), [])
-            terminal.flush()
-            return os.read(master, 65536).decode()
-    finally:
-        os.close(master)
 
 
 def test_the_help_is_colored_on_a_terminal_unless_no_color_is_set(
@@ -287,9 +172,9 @@ def test_the_help_is_colored_on_a_terminal_unless_no_color_is_set(
     _plain(monkeypatch)
 
     # When main(["--help"], stdio) runs, then again with NO_COLOR=1
-    colored = _help_on_a_terminal()
+    colored = run_on_terminal(["--help"], [], "stdout")
     monkeypatch.setenv("NO_COLOR", "1")
-    plain = _help_on_a_terminal()
+    plain = run_on_terminal(["--help"], [], "stdout")
 
     # Then the first output holds an escape character and the second holds none
     assert "\x1b" in colored

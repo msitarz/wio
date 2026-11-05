@@ -52,7 +52,12 @@ class Command(Protocol):
             stdio: The streams to read and write; the command never uses `sys`.
 
         Returns:
-            The exit code: 0 on success, 1 when a check fails, and 2 for a
-            usage or configuration error.
+            The exit code: 0 on success, or 1 when a check fails, which is an
+            answer and never an exception.
+
+        Raises:
+            WioError: For what the user must fix before the command can answer;
+                the command line exits 2. Any other exception, or a code other
+                than 0 and 1, is a bug, and the command line exits 70.
         """
         ...

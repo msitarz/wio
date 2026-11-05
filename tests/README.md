@@ -55,7 +55,7 @@ tests/
 │   │   ├── base.py         # WioDriver Protocol
 │   │   ├── in_process.py   # calls the library
 │   │   └── cli.py          # subprocess; parses --json; reads exit codes
-│   ├── cli/                # the bare `wio` scenario, until the cli package grows
+│   ├── cli/                # the scenarios of the `wio` command line itself
 │   └── config/ contracts/ rules/ context/ trailers/ log/   # one folder per v0.1 feature
 ├── golden/                 # expected bundle bytes
 ├── packaging/              # build the wheel and sdist and inspect them (slow)
@@ -171,7 +171,7 @@ files, for the bundle id) with a thin shell for file IO.
 | Channel | What it does | Used for |
 |---|---|---|
 | `IN_PROCESS` (default) | Builds a temp repo, calls the library | Most scenarios, fast |
-| `CLI` | Same temp repo, runs `wio` via `subprocess` | Exit codes (0 ok, 1 check failed, 2 usage/config error), `--json`, finding the config, `--output`, the `uvx` entry point, byte-stable output, environment-dependent behaviour such as session-id detection |
+| `CLI` | Same temp repo, runs `wio` via `subprocess` | Exit codes (0 ok, 1 check failed, 2 usage mistake or `WioError`, 70 bug), `--json`, finding the config, `--output`, the `uvx` entry point, byte-stable output, environment-dependent behaviour such as session-id detection |
 
 The CLI channel is the reference for acceptance: it is the command users and
 skills run. The in-process channel is the fast copy of the same scenarios, so a
