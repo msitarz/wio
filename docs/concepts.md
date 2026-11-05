@@ -411,8 +411,11 @@ id = "q7w2ke"
 # Login design
 ```
 
-Next to the actions and stages its config already declares, the project adds
-two settings, and nothing else:
+Its config already declares a `deliver` action and an `implementation` stage
+that names its own `roots`, such as `roots = []`, so the stage does not select
+the Works' roots, which these Works do not have
+([Which roots a stage selects](#which-roots-a-stage-selects)). Next to them the
+project adds two settings, and nothing else:
 
 ```toml
 [works]
