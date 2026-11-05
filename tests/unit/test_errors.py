@@ -33,17 +33,20 @@ def test_a_configuration_error_is_a_wio_error() -> None:
 
 
 def test_tach_lets_every_package_use_wio_errors() -> None:
-    """`wio.errors` has no dependencies, and every other module lists it."""
+    """`wio.models` is plain, `wio.errors` needs only it, and the rest use both."""
     # Given tach.toml of the tree
     text = TACH.read_text(encoding="utf-8")
 
     # When it is read
     modules = {m["path"]: m["depends_on"] for m in tomllib.loads(text)["modules"]}
 
-    # Then wio.errors has an empty depends_on, and every other wio.* module
-    # and tests.unit list wio.errors
-    assert modules["wio.errors"] == []
+    # Then wio.models has an empty depends_on, wio.errors lists only wio.models,
+    # and every other wio.* module and tests.unit list wio.errors
+    assert modules["wio.models"] == []
+    assert modules["wio.errors"] == ["wio.models"]
     users = [p for p in modules if p.startswith("wio.") or p == "tests.unit"]
     assert [
-        p for p in users if p != "wio.errors" and "wio.errors" not in modules[p]
+        p
+        for p in users
+        if p not in {"wio.models", "wio.errors"} and "wio.errors" not in modules[p]
     ] == []

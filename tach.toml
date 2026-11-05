@@ -12,15 +12,17 @@ source_roots = ["src", "."]
 exact = false
 ignore_type_checking_imports = false
 
-# Errors that several packages share: it imports nothing from wio, and every
-# other package may import it.
-[[modules]]
-path = "wio.errors"
-depends_on = []
-
+# Plain data: it imports nothing from wio. Parsing and validation that can fail
+# live in wio.formats, so a model never raises a WioError.
 [[modules]]
 path = "wio.models"
-depends_on = ["wio.errors"]
+depends_on = []
+
+# Errors that several packages share. They may carry models, so it imports
+# wio.models and nothing else from wio; every other package may import it.
+[[modules]]
+path = "wio.errors"
+depends_on = ["wio.models"]
 
 [[modules]]
 path = "wio.env"
