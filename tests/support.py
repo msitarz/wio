@@ -49,3 +49,19 @@ def enter(sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch) -> None:
     for name, value in sandbox.env.items():
         monkeypatch.setenv(name, value)
     monkeypatch.chdir(sandbox.root)
+
+
+def import_light_violations(module: str) -> list[str]:
+    """List the modules a command's package loads only to be described.
+
+    In a fresh interpreter it imports the package, calls its `describe()` and
+    the `configure` of the spec that returns, and lists what it loaded.
+
+    Args:
+        module: The dotted name of the package whose `describe` it calls.
+
+    Returns:
+        The sorted names of the modules under the package, other than its
+        `__init__`, that are loaded by then. An empty list means it is light.
+    """
+    raise NotImplementedError

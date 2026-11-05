@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The port that `wio.cli` consumes: a command of a component.
+"""The ports that `wio.cli` consumes: the two halves of a component's command.
 
-Provisional: the members may change when the first component adds its command.
-`wio.cli` binds each command with a lazy import, so one invocation loads only
-the command it runs.
+A command is split so that describing it needs no wiring: `wio.cli` builds the
+whole usage from the `CommandSpec` of every command on every run, and wires a
+`Command` only for the one that was chosen. Provisional: the members may change
+when the first component adds its command.
 """
 
 from argparse import ArgumentParser, Namespace
@@ -11,8 +12,13 @@ from typing import Protocol
 
 from wio.io.ports import Stdio
 
-class Command(Protocol):
-    """The object a component exposes for one `wio` subcommand."""
+class CommandSpec(Protocol):
+    """What the usage needs to know about one `wio` subcommand.
+
+    A component's `describe()` returns it. Making and using it does no I/O and
+    raises nothing in a working installation, because it happens for every
+    command on every run.
+    """
 
     @property
     def name(self) -> str:
@@ -25,12 +31,18 @@ class Command(Protocol):
         ...
 
     def configure(self, parser: ArgumentParser) -> None:
-        """Add the subcommand's arguments to its argparse subparser.
+        """Add the subcommand's arguments, `--json` among them, to its subparser.
+
+        It does no I/O and raises nothing in a working installation, because it
+        runs for every command on every run.
 
         Args:
             parser: The subparser that `wio.cli` created for the subcommand.
         """
         ...
+
+class Command(Protocol):
+    """The object that runs one `wio` subcommand once it has been chosen."""
 
     def run(self, args: Namespace, stdio: Stdio) -> int:
         """Run the subcommand.
