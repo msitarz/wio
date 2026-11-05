@@ -41,8 +41,8 @@ or writing templates first.
   file with front matter and an `id`, configurable id generation and a looser
   id format are one item for later.
 - `wio init` and `wio contracts adopt`, which come in v0.2.
-- A hierarchy given by a `parent` field, a configurable file name for
-  `wio contracts new`, and a named file template as the default.
+- A hierarchy given by a `parent` field, a config default for the path that
+  `wio contracts new` writes, and a named file template as the default.
 - Generated integrations with workflows such as Kiro, for v0.3 or later.
 - Defining the `config` Work (`hwn995`), which takes up the `[works]` and
   `[templates]` tables, and with them whether wio's own actions and stages

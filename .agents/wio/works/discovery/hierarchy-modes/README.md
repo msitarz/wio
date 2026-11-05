@@ -24,15 +24,15 @@ asks for it.
   setting one key.
 - wio's own repository keeps its parents and children.
 - A person or an agent learns why a file breaks the rules of the `nesting` mode.
-- Every Work that `wio contracts new` creates has a directory for its
-  artifacts.
+- `wio contracts new` writes a Work where the workflow's convention puts it,
+  and otherwise into a directory of its own for its artifacts.
 - A project can switch modes without migrating a file.
 
 ## Non-Goals
 
 - Which files are Works, which the marked-files leaf (`bgctsc`) states.
-- A hierarchy given by a `parent` field, or a configurable file name for
-  `wio contracts new`, which this leaf records as open points.
+- A hierarchy given by a `parent` field, or a config default for the path that
+  `wio contracts new` writes, which this leaf records as open points.
 - Changing what a parent does with its children, such as inheritance or
   `@descendants`, beyond saying what each mode gives them.
 
@@ -163,19 +163,31 @@ learn why a file is not a Work there. They state:
 - both reasons are added to the reasons of the marked-files leaf (`bgctsc`),
   linking to them; the exact wording is provisional.
 
-### **AC-6** `wio contracts new` keeps one directory per Work
+### **AC-6** `wio contracts new` writes where the workflow says
 
 `docs/concepts.md`, in "Identity and location", and the Create outcome of
-`docs/v0.1-scope.md` state what `new` writes in each mode, so every new Work
-has a directory for its artifacts. They state:
+`docs/v0.1-scope.md` state where `new` writes a Work in each mode, so a
+workflow can keep its own file names and every other Work gets a directory for
+its artifacts. They state these rules:
 
-- `wio contracts new` writes `<slug>/README.md` in both modes, because the
-  directory gives the Work's artifacts a home and forges render a
-  `README.md`.
+- By default `new` writes `<slug>/README.md`, in both modes, because the
+  directory gives the Work's artifacts a home and forges render a `README.md`.
+- `--path <path>` writes the Work at that path instead, relative to the
+  repository root, such as `spec.md` in a directory of its own or a dated file
+  in a flat folder, so the agent can follow the workflow's convention. It
+  creates the directories the path needs. An absolute path, or one that
+  contains `..`, is an error.
+- The path must name a file that would be a Work by the rules of the
+  marked-files leaf (`bgctsc`), linking to them. A path that exists already is
+  an error, so a Work is never overwritten.
+- `--path` and `--slug` exclude each other.
+- Under `nesting`, the path decides the parent, so `--path` and `--parent`
+  exclude each other; a path in a directory that already holds a marked file,
+  or directly in the Works directory, is an error.
 - `--parent` creates the Work inside its parent's directory under `nesting`,
   and is an error under `flat`.
-- A Work a person writes or moves may have any name; only `new` uses
-  `README.md`.
+- A Work a person writes or moves may have any name; only the default of `new`
+  uses `README.md`.
 
 ### **AC-7** Switching modes migrates nothing
 
@@ -198,12 +210,14 @@ lost nor promised for v0.1. The documents state:
 
 - The Open points of `docs/concepts.md` hold a third exclusive mode, where a
   `parent` id field gives the hierarchy and directories mean nothing, never
-  mixed with `nesting`, and a configurable file name or layout for
-  `wio contracts new`, such as `spec.md` or `<slug>.md`.
+  mixed with `nesting`, and a config default for the path `new` writes, such
+  as `[works] new_path = "{slug}/spec.md"`, whose key and placeholder are
+  provisional, so that people and agents need not pass `--path` each time.
 - The open point on the `parent` mode notes that a `parent` key already exists
   in some tools' front matter, such as MADR's for Jekyll navigation, as the
   parent's survey reports (its A-3).
-- "Not in v0.1" of `docs/v0.1-scope.md` lists both, linking to the open points.
+- "Not in v0.1" of `docs/v0.1-scope.md` lists both, marking the config default
+  for v0.2, and links to the open points.
 
 ### **AC-9** A sibling split is not the `flat` mode
 

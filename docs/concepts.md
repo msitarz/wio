@@ -108,7 +108,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `tracks` | *reserved* | Planned: which items of other Works an item contributes to. | [Tracking items](#tracking-items-planned) |
 | First heading | *open* | The Work's title. | [Anatomy](#anatomy) |
 | `##` headings | — | The sections checked against the template, and the ones a descendant inherits. | [Checking a contract](#checking-a-contract-against-its-template) |
-| Directory layout | — | A subdirectory that is a Work is a child, so the tree is the hierarchy. | [Parent and leaf](#parent-and-leaf) |
+| Directory layout | — | Under `nesting`, a Work's parent is the Work of the nearest directory above that holds exactly one; under `flat`, no Work has a parent. | [Parent and leaf](#parent-and-leaf) |
 
 ### A template
 
@@ -147,6 +147,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | --- | --- | --- | --- |
 | `results` | *open* | The results a gate can record. | [The event log](#the-event-log) |
 | `[works] dir` | *optional* | The Works directory, relative to the repository root; `.agents/wio/works` by default. | [Which files are Works](#which-files-are-works) |
+| `[works] hierarchy` | *optional* | The hierarchy mode, `"flat"` or `"nesting"`; `"flat"` by default. | [Parent and leaf](#parent-and-leaf) |
 | `[kinds]` | *open* | The valid kinds, each with its entry template. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `[actions.<name>]` | *open* | An action, with its `description`, `after`, `invalidated_by` and `on_demand`. | [What an action is](#what-an-action-is), [What `wio next` proposes](#what-wio-next-proposes) |
 | `[roots.<name>]` | *open* | A root: its `paths`, and its `rule_presets` (*optional*), which select its rules. | [Roots and rulesets](#9-roots-and-rulesets) |
@@ -279,8 +280,8 @@ ticket = "PAY-142"
 ```
 
 The title is the first heading and is stored nowhere else. There is no `parent`
-field, because the directory layout gives the hierarchy (see
-[Parent and leaf](#parent-and-leaf)).
+field, because the hierarchy mode derives the hierarchy from the directory
+layout (see [Parent and leaf](#parent-and-leaf)).
 
 The body is prose. wio reads its first heading as the title and its `##`
 headings, which are
@@ -379,11 +380,26 @@ An unreadable `<!-- wio` block, or unreadable front matter that contains
   progress of two Works.
 - Humans navigate by path and scripts key on the id.
 - Any file that is not marked (notes, diagrams, stage artifacts) is ignored.
-  Only a subdirectory that is itself a Work makes a child.
-- `wio contracts new` creates a Work in the Works directory, or inside a parent
-  given by id with `--parent`. Its directory is named by `--slug`, or by a slug
+  Which Works are children of which is the hierarchy mode's
+  ([Parent and leaf](#parent-and-leaf)).
+- `wio contracts new` writes `<slug>/README.md` in either hierarchy mode,
+  because the directory gives the Work's artifacts a home and forges render a
+  `README.md`. It creates the Work in the Works directory, or, under
+  `nesting`, inside a parent given by id with `--parent`; under `flat`,
+  `--parent` is an error. The directory is named by `--slug`, or by a slug
   derived from `--title`, and an existing directory of that name is an error,
-  so a Work is never overwritten.
+  so a Work is never overwritten. A Work that a person writes or moves may have
+  any name; only the default of `new` uses `README.md`.
+- `wio contracts new --path <path>` writes the Work at that path instead, so
+  an agent can follow the workflow's convention, such as `spec.md` in a
+  directory of its own or a dated file in a flat folder. The path is relative
+  to the repository root, and an absolute path or one that contains `..` is an
+  error. It must name a file that would be a Work
+  ([Which files are Works](#which-files-are-works)), and one that exists
+  already is an error. `new` creates the directories the path needs.
+  `--path` excludes `--slug`; under `nesting` the path decides the parent, so
+  it also excludes `--parent`, and a path in a directory that already holds a
+  marked file, or directly in the Works directory, is an error.
 
 ### Changing a contract
 
@@ -618,16 +634,56 @@ A contract is checked against the template it names, and only against it:
 ### Parent and leaf
 
 A Work either is a **leaf** (it has no child Works) or a **parent** (it has
-child Works). A child's directory sits inside its parent's directory, so the
-hierarchy is the directory tree. There is no `parent` field and no `children`
-list, because both are **computed** from the layout. Stored lists drift;
-computed ones cannot.
+child Works). Whether directories give Works parents at all is the
+**hierarchy mode**, `[works] hierarchy` in the config: `"flat"` or `"nesting"`,
+two exclusive modes. A missing key means `"flat"`, because most spec workflows
+have no hierarchy of specs; any other value, or a value of another type, is a
+config error. Either way the hierarchy is **computed** from the layout: there is
+no `parent` field and no `children` list, because stored lists drift and
+computed ones cannot. What makes a file a Work is the same in both modes
+([Which files are Works](#which-files-are-works)).
 
-Between the Works directory and any Work, every directory must itself be a Work.
-A directory without a contract between two Works is an error, so the tree means
-exactly the hierarchy and nothing has to skip a level. The Works directory
-itself is the only exception, and it may hold a `README.md` without a `wio`
-block, for example an index for people.
+Under **`nesting`**, directories are the hierarchy:
+
+- A directory holds at most one Work, in a marked file of any name. When a
+  directory holds two or more marked files, none of them is a Work, and
+  `wio contracts check` reports one error that names them all.
+- A marked file directly in the Works directory is not a Work, because it would
+  be the parent of every Work, and `wio contracts check` reports it as an
+  error. The Works directory may hold an unmarked file, such as a `README.md`
+  index for people.
+- A Work's parent is the Work of the nearest directory above its own that holds
+  exactly one Work, and its children are the Works whose parent it is. A
+  directory whose marked files collide therefore gives no parent until the
+  collision is resolved.
+- A file beside a Work, in the same directory, is never its child: in spec
+  tools the files of one directory are parts of one unit.
+
+Under **`flat`**, no Work has a parent or children, and any number of Works may
+share a directory. What a hierarchy gives therefore gives nothing:
+`@descendants` resolves to nothing, and the config's `@descendants:<action>`
+in `invalidated_by` matches nothing and warns about nothing; no Work inherits a
+section, because no Work has an ancestor; the cycle check sees only
+`depends_on`; and a template's `shape` is not checked, because a `parent` shape
+could never be met. What `shape` means is the workflow's.
+
+In both modes, a directory between the Works directory and a Work need not be a
+Work: a plain directory only groups files, so a project can group its spec
+files as it likes.
+
+Under `nesting`, `wio contracts show` adds two reasons to those that
+[Which files are Works](#which-files-are-works) lists, in wording that is
+provisional: a marked file in a directory that holds another is not a Work, and
+its reason names the others; and a marked file directly in the Works directory
+is not a Work, and its reason says why.
+
+Changing the mode rewrites no file and keeps every record and every
+`depends_on`, because they refer to ids. What follows from the hierarchy
+changes with it: parents and children, the implicit dependency of a parent on
+its children, the inherited sections, and what `@descendants` and
+`@descendants:<action>` resolve to. Switching to `nesting` makes errors of each
+directory that holds two marked files and of each marked file directly in the
+Works directory, until they are moved.
 
 ### Splitting
 
@@ -635,8 +691,9 @@ The Work tree divides the work as its contracts do. It does not have to mirror
 the module tree or the directory tree of the code.
 
 When to split a Work, how the split is carried out, and whether the pieces
-become nested children or flat siblings, is a procedure that a stage and its
-skill own. wio only reads the result: the directory layout and the metadata.
+become nested children or siblings, a **sibling split** that both modes allow,
+is a procedure that a stage and its skill own. wio only reads the result: the
+directory layout and the metadata.
 [wio's own workflow](workflow.md#when-to-split) shows one such procedure.
 
 ### Roots of a Work
@@ -664,7 +721,9 @@ names the roots it touches in `roots`, using the names the config gives them.
   its descendants uses gets a note from `wio contracts check`, not a warning,
   because a narrower list may be intended. A Work without children that lists
   `@descendants` gets a warning, because the special value resolves to nothing
-  there, for example after a parent is demoted to a leaf.
+  there, for example after a parent is demoted to a leaf. The warning holds in
+  both hierarchy modes, so under `flat` every Work that lists `@descendants`
+  gets it.
 - A `roots` list is a set: the order of its entries means nothing, and a name
   listed twice counts once. Nothing in the output depends on that order
   ([The context compiler](#11-the-context-compiler)).
@@ -691,10 +750,11 @@ into each child, a parent's template marks sections as **inheritable** with the
 ## Constraints <!-- wio: inherit -->
 ```
 
-To resolve a Work, wio walks up the directory tree to the Works directory. For
-each ancestor it reads the template that the ancestor's `template` field names,
-takes the `##` headings marked `inherit` there, and finds the ancestor
-contract's sections with the same heading text, matched as in
+To resolve a Work, wio walks up its parents
+([Parent and leaf](#parent-and-leaf)). For each ancestor it reads the template
+that the ancestor's `template` field names, takes the `##` headings marked
+`inherit` there, and finds the ancestor contract's sections with the same
+heading text, matched as in
 [Checking a contract against its template](#checking-a-contract-against-its-template).
 The directive is read from the template and never from the contract, because
 contracts carry no directives. `wio contracts show` prints the Work together
@@ -718,12 +778,12 @@ depends_on = ["a7b2c4", "k3m9xq"]
 ```
 
 - Dependencies are ids, never paths, so moving or renaming a Work's directory
-  breaks nothing. The tree gives the hierarchy, and `depends_on` adds an
-  ordering graph on top of it. Nesting only decides what is inherited;
-  `depends_on` works the same for nested and flat Works.
+  breaks nothing. The hierarchy mode gives the parents, and `depends_on` adds
+  an ordering graph on top of them. Nesting only decides what is inherited;
+  `depends_on` works the same for children and siblings, in either mode.
 - `wio contracts check` verifies that every id exists and that there are no
-  cycles. Each parent also depends implicitly on its children, and that edge
-  counts too.
+  cycles. Under `nesting`, each parent also depends implicitly on its
+  children, and that edge counts too.
 - A `depends_on` id that is not in the tree is looked up in the history: wio
   reads the latest record of that Work reachable from `HEAD`, with the
   configured reader. With no record at all it is an **error**, because the id is
@@ -944,8 +1004,10 @@ on, and they do not judge how a workflow is built:
 
 - Every contract names an existing template, and the template's kind is a
   declared kind. Every kind's entry template exists and has that kind.
-- No two contracts share an id, and every directory between the Works directory
-  and a Work is itself a Work.
+- No two contracts share an id. `[works] hierarchy` is `"flat"` or
+  `"nesting"`. Under `nesting`, no directory holds two or more marked files,
+  and no marked file sits directly in the Works directory
+  ([Parent and leaf](#parent-and-leaf)).
 - Every marked file's metadata block can be read, and its marker, when it has
   one, names a version wio knows
   ([Metadata forms](#metadata-forms)).
@@ -964,8 +1026,8 @@ on, and they do not judge how a workflow is built:
 - No stage appears twice in one pipeline. Records key on the Work, the action
   and the stage, so two positions of one stage could not be told apart.
 - Required sections are present, as the template's directives say. A `##`
-  heading the template does not have is a warning, and so is a Work whose
-  children do not match its template's `shape`.
+  heading the template does not have is a warning, and so, under `nesting`, is
+  a Work whose children do not match its template's `shape`.
 
 ## 7. Stage
 
@@ -2133,9 +2195,17 @@ and its own selection give it.
   file with front matter and an `id` as a Work, configurable id generation, and
   an id format that admits ids such as `SPEC-012`. The mode needs default
   actions for contracts without a template, since such specs name none.
-- Flat splits and the joining of stage presets, which come after v0.1. A flat
-  split has no channel for shared constraints; passing inheritable sections
-  along `depends_on` could close that.
+- A third hierarchy mode, exclusive like the other two and never mixed with
+  `nesting`, in which a `parent` id field gives the hierarchy and directories
+  mean nothing. Some tools' front matter already has a `parent` key, such as
+  MADR's for Jekyll navigation, so such a field must not collide with it.
+- A config default for the path that `wio contracts new` writes, planned for
+  v0.2, such as `[works] new_path = "{slug}/spec.md"`, whose key and
+  placeholder are provisional, so that people and agents need not pass
+  `--path` each time.
+- Sibling splits and the joining of stage presets, which come after v0.1. A
+  sibling split has no channel for shared constraints; passing inheritable
+  sections along `depends_on` could close that.
 - Tracing a parent's items to the child items that establish them (v0.2 or
   v0.3). The proposed design is under [Tracking items](#tracking-items-planned),
   and the shape of its `[tracks]` table is open. Tracing a parent's constraints
