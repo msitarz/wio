@@ -44,3 +44,27 @@ than its `__init__`. The package of a command binds its implementation with a
 `lazy import` to keep it so. `import_light_violations` in
 [`tests/support.py`](../../../tests/support.py) lists the modules that break the
 rule, and the unit tests apply it to every entry of the table.
+
+## The dispatch
+
+[`main`](__init__.py) is the testable core of the command: it takes the
+arguments, the streams and the table, and `console_main` runs it on the
+process's own streams. [`dispatch.py`](dispatch.py) holds what it does.
+
+- Every entry is described on every run, in order of name, so the usage lists
+  every subcommand. Only the entry that was chosen is wired, once, and its exit
+  code is the run's. Each subcommand's one-line help is also its description, so
+  the text is written once.
+- Bare `wio` and `--help` print the package's `Summary` and the subcommands.
+  `wio <subcommand> --help` lists that command's options without wiring it.
+  `--version` prints `wio <version>`. Both come from the metadata of the
+  `work-it-out` distribution, so the program needs it installed.
+- A usage mistake exits 2 with argparse's message on standard error.
+- Argparse prints through `contextlib.redirect_stdout` and `redirect_stderr`
+  pointed at the streams of `stdio`, so the help and the errors go where the
+  caller wants. The redirect is global to the process, so `main` is not meant to
+  run on several threads at once.
+- The help is colored by Python's own rules, which look at the environment and
+  the stream, so a terminal gets color and a pipe or a file does not. The
+  program is named `wio`, and its output is the same in process and as the
+  installed command.

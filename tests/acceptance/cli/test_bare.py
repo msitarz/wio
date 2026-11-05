@@ -26,11 +26,6 @@ def _description() -> str:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="bare `wio` prints nothing until the Work of the `cli` package",
-)
 def test_bare_wio_displays_its_description(wio: Wio) -> None:
     """Bare `wio` shows the project's description and exits 0."""
     # Given the description of the project

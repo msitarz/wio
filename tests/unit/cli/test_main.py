@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the composition root of the `wio` command."""
 
+import importlib.metadata
 import io
 from dataclasses import dataclass
 from pathlib import Path
@@ -25,34 +26,22 @@ class FakeStdio:
     stderr: TextIO
 
 
-def test_main_returns_zero_and_writes_nothing() -> None:
-    """With no arguments the entry point succeeds silently, for now."""
-    # Given in-memory streams in place of the standard streams
-    out, err = io.StringIO(), io.StringIO()
-    stdio = FakeStdio(io.StringIO(), out, err)
-
-    # When the testable core runs with no arguments
-    code = cli.main([], stdio)
-
-    # Then it returns 0 and the streams hold nothing
-    assert code == 0
-    assert (out.getvalue(), err.getvalue()) == ("", "")
-
-
-def test_console_main_builds_the_real_streams_and_returns_zero(
+def test_console_main_runs_the_core_on_the_real_streams(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The console function runs the core on the process's own streams."""
+    """The console function shows the summary on the process's own streams."""
     # Given the process arguments of a bare `wio`
     monkeypatch.setattr("sys.argv", ["wio"])
 
     # When the console function runs
     code = cli.console_main()
 
-    # Then it returns 0 and prints nothing
+    # Then it returns 0 and prints the usage with the summary
     captured = capsys.readouterr()
     assert code == 0
-    assert (captured.out, captured.err) == ("", "")
+    assert captured.out.startswith("usage: wio")
+    assert importlib.metadata.metadata("work-it-out")["Summary"] in captured.out
+    assert captured.err == ""
 
 
 def test_console_main_runs_the_core_on_the_adapter_for_the_process_streams(

@@ -4,31 +4,44 @@
 import sys
 from typing import TYPE_CHECKING
 
+from wio.cli.dispatch import run
+from wio.cli.table import COMMANDS
 lazy from wio.io import adapters
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from wio.cli.table import Entry
     from wio.io.ports import Stdio
 
 
-def main(argv: Sequence[str], stdio: Stdio) -> int:
+def main(
+    argv: Sequence[str],
+    stdio: Stdio,
+    commands: Sequence[Entry] = COMMANDS,
+) -> int:
     """Run `wio` with the given arguments and streams.
 
-    This is the testable core of the command: it reads and writes only through
-    `stdio`, so a test can give it in-memory streams. Until the Work of the
-    `cli` package decides what `wio` does, it succeeds without output.
+    This is the testable core of the command: it writes its output through
+    `stdio`, so a test can give it in-memory streams. It describes every entry
+    of `commands` to build the usage, wires only the entry whose subcommand was
+    chosen, and returns that command's exit code. Bare `wio` and `--help` print
+    the package's summary and the subcommands in order of name,
+    `wio <subcommand> --help` lists that command's options without wiring it,
+    `--version` prints `wio <version>`, and a usage mistake exits 2 with
+    argparse's message on standard error.
 
     Args:
         argv: The arguments after the program name.
         stdio: The standard streams to use.
+        commands: The entries of the subcommands, the table of commands by
+            default.
 
     Returns:
-        The exit code: 0 on success, 1 when a check fails, and 2 for a usage or
-        configuration error.
+        The exit code: 0 for the summary, the help and the version, the chosen
+        command's own exit code, 0 or 1, and 2 for a usage mistake.
     """
-    del argv, stdio
-    return 0
+    return run(argv, stdio, commands)
 
 
 def console_main() -> int:
