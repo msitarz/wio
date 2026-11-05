@@ -25,10 +25,10 @@ def main(
     `stdio`, so a test can give it in-memory streams. It describes every entry
     of `commands` to build the usage, wires only the entry whose subcommand was
     chosen, and returns that command's exit code. Bare `wio` and `--help` print
-    the package's summary and the subcommands in order of name, `--version`
-    prints `wio <version>`, and a usage mistake exits 2 with argparse's message
-    on standard error. Until the dispatch is implemented, it succeeds without
-    output.
+    the package's summary and the subcommands in order of name,
+    `wio <subcommand> --help` lists that command's options without wiring it,
+    `--version` prints `wio <version>`, and a usage mistake exits 2 with
+    argparse's message on standard error.
 
     Args:
         argv: The arguments after the program name.
@@ -37,8 +37,8 @@ def main(
             default.
 
     Returns:
-        The exit code: 0 on success, 1 when a check fails, and 2 for a usage
-        or configuration error.
+        The exit code: 0 for the summary, the help and the version, the chosen
+        command's own exit code, 0 or 1, and 2 for a usage mistake.
     """
     del argv, stdio, commands
     return 0
