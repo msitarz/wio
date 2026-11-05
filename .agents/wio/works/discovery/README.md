@@ -77,8 +77,9 @@ or writing templates first.
 
 ## Constraints
 
-- **Design only.** The children change documents and wio's own config, and
-  implement no command. Verified by each child's review.
+- **Design only.** The children change documents, wio's own config and the
+  scaffold that admits a new component to the table of commands, and implement
+  no command. Verified by each child's review.
 - **One owner per topic.** Each child changes the sections of its own topic
   and links to a statement another child owns instead of restating it:
   - which files are Works, the marker and `[works] dir`: the marked-files leaf
