@@ -389,7 +389,17 @@ An unreadable `<!-- wio` block, or unreadable front matter that contains
   `--parent` is an error. The directory is named by `--slug`, or by a slug
   derived from `--title`, and an existing directory of that name is an error,
   so a Work is never overwritten. A Work that a person writes or moves may have
-  any name; only `new` uses `README.md`.
+  any name; only the default of `new` uses `README.md`.
+- `wio contracts new --path <path>` writes the Work at that path instead, so
+  an agent can follow the workflow's convention, such as `spec.md` in a
+  directory of its own or a dated file in a flat folder. The path is relative
+  to the repository root, and an absolute path or one that contains `..` is an
+  error. It must name a file that would be a Work
+  ([Which files are Works](#which-files-are-works)), and one that exists
+  already is an error. `new` creates the directories the path needs.
+  `--path` excludes `--slug`; under `nesting` the path decides the parent, so
+  it also excludes `--parent`, and a path in a directory that already holds a
+  marked file, or directly in the Works directory, is an error.
 
 ### Changing a contract
 
@@ -2189,8 +2199,10 @@ and its own selection give it.
   `nesting`, in which a `parent` id field gives the hierarchy and directories
   mean nothing. Some tools' front matter already has a `parent` key, such as
   MADR's for Jekyll navigation, so such a field must not collide with it.
-- A configurable file name or layout for `wio contracts new`, such as
-  `spec.md` or `<slug>.md` in place of `<slug>/README.md`.
+- A config default for the path that `wio contracts new` writes, planned for
+  v0.2, such as `[works] new_path = "{slug}/spec.md"`, whose key and
+  placeholder are provisional, so that people and agents need not pass
+  `--path` each time.
 - Sibling splits and the joining of stage presets, which come after v0.1. A
   sibling split has no channel for shared constraints; passing inheritable
   sections along `depends_on` could close that.
