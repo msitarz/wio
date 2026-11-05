@@ -175,14 +175,12 @@ its artifacts. They state these rules:
 - `--path <path>` writes the Work at that path instead, relative to the
   repository root, such as `spec.md` in a directory of its own or a dated file
   in a flat folder, so the agent can follow the workflow's convention. It
-  creates the directories the path needs.
+  creates the directories the path needs. An absolute path, or one that
+  contains `..`, is an error.
 - The path must name a file that would be a Work by the rules of the
-  marked-files leaf (`bgctsc`), linking to them: under the Works directory,
-  ending in `.md`, not under a directory below it whose name starts with `.`,
-  and not through a symbolic link. A path that exists already is an error, so a
-  Work is never overwritten.
-- `--path` and `--slug` exclude each other, and `new` needs one of `--path`,
-  `--slug` or `--title`; `--title` still sets the title either way.
+  marked-files leaf (`bgctsc`), linking to them. A path that exists already is
+  an error, so a Work is never overwritten.
+- `--path` and `--slug` exclude each other.
 - Under `nesting`, the path decides the parent, so `--path` and `--parent`
   exclude each other; a path in a directory that already holds a marked file,
   or directly in the Works directory, is an error.
@@ -213,13 +211,13 @@ lost nor promised for v0.1. The documents state:
 - The Open points of `docs/concepts.md` hold a third exclusive mode, where a
   `parent` id field gives the hierarchy and directories mean nothing, never
   mixed with `nesting`, and a config default for the path `new` writes, such
-  as `[works] new_path = "{slug}/spec.md"` with `{slug}` as its only
-  placeholder, so that people and agents need not pass `--path` each time.
+  as `[works] new_path = "{slug}/spec.md"`, whose key and placeholder are
+  provisional, so that people and agents need not pass `--path` each time.
 - The open point on the `parent` mode notes that a `parent` key already exists
   in some tools' front matter, such as MADR's for Jekyll navigation, as the
   parent's survey reports (its A-3).
-- "Not in v0.1" of `docs/v0.1-scope.md` lists both, the config default for v0.2,
-  linking to the open points.
+- "Not in v0.1" of `docs/v0.1-scope.md` lists both, marking the config default
+  for v0.2, and links to the open points.
 
 ### **AC-9** A sibling split is not the `flat` mode
 
