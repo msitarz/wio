@@ -13,10 +13,11 @@ wio reads Markdown files that carry a small metadata block, and compiles each
 of them, for one step of work, into the context an agent session reads first.
 That is the whole engine:
 
-1. **Read.** A **Work** is a directory whose `README.md`, its **contract**,
-   has a `wio` metadata block. The block names the Work's **template**, its
-   roots, its dependencies and its own actions. wio reads the rest of the file
-   only by its headings.
+1. **Read.** A **Work** is a Markdown file under the Works directory, its
+   **contract**, whose first line opens a `wio` metadata block
+   ([Which files are Works](#which-files-are-works)). The block names the
+   Work's **template**, its roots, its dependencies and its own actions. wio
+   reads the rest of the file only by its headings.
 2. **Check.** wio checks each contract against the template it names: the
    metadata, and the sections the template's directives require.
 3. **Compile.** Given a Work, an **action** and a **stage**, `wio context`
@@ -92,11 +93,12 @@ presence, its purpose and the section that defines it. Presence is *required*,
 not say yet; elsewhere, too, *open* marks a form that is not settled
 ([Open points](#15-open-points)). A dash means presence does not apply.
 
-### A Work's `README.md`
+### A Work contract
 
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
-| `<!-- wio ... -->` or `+++` | *required* | The metadata block that makes a directory's `README.md` a Work. | [Anatomy](#anatomy), [Metadata forms](#metadata-forms) |
+| `<!-- wio ... -->` or `+++` | *required* | The metadata block, on the file's first line, that makes a marked file a Work. | [Which files are Works](#which-files-are-works), [Metadata forms](#metadata-forms) |
+| `wio` | *required* in `+++` | The marker, `wio = 1`: the version of the metadata format. | [Metadata forms](#metadata-forms) |
 | `id` | *required* | The Work's short random id, which dependencies, records and the event log key on. | [Identity and location](#identity-and-location) |
 | `template` | *required* | The template the contract follows, which gives its sections, checks and default actions. | [Anatomy](#anatomy) |
 | `roots` | *optional* | The roots the Work touches, which select its rules. | [Roots of a Work](#roots-of-a-work) |
@@ -144,6 +146,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
 | `results` | *open* | The results a gate can record. | [The event log](#the-event-log) |
+| `[works] dir` | *optional* | The Works directory, relative to the repository root; `.agents/wio/works` by default. | [Which files are Works](#which-files-are-works) |
 | `[kinds]` | *open* | The valid kinds, each with its entry template. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `[actions.<name>]` | *open* | An action, with its `description`, `after`, `invalidated_by` and `on_demand`. | [What an action is](#what-an-action-is), [What `wio next` proposes](#what-wio-next-proposes) |
 | `[roots.<name>]` | *open* | A root: its `paths`, and its `rule_presets` (*optional*), which select its rules. | [Roots and rulesets](#9-roots-and-rulesets) |
@@ -187,7 +190,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `$WIO_HOME` | *optional* | The Wio home, where the event log lives; `~/.agents/wio` by default. | [The Wio home](#the-wio-home) |
 | `$TMPDIR` | — | Where a bundle is written when no path is given. | [The context compiler](#11-the-context-compiler) |
 | `.agents/wio/config.toml` | — | The config. | [Glossary](../GLOSSARY.md) |
-| `.agents/wio/works/` | — | The Works directory. | [Identity and location](#identity-and-location) |
+| Works directory | — | Where wio looks for Works: `[works] dir`, `.agents/wio/works` by default. | [Which files are Works](#which-files-are-works) |
 | Templates directory | — | The templates; a file without a `wio` block is ignored. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `.agents/wio/rules/` | — | The repository's rulesets, one directory each. | [Rulesets on disk](#rulesets-on-disk) |
 | `<dir>/<skill>/SKILL.md` | — | A skill a stage names, in the skill paths or a harness's skill directories. | [Stage](#7-stage) |
@@ -196,24 +199,22 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 
 ### What it is
 
-A Work contract is the `README.md` of a Work: a metadata block that wio reads,
-and a Markdown body that agents and people read. wio uses the metadata to find
+A Work contract is a Markdown file under the Works directory that starts with
+a metadata block that wio reads, followed by a Markdown body that agents and
+people read. wio uses the metadata to find
 the Work's roots, dependencies and actions, and puts the body into bundles as
 written.
 
-A Work is a directory, and its contract is that directory's `README.md`, for
-two reasons:
+Any marked file can be a contract, whatever its name and the directories above
+it ([Which files are Works](#which-files-are-works)), so a project can mark the
+spec files it already has instead of moving them.
 
-- Forges such as GitHub render a directory's `README.md` when it is opened, so
-  browsing the Works directory shows each contract without a tool.
-- The directory keeps everything about one Work in one place. A workflow can
-  store the artifacts of its own process next to the contract: notes, an
-  investigation's findings, an evaluation's results. These are not source code.
-  They stay with the Work, and reach the code only if a stage carries them
-  there. wio ignores them (see
-  [Identity and location](#identity-and-location)) and does not put them into
-  bundles, so a stage that needs one reads it itself. Deleting the Work's
-  directory removes them with the contract, and git keeps both.
+A contract's directory can keep everything about its Work in one place. A
+workflow can store the artifacts of its own process next to the contract:
+notes, an investigation's findings, an evaluation's results. These are not
+source code. They stay with the Work, and reach the code only if a stage
+carries them there. wio ignores every file that is not marked and does not put
+it into bundles, so a stage that needs one reads it itself.
 
 Every contract also names a **template**
 ([Templates and kinds](#4-templates-and-kinds)). Contracts of one kind share a
@@ -232,8 +233,9 @@ The contract changes only when someone decides to change what it says.
 A contract has a small block of metadata for wio and Markdown sections for
 people and agents.
 
-The metadata is TOML. It sits inside an HTML comment at the top of the file, so
-it is hidden when the contract is rendered and readable in the source:
+The metadata is TOML. It sits inside an HTML comment that opens on the file's
+first line, so it is hidden when the contract is rendered and readable in the
+source:
 
 ```markdown
 <!-- wio
@@ -298,10 +300,71 @@ this repository use the comment form because GitHub shows `+++` front matter as
 plain text, while other forges, GitLab for example, render it. A setting for the
 form, and a command that rewrites it, may come later.
 
+Both forms start on the file's first line. The **marker** `wio = 1` names the
+version of the metadata format, so a later format can be told apart:
+
+- In `+++` front matter the marker is required, because those delimiters are
+  not specific to wio: front matter without it is silently not a Work.
+- In the comment form the marker is optional, because `<!-- wio` already marks
+  the file and implies version 1. A marker given there is checked.
+- A marker with a version wio does not know, such as `2`, or of the wrong type,
+  such as `true` or `"1"`, is an error that names the versions wio knows: the
+  file claims to be a Work that wio cannot read.
+- A `<!-- wio` block that does not close, or whose TOML does not parse, is an
+  error that names the file. `+++` front matter that does not close or parse
+  is the same error when its text contains `wio =`, and is otherwise silently
+  not a Work, because wio cannot tell it from another tool's.
+
+A forgotten marker still shows: a `depends_on` that names the Work's id is an
+unknown id, and the Work is missing from the list of Works.
+
 TOML was chosen over YAML, for now, for simplicity: it needs only the standard
 library for reading, and strings are always quoted, so an id such as `234567` is
 never read as a number. The choice is cheap to change: add a YAML reader and
 writer (using a safe load) and change the templates.
+
+### Which files are Works
+
+A Work is a **marked file**: a file under the Works directory whose name ends
+in `.md`, matched case-sensitively, and whose metadata block starts on its first
+line ([Metadata forms](#metadata-forms)). The comment form opens with
+`<!-- wio` followed by whitespace or the end of the line, and `+++` front matter
+holds the marker. A leading UTF-8 byte-order mark is skipped. A block that
+starts on any later line, after a blank line too, does not make the file a
+Work, so a document that quotes `<!-- wio` is not one. The file's name and the
+directories above it play no part.
+
+- The **Works directory** is `[works] dir`, a path relative to the repository
+  root whose default is `.agents/wio/works`. A path that leaves the repository
+  is an error, as for root paths. A Works directory that does not exist holds
+  no Works when it is the default, and is an error when `[works] dir` names it;
+  one that is not a directory, or is a symbolic link, is an error.
+- wio walks the Works directory recursively and reads every `.md` file in it.
+  Below the Works directory it skips directories whose names start with `.`,
+  and it follows no symbolic link, to a directory or to a file, so every Work
+  has exactly one path.
+- A `.md` file that cannot be read or decoded as UTF-8 is an error that names
+  the file.
+- wio reads the working tree, so a Work that is not committed yet is found, and
+  it consults neither `.gitignore` nor a glob setting. The marker already rules
+  out other tools' files, and a glob can be added later without breaking
+  anything.
+
+`wio contracts show`, given a file that is not a Work, fails and names why. It
+gives at least these reasons, whose exact wording is provisional:
+
+- the path does not exist, or is not a file;
+- the name does not end in `.md`;
+- the file has no metadata block, or its block does not start on the first
+  line;
+- its `+++` front matter has no readable marker;
+- the path is outside the Works directory, or under a directory below it whose
+  name starts with `.`;
+- the path is, or runs through, a symbolic link.
+
+An unreadable `<!-- wio` block, or unreadable front matter that contains
+`wio =`, is not among these reasons: it is the error that
+[Metadata forms](#metadata-forms) states.
 
 ### Identity and location
 
@@ -313,11 +376,9 @@ writer (using a safe load) and change the templates.
   both paths. Copying a Work's directory is the usual cause. Ids are what
   dependencies, records and the event log key on, so a duplicate would merge the
   progress of two Works.
-- A **Work** is a directory whose `README.md` contains a `wio` metadata block:
-  `.agents/wio/works/<slug>/README.md`. The path is the default and will be
-  configurable. Humans navigate by slug and scripts key on the id.
-- Anything else in a Work's directory (notes, diagrams, stage artifacts) is
-  ignored. Only a subdirectory that is itself a Work makes a child.
+- Humans navigate by path and scripts key on the id.
+- Any file that is not marked (notes, diagrams, stage artifacts) is ignored.
+  Only a subdirectory that is itself a Work makes a child.
 - `wio contracts new` creates a Work in the Works directory, or inside a parent
   given by id with `--parent`. Its directory is named by `--slug`, or by a slug
   derived from `--title`, and an existing directory of that name is an error,
@@ -884,6 +945,9 @@ on, and they do not judge how a workflow is built:
   declared kind. Every kind's entry template exists and has that kind.
 - No two contracts share an id, and every directory between the Works directory
   and a Work is itself a Work.
+- Every marked file's metadata block can be read, and its marker, when it has
+  one, names a version wio knows
+  ([Metadata forms](#metadata-forms)).
 - The actions a contract resolves to are not empty, and each pipeline has at
   least one stage. An empty list in a contract's `[actions]` removes that
   action; it is not an empty pipeline. Work with no stage to run belongs in a
@@ -2064,6 +2128,10 @@ and its own selection give it.
   command that rewrites contracts and templates. Templates must keep their
   comments, so the rewrite either swaps only the delimiters or reads with a
   style-preserving parser.
+- Importing existing specs that carry no marker: a mode that takes every `.md`
+  file with front matter and an `id` as a Work, configurable id generation, and
+  an id format that admits ids such as `SPEC-012`. The mode needs default
+  actions for contracts without a template, since such specs name none.
 - Flat splits and the joining of stage presets, which come after v0.1. A flat
   split has no channel for shared constraints; passing inheritable sections
   along `depends_on` could close that.
