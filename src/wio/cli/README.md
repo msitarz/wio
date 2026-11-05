@@ -1,8 +1,8 @@
 # `wio.cli`
 
-The composition root of the `wio` command. The terms Command, Command spec and
-Entry are in the [glossary of `wio.cli`](GLOSSARY.md), and the architecture it
-sits in is in the [overview of `src/wio`](../README.md).
+The composition root of the `wio` command. The terms Command, Command spec,
+Entry, Failed check and Bug are in the [glossary of `wio.cli`](GLOSSARY.md), and
+the architecture it sits in is in the [overview of `src/wio`](../README.md).
 
 ## The table of commands
 
@@ -91,3 +91,25 @@ A run ends with one of four exit codes, and `main` never lets an exception out:
 - Everything, the failures included, is written to the streams of `stdio`, so
   the process's own streams stay untouched.
 - `KeyboardInterrupt` and a `SystemExit` that a command raises are not handled.
+
+## What every command follows
+
+The command line gives every subcommand the same behavior, so a person or an
+agent can rely on it. The core can enforce some of it, and a command's own
+tests check the rest, because only a real command has output to check.
+
+- Standard output carries what the command was asked for, the findings of a
+  check included. Standard error carries diagnostics about the run itself and
+  the error messages, in plain text.
+- `--json` is an option of each command, declared by its `configure`. On exit 0
+  or 1, standard output holds one JSON document and nothing else. On exit 2 and
+  70 it is empty, and the message is plain text on standard error.
+- Output is deterministic: sorted, and without timestamps, except in `wio log`,
+  whose purpose is to report when events happened. Notes and warnings never
+  change the exit code. There is no pager, and wio's own messages are never
+  colored. Only the help and usage that argparse prints are, by Python's color
+  rules.
+- A command returns a failed check and raises a `WioError` only for what the
+  user must fix, so the core never has to tell the two apart.
+- The program needs the `work-it-out` distribution installed, because the
+  summary and the version come from its metadata.
