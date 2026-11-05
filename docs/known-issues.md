@@ -37,3 +37,26 @@ maintainer said overlapping source roots are not supported. A
 asks for this layout to be supported, mapping each file to its nearest root as
 the tach FAQ describes, or else rejected with a configuration error. The config
 stays as it is until the maintainers answer.
+
+## `uv sync --locked` fetches the Intel macOS wheel on every platform
+
+**What fails.** `quickjs-ng` has a direct URL source in `pyproject.toml`, a
+wheel built in a fork, for Intel macOS only. `uv sync --locked` checks that
+`uv.lock` is current, and for a direct URL it fetches the wheel's metadata
+whatever the `marker` says. Every job that runs it, on Linux too, therefore
+requests the release URL, and a GitHub 504 fails the job with "Failed to
+generate package metadata for `quickjs-ng`".
+
+**What it puts at risk.** A GitHub outage or timeout fails `ci.yml`,
+`records.yml` and `pr-title.yml` on a change that has nothing to do with it. A
+re-run passes when the host answers. The wheel is never installed on those
+platforms, only fetched.
+
+**Why it is not fixed yet.** Replacing `--locked` with `--frozen` in the
+workflows stops the fetch, but then no job checks that `uv.lock` matches
+`pyproject.toml` except one that runs on Intel macOS or locally. Hosting the
+wheel elsewhere only moves the dependency.
+
+**What is being done.** Nothing yet: re-run a failed job. If the failures
+repeat, the workflows move to `uv sync --frozen` and a single `uv lock --check`
+step keeps the lock honest.
