@@ -19,7 +19,7 @@ hierarchy = "nesting"
 reader = "scan"
 
 # Each kind and the template new Works of that kind start from.
-[kinds]
+[templates.kinds]
 feature = "feature.draft"
 
 # `wio next` proposes actions in the order that `after` gives, ties by name, and
