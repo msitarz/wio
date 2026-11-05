@@ -4,7 +4,10 @@
 import argparse
 import contextlib
 import importlib.metadata
+import traceback
 from typing import TYPE_CHECKING
+
+from wio.errors import WioError
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -14,6 +17,8 @@ if TYPE_CHECKING:
 
 _DISTRIBUTION = "work-it-out"
 _ENTRY = "wio_entry"
+_NAME = "wio_command"
+_CODES = (0, 1)
 
 
 def build_parser(commands: Sequence[Entry]) -> argparse.ArgumentParser:
@@ -41,7 +46,7 @@ def build_parser(commands: Sequence[Entry]) -> argparse.ArgumentParser:
             spec.name, help=spec.help, description=spec.help
         )
         spec.configure(subparser)
-        subparser.set_defaults(**{_ENTRY: entry})
+        subparser.set_defaults(**{_ENTRY: entry, _NAME: spec.name})
     return parser
 
 
@@ -83,8 +88,25 @@ def parse(
         return _exit_code(stop.code)
 
 
-def run(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
-    """Run the subcommand that `argv` chooses, or print the introduction.
+def _checked(name: str, code: int, stdio: Stdio) -> int:
+    """Accept only the exit codes a command may return.
+
+    Args:
+        name: The subcommand that returned the code.
+        code: The exit code it returned.
+        stdio: The streams to report a wrong code to.
+
+    Returns:
+        The code itself when it is 0 or 1, and 70 after reporting a bug.
+    """
+    if code in _CODES:
+        return code
+    stdio.stderr.write(f"error: {name} returned exit code {code}, not 0 or 1\n")
+    return 70
+
+
+def _run(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
+    """Describe, parse, wire and run, letting any failure escape.
 
     Args:
         argv: The arguments after the program name.
@@ -94,16 +116,43 @@ def run(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
     Returns:
         The exit code of the chosen command, or of the introduction.
     """
+    parser = build_parser(commands)
+    args = parse(parser, argv)
+    if isinstance(args, int):
+        return args
+    entry: Entry | None = getattr(args, _ENTRY, None)
+    if entry is None:
+        parser.print_help()
+        return 0
+    code = entry.wire().run(args, stdio)
+    return _checked(getattr(args, _NAME), code, stdio)
+
+
+def run(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
+    """Run the subcommand that `argv` chooses, or print the introduction.
+
+    Everything is written to `stdio`. A `WioError` at any step is reported as
+    `error:` and its message and exits 2, and any other exception is reported
+    with its traceback and exits 70.
+
+    Args:
+        argv: The arguments after the program name.
+        stdio: The standard streams to write the output to.
+        commands: The entries of the subcommands.
+
+    Returns:
+        The exit code of the chosen command, or of the introduction, or 2 or 70
+        for a failure.
+    """
     with (
         contextlib.redirect_stdout(stdio.stdout),
         contextlib.redirect_stderr(stdio.stderr),
     ):
-        parser = build_parser(commands)
-        args = parse(parser, argv)
-        if isinstance(args, int):
-            return args
-        entry: Entry | None = getattr(args, _ENTRY, None)
-        if entry is None:
-            parser.print_help()
-            return 0
-        return entry.wire().run(args, stdio)
+        try:
+            return _run(argv, stdio, commands)
+        except WioError as error:
+            stdio.stderr.write(f"error: {error}\n")
+            return 2
+        except Exception:  # noqa: BLE001 - a bug in any step must exit 70
+            traceback.print_exc(file=stdio.stderr)
+            return 70
