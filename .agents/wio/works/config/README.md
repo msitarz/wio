@@ -29,6 +29,13 @@ person needs to see what they are and where each value comes from.
 - **Diagnostic**: one finding of a check, with a severity (`error`, `warning` or
   `note`), the place it is about and a message.
 - **Source**: whether a setting's value comes from the file or is the default.
+- **Key path**: the dotted names that lead to a setting, such as
+  `stages.define.session`; a list item adds its index, as in
+  `stages.define.rules_include[0]`, and a key that contains a dot is quoted.
+- **Check**: a function from the `Config` and what it may read to diagnostics;
+  one concern, such as the references among stages.
+- **Check run**: the loader's run of the shape and then every check, which
+  `wio config check` prints and `Settings.load` refuses on.
 
 ## Non-Goals
 
@@ -64,8 +71,10 @@ person needs to see what they are and where each value comes from.
   repository is a configuration error, while an empty file is valid.
 - **Unknown keys are errors.** A key the schema does not know, in any table, is
   an error, so a mistyped key is caught when `wio config check` runs.
-- **Messages tell how to fix the edit.** A diagnostic names the key path, what
-  was found, what is valid and what the setting is for.
+- **Messages tell how to fix the edit.** A diagnostic names the key path and
+  what is valid or what exists, so an agent can correct its edit in one step;
+  the diagnostics of the shape add the received value and the setting's
+  description.
 - **Nothing is imported before it is needed.** Rarely used modules load lazily,
   and a run that finds no problem imports neither `tomlkit`, `json` nor
   `difflib`.
@@ -74,7 +83,10 @@ person needs to see what they are and where each value comes from.
   AC-1, unknown keys and the content of messages by the loader's AC-4, the
   order and the shape of diagnostics by the model's AC-3 and AC-4, the sorted
   output of the commands by the show leaf's AC-2, and what a run imports by
-  AC-2 of this parent.
+  AC-2 of this parent, the loader's AC-8, the decoder's AC-4, the model's AC-4
+  and the show leaf's AC-5. The goals of refusing with every error at once and
+  of telling an agent in the same turn are established by the checks parent's
+  AC-2 and the command leaf's AC-3.
 
 ## Visuals
 
@@ -101,6 +113,8 @@ flowchart LR
     adapters --> io
     other -- "ports" --> settings
     config -. "implements" .-> settings
+    errors["wio.errors: ConfigurationError"]:::changed
+    config --> errors
     classDef new stroke-width: 3px
     classDef changed stroke-width: 3px,stroke-dasharray: 4 3
 ```
@@ -138,16 +152,14 @@ The built wheel gives a working `wio config`, `wio config list` and
 ### **AC-3** The documents describe the config and its commands
 
 `docs/concepts.md` and `docs/v0.1-scope.md` state the three commands (`list`,
-`show` and `check`, with bare `wio config` showing the help), that an unknown
-key is an error, that skills are looked up in the repository only, that a stage
-has exactly one of `goal` and `skill`, and the `Diagnostic` and its shared
-output, and they say which checks the rules Work owns, not `wio config`. They no
-longer list the field names of a stage's session policy or the names of the
-config tables among the open points, nor `wio config list <kind>`.
+`show` and `check`, with bare `wio config` showing the help), the `Diagnostic`
+and its shared output, and which checks the rules Work owns, not `wio config`.
+They no longer list the field names of a stage's session policy or the names of
+the config tables among the open points, nor `wio config list <kind>`.
 
 ### **AC-4** The glossary defines the new terms
 
-`GLOSSARY.md` defines Diagnostic, Source, Check and Check run.
+`GLOSSARY.md` defines Diagnostic, Source, Key path, Check and Check run.
 
 ## Additional context
 

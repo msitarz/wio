@@ -43,6 +43,9 @@ must be usable and stay inside the repository before a command relies on them.
   `.agents/skills` and `.claude/skills`, and other harnesses' directories are
   added through `[skills] paths`.
 
+- **A-2**: The driver decided that a kind's template name that is an empty
+  string is an error.
+
 ## Mechanisms
 
 - `FileSystem.exists` and `is_dir`, through the port, for paths and
@@ -70,8 +73,8 @@ once in its root.
 
 - **Given** a root path `docs/new` that does not exist.
 - **When** `wio config check` runs.
-- **Then** a warning at the path says it does not exist yet, and the exit code
-  is unchanged.
+- **Then** a warning at the path says it does not exist yet, and the command
+  exits 0 when no other diagnostic is an error.
 
 ### **AC-2** A stage's skill is found in the repository
 

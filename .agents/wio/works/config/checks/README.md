@@ -22,13 +22,6 @@ error.
 - The repository's own config passes, and a hook after each edit keeps it so.
 - The installed package checks the config of any project, not only this one.
 
-## Glossary
-
-- **Check**: a function from the `Config` and what it may read to diagnostics;
-  one concern, such as the references among stages.
-- **Check run**: the loader's run of the shape and then every check, which
-  `check` prints and `Settings.load` refuses on.
-
 ## Non-Goals
 
 - Checks that parse a template or a rule file, which the contracts, templates
@@ -62,7 +55,9 @@ error.
   exit code and are not printed by other commands.
 - **Verification.** Each check's behaviour is verified by the leaf that adds it;
   that every error also stops the other commands is verified by AC-2 of this
-  parent.
+  parent, and that an empty file loads by the loader's AC-2. That a check is
+  cheap and local is verified in the review of each check leaf, against the
+  inputs the check receives.
 
 ## Visuals
 
@@ -73,6 +68,7 @@ run behind the loader. Bold boxes are added.
 ```mermaid
 flowchart LR
     shape["shape of the file (loader)"] --> pipelines["pipelines"]:::new
+    shape --> out
     shape --> rules["rule selection"]:::new
     shape --> paths["paths and skills"]:::new
     pipelines --> out["diagnostics, sorted"]
@@ -95,7 +91,7 @@ another.
 
 - **Given** a config with an unknown key, a stage preset that names a missing
   stage, a rule reference to a missing ruleset, a root path outside the
-  repository and a stage whose skill exists nowhere.
+  repository and a stage whose skill exists nowhere, and nothing else wrong.
 - **When** `wio config check` runs.
 - **Then** each of the five is reported once, the output is sorted, and the exit
   code is 1.
@@ -115,8 +111,8 @@ command exits 2 with the same errors on standard error.
 #### Warnings and notes alone
 
 - **Given** a config with a root path that does not exist yet, which is a
-  warning, and a `rules_always_include` entry that resolves to a rule preset,
-  which is a note, and no error.
+  warning, and a rule preset `p` with `rules_always_include = ["p"]`, which is a
+  note, and no error.
 - **When** `wio config list` and `wio config check` run.
 - **Then** `list` prints the settings and nothing of the warning or the note,
   and `check` prints both and exits 0.

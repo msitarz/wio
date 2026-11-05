@@ -31,9 +31,6 @@ every problem at once.
 - **Shape**: whether the file's keys, types and values fit the schema, which is
   what this Work checks; whether the names a value refers to exist is a check of
   [the checks Work](../checks/README.md).
-- **Key path**: the dotted names that lead to a value, such as
-  `stages.define.session`; a list item adds its index, as in
-  `stages.define.rules_include[0]`, and a key that contains a dot is quoted.
 
 ## Non-Goals
 
@@ -60,9 +57,11 @@ every problem at once.
 - `decode_toml` and `TomlSyntaxError` of `wio.formats`, for the text.
 - A walk of the `Config` dataclasses with `dataclasses.fields`, which builds
   the value, the diagnostics of its shape and the source of each key path from
-  the same schema. It builds a best-effort `Config` even when the file has
-  errors: an invalid value gets its default and an unknown key is dropped, so
-  the checks can run and one run reports every problem.
+  the same schema.
+- A best-effort `Config`, built even when the file has errors, so the checks can
+  run and one run reports every problem: an invalid value gets its default, an
+  unknown key and an entry of the wrong type are dropped, and a root or an
+  action that lacks a required key is kept with it empty.
 - For an unknown key, a search of the other tables of the schema for a field of
   that name, which gives the hint of where the key belongs.
 - `difflib.get_close_matches`, imported only when a diagnostic needs a closest
@@ -127,7 +126,8 @@ def load_config(repository: Repository, files: FileSystem) -> Loaded: ...
   config file.
 - **When** `load_config` runs in each.
 - **Then** each raises `ConfigurationError` that names the path looked at and
-  does not mention `wio init`.
+  does not mention `wio init`; with no repository it names the working
+  directory.
 
 ### **AC-2** A key the file does not set keeps its default
 
@@ -173,9 +173,12 @@ An optional setting that is `None` has no entry.
 ### **AC-4** Every shape problem is reported at once
 
 The loader returns all the diagnostics of the shape of a file, each naming the
-key path and how to fix it, with no `Config` when any is an error; it still runs
-the checks of AC-7 on a best-effort `Config`, in which an invalid value has its
-default and an unknown key is dropped.
+key path and how to fix it, and runs the checks of AC-7 on a best-effort
+`Config`; `Loaded.config` is `None` whenever any diagnostic of the check run,
+of the shape or of a check, is an error. A root or an action that lacks a
+required key is kept with it empty, an entry of the wrong type is dropped, and
+a stage with both or neither of `goal` and `skill` is kept as written, so the
+checks add no diagnostic for a problem already reported.
 
 #### An unknown key
 
@@ -208,6 +211,14 @@ default and an unknown key is dropped.
 - **When** `load_config` runs.
 - **Then** each has an error at its table that names the missing key and the
   setting's description.
+
+#### A broken entry does not cascade
+
+- **Given** a root `wio` without `paths`, and a stage whose `roots` is
+  `["wio"]`.
+- **When** `load_config` runs and the checks of the references run.
+- **Then** exactly one error is reported, for the missing `paths`, and none
+  says the root is unknown.
 
 #### A wrong default action
 
@@ -263,8 +274,8 @@ class ConfigSettings:
 
 #### Valid and invalid
 
-- **Given** a valid config, one with two shape errors, and one that has a
-  warning and a note and no error.
+- **Given** a valid config, one with two shape errors, and a valid config with a
+  check added to the list that returns a warning and a note.
 - **When** `load` runs on each.
 - **Then** the first returns the `Config`, the second raises with both errors in
   `diagnostics` and in its message, and the third returns the `Config`.
@@ -273,12 +284,18 @@ class ConfigSettings:
 
 A check is a function from the `Config` and what it may read to diagnostics,
 kept in one ordered list that the loader runs after the shape, also when the
-shape has errors, on the best-effort `Config`, so a leaf that
-adds one changes neither the loader's callers nor `Settings.load`. The second
-parameter holds the repository root and the `FileSystem`; its shape is
-provisional, and the list and the check run are required.
+shape has errors, on the best-effort `Config`, so a leaf that adds one changes
+neither the loader's callers nor `Settings.load`. `CheckInputs` is provisional;
+`Loaded`, `load_config`, `Check` and the ordered list are required, since the
+commands depend on them.
 
 ```python
+@dataclass(frozen=True)
+class CheckInputs:
+    root: Path
+    files: FileSystem
+
+
 Check = Callable[[Config, CheckInputs], Iterable[Diagnostic]]
 ```
 

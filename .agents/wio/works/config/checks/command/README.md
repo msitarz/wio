@@ -60,12 +60,17 @@ wio config check [--json]
 
 #### A valid config and an invalid one
 
-- **Given** a valid config, a config with an unknown key, and a config that has
-  only a warning.
+- **Given** a valid config, and a config with an unknown key.
 - **When** `wio config check` runs on each.
-- **Then** the first prints nothing and exits 0, the second prints the error as
-  `error: <key path>: <message>` and exits 1, and the third prints the warning
-  and exits 0.
+- **Then** the first prints nothing and exits 0, and the second prints the error
+  as `error: <key path>: <message>` and exits 1.
+
+#### A warning
+
+- **Given** a valid config and a check added to the ordered list that returns a
+  warning.
+- **When** `wio config check` runs.
+- **Then** it prints `warning: <where>: <message>` and exits 0.
 
 #### JSON
 
@@ -114,10 +119,10 @@ installs it.
 - **Then** it runs `uv run wio config check`, prints the diagnostics to standard
   error and exits 2.
 
-#### Other edits and a valid config
+#### Other edits and a config without errors
 
 - **Given** the hook's JSON for an edit of a Python file, an edit of the config
-  while it is valid, and a document that is not JSON.
+  while it has no error, and a document that is not JSON.
 - **When** the script reads each.
 - **Then** it exits 0 and prints nothing.
 

@@ -122,6 +122,17 @@ wio config show [key.path] [--json]
   each gives the object of `list --json` restricted to the key paths under the
   argument.
 
+#### Unset, empty and inside a list
+
+- **Given** a stage `define` without `judge`, no roots, and a `rules_include`
+  list.
+- **When** `wio config show stages.define.judge`, `wio config show roots` and
+  `wio config show stages.define.rules_include[0]` run.
+- **Then** the first exits 2 with a message that the optional setting is not
+  set, the second prints nothing and exits 0 (`{}` with `--json`), and the
+  third exits 2 with a message that a list is shown whole, as
+  `stages.define.rules_include`.
+
 #### An unknown key path
 
 - **Given** the key paths `stage.define` and `stages.definer`, with a stage

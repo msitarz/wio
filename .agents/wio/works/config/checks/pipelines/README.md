@@ -30,6 +30,8 @@ another must resolve before any command builds a pipeline from them.
 
 - **A-1**: A stage preset, a root and an action are keyed by their names in
   their tables, so a duplicate name is already rejected by TOML.
+- **A-2**: The driver decided that `results` has at least one entry and no
+  duplicate.
 
 ## Mechanisms
 

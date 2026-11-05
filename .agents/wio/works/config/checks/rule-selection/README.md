@@ -69,7 +69,7 @@ letter, then lower-case letters, digits, `-` and `_`.
 #### Wrong forms
 
 - **Given** the entries `Docs.DOC`, `docs.Doc1`, `docs.DOC001.x` and a
-  directory `My Rules` under `.agents/wio/rules`.
+  directory `My Rules`, holding a `ruleset.toml`, under `.agents/wio/rules`.
 - **When** the checks run.
 - **Then** each is an error that names the form that part should have, and the
   directory's error names its name.
@@ -121,7 +121,8 @@ takes qualified codes and families only; the other fields take every kind.
 
 #### A family in a root and a preset in the veto
 
-- **Given** a root `wio` with `rule_presets = ["docs.DOC", "docs.all"]`, and
+- **Given** a ruleset `docs`, a root `wio` with
+  `rule_presets = ["docs.DOC", "docs.all"]`, and
   `rules_always_exclude = ["docs.recommended", "mine", "docs.DOC001"]` where
   `mine` is a config rule preset.
 - **When** the checks run.
@@ -149,9 +150,11 @@ When `rules_always_include` is not empty, a note at it lists its entries.
 
 #### The note
 
-- **Given** `rules_always_include = ["process.fix-the-cause"]`.
+- **Given** a ruleset `process` and
+  `rules_always_include = ["process.fix-the-cause"]`.
 - **When** `wio config check` runs.
-- **Then** a note lists the entry, and the exit code is unchanged.
+- **Then** a note lists the entry, and the command exits 0 when no other
+  diagnostic is an error.
 
 ## Additional context
 

@@ -89,10 +89,10 @@ class TomlSyntaxError(WioError):
 
 #### A duplicate key and an unterminated string
 
-- **Given** the text `a = 1` twice, and the text `a = "x`.
+- **Given** the text `a = 1` and `a = 2` on two lines, and the text `a = "x`.
 - **When** `decode_toml` runs on each.
-- **Then** each raises `TomlSyntaxError` with the line and column of the
-  problem, not of the start of the text.
+- **Then** the first raises `TomlSyntaxError` at line 2, column 6, and the
+  second at line 1, column 7, not at the start of the text.
 
 ### **AC-3** Only `wio.formats` may import `tomllib`
 
