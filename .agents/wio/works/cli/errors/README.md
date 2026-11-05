@@ -91,8 +91,8 @@ names both modules.
 
 #### A forbidden import
 
-- **Given** a `.py` module in `wio.errors` that imports `wio.config`, added
-  locally by the reviewer and not committed.
+- **Given** `wio.errors` made a package locally, with a `.py` module in it that
+  imports `wio.config`, added by the reviewer and not committed.
 - **When** `uv run tach check` runs.
 - **Then** it exits non-zero and its output names `wio.errors` and
   `wio.config`.

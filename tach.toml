@@ -12,66 +12,73 @@ source_roots = ["src", "."]
 exact = false
 ignore_type_checking_imports = false
 
+# Errors that several packages share: it imports nothing from wio, and every
+# other package may import it.
+[[modules]]
+path = "wio.errors"
+depends_on = []
+
 [[modules]]
 path = "wio.models"
-depends_on = []
+depends_on = ["wio.errors"]
 
 [[modules]]
 path = "wio.env"
-depends_on = []
+depends_on = ["wio.errors"]
 
 [[modules]]
 path = "wio.formats"
-depends_on = ["wio.models"]
+depends_on = ["wio.models", "wio.errors"]
 
 [[modules]]
 path = "wio.io"
-depends_on = ["wio.models"]
+depends_on = ["wio.models", "wio.errors"]
 
 # A stub-only module: tach reads no `.pyi` file, but enforces its imports.
 [[modules]]
 path = "wio.ports"
-depends_on = ["wio.models"]
+depends_on = ["wio.models", "wio.errors"]
 
 # Adapters: only `wio.cli` and the unit tests may import them.
 [[modules]]
 path = "wio.io.adapters"
-depends_on = ["wio.io", "wio.models"]
+depends_on = ["wio.io", "wio.models", "wio.errors"]
 visibility = ["wio.cli", "tests.unit"]
 
 [[modules]]
 path = "wio.env.adapters"
-depends_on = ["wio.env"]
+depends_on = ["wio.env", "wio.errors"]
 visibility = ["wio.cli", "tests.unit"]
 
 # Components: they never import one another, and meet only in `wio.cli`.
 [[modules]]
 path = "wio.config"
-depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
 
 [[modules]]
 path = "wio.contracts"
-depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
 
 [[modules]]
 path = "wio.rules"
-depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
 
 [[modules]]
 path = "wio.trailers"
-depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
 
 [[modules]]
 path = "wio.log"
-depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
 
 [[modules]]
 path = "wio.context"
-depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports"]
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
 
 [[modules]]
 path = "wio.cli"
 depends_on = [
+    "wio.errors",
     "wio.models",
     "wio.formats",
     "wio.io",
@@ -131,6 +138,7 @@ depends_on = []
 [[modules]]
 path = "tests.unit"
 depends_on = [
+    "wio.errors",
     "tests.acceptance",
     "tests.acceptance.dsl",
     "tests.acceptance.drivers",
