@@ -201,9 +201,8 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 
 A Work contract is a Markdown file under the Works directory that starts with
 a metadata block that wio reads, followed by a Markdown body that agents and
-people read. wio uses the metadata to find
-the Work's roots, dependencies and actions, and puts the body into bundles as
-written.
+people read. wio uses the metadata to find the Work's roots, dependencies and
+actions, and puts the body into bundles as written.
 
 Any marked file can be a contract, whatever its name and the directories above
 it ([Which files are Works](#which-files-are-works)), so a project can mark the
@@ -326,10 +325,11 @@ writer (using a safe load) and change the templates.
 ### Which files are Works
 
 A Work is a **marked file**: a file under the Works directory whose name ends
-in `.md`, matched case-sensitively, and whose metadata block starts on its first
-line ([Metadata forms](#metadata-forms)). The comment form opens with
-`<!-- wio` followed by whitespace or the end of the line, and `+++` front matter
-holds the marker. A leading UTF-8 byte-order mark is skipped. A block that
+in `.md`, matched case-sensitively so that the same files are Works on every
+file system, and whose metadata block starts on its first line
+([Metadata forms](#metadata-forms)). The comment form opens with `<!-- wio`
+followed by whitespace or the end of the line, and `+++` front matter holds
+the marker. A leading UTF-8 byte-order mark is skipped. A block that
 starts on any later line, after a blank line too, does not make the file a
 Work, so a document that quotes `<!-- wio` is not one. The file's name and the
 directories above it play no part.
@@ -341,8 +341,9 @@ directories above it play no part.
   one that is not a directory, or is a symbolic link, is an error.
 - wio walks the Works directory recursively and reads every `.md` file in it.
   Below the Works directory it skips directories whose names start with `.`,
-  and it follows no symbolic link, to a directory or to a file, so every Work
-  has exactly one path.
+  so that tool directories such as `.git` and hidden scratch directories are
+  never read, and it follows no symbolic link, to a directory or to a file, so
+  every Work has exactly one path.
 - A `.md` file that cannot be read or decoded as UTF-8 is an error that names
   the file.
 - wio reads the working tree, so a Work that is not committed yet is found, and
