@@ -1,8 +1,8 @@
 # `wio.cli`
 
-The composition root of the `wio` command. The terms Command, Command spec and
-Entry are in the [glossary of `wio.cli`](GLOSSARY.md), and the architecture it
-sits in is in the [overview of `src/wio`](../README.md).
+The composition root of the `wio` command. The terms Command, Command spec,
+Entry, Failed check and Bug are in the [glossary of `wio.cli`](GLOSSARY.md), and
+the architecture it sits in is in the [overview of `src/wio`](../README.md).
 
 ## The table of commands
 
@@ -18,6 +18,8 @@ subcommand joins the command line by adding an entry made with
   command spec, and `Entry.wire` builds the command with the adapters its
   component needs. The usage lists every command on every run, so every entry is
   described every time, while only the chosen command is wired.
+- `Entry.wire` takes no platform parameter. The first adapter that differs by
+  platform adds it.
 - `component_entry` makes `describe` import `wio.<package>` and call the
   `describe()` that the package of every component provides.
 
@@ -64,14 +66,16 @@ process's own streams. [`dispatch.py`](dispatch.py) holds what it does.
   pointed at the streams of `stdio`, so the help and the errors go where the
   caller wants. The redirect is global to the process, so `main` is not meant to
   run on several threads at once.
-- The help is colored by Python's own rules, which look at the environment and
-  the stream, so a terminal gets color and a pipe or a file does not. The
+- The help is colored by Python's own rules, which look at `PYTHON_COLORS`,
+  `NO_COLOR`, `FORCE_COLOR`, `TERM=dumb` and the stream, so a terminal gets
+  color and a pipe or a file does not. The
   program is named `wio`, and its output is the same in process and as the
   installed command.
 
 ## Failures and exit codes
 
-A run ends with one of four exit codes, and `main` never lets an exception out:
+A run ends with one of four exit codes, and `main` never lets an `Exception`
+out:
 
 | Code | Meaning |
 | --- | --- |
@@ -90,4 +94,33 @@ A run ends with one of four exit codes, and `main` never lets an exception out:
   with the command's name and the code.
 - Everything, the failures included, is written to the streams of `stdio`, so
   the process's own streams stay untouched.
+- Every `WioError` means exit 2, whatever its class: there is no exit code per
+  error class and none for configuration errors.
+- The exceptions that other ports declare, such as `ValueError`, `OSError` and
+  `UnicodeDecodeError`, are bugs and exit 70, until the Work of the component
+  that owns the port maps them to a `WioError`.
 - `KeyboardInterrupt` and a `SystemExit` that a command raises are not handled.
+
+## What every command follows
+
+The command line gives every subcommand the same behavior, so a person or an
+agent can rely on it. The core can enforce some of it, and a command's own
+tests check the rest, because only a real command has output to check.
+
+- Standard output carries what the command was asked for, the findings of a
+  check included. Standard error carries diagnostics about the run itself and
+  the error messages, in plain text.
+- `--json` is an option of each command, declared by its `configure`. On exit 0
+  or 1, standard output holds one JSON document and nothing else. On exit 2 and
+  70 it is empty, and the message is plain text on standard error.
+- Output is deterministic: sorted, and without timestamps, except in `wio log`,
+  whose purpose is to report when events happened. Notes and warnings never
+  change the exit code. There is no pager, and wio's own messages are never
+  colored. Only the help and usage that argparse prints are, by Python's color
+  rules.
+- A command returns a failed check and raises a `WioError` only for what the
+  user must fix, so the core never has to tell the two apart.
+- The program needs the `work-it-out` distribution installed, because the
+  summary and the version come from its metadata, where they equal the
+  `description` and the `version` of `pyproject.toml`, in a synchronized
+  environment and in an installed wheel.

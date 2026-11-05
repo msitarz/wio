@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Packaging tests: build the wheel and sdist, then inspect them."""
 
+import email
 import re
 import shutil
 import subprocess
@@ -208,3 +209,77 @@ def test_wheel_imports_from_a_clean_environment(
 
     # Then it is imported from the installed wheel, not from the source tree
     assert "site-packages" in result.stdout
+
+
+def _installed_wio(
+    wheel_path: Path, cwd: Path, *args: str
+) -> subprocess.CompletedProcess[str]:
+    """Run the `wio` command of the wheel in an isolated environment.
+
+    Args:
+        wheel_path: The built wheel, the only package in the environment.
+        cwd: An empty directory outside the repository.
+        *args: The arguments after `wio`.
+
+    Returns:
+        The completed process, with its output decoded.
+    """
+    return subprocess.run(
+        [
+            _uv(),
+            "run",
+            "--no-project",
+            "--isolated",
+            "--with",
+            str(wheel_path),
+            "wio",
+            *args,
+        ],
+        cwd=cwd,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _wheel_metadata(wheel_path: Path) -> email.message.Message:
+    """Read the `METADATA` file of a wheel.
+
+    Args:
+        wheel_path: The built wheel.
+
+    Returns:
+        Its parsed headers.
+    """
+    with zipfile.ZipFile(wheel_path) as wheel:
+        [name] = [n for n in wheel.namelist() if n.endswith(".dist-info/METADATA")]
+        return email.message_from_bytes(wheel.read(name))
+
+
+def test_the_installed_command_shows_the_summary_of_its_wheel(
+    wheel_path: Path, tmp_path: Path
+) -> None:
+    """Bare `wio` in the wheel prints the wheel's `Summary` and exits 0."""
+    # Given the built wheel, and an empty directory outside the repository
+    summary = _wheel_metadata(wheel_path)["Summary"]
+
+    # When `wio` runs in an isolated environment with only the wheel
+    result = _installed_wio(wheel_path, tmp_path)
+
+    # Then it prints the wheel's Summary to standard output and exits 0
+    assert result.returncode == 0
+    assert summary in result.stdout
+
+
+def test_the_installed_command_shows_the_version_of_its_wheel(
+    wheel_path: Path, tmp_path: Path
+) -> None:
+    """`wio --version` in the wheel prints `wio <version>` and exits 0."""
+    # Given the built wheel, and an empty directory outside the repository
+    version = _wheel_metadata(wheel_path)["Version"]
+
+    # When `wio --version` runs in an isolated environment with only the wheel
+    result = _installed_wio(wheel_path, tmp_path, "--version")
+
+    # Then it prints wio and the wheel's version, and exits 0
+    assert (result.returncode, result.stdout) == (0, f"wio {version}\n")

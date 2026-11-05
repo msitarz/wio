@@ -80,7 +80,7 @@ def test_describing_an_entry_does_not_wire_it(monkeypatch: pytest.MonkeyPatch) -
 def test_the_component_names_match_the_packages() -> None:
     """`Component` names exactly the packages that are components."""
     # Given the packages directly under src/wio and the packages that are not
-    # components, listed in this test (assumption A-2)
+    # components, which this test lists
     packages = {
         path.stem
         for path in SRC.iterdir()
