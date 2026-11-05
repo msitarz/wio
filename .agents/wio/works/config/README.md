@@ -17,29 +17,70 @@ a person needs to see what they are and where each value comes from.
 From the interviews of 2026-11-03 and 2026-11-05. Decisions are made unless
 marked open.
 
-**Shape.** A parent with five leaves, after the cli Work (9wbqyb):
+**Shape.** A parent, after the cli Work (9wbqyb), with six leaves and a nested
+parent for the checks. A leaf is cut at a behavioral boundary, so each has
+criteria a reviewer can judge alone.
 
-1. Ports and adapters in `wio.io`: a `FileSystem` adapter, and `Git` split in
-   two by what each member asks. `Repository` is where the process is now
-   (`root`, `identity`, `show_index`, `is_dirty`; `identity` is today's
-   `common_dir`, described as the path shared by every checkout of one clone),
-   with an adapter that runs `git rev-parse` in the working directory through a
-   subprocess. `History` is revision-based reading (`rev_parse`, `history`,
-   `first_parents`, `list_files`, `show`) and keeps its adapter for the trailers
-   Work. The names carry no git word, so another VCS can be adapted behind the
+```text
+config (parent)
+├─ ports      Repository, History, LocalFileSystem, GitRepository
+├─ decoder    decode_toml, TomlSyntaxError, the tomllib ban
+├─ model      Config, Diagnostic, the renderer, ConfigurationError.diagnostics
+├─ loader     discovery, shape diagnostics, sources, Settings
+├─ show       bare help, wio config list, wio config show
+└─ checks (parent)
+   ├─ command          wio config check on the shape diagnostics, the prek
+   │                   hook, the PostToolUse hook, the recipe
+   ├─ pipelines        actions, stage presets, stages, results, roots,
+   │                   works.defaults.actions, goal or skill
+   ├─ rule selection   name forms, rule presets and cycles, always fields,
+   │                   rulesets, aliases and their directories
+   └─ paths and skills root paths, skill lookup, the [templates] shape
+```
+
+Ports, decoder and model are independent. The loader needs all three; `show`
+and `command` need the loader; the three check leaves need `command` and are
+independent of each other. `command` comes first among the checks as a walking
+skeleton: it prints the shape diagnostics, so every later check is seen working
+through `wio config check`, and the hooks exist from the start. The `checks`
+parent's criteria are system-level: one pass reports every diagnostic, sorted,
+every error check is also enforced by `Settings.load`, and `wio config check`
+passes on this repository's config.
+
+1. Ports and adapters in `wio.io`: `LocalFileSystem` for the `FileSystem` port,
+   and `Git` split in two by what each member asks. `Repository` is where the
+   process is now (`root`, `identity`, `show_index`, `is_dirty`; `identity` is
+   today's `common_dir`, described as the path shared by every checkout of one
+   clone), with the adapter `GitRepository` that runs `git rev-parse` in the
+   working directory through a subprocess; this Work implements only `root` and
+   `identity`, and the other two stay declared until the trailers Work needs
+   them. `History` is revision-based reading (`rev_parse`, `history`,
+   `first_parents`, `list_files`, `show`), and its adapter is the trailers
+   Work's. The names carry no git word, so another VCS can be adapted behind the
    same ports. The rename reaches `wio.models.commits`, the trailers ports, the
    glossary and the architecture README. pygit2 has no Python 3.15 wheel
    (tested 2026-11-03) and `git` is needed anyway for the `git` trailer reader,
    so pygit2 may become another adapter later. No `Environment` adapter.
-2. A TOML decoder in `wio.formats`: a function, with its own error type that
-   carries line and column. Only `wio.formats` may import `tomllib` or
-   `tomlkit`, enforced by a ruff banned-api rule that is verified first. The
-   HTML-comment metadata reader belongs to the contracts Work.
-3. The schema and the loader: frozen dataclasses replacing the
-   `models/config.pyi` stub, `Diagnostic` in `wio.models`, the loader, the
-   `Settings` adapter, discovery and errors.
-4. `wio config` (help), `wio config list` and `wio config show`.
-5. `wio config check`.
+2. A TOML decoder in `wio.formats`: `decode_toml(text) -> dict[str, object]`,
+   which imports `tomllib` lazily. A syntax error, a duplicate key and an
+   invalid value raise `TomlSyntaxError(WioError)`, declared in
+   `wio.formats.errors`, with `message`, `line` and `column` and no file name:
+   the caller adds the file, and the contracts Work offsets the position for a
+   metadata block. The exception, not a result, because `check` stops at a
+   syntax error. A ruff banned-api rule (TID251, which also flags the `lazy`
+   forms) bans `tomllib` outside `src/wio/formats/**`; `tomlkit` is banned
+   when the first writer needs it. The HTML-comment metadata reader belongs to
+   the contracts Work.
+3. The schema as plain frozen dataclasses in `wio.models.config` replacing the
+   `models/config.pyi` stub, with `Diagnostic` in `wio.models`, the renderer
+   in `wio.formats` and `ConfigurationError.diagnostics`. The open tables are
+   `frozendict` (Python 3.15's built-in), lists are tuples, and one helper in
+   `wio.models` builds every `frozendict` under a single narrow pyrefly
+   suppression ([known issues](../../../../docs/known-issues.md)).
+4. The loader: discovery, shape diagnostics, `sources` and the `Settings`
+   adapter.
+5. `wio config` (help), `wio config list` and `wio config show`.
+6. The `checks` parent and its four leaves.
 
 The parent also proves it end to end: `wio config check` passes on this
 repository's `.agents/wio/config.toml`, its stale "Nothing reads this file yet"
