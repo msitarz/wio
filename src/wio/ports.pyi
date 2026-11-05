@@ -24,7 +24,8 @@ class Settings(Protocol):
             The effective settings.
 
         Raises:
-            ValueError: If the settings cannot be read or are inconsistent.
+            ConfigurationError: If the settings cannot be read or are
+                inconsistent.
         """
         ...
 
