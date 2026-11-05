@@ -14,7 +14,9 @@ if TYPE_CHECKING:
 
     from wio.cli.ports import Command, CommandSpec
 
-type Component = Literal["config", "contracts", "rules", "trailers", "log", "context"]
+type Component = Literal[
+    "config", "contracts", "templates", "rules", "trailers", "log", "context"
+]
 """The components of wio, so the type checker rejects any other package name."""
 
 

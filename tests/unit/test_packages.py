@@ -12,6 +12,7 @@ PACKAGES = (
     "env",
     "config",
     "contracts",
+    "templates",
     "rules",
     "trailers",
     "log",

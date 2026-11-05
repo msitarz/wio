@@ -60,6 +60,10 @@ path = "wio.contracts"
 depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
 
 [[modules]]
+path = "wio.templates"
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
+
+[[modules]]
 path = "wio.rules"
 depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
 
