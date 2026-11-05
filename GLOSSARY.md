@@ -5,8 +5,10 @@ commit messages.
 
 | Term | Meaning |
 | --- | --- |
-| Work | The unit wio runs actions on: a directory whose `README.md`, its contract, has a `wio` metadata block. |
-| Work contract | A Work's `README.md`: a metadata block that wio reads, and a Markdown body in the sections of the template it follows. What the body states is the workflow's. |
+| Work | The unit wio runs actions on: a marked file under the Works directory, its contract. |
+| Work contract | A Work's marked file: a metadata block that wio reads, and a Markdown body in the sections of the template it follows. What the body states is the workflow's. |
+| Marked file | A `.md` file under the Works directory whose `wio` metadata block, a `<!-- wio` comment or `+++` front matter that holds the marker, starts on its first line. |
+| Marker | The key `wio = 1` in a contract's metadata, whose value is the version of the metadata format. |
 | Leaf | A Work without child Works. |
 | Parent | A Work with child Works. Its roots are the ones it lists; `@descendants` among them adds the union of its descendants' roots. |
 | Template | A markdown file that shapes a contract: sections, directives and a metadata block with the template's name, kind, optional shape (leaf or parent) and default actions. |
