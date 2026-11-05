@@ -411,6 +411,8 @@ id = "q7w2ke"
 # Login design
 ```
 
+The other file gets a block of its own, with its own id.
+
 Its config already declares a `deliver` action and an `implementation` stage
 that names its own `roots`, such as `roots = []`, so the stage does not select
 the Works' roots, which these Works do not have
@@ -858,8 +860,7 @@ names the roots it touches in `roots`, using the names the config gives them.
   because a narrower list may be intended. A Work without children that lists
   `@descendants` gets a warning, because the special value resolves to nothing
   there, for example after a parent is demoted to a leaf. The warning holds in
-  both hierarchy modes, so under `flat` every Work that lists `@descendants`
-  gets it.
+  both hierarchy modes ([Parent and leaf](#parent-and-leaf)).
 - A `roots` list is a set: the order of its entries means nothing, and a name
   listed twice counts once. Nothing in the output depends on that order
   ([The context compiler](#11-the-context-compiler)).
