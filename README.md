@@ -182,6 +182,7 @@ stages, stage presets or rulesets.
 | --- | --- |
 | `wio config` | Read, show and validate `.agents/wio/config.toml` |
 | `wio contracts` | Create, list, check and show Work contracts |
+| `wio templates` | List, show and check the templates that contracts follow |
 | `wio rules` | Create, check and list rule files, also for a given path |
 | `wio context` | Compile the contract, the stage's goal or skill, and the rules for a stage |
 | `wio trailers` | Write and check the records that tie commits to stages |
