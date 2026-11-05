@@ -45,6 +45,25 @@ def build_parser(commands: Sequence[Entry]) -> argparse.ArgumentParser:
     return parser
 
 
+def _exit_code(code: object) -> int:
+    """Read the code of a `SystemExit`.
+
+    Args:
+        code: The `code` attribute of the exit.
+
+    Returns:
+        The code itself when it is an integer, 0 when there is none, and 1 for
+        a message, which the interpreter treats as a failure.
+    """
+    match code:
+        case None:
+            return 0
+        case int():
+            return code
+        case _:
+            return 1
+
+
 def parse(
     parser: argparse.ArgumentParser, argv: Sequence[str]
 ) -> argparse.Namespace | int:
@@ -61,10 +80,10 @@ def parse(
     try:
         return parser.parse_args(argv)
     except SystemExit as stop:
-        return stop.code if isinstance(stop.code, int) else 0
+        return _exit_code(stop.code)
 
 
-def dispatch(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
+def run(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
     """Run the subcommand that `argv` chooses, or print the introduction.
 
     Args:

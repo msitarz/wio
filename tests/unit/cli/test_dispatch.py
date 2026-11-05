@@ -1,25 +1,26 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of the dispatch of `wio.cli.main` to the entries of the table."""
 
+import argparse
 import importlib.metadata
 import io
 import os
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING, TextIO
 
 import pytest
 
 from wio import cli
+from wio.cli import dispatch
 from wio.cli.table import Entry
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
+    from collections.abc import Sequence
 
     from wio.cli.ports import Command, CommandSpec
     from wio.io.ports import Stdio
 
-PYPROJECT = Path(__file__).resolve().parents[3] / "pyproject.toml"
 COLOR_VARIABLES = ("PYTHON_COLORS", "NO_COLOR", "FORCE_COLOR")
 
 
@@ -293,3 +294,48 @@ def test_the_help_is_colored_on_a_terminal_unless_no_color_is_set(
     # Then the first output holds an escape character and the second holds none
     assert "\x1b" in colored
     assert "\x1b" not in plain
+
+
+class _Exiting(argparse.ArgumentParser):
+    """A parser that stops with a fixed `SystemExit` code."""
+
+    def __init__(self, code: object) -> None:
+        """Remember the code to exit with.
+
+        Args:
+            code: The code of the `SystemExit` to raise.
+        """
+        super().__init__(prog="wio")
+        self.stop = code
+
+    def parse_args(  # type: ignore[override]
+        self, args: Sequence[str] | None = None, namespace: object = None
+    ) -> Namespace:
+        """Stop instead of parsing.
+
+        Args:
+            args: Ignored.
+            namespace: Ignored.
+
+        Raises:
+            SystemExit: Always, with the code this parser was made with.
+        """
+        del args, namespace
+        raise SystemExit(self.stop)
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"), [(None, 0), (0, 0), (2, 2), ("a message", 1)]
+)
+def test_an_exit_of_the_parser_becomes_the_exit_code(
+    code: object, expected: int
+) -> None:
+    """A missing code is success, an integer stays and a message is a failure."""
+    # Given a parser that exits with a code
+    parser = _Exiting(code)
+
+    # When the arguments are parsed
+    result = dispatch.parse(parser, [])
+
+    # Then the result is the exit code
+    assert result == expected

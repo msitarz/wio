@@ -4,7 +4,7 @@
 import sys
 from typing import TYPE_CHECKING
 
-from wio.cli.dispatch import dispatch
+from wio.cli.dispatch import run
 from wio.cli.table import COMMANDS
 lazy from wio.io import adapters
 
@@ -41,7 +41,7 @@ def main(
         The exit code: 0 for the summary, the help and the version, the chosen
         command's own exit code, 0 or 1, and 2 for a usage mistake.
     """
-    return dispatch(argv, stdio, commands)
+    return run(argv, stdio, commands)
 
 
 def console_main() -> int:
