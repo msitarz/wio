@@ -21,6 +21,11 @@ Settled with the driver on 2026-11-05. A leaf of `2fh1ar`; planned roots:
 - **The setting.** `[works] hierarchy = "flat" | "nesting"`, two exclusive
   modes. `flat` is the default; wio's own `.agents/wio/config.toml` sets
   `nesting`, a guarantee of this leaf (moved here from the parent's review).
+- **The no-gap rule goes**, in both modes: a directory between the Works
+  directory and a Work need not be a Work, and plain directories only group
+  files. This leaf removes the rule from `docs/concepts.md` and from the
+  checks `docs/v0.1-scope.md` lists (moved here from the marked-files
+  leaf's review).
 - **`nesting`** keeps the hierarchy that the documents describe today, with
   directories as the hierarchy:
   - a directory holds at most one Work, in a marked `.md` file of any name; two
