@@ -18,8 +18,8 @@ them.
 - A reference to a ruleset, an alias or a rule preset that does not exist is an
   error that says what exists.
 - A name of the wrong form is an error that says the form.
-- A rule preset that refers to itself, a preset in the final veto, and a
-  misplaced `rules_*` key are errors that say where the key belongs.
+- A rule preset that refers to itself, and a preset in the final veto, are
+  errors.
 - A ruleset directory without a manifest, and a clashing alias, are errors.
 
 ## Glossary
@@ -34,6 +34,9 @@ them.
 
 - Whether the family, code or preset after the dot exists: it needs the rule
   files, which the rules Work reads.
+- The hint for a misplaced `rules_*` key, which the loader gives from the
+  schema, and a `rules_*` key on a template or a contract, which the templates
+  and contracts Works check.
 - A qualified reference inside a `ruleset.toml`, a `ruleset.toml`'s contents,
   unselected rules, dead selections and a root that reaches a root-independent
   ruleset: also the rules Work's.
@@ -111,21 +114,7 @@ it.
 - **Then** an error at `rules_always_exclude[0]` says only codes and families
   are allowed there.
 
-### **AC-5** A misplaced `rules_*` key says where it belongs
-
-An unknown key named `rules_include`, `rules_exclude`, `rules_always_include` or
-`rules_always_exclude`, or `rule_presets`, on a table where it does not belong,
-names the tables where it does.
-
-#### On a root and an action
-
-- **Given** `rules_exclude` on a root and `rules_include` on an action.
-- **When** the checks run.
-- **Then** each unknown-key error says `rules_exclude` and `rules_include`
-  belong to a stage or a rule preset and the always fields belong to the top
-  level.
-
-### **AC-6** Rulesets and aliases are consistent
+### **AC-5** Rulesets and aliases are consistent
 
 Every `[rulesets.<name>]` entry has a ruleset directory, every directory has a
 `ruleset.toml`, and aliases are unique and do not clash with a ruleset's name.
@@ -138,7 +127,7 @@ Every `[rulesets.<name>]` entry has a ruleset directory, every directory has a
 - **When** the checks run.
 - **Then** each is an error that names the ruleset and what is wrong.
 
-### **AC-7** A note lists what every session gets
+### **AC-6** A note lists what every session gets
 
 When `rules_always_include` is not empty, a note at it lists its entries.
 

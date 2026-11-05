@@ -18,7 +18,7 @@ every problem at once.
 - The config is found from the working directory, and its absence is a clear
   error.
 - A file becomes a `Config`, or a list of diagnostics that says how to fix each
-  problem of its shape, all of them in one run.
+  problem of it, the shape and every check together, in one run.
 - The source of every setting, the file or the default, is known without being
   part of `Config`.
 - Every other component receives a `Config` with no error in it, or none.
@@ -58,7 +58,11 @@ every problem at once.
 - `decode_toml` and `TomlSyntaxError` of `wio.formats`, for the text.
 - A walk of the `Config` dataclasses with `dataclasses.fields`, which builds
   the value, the diagnostics of its shape and the source of each key path from
-  the same schema.
+  the same schema. It builds a best-effort `Config` even when the file has
+  errors: an invalid value gets its default and an unknown key is dropped, so
+  the checks can run and one run reports every problem.
+- For an unknown key, a search of the other tables of the schema for a field of
+  that name, which gives the hint of where the key belongs.
 - `difflib.get_close_matches`, imported only when a diagnostic needs a closest
   match.
 - `wio.config`, which holds the loader and adapts it to the `Settings` port of
@@ -66,18 +70,18 @@ every problem at once.
 
 ## Constraints
 
-- **Messages tell how to fix the edit.** An unknown key names the valid keys
-  beside it and the closest match. A wrong type or value names the key path, the
-  received value, the expected type or the allowed values, and the setting's
-  description. A stage with both or neither of `goal` and `skill` says what each
-  is. Nothing is coerced: an integer where a string belongs is an error.
-- **Cheap and local.** The loader reads one file and imports no module it does
-  not use: `difflib` only when a diagnostic needs it, and neither `tomlkit` nor
-  `json`.
+- **What a message holds.** An unknown key names the valid keys beside it, the
+  closest match and, when another table has a key of that name, the tables it
+  belongs to. A wrong type or value names the received value, the expected type
+  or the allowed values, and the setting's description. A stage with both or
+  neither of `goal` and `skill` says what each is. Nothing is coerced: an
+  integer where a string belongs is an error.
 
 ## Visuals
 
-The loader is one function with two views. Bold boxes are added.
+Before, no loader exists (`main` at commit
+`e7b10d8cde19aaf60eaae4a650ffd96b29dcd6d3`). After, it is one function with two
+views. Bold boxes are added.
 
 ```mermaid
 flowchart LR
@@ -148,7 +152,9 @@ built from the fields of `Config`, so it cannot drift from the schema.
 - **When** `load_config` runs.
 - **Then** `works.hierarchy` is `file`, `works.dir` is `default`,
   `stages.define.goal` is `file`, `stages.define.session` is `default`, and
-  every key path of `Config()`, with those of the stage, has an entry.
+  every key path of `Config()`, with those of the stage, has an entry, except
+  the optional settings that are absent: `bundle.size_threshold`,
+  `stages.define.judge` and `stages.define.roots` have none.
 
 #### A new field
 
@@ -159,8 +165,10 @@ built from the fields of `Config`, so it cannot drift from the schema.
 
 ### **AC-4** Every shape problem is reported at once
 
-The loader returns all the diagnostics of the shape of a file, with no `Config`
-when any is an error, each naming the key path and how to fix it.
+The loader returns all the diagnostics of the shape of a file, each naming the
+key path and how to fix it, with no `Config` when any is an error; it still runs
+the checks of AC-7 on a best-effort `Config`, in which an invalid value has its
+default and an unknown key is dropped.
 
 #### An unknown key
 
@@ -169,6 +177,14 @@ when any is an error, each naming the key path and how to fix it.
 - **Then** `config` is `None` and one error is at `stages.define.sessions` that
   says the key is unknown, suggests `session`, and lists the valid keys of a
   stage.
+
+#### A key that belongs elsewhere
+
+- **Given** `rules_exclude` on a root, and `rule_presets` on an action.
+- **When** `load_config` runs.
+- **Then** each unknown-key error names the tables whose schema has a key of
+  that name, such as a stage and a rule preset for `rules_exclude`, and a root
+  for `rule_presets`; the always fields are named as top-level keys.
 
 #### A wrong value and a wrong type
 
@@ -179,11 +195,18 @@ when any is an error, each naming the key path and how to fix it.
   and `trailers.reader` names the received `3`, the expected string and the
   description.
 
-#### A date
+#### The other vocabularies
 
-- **Given** a key set to a TOML date.
+- **Given** a stage with `session = "later"` and `judge = "robot"`.
 - **When** `load_config` runs.
-- **Then** an error names the key path and says no setting holds a date.
+- **Then** one error lists `"any"` and `"fresh"`, and one lists `"human"`.
+
+#### A date or a time
+
+- **Given** a key set to a TOML date, and another to a TOML time.
+- **When** `load_config` runs.
+- **Then** each has an error at its key path that says no setting holds a date
+  or a time.
 
 #### Both or neither of goal and skill
 
@@ -201,8 +224,9 @@ A file that is not valid TOML gives one error at
 
 - **Given** a config whose second line is `b = = 2`.
 - **When** `load_config` runs.
-- **Then** `diagnostics` is one error whose `where` is the path of the file,
-  line 2, column 5.
+- **Then** `diagnostics` is one error whose `where` is
+  `.agents/wio/config.toml:2:5`, the path relative to the repository root with
+  the line and the column.
 
 ### **AC-6** `Settings.load` returns a `Config` or refuses
 
@@ -227,7 +251,8 @@ class ConfigSettings:
 ### **AC-7** A further check joins the same pass
 
 A check is a function from the `Config` and what it may read to diagnostics,
-kept in one ordered list that the loader runs after the shape, so a leaf that
+kept in one ordered list that the loader runs after the shape, also when the
+shape has errors, on the best-effort `Config`, so a leaf that
 adds one changes neither the loader's callers nor `Settings.load`. The second
 parameter holds the repository root and the `FileSystem`; its shape is
 provisional, and the list and the pass are required.
@@ -238,10 +263,12 @@ Check = Callable[[Config, CheckInputs], Iterable[Diagnostic]]
 
 #### An added check
 
-- **Given** a check that returns an error at `x`, added to the list.
-- **When** `load_config` and `Settings.load` run on a valid shape.
-- **Then** the diagnostics hold that error, `config` is `None`, and `load`
-  raises.
+- **Given** a check that returns an error at `x`, added to the list, and a file
+  with a valid shape, and then one with an unknown key.
+- **When** `load_config` and `Settings.load` run on each.
+- **Then** for the first the diagnostics hold that error, `config` is `None` and
+  `load` raises; for the second they hold the unknown-key error and that error,
+  both at once.
 
 ### **AC-8** Loading imports nothing it does not use
 

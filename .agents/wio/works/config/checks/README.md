@@ -19,8 +19,7 @@ error.
   hook can feed back to an agent.
 - The same errors stop every other command, so no component sees a config that
   fails a check.
-- The repository's own config passes, and a hook after each edit proves it
-  stays so.
+- The repository's own config passes, and a hook after each edit keeps it so.
 
 ## Glossary
 
@@ -62,13 +61,15 @@ error.
   exit code and are not printed by other commands.
 - **Messages** follow the loader's rule: they name the key path, what was found,
   what is valid and what the setting is for.
-- **Verification.** Each check is verified by the leaf that adds it, through
-  `wio config check` and through `Settings.load`; the system-level guarantees
-  are verified by this parent.
+- **Verification.** Each check's behaviour is verified by the leaf that adds it;
+  that every error also stops the other commands is verified by AC-2 of this
+  parent.
 
 ## Visuals
 
-The checks join one pass behind the loader. Bold boxes are added.
+Before, no check exists beyond the shape (`main` at commit
+`e7b10d8cde19aaf60eaae4a650ffd96b29dcd6d3`). After, the checks join one pass
+behind the loader. Bold boxes are added.
 
 ```mermaid
 flowchart LR
@@ -110,8 +111,16 @@ command exits 2 with the same errors on standard error.
 - **Given** a config with one error from each of the groups of AC-1.
 - **When** `wio config list` runs.
 - **Then** it exits 2, standard output is empty and standard error holds each
-  of the five errors; a config with only a warning or a note loads, and `list`
-  prints nothing of the warning.
+  of the five errors.
+
+#### Warnings and notes alone
+
+- **Given** a config with a root path that does not exist yet, which is a
+  warning, and a non-empty `rules_always_include`, which is a note, and no
+  error.
+- **When** `wio config list` and `wio config check` run.
+- **Then** `list` prints the settings and nothing of the warning or the note,
+  and `check` prints both and exits 0.
 
 ### **AC-3** This repository's config passes
 

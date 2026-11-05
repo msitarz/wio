@@ -38,20 +38,10 @@ line.
 
 - `Loaded.sources` and the fields of `Config`, for the labels and the
   descriptions.
-- The `Settings` adapter, so the command refuses a config with errors as every
-  command does.
+- `load_config`, whose diagnostics the command raises as a `ConfigurationError`
+  itself when any is an error, because `Settings.load` returns no sources.
 - `wio.cli`'s table of commands, which gains the `config` command and its
   subcommands.
-
-## Constraints
-
-- **Plain and JSON.** Output is sorted by key path and has no timestamps, and a
-  value is printed in TOML syntax: strings quoted, lists as arrays.
-- **Streams and codes.** The result goes to standard output with exit 0; a
-  config with errors prints nothing there and exits 2 with the errors on
-  standard error.
-- **Import-light.** Importing the command loads no module of its implementation,
-  and `json` is imported only with `--json`.
 
 ## Acceptance criteria
 
@@ -68,8 +58,10 @@ subcommands `list` and `show`, and exits 0.
 
 ### **AC-2** `wio config list` prints every setting with its source
 
-Each setting is one line, `key.path = value  # file` or `# default`, sorted by
-key path, at most 80 columns wide.
+Each setting that has a value is one line, `key.path = value  # file` or
+`# default`, with the value in TOML syntax (strings quoted, lists as arrays),
+sorted by key path, at most 80 columns wide; an absent optional setting is not
+listed.
 
 ```text
 wio config list [--json]
@@ -96,7 +88,8 @@ wio config list [--json]
 - **Given** the same config.
 - **When** `wio config list --json` runs.
 - **Then** the output is one object that maps each key path to
-  `{"value": ..., "source": "file" | "default"}`, with no value shortened.
+  `{"value": ..., "source": "file" | "default"}`, sorted by key path, with no
+  value shortened.
 
 ### **AC-3** `wio config show` prints a setting or a table in full
 
@@ -119,8 +112,9 @@ wio config show [key.path] [--json]
 - **Given** a config with two stages, one with a three-line `goal`.
 - **When** `wio config show stages` and `wio config show` run.
 - **Then** the first prints every setting under `stages`, the goal in full, the
-  second every setting of the config, and with `--json` each gives the value or
-  subtree with the source of each setting and no description.
+  second every setting of the config, and with `--json` each gives the object of
+  `list --json` restricted to the key paths under the argument (for a single
+  setting, an object of one key path), with no description.
 
 #### An unknown key path
 
@@ -143,14 +137,19 @@ does.
 
 ### **AC-5** The command is light to start
 
-Importing the command loads no module under `wio.config` other than its
-`__init__`, and `json` is loaded only with `--json`.
+Describing the command loads no module of its implementation, and `json` is
+loaded only with `--json`.
 
-#### A fresh interpreter
+#### Describing
 
 - **Given** a new Python process.
-- **When** the table of commands is described and `wio config list` runs
-  without `--json`.
+- **When** the table of commands is described.
+- **Then** no submodule of `wio.config` is in `sys.modules`.
+
+#### Listing
+
+- **Given** a new Python process and a valid config.
+- **When** `wio config list` runs without `--json`.
 - **Then** `json` is not in `sys.modules`.
 
 ## Additional context

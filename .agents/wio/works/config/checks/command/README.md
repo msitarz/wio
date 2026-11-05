@@ -45,18 +45,12 @@ after every edit of it, so that an agent is told what to fix before it goes on.
 - `.claude/settings.json`, which installs it as a second `PostToolUse` hook.
 - `docs/workflow.md`, which shows the script as an example.
 
-## Constraints
-
-- **Hook script.** It runs `wio config check` only when the edited file is the
-  config, prints the diagnostics to standard error and exits 2 when the check
-  exits 1, and exits 0 in every other case, including a file it does not know.
-
 ## Acceptance criteria
 
 ### **AC-1** `wio config check` prints the diagnostics of the config
 
-The command prints each diagnostic, sorted, as text or with `--json` as an
-array, exits 0 when none is an error and 1 when any is.
+The command prints each diagnostic, sorted, to standard output as text or with
+`--json` as an array, and exits 0 when none is an error and 1 when any is.
 
 ```text
 wio config check [--json]
@@ -75,7 +69,8 @@ wio config check [--json]
 
 - **Given** a config with a TOML syntax error.
 - **When** `wio config check` runs.
-- **Then** it prints one error at `<file>:<line>:<column>` and exits 1.
+- **Then** it prints one error at `.agents/wio/config.toml:<line>:<column>`, the
+  path relative to the repository root, and exits 1.
 
 #### No config
 
@@ -107,7 +102,8 @@ installs it.
 - **Given** the hook's JSON for an edit of `.agents/wio/config.toml`, and a
   config with an error.
 - **When** the script reads it on standard input.
-- **Then** it prints the diagnostics to standard error and exits 2.
+- **Then** it runs `wio config check`, prints the diagnostics to standard error
+  and exits 2.
 
 #### Other edits and a valid config
 

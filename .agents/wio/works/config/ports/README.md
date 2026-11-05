@@ -22,15 +22,6 @@ system, with real adapters for the local disk and for git.
 - A component that reads revisions asks `History`, a port apart from
   `Repository`.
 
-## Glossary
-
-- **Repository**: the working tree the process runs in, and the state of its
-  index and its changes; it answers where the process is now.
-- **History**: the revisions of a repository, which it reads by revision and
-  never changes.
-- **Identity**: the path that every checkout of one clone shares, so two
-  worktrees of one clone have the same identity. It is today's `common_dir`.
-
 ## Non-Goals
 
 - An adapter for `History`, which the trailers Work adds with its reader.
@@ -62,7 +53,8 @@ system, with real adapters for the local disk and for git.
 
 ## Visuals
 
-Before, one port mixes where the process is with how history is read. After, two
+Before, one port mixes where the process is with how history is read (`main`
+at commit `e7b10d8cde19aaf60eaae4a650ffd96b29dcd6d3`). After, two
 ports split them, and the adapters of `wio.io.adapters` implement the ones that
 exist. Bold boxes are added, and bold dashed boxes change.
 
@@ -113,12 +105,18 @@ class History(Protocol):
 shares, and `Repository` and `History` raise `RuntimeError` outside a
 repository, as `Git` did. `src/wio/models/commits.pyi`,
 `src/wio/trailers/ports.pyi`, `GLOSSARY.md` and `src/wio/README.md` use the new
-names, and the glossary defines Repository, History and Identity.
+names, and the glossary defines Repository (the working tree the process runs
+in and the state of its index and changes), History (the revisions of a
+repository, read by revision and never changed) and Identity (the path that
+every checkout of one clone shares).
 
 ### **AC-2** `LocalFileSystem` reads, writes and lists files on the disk
 
-A `LocalFileSystem` is a `FileSystem` over the local disk, whose reads and
-listings never depend on the order the disk returns.
+A `LocalFileSystem` is a `FileSystem` over the local disk, with every member of
+the port (`read_text`, `read_bytes`, `write_text`, `append_text`, `exists`,
+`is_dir`, `is_file` and `list_dir`, as the
+[stub](../../../../../src/wio/io/ports.pyi) declares them), and its listings
+never depend on the order the disk returns.
 
 #### Reading and writing
 
@@ -178,8 +176,14 @@ to, from the working directory of the process.
 - **Given** a `GitRepository` in a git repository.
 - **When** `show_index(Path("f"))` and `is_dirty()` run.
 - **Then** each raises `NotImplementedError` whose message names the trailers
-  Work, and the type checker accepts a `GitRepository` where a `Repository` is
-  expected.
+  Work.
+
+#### Wired as the port
+
+- **Given** a module that assigns a `GitRepository()` to a variable annotated
+  `Repository`.
+- **When** `pyrefly check` runs.
+- **Then** it reports no error.
 
 ## Additional context
 

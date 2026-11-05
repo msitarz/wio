@@ -52,14 +52,16 @@ plain, immutable types, defined once, before any of them can read the config.
 
 ## Visuals
 
-`Config` is a tree. The top-level fields are required, as the TOML keys name
-them; the nested type names are the leaf's to settle.
+Before, `Config` is a stub with no fields (`main` at commit
+`e7b10d8cde19aaf60eaae4a650ffd96b29dcd6d3`). After, it is a tree. The field
+names are required and equal the TOML keys; the nested type names are the leaf's
+to settle.
 
 ```mermaid
 flowchart LR
     config["Config"]
     config --> results["results: tuple[str, ...]"]
-    config --> works["works: Works (dir, hierarchy, defaults_actions)"]
+    config --> works["works: Works (dir, hierarchy, defaults: Defaults)"]
     config --> templates["templates: Templates (dir, kinds)"]
     config --> trailers["trailers: Trailers (reader)"]
     config --> skills["skills: Skills (paths)"]
@@ -76,7 +78,9 @@ flowchart LR
 ### **AC-1** `Config` is an immutable tree whose fields hold the defaults
 
 A `Config` built with no arguments is the effective settings of an empty config
-file, it cannot be changed, and two equal configs compare and hash equal.
+file, it cannot be changed, and two equal configs compare and hash equal. Every
+field is named as its TOML key, so a key path such as `works.defaults.actions`
+is a chain of field names.
 
 ```python
 @dataclass(frozen=True)
@@ -103,8 +107,8 @@ class Config:
 - **When** its fields are read.
 - **Then** `works.hierarchy` is `"flat"`, `works.dir` is `.agents/wio/works`,
   `templates.dir` is `.agents/wio/templates`, `trailers.reader` is `"scan"`,
-  `bundle.separator` is a blank line, `bundle.size_threshold` and the skill
-  paths are absent or empty, and every open table is empty.
+  `bundle.separator` is a blank line, `bundle.size_threshold` is `None`, the
+  skill paths are `()`, and every open table is empty.
 
 #### Immutability
 
@@ -114,8 +118,9 @@ class Config:
 
 The field names of a stage are `goal`, `skill`, `roots`, `rules_include`,
 `rules_exclude`, `gate`, `judge`, `session` (`"any"` by default) and
-`continuable` (`true` by default); the names of the other nested types are
-provisional.
+`continuable` (`true` by default); an optional setting with no default, such as
+`judge` and `roots`, is `None`, and a list is an empty tuple. The names of the
+other nested types are provisional.
 
 ### **AC-2** Every setting has a description
 
@@ -144,14 +149,20 @@ class Diagnostic:
     message: str
 ```
 
+```python
+def sort_diagnostics(
+    diagnostics: Iterable[Diagnostic],
+) -> tuple[Diagnostic, ...]: ...
+```
+
 #### The order
 
 - **Given** a note at `b`, an error at `b`, an error at `a` and a warning at
   `a`.
-- **When** they are sorted with the function of `wio.models` for it.
+- **When** they are sorted with `sort_diagnostics`.
 - **Then** the order is by `where`, then error, warning and note, then
   `message`: the error at `a`, the warning at `a`, the error at `b`, the note
-  at `b`.
+  at `b`. `where` is compared as a plain string, so `x[10]` sorts before `x[2]`.
 
 ### **AC-4** One renderer prints diagnostics as text or JSON
 
@@ -204,6 +215,10 @@ class ConfigurationError(WioError):
 
 `wio.models` has one function that freezes a mapping, and it holds the only
 suppression of pyrefly's `frozendict` stub error.
+
+```python
+def freeze[K, V](mapping: Mapping[K, V]) -> frozendict[K, V]: ...
+```
 
 #### The suppression
 

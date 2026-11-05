@@ -34,7 +34,7 @@ another must resolve before any command builds a pipeline from them.
 ## Mechanisms
 
 - Checks added to the ordered list of the loader, each a function from the
-  `Config` to diagnostics.
+  `Config` and what it may read to diagnostics.
 - A depth-first search for the `after` cycle, reporting the actions on it.
 
 ## Acceptance criteria
@@ -55,11 +55,12 @@ names, exists, and no stage appears twice in one pipeline.
 #### Default actions
 
 - **Given** `[works.defaults.actions]` with `deliver = "missing"` where
-  `missing` is neither a stage preset nor a stage, and `define = ["define"]`.
+  `missing` is neither a stage preset nor a stage, `define = ["define"]` and
+  `ship = ["define"]`, and `[actions]` declaring only `define` and `deliver`.
 - **When** the checks run.
-- **Then** an error at `works.defaults.actions.deliver` lists the known presets,
-  and `define` passes; an action that `[actions]` does not declare is an error
-  too.
+- **Then** an error at `works.defaults.actions.deliver` lists the known presets
+  and stages, an error at `works.defaults.actions.ship` says `ship` is not a
+  declared action, and `define` passes.
 
 ### **AC-2** A stage's roots are roots or `@work`
 
@@ -109,10 +110,10 @@ and gets a note.
 - **When** the checks run on each.
 - **Then** each is an error at `results` that says what a result list needs.
 
-### **AC-5** The checks run in both commands
+### **AC-5** An error of this leaf is reported and stops the other commands
 
-Each error above is reported by `wio config check` and stops `Settings.load`,
-and each message follows the loader's rule.
+The errors above are errors of the pass, so `wio config check` reports them and
+`Settings.load` refuses on them.
 
 #### Both views
 

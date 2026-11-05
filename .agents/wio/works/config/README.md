@@ -71,7 +71,8 @@ person needs to see what they are and where each value comes from.
 
 ## Visuals
 
-Before, `Config` is an empty stub and nothing reads the file. After, the
+Before, `Config` is an empty stub and nothing reads the file (`main` at commit
+`e7b10d8cde19aaf60eaae4a650ffd96b29dcd6d3`). After, the
 component reads it through the ports, and every other component reads it through
 `Settings`. Bold boxes are added and bold dashed boxes change.
 
@@ -112,8 +113,8 @@ The built wheel gives a working `wio config`, `wio config list` and
 - **When** `wio config`, `wio config list` and `wio config show stages` run
   there.
 - **Then** the first prints the help, the second lists every setting with its
-  source, the stage's keys marked `file`, and the third prints the stage in
-  full; each exits 0.
+  source, the keys the stage sets marked `file` and the rest `default`, and the
+  third prints the stage in full; each exits 0.
 
 ### **AC-2** A run with no problem loads no rarely used module
 
@@ -133,8 +134,10 @@ The built wheel gives a working `wio config`, `wio config list` and
 `show` and `check`, with bare `wio config` showing the help), that an unknown
 key is an error, that skills are looked up in the repository only, that a stage
 has exactly one of `goal` and `skill`, and the `Diagnostic` and its shared
-output. They no longer list the field names of a stage's session policy or the
-names of the config tables among the open points, nor `wio config list <kind>`.
+output, and they say which checks the rules Work owns, not `wio config`.
+`GLOSSARY.md` defines Diagnostic, Source, Check and Pass. The documents no
+longer list the field names of a stage's session policy or the names of the
+config tables among the open points, nor `wio config list <kind>`.
 
 ## Additional context
 

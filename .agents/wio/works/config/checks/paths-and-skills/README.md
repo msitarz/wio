@@ -17,7 +17,8 @@ must be usable and stay inside the repository before a command relies on them.
 - A root path that is not normalized, leaves the repository or repeats is an
   error, and one that does not exist yet is a warning.
 - A stage's skill is found in the repository, or the stage is an error that says
-  where wio looked.
+  where wio looked, and the skill paths of the config stay inside it.
+- The Works directory, when set, is inside the repository.
 - The `[templates]` table has the right shape and its directory is inside the
   repository.
 
