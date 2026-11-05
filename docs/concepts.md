@@ -16,10 +16,12 @@ That is the whole engine:
 1. **Read.** A **Work** is a Markdown file under the Works directory, its
    **contract**, whose first line opens a `wio` metadata block
    ([Which files are Works](#which-files-are-works)). The block names the
-   Work's **template**, its roots, its dependencies and its own actions. wio
+   Work's **template**, if it follows one, its roots, its dependencies and its
+   own actions. wio
    reads the rest of the file only by its headings.
-2. **Check.** wio checks each contract against the template it names: the
-   metadata, and the sections the template's directives require.
+2. **Check.** wio checks each contract: the metadata, and the sections that
+   its directives require, from its template or, without one, from its own
+   headings.
 3. **Compile.** Given a Work, an **action** and a **stage**, `wio context`
    prints a bundle: the stage's goal or a pointer to its skill, the contract
    with the inheritable sections of its ancestors, and the **rules** selected
@@ -100,7 +102,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `<!-- wio ... -->` or `+++` | *required* | The metadata block, on the file's first line, that makes a marked file a Work. | [Which files are Works](#which-files-are-works), [Metadata forms](#metadata-forms) |
 | `wio` | *required* in `+++` | The marker, `wio = 1`: the version of the metadata format. | [Metadata forms](#metadata-forms) |
 | `id` | *required* | The Work's short random id, which dependencies, records and the event log key on. | [Identity and location](#identity-and-location) |
-| `template` | *required* | The template the contract follows, which gives its sections, checks and default actions. | [Anatomy](#anatomy) |
+| `template` | *optional* | The template the contract follows, which gives its sections, checks and default actions; without one, the contract takes its actions from the config's defaults and its directives from its own headings. | [Anatomy](#anatomy), [Without a template](#without-a-template) |
 | `roots` | *optional* | The roots the Work touches, which select its rules. | [Roots of a Work](#roots-of-a-work) |
 | `depends_on` | *optional* | The Works this one waits for. | [Dependencies](#dependencies) |
 | `[actions]` | *optional* | The actions whose pipelines the Work replaces. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
@@ -114,7 +116,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
-| `name` | *required* | The template's unique name, which contracts and `[kinds]` refer to. | [What a template is](#what-a-template-is) |
+| `name` | *required* | The template's unique name, which contracts and `[templates.kinds]` refer to. | [What a template is](#what-a-template-is) |
 | `kind` | *required* | The declared kind the template serves. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `description` | *open* | What tools show when they list templates. | [What a template is](#what-a-template-is) |
 | `shape` | *optional* | `"leaf"` or `"parent"`, the shape of Work the author expected. | [What a template is](#what-a-template-is) |
@@ -148,7 +150,9 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `results` | *open* | The results a gate can record. | [The event log](#the-event-log) |
 | `[works] dir` | *optional* | The Works directory, relative to the repository root; `.agents/wio/works` by default. | [Which files are Works](#which-files-are-works) |
 | `[works] hierarchy` | *optional* | The hierarchy mode, `"flat"` or `"nesting"`; `"flat"` by default. | [Parent and leaf](#parent-and-leaf) |
-| `[kinds]` | *open* | The valid kinds, each with its entry template. | [Kinds and entry templates](#kinds-and-entry-templates) |
+| `[works.defaults.actions]` | *optional* | The default actions of a contract without a template. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
+| `[templates] dir` | *optional* | The templates directory, relative to the repository root; `.agents/wio/templates` by default. | [Kinds and entry templates](#kinds-and-entry-templates) |
+| `[templates.kinds]` | *optional* | The valid kinds, each with its entry template. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `[actions.<name>]` | *open* | An action, with its `description`, `after`, `invalidated_by` and `on_demand`. | [What an action is](#what-an-action-is), [What `wio next` proposes](#what-wio-next-proposes) |
 | `[roots.<name>]` | *open* | A root: its `paths`, and its `rule_presets` (*optional*), which select its rules. | [Roots and rulesets](#9-roots-and-rulesets) |
 | `[stages.<name>]` | *open* | A stage: a `goal` or a `skill` is required, and `rules_include`, `rules_exclude`, `roots`, `gate`, `judge` and `session` are optional. | [Stage](#7-stage) |
@@ -192,7 +196,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `$TMPDIR` | — | Where a bundle is written when no path is given. | [The context compiler](#11-the-context-compiler) |
 | `.agents/wio/config.toml` | — | The config. | [Glossary](../GLOSSARY.md) |
 | Works directory | — | Where wio looks for Works: `[works] dir`, `.agents/wio/works` by default. | [Which files are Works](#which-files-are-works) |
-| Templates directory | — | The templates; a file without a `wio` block is ignored. | [Kinds and entry templates](#kinds-and-entry-templates) |
+| Templates directory | — | The templates: `[templates] dir`, `.agents/wio/templates` by default; a file without a `wio` block is ignored. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `.agents/wio/rules/` | — | The repository's rulesets, one directory each. | [Rulesets on disk](#rulesets-on-disk) |
 | `<dir>/<skill>/SKILL.md` | — | A skill a stage names, in the skill paths or a harness's skill directories. | [Stage](#7-stage) |
 
@@ -216,11 +220,21 @@ source code. They stay with the Work, and reach the code only if a stage
 carries them there. wio ignores every file that is not marked and does not put
 it into bundles, so a stage that needs one reads it itself.
 
-Every contract also names a **template**
+A contract may also name a **template**
 ([Templates and kinds](#4-templates-and-kinds)). Contracts of one kind share a
 template, which gives them their sections, the checks those sections must pass
-and their default actions. This section describes the contract on its own, and
-[Templates and kinds](#4-templates-and-kinds) adds what the template supplies.
+and their default actions. A contract without one stands on its own
+([Without a template](#without-a-template)). This section describes the
+contract on its own, and [Templates and kinds](#4-templates-and-kinds) adds
+what a template supplies.
+
+A bundle shows each contract, and each section it inherits, without its
+metadata block, in either of the forms that
+[Metadata forms](#metadata-forms) states, and without the directive comments
+at the end of its headings, because both are for wio. Every other HTML comment
+stays in the bundle as written. The Work's id still reaches the agent, because
+the bundle's header names the Work and the command that produced the bundle
+([The context compiler](#11-the-context-compiler)).
 
 A contract holds no progress: wio writes none into it and reads none from it.
 The reason is mechanical. Progress changes with every stage. If it lived in the
@@ -253,7 +267,9 @@ deliver = ["implementation"]
 
 - `id`: a short random id.
 - `template`: the name of the template this contract follows
-  ([What a template is](#what-a-template-is)). Required.
+  ([What a template is](#what-a-template-is)). Optional: a contract without
+  one stands on its own ([Without a template](#without-a-template)). A contract
+  that names a template that does not exist is an error.
 - `roots`: the names of the roots the Work touches (see
   [Roots of a Work](#roots-of-a-work)). It may be empty, for example while a
   Work is still being defined.
@@ -401,6 +417,24 @@ An unreadable `<!-- wio` block, or unreadable front matter that contains
   it also excludes `--parent`, and a path in a directory that already holds a
   marked file, or directly in the Works directory, is an error.
 
+`wio contracts new` may be given no kind. `new <kind>` starts the Work from
+the kind's entry template and `new --template <name>` from another template;
+given neither, it writes a **bare contract** in the comment form, holding only
+the generated `id` and a first heading for the title:
+
+```markdown
+<!-- wio
+id = "k3m9xq"
+-->
+
+# Title
+```
+
+`new <kind>` when no kinds are declared is an error that says no kinds are
+declared. `--slug`, `--title` and `--root` work as for any Work, and
+`--parent` follows the hierarchy mode
+([Identity and location](#identity-and-location)).
+
 ### Changing a contract
 
 wio has no notion of a kind of change. A contract is a file: it is edited, or
@@ -422,8 +456,8 @@ tells amending, ratifying and abandoning apart, and
 ### What a template is
 
 A template is a markdown file that contracts of one kind follow. A contract
-names it in `template`, and the template supplies the rest of what the
-contract means to wio. Only the starting metadata is copied; everything else
+that names it in `template` takes the rest of what it means to wio from the
+template. Only the starting metadata is copied; everything else
 is read from the template whenever wio reads the contract, so a change to the
 template reaches every contract that follows it:
 
@@ -433,7 +467,7 @@ template reaches every contract that follows it:
 | The starting body: headings and authoring comments | Copied once, the same way |
 | The default actions | Read live; a contract's own `[actions]` replace them per action |
 | The kind | Read live |
-| The directives: the checks on its sections, item ids and inheritance | Read live; contracts carry no directives |
+| The directives: the checks on its sections, item ids and inheritance | Read live; a directive comment in a contract that follows a template is ignored, with a warning |
 | The expected `shape`, leaf or parent | Read live |
 
 On disk, a template holds instructional comments, directives and a metadata
@@ -470,6 +504,24 @@ depends_on = []
   [Where the pipeline comes from](#where-the-pipeline-comes-from)).
 - `[contract]` is the metadata of the contracts the template produces.
 
+### Without a template
+
+A contract need not name a template, so a project can run wio on its specs
+without writing one. What a template would supply then comes from elsewhere:
+
+| A template supplies | A contract without one takes |
+| --- | --- |
+| The starting metadata and body | The bare contract that `wio contracts new` writes ([Identity and location](#identity-and-location)) |
+| The default actions | `[works.defaults.actions]` in the config ([Where the pipeline comes from](#where-the-pipeline-comes-from)) |
+| The kind | None |
+| The directives | Its own `##` headings ([Directives](#directives)) |
+| The expected `shape` | None, so its children are checked against no `shape`, under either mode |
+
+It gets the metadata checks of every contract, and takes its title from its
+first heading. Its `##` headings are checked only by its own directives, so it
+can loosen its own checks by editing them; a project that wants checks a
+contract cannot escape writes a template.
+
 ### From template to contract
 
 When wio creates a contract from a template, it prepares the template as a
@@ -505,14 +557,34 @@ Work keeps its id and its records.
 
 ### Kinds and entry templates
 
-The config declares the valid kinds, and for each kind its **entry template**:
-the template that new Works of that kind start from.
+The templates and their kinds live in one optional `[templates]` table, so a
+project without templates leaves it out:
+
+- `[templates] dir` is the templates directory, a path relative to the
+  repository root whose default is `.agents/wio/templates`; a path that leaves
+  the repository is an error. A missing default directory holds no templates;
+  a `[templates] dir` that is set and missing, that is not a directory or that
+  is a symbolic link is an error.
+- wio walks that directory as it walks the Works directory
+  ([Which files are Works](#which-files-are-works)): names end in `.md`,
+  matched case-sensitively; directories below it whose names start with `.`
+  are skipped; no symbolic link is followed; and a file that cannot be read or
+  decoded as UTF-8 is an error that names it. A file there is a template when
+  its `<!-- wio` block, or `+++` front matter with the marker, starts on its
+  first line; any other file is ignored.
+- `[templates.kinds]` declares the valid kinds, and for each kind its **entry
+  template**: the template that new Works of that kind start from. It sits
+  under `[templates]` because a kind exists only to choose an entry template.
 
 ```toml
-[kinds]
+[templates.kinds]
 feature = "feature.draft"
 bugfix = "bugfix"
 ```
+
+A template keeps a required `kind`, and its `shape` stays in its metadata. A
+`[kinds]` table at the top level of the config is an unknown key, with the
+warning every unknown key gets.
 
 A kind groups templates that serve one sort of Work. A kind can have any
 number of templates (a draft, a leaf, a parent, or seven others), each with its
@@ -533,15 +605,16 @@ in the chosen shape. wio does not rewrite contracts itself.
 another kind, and when a template names a kind that is not declared.
 
 Anyone can add a template, and with it a kind, and that is the main extension
-point for projects. Files in the templates directory without a `wio` metadata
-block are ignored.
+point for projects.
 
 ### Directives
 
-Directives tell wio what a template's sections mean: which are mandatory, what
+Directives tell wio what a contract's sections mean: which are mandatory, what
 their content must look like, and which ones children inherit. A directive
-list is an HTML comment that starts with `wio:` at the end of a `##` heading of
-a template, with the directives separated by commas:
+list is an HTML comment that starts with `wio:` at the end of a `##` heading,
+with the directives separated by commas. A contract's directives have one
+source: its template if it names one, and otherwise its own `##` headings, in
+the same grammar:
 
 ```markdown
 ## Purpose <!-- wio: required -->
@@ -602,16 +675,24 @@ section: the trailer that carries them is `Wio-Items` and the flag is
 This is the direction for v0.1, not a settled grammar: how wio finds the items
 of a section, and so their ids, is open ([Open points](#15-open-points)).
 
+A contract that follows a template takes its directives from it, so a
+template change reaches every contract that follows it and a contract cannot
+loosen its own checks. A directive comment in such a contract is ignored, with
+a warning that says so. A contract without a template may mark its own
+headings `required`, `items>=N`, `pattern=...` and `inherit`;
+`wio contracts check` validates them as it validates a template's, and its
+`pattern` directives give its item ids.
+
 A contract created from a template keeps the template's authoring comments in
 its body, because they are the guidance the agent follows while it fills each
 section in. Directives are removed at creation, because `wio contracts check`
-reads them from the template. The agent deletes each authoring comment once its
-section is written, and deletes the sections it leaves empty, unless they are
-required. The `wio` metadata block stays.
+reads them from the template. The `wio` metadata block stays.
 
 ### Checking a contract against its template
 
-A contract is checked against the template it names, and only against it:
+A contract is checked against its source of directives, and only against it:
+the template it names, or its own headings when it names none
+([Directives](#directives)). For a contract with a template:
 
 - Because directives are removed from contracts, wio matches a contract's
   level-2 headings (`##`) to the template's headings by their text, ignoring
@@ -751,14 +832,18 @@ into each child, a parent's template marks sections as **inheritable** with the
 ```
 
 To resolve a Work, wio walks up its parents
-([Parent and leaf](#parent-and-leaf)). For each ancestor it reads the template
-that the ancestor's `template` field names, takes the `##` headings marked
-`inherit` there, and finds the ancestor contract's sections with the same
-heading text, matched as in
-[Checking a contract against its template](#checking-a-contract-against-its-template).
-The directive is read from the template and never from the contract, because
-contracts carry no directives. `wio contracts show` prints the Work together
-with those sections, and so does the resolved contract in a bundle
+([Parent and leaf](#parent-and-leaf)). Each ancestor passes on the sections
+that its source of directives marks `inherit` ([Directives](#directives)): the
+template its `template` field names, whose marked headings wio matches to the
+ancestor's sections by heading text, as in
+[Checking a contract against its template](#checking-a-contract-against-its-template),
+or its own headings when it names no template. An ancestor whose source marks
+nothing passes nothing on, and the walk goes on to the ancestors above it.
+What a Work inherits does not depend on whether it names a template itself.
+Under `flat` no Work has an ancestor, so `inherit` passes nothing on and is
+neither an error nor a warning ([Parent and leaf](#parent-and-leaf)).
+`wio contracts show` prints the Work together with those sections, and so does
+the resolved contract in a bundle
 ([The context compiler](#11-the-context-compiler)). The agent reads one resolved
 view and never needs to open whole parent contracts. How the inherited sections
 are rendered is open ([Open points](#15-open-points)).
@@ -904,6 +989,23 @@ preset ids must exist in the config. A contract that names stages is free to
 skip any of them, including gates. Hygiene is the project's business, and
 guidance and stage presets can encourage good practice.
 
+A contract without a template takes its default actions from
+`[works.defaults.actions]` in the config, and its own `[actions]` replace them
+one action at a time, in the same way. The defaults are not a template: they
+have no name, kind, body, directives or `shape`, and no contract can name them
+in `template`. They apply only to a contract without a template and are never
+layered under a named template, so every contract has one source of default
+actions. They are checked as a contract's `[actions]` are: their actions, stage
+presets and stages exist; an empty list there is the same as leaving the action
+out. A contract with neither a template nor defaults needs its own `[actions]`.
+`wio contracts show` says where each of a Work's actions comes from: the
+contract, its template or the config defaults.
+
+```toml
+[works.defaults.actions]
+deliver = ["implementation"]
+```
+
 Inherited actions follow the template when it changes. The actions a contract
 overrides stay as the contract states them, and wio does not update them when
 the template or the config changes. `wio contracts check` reports names that no
@@ -1002,8 +1104,11 @@ this.
 `wio contracts check` and `wio config check` verify mechanically what wio relies
 on, and they do not judge how a workflow is built:
 
-- Every contract names an existing template, and the template's kind is a
-  declared kind. Every kind's entry template exists and has that kind.
+- Every template a contract names exists, and its kind is a declared kind.
+  Every kind's entry template exists and has that kind.
+- A directive comment in a contract that follows a template is a warning, and
+  a contract without a template has directives that parse
+  ([Directives](#directives)).
 - No two contracts share an id. `[works] hierarchy` is `"flat"` or
   `"nesting"`. Under `nesting`, no directory holds two or more marked files,
   and no marked file sits directly in the Works directory
@@ -1715,7 +1820,8 @@ Output, printed to the session:
    that can read files, and a harness that loads the skill itself can use it as
    usual.
 3. The resolved contract: the Work plus inheritable sections from its
-   ancestors.
+   ancestors, without their metadata blocks and directive comments
+   ([What it is](#what-it-is)).
 4. The selected rules ([How a rule is selected](#how-a-rule-is-selected)).
    Root-independent rules come first, under `Rules for every root:`, because
    rules about how to work frame the rest. Then the rules are grouped by the set
@@ -2157,7 +2263,7 @@ and its own selection give it.
   only to hooks. If not, events join to transcripts by time window and working
   directory.
 - The config schema: the exact field names for stage session policy, and the
-  names of the config tables (`[kinds]`, `[actions]`, `[stages]`,
+  names of the config tables (`[templates.kinds]`, `[actions]`, `[stages]`,
   `[stage_presets]`, `[rule_presets]`, `[rulesets]`, `[trailers]`).
 - Whether rule files accept `+++` front matter as well. The rule example above
   uses the `<!-- wio -->` block, as contracts do.
@@ -2194,7 +2300,21 @@ and its own selection give it.
 - Importing existing specs that carry no marker: a mode that takes every `.md`
   file with front matter and an `id` as a Work, configurable id generation, and
   an id format that admits ids such as `SPEC-012`. The mode needs default
-  actions for contracts without a template, since such specs name none.
+  actions for contracts without a template, since such specs name none
+  ([Where the pipeline comes from](#where-the-pipeline-comes-from)).
+- A named file template as the default, `[works] default_template`, for
+  defaults that need directives, such as a section every adopted spec must
+  have; setting it together with `[works.defaults.actions]` would be an error.
+- Moving `shape` from the template's metadata into the config, beside the
+  kinds.
+- `wio init`, planned for v0.2, which writes a minimal config whose
+  `[works.defaults.actions]` gives a project's contracts their actions without
+  a template.
+- `wio contracts adopt <file>...`, planned for v0.2, which adds the marker and
+  a generated id to an existing file, so marking a spec takes one command.
+- Generated integrations with workflows such as Kiro, for v0.3 or later:
+  `wio init` would detect them and write config for them, never code paths in
+  the engine.
 - A third hierarchy mode, exclusive like the other two and never mixed with
   `nesting`, in which a `parent` id field gives the hierarchy and directories
   mean nothing. Some tools' front matter already has a `parent` key, such as

@@ -6,16 +6,16 @@ commit messages.
 | Term | Meaning |
 | --- | --- |
 | Work | The unit wio runs actions on: a marked file under the Works directory, its contract. |
-| Work contract | A Work's marked file: a metadata block that wio reads, and a Markdown body in the sections of the template it follows. What the body states is the workflow's. |
+| Work contract | A Work's marked file: a metadata block that wio reads, and a Markdown body in the sections of the template it follows, if it names one. What the body states is the workflow's. |
 | Marked file | A `.md` file under the Works directory whose `wio` metadata block, a `<!-- wio` comment or `+++` front matter that holds the marker, starts on its first line. |
 | Marker | The key `wio = 1` in a contract's metadata, whose value is the version of the metadata format. |
 | Leaf | A Work without child Works. Under the `flat` hierarchy mode every Work is a leaf. |
 | Parent | A Work with child Works, which only the `nesting` hierarchy mode gives. Its roots are the ones it lists; `@descendants` among them adds the union of its descendants' roots. |
 | Hierarchy mode | The setting `[works] hierarchy`, `flat` or `nesting`, which says whether directories give Works parents and children. |
 | Sibling split | Splitting a Work into sibling Works, ordered by `depends_on`, instead of into its children; both hierarchy modes allow it, and it is not the `flat` mode. |
-| Template | A markdown file that shapes a contract: sections, directives and a metadata block with the template's name, kind, optional shape (leaf or parent) and default actions. |
-| Kind | A sort of Work, such as `feature`, declared in the config with its entry template. A kind groups templates. |
-| Entry template | The template of a kind that new Works of that kind start from. Declared in the config. |
+| Template | A markdown file that shapes a contract that names it: sections, directives and a metadata block with the template's name, kind, optional shape (leaf or parent) and default actions. |
+| Kind | A sort of Work, such as `feature`, declared in the config's `[templates.kinds]` with its entry template. A kind groups templates. |
+| Entry template | The template of a kind that new Works of that kind start from. Declared in `[templates.kinds]`. |
 | Metadata block | The TOML at the top of a contract, template or rule, in a hidden comment or between `+++` lines. |
 | Directive | A `wio:` instruction in an HTML comment on a template heading, such as `required` or `inherit`. |
 | Dependency | A Work id in `depends_on`: that Work must be delivered first. |
