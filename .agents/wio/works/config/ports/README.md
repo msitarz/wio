@@ -1,7 +1,7 @@
 <!-- wio
 id = "ky2ztw"
-template = "feature.draft"
-roots = []
+template = "feature.leaf"
+roots = ["wio", "repo"]
 depends_on = []
 -->
 
@@ -9,9 +9,188 @@ depends_on = []
 
 ## Purpose
 
-Config needs to read files and find the repository through ports that name no
-tool.
+Config, and every component after it, must read files and find the repository
+through ports that name no tool, so that wio can run on another version control
+system, with real adapters for the local disk and for git.
 
-## Intent
+## Goals
 
-Child of the config Work (hwn995); its decisions are in the parent's Intent.
+- A component can read, write and list files on the local disk through
+  `FileSystem`.
+- A component can ask where the repository is, and which clone it belongs to,
+  through `Repository`, without a word of git in the port.
+- A component that reads revisions asks `History`, a port apart from
+  `Repository`.
+
+## Glossary
+
+- **Repository**: the working tree the process runs in, and the state of its
+  index and its changes; it answers where the process is now.
+- **History**: the revisions of a repository, which it reads by revision and
+  never changes.
+- **Identity**: the path that every checkout of one clone shares, so two
+  worktrees of one clone have the same identity. It is today's `common_dir`.
+
+## Non-Goals
+
+- An adapter for `History`, which the trailers Work adds with its reader.
+- A second version control system, and pygit2, which has no Python 3.15 wheel.
+- An `Environment` adapter.
+- New members of `FileSystem`, such as walking a tree or telling a symbolic
+  link, which the Work that needs them adds.
+
+## Assumptions
+
+- **A-1**: `git` is installed wherever wio runs, because the `git` trailer
+  reader needs it too.
+- **A-2**: Nothing implements or imports `Git` outside the stubs, the glossary
+  and the architecture README, so renaming it breaks no code.
+- **A-3**: `GitRepository` implements all four members of `Repository`, though
+  config needs two, because a class that lacks a member of the port cannot be
+  wired where the port is expected.
+
+## Mechanisms
+
+- `pathlib.Path` methods, in `LocalFileSystem` in `wio.io.adapters`.
+- `subprocess.run` of `git rev-parse --show-toplevel` and
+  `git rev-parse --path-format=absolute --git-common-dir`, in `GitRepository` in
+  `wio.io.adapters`; `git show :<path>` and `git status --porcelain` for the
+  index and the changes.
+- The stubs `src/wio/io/ports.pyi` and `src/wio/models/commits.pyi`, which are
+  the spec of the ports and are provisional only in the members the trailers
+  Work may still extend.
+
+## Visuals
+
+Before, one port mixes where the process is with how history is read. After, two
+ports split them, and the adapters of `wio.io.adapters` implement the ones that
+exist. Bold boxes are added, and bold dashed boxes change.
+
+```mermaid
+flowchart LR
+    subgraph before["before"]
+        git["Git: root, common_dir, rev_parse, history, first_parents, list_files, show, show_index, is_dirty"]
+        fs1["FileSystem (no adapter)"]
+    end
+    subgraph after["after"]
+        repo["Repository: root, identity, show_index, is_dirty"]:::new
+        hist["History: rev_parse, history, first_parents, list_files, show"]:::changed
+        fs2["FileSystem"]
+        gitrepo["GitRepository"]:::new
+        local["LocalFileSystem"]:::new
+    end
+    gitrepo -- "implements" --> repo
+    local -- "implements" --> fs2
+    classDef new stroke-width: 3px
+    classDef changed stroke-width: 3px,stroke-dasharray: 4 3
+```
+
+## Acceptance criteria
+
+### **AC-1** The ports of `wio.io` name no tool
+
+`src/wio/io/ports.pyi` declares `Repository` and `History` in place of `Git`,
+each with a docstring for every member that says what it guarantees, and nothing
+in the repository still names `Git` as a port.
+
+```python
+class Repository(Protocol):
+    def root(self) -> Path: ...
+    def identity(self) -> Path: ...
+    def show_index(self, path: Path) -> str | None: ...
+    def is_dirty(self) -> bool: ...
+
+
+class History(Protocol):
+    def rev_parse(self, revision: str) -> str: ...
+    def history(self, revision_range: str) -> Sequence[Commit]: ...
+    def first_parents(self, revision: str) -> Sequence[Commit]: ...
+    def list_files(self, revision: str) -> Sequence[Path]: ...
+    def show(self, revision: str, path: Path) -> str | None: ...
+```
+
+`identity` is described as the absolute path that every checkout of one clone
+shares, and `Repository` and `History` raise `RuntimeError` outside a
+repository, as `Git` did. `src/wio/models/commits.pyi`,
+`src/wio/trailers/ports.pyi`, `GLOSSARY.md` and `src/wio/README.md` use the new
+names, and the glossary defines Repository, History and Identity.
+
+### **AC-2** `LocalFileSystem` reads, writes and lists files on the disk
+
+A `LocalFileSystem` is a `FileSystem` over the local disk, whose reads and
+listings never depend on the order the disk returns.
+
+#### Reading and writing
+
+- **Given** a directory with a UTF-8 file `a.txt` holding `héllo\r\n` and a file
+  `b.bin` that is not valid UTF-8.
+- **When** `read_text(a.txt)`, `read_bytes(b.bin)` and `read_text(b.bin)` run.
+- **Then** the first returns `héllo\r\n` with its line end as stored, the second
+  returns the bytes, and the third raises `UnicodeDecodeError`.
+
+#### Creating parents and appending
+
+- **Given** a directory without a subdirectory `x/y`.
+- **When** `write_text(x/y/f, "a")` and then `append_text(x/y/f, "b")` run.
+- **Then** `x/y/f` holds `ab`, and `exists`, `is_file` and `is_dir` answer for
+  the file, the directory and a missing path.
+
+#### Listing and missing paths
+
+- **Given** a directory holding `b`, `a` and `c`, and a path that does not
+  exist.
+- **When** `list_dir` runs on the directory and `read_text` on the missing path.
+- **Then** the listing is `a`, `b`, `c`, and the read raises
+  `FileNotFoundError`; `list_dir` of a file raises `NotADirectoryError`.
+
+### **AC-3** `GitRepository` finds the root and the identity of a repository
+
+A `GitRepository` answers where the working tree is and which clone it belongs
+to, from the working directory of the process.
+
+#### From a subdirectory
+
+- **Given** a git repository with a subdirectory `sub`, and the process
+  running in `sub`.
+- **When** `root()` and `identity()` run.
+- **Then** `root()` is the absolute path of the top of the repository, and
+  `identity()` is the absolute path of its `.git` directory.
+
+#### From a linked worktree
+
+- **Given** a clone and a linked worktree made with `git worktree add`.
+- **When** `identity()` runs in each.
+- **Then** both return the same path, and `root()` differs.
+
+#### Outside a repository
+
+- **Given** a directory that no git repository contains.
+- **When** `root()` or `identity()` runs.
+- **Then** it raises `RuntimeError`.
+
+### **AC-4** `GitRepository` reports the index and the changes
+
+A `GitRepository` tells what is staged and whether the working tree has changes.
+
+#### The index
+
+- **Given** a file `f` committed with `old`, then edited to `new` and staged,
+  and a staged new file `g`.
+- **When** `show_index(f)`, `show_index(g)` and `show_index(h)` run, `h` being
+  unknown.
+- **Then** they return `new`, the content of `g`, and `None`.
+
+#### Changes
+
+- **Given** a clean repository, then one with an edited tracked file, then one
+  with only an ignored file, then one with an untracked file that is not
+  ignored.
+- **When** `is_dirty()` runs in each.
+- **Then** it returns `False`, `True`, `False` and `True`.
+
+## Additional context
+
+- [Ports of `wio.io`](../../../../../src/wio/io/ports.pyi) are the stub this
+  Work changes.
+- [The architecture of `src/wio`](../../../../../src/wio/README.md) states who
+  owns a port.
