@@ -154,15 +154,31 @@ override. Outside a git repository, or with no file, is a configuration error
 mention `wio init`, which comes in v0.2.
 
 **Commands.** Bare `wio config` shows the help of the component. `wio config
-list` prints every setting as one line, `key.path = value  # file|default`,
-with a long value shortened to one line. `wio config show [key.path]` prints one
-setting or a subtree in full with its source; a table such as `stages` is a key
-path, and without an argument it prints the whole config. `wio config check`
-prints every diagnostic and exits 1 on any error. All three take `--json`;
-output is sorted, with no timestamps. `list` and `show` refuse a config with
-errors like any other command. There is no `--names` and no `list <kind>`: the
-keys of a table are in `wio config show <table> --json`, and listing templates
-and their kinds belongs to `wio templates`.
+list` prints every setting as one line, `key.path = value  # file|default`, at
+most 80 columns wide whatever the terminal is: only the value is shortened, to
+its first line and a trailing `…`, and the key path and the source are never
+cut (when they alone reach 80 columns the value shows as `…` and the line runs
+over). `wio config show [key.path]` prints one setting or a subtree in full
+with its source, and under a setting its description, in plain output only; a
+table such as `stages` is a key path, and without an argument it prints the
+whole config. An unknown key path names the closest match and the valid
+children, like any other diagnostic. `wio config check` prints every
+diagnostic and exits 1 on any error. All three take `--json`: `list` gives
+`{key.path: {"value": ..., "source": ...}}`, `show` the value or subtree with
+the source of each leaf, and `--json` never shortens a value; output is sorted,
+with no timestamps. `list` and `show` refuse a config with errors like any
+other command. There is no `--names` and no `list <kind>`: the keys of a table
+are in `wio config show <table> --json`, and listing templates and their kinds
+belongs to `wio templates`.
+
+**Hooks.** The prek hook runs `wio config check` when the config file changes,
+with no file names passed. The PostToolUse hook is a small script in
+`scripts/` that reads the hook's JSON from standard input with the standard
+library, runs `wio config check` only when the edited file is the config, and
+on a failure prints the diagnostics to standard error and exits 2, so the
+harness hands them to the agent. `docs/workflow.md` shows it as an example for
+any project; what a project does is its own choice. This repository installs
+it in its own settings.
 
 **Speed.** `wio config check` runs after every agent edit, so it imports only
 what it needs: no `tomlkit`, and no `json` unless `--json` is given. Python
