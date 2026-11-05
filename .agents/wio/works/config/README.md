@@ -136,6 +136,17 @@ for example `stages.review.rules_include[0]: unknown ruleset "docz"`, because
 `tomllib` gives a position only for syntax errors, which are reported as
 `<file>:<line>:<column>`.
 
+**Messages.** A diagnostic is written so that an agent can correct its edit in
+one step. An unknown key names the valid sibling keys and the closest match
+(`difflib`, imported only when a diagnostic needs it). A wrong type or value
+names the key path, the received value, the expected type or the allowed
+values, and a one-sentence description of the key. A stage with both or neither
+of `goal` and `skill` says what each is. No value is coerced: an integer where
+a string belongs is an error, and a TOML date or time is always an error. Each
+`Config` field carries its description in `dataclasses.field(metadata=...)`,
+which the loader reads from the schema it already walks; `docs/concepts.md`
+stays the canonical meaning, and the descriptions are one short sentence each.
+
 **Discovery.** The config is `<git root>/.agents/wio/config.toml`, where the git
 root is that of the working directory. There is no walk-up and no per-directory
 override. Outside a git repository, or with no file, is a configuration error
