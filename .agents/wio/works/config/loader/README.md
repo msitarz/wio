@@ -26,12 +26,6 @@ every problem at once.
   callers.
 - A run that finds no problem imports nothing it does not use.
 
-## Glossary
-
-- **Shape**: whether the file's keys, types and values fit the schema, which is
-  what this Work checks; whether the names a value refers to exist is a check of
-  [the checks Work](../checks/README.md).
-
 ## Non-Goals
 
 - The cross-reference, path and skill checks, and the `wio config check`
@@ -71,12 +65,11 @@ every problem at once.
 
 ## Constraints
 
-- **What a message holds.** An unknown key names the valid keys beside it, the
-  closest match and, when another table has a key of that name, the tables it
-  belongs to. A wrong type or value names the received value, the expected type
-  or the allowed values, and the setting's description. A stage with both or
-  neither of `goal` and `skill` says what each is. Nothing is coerced: an
-  integer where a string belongs is an error.
+- **What a message holds beyond the parent's rule.** An unknown key names the
+  valid keys beside it, the closest match and, when another table has a key of
+  that name, the tables it belongs to. A stage with both or neither of `goal`
+  and `skill` says what each is. Nothing is coerced: an integer where a string
+  belongs is an error.
 
 ## Visuals
 
@@ -110,7 +103,14 @@ class Loaded:
     sources: frozendict[str, Literal["file", "default"]]
 
 
-def load_config(repository: Repository, files: FileSystem) -> Loaded: ...
+CHECKS: tuple[Check, ...]
+
+
+def load_config(
+    repository: Repository,
+    files: FileSystem,
+    checks: Sequence[Check] = CHECKS,
+) -> Loaded: ...
 ```
 
 #### Found from a subdirectory
@@ -178,7 +178,7 @@ key path and how to fix it, and runs the checks of AC-7 on a best-effort
 of the shape or of a check, is an error. A root or an action that lacks a
 required key is kept with it empty, an entry of the wrong type is dropped, and
 a stage with both or neither of `goal` and `skill` is kept as written, so the
-checks add no diagnostic for a problem already reported.
+a check that looks the entry up finds it and does not repeat the problem.
 
 #### An unknown key
 
@@ -190,11 +190,12 @@ checks add no diagnostic for a problem already reported.
 
 #### A key that belongs elsewhere
 
-- **Given** `rules_exclude` on a root, and `rule_presets` on an action.
+- **Given** `rules_exclude` on a root, `rule_presets` on an action, and
+  `rules_always_include` inside a stage.
 - **When** `load_config` runs.
 - **Then** each unknown-key error names the tables whose schema has a key of
-  that name, such as a stage and a rule preset for `rules_exclude`, and a root
-  for `rule_presets`; the always fields are named as top-level keys.
+  that name: a stage and a rule preset for `rules_exclude`, a root for
+  `rule_presets`, and for `rules_always_include` the top level of the config.
 
 #### A wrong value and a wrong type
 
@@ -214,11 +215,12 @@ checks add no diagnostic for a problem already reported.
 
 #### A broken entry does not cascade
 
-- **Given** a root `wio` without `paths`, and a stage whose `roots` is
-  `["wio"]`.
-- **When** `load_config` runs and the checks of the references run.
-- **Then** exactly one error is reported, for the missing `paths`, and none
-  says the root is unknown.
+- **Given** a root `wio` without `paths`, a stage whose `roots` is `["wio"]`,
+  and a stand-in check passed in `checks` that reports an unknown root for each
+  name in a stage's `roots` that is not a key of `Config.roots`.
+- **When** `load_config` runs.
+- **Then** exactly one error is reported, for the missing `paths`, and the
+  stand-in reports none.
 
 #### A wrong default action
 
@@ -268,26 +270,32 @@ them, warnings and notes never blocking.
 
 ```python
 class ConfigSettings:
-    def __init__(self, repository: Repository, files: FileSystem) -> None: ...
+    def __init__(
+        self,
+        repository: Repository,
+        files: FileSystem,
+        checks: Sequence[Check] = CHECKS,
+    ) -> None: ...
     def load(self) -> Config: ...
 ```
 
 #### Valid and invalid
 
 - **Given** a valid config, one with two shape errors, and a valid config with a
-  check added to the list that returns a warning and a note.
+  check passed in `checks` that returns a warning and a note.
 - **When** `load` runs on each.
 - **Then** the first returns the `Config`, the second raises with both errors in
   `diagnostics` and in its message, and the third returns the `Config`.
 
 ### **AC-7** A further check joins the same check run
 
-A check is a function from the `Config` and what it may read to diagnostics,
-kept in one ordered list that the loader runs after the shape, also when the
-shape has errors, on the best-effort `Config`, so a leaf that adds one changes
-neither the loader's callers nor `Settings.load`. `CheckInputs` is provisional;
-`Loaded`, `load_config`, `Check` and the ordered list are required, since the
-commands depend on them.
+A check (see the parent's glossary) is kept in `CHECKS`, one ordered tuple in
+`wio.config` that the loader runs after the shape, also when the shape has
+errors, on the best-effort `Config`, so a leaf that adds one changes neither the
+loader's callers nor `Settings.load`. `CheckInputs` is provisional; `Loaded`,
+`load_config`, `Check` and `CHECKS` are required, since the commands depend on
+them. A test adds a check by passing `checks`, or, for the `check` command, by
+replacing `wio.config.CHECKS`, which the command reads when it runs.
 
 ```python
 @dataclass(frozen=True)
@@ -301,7 +309,7 @@ Check = Callable[[Config, CheckInputs], Iterable[Diagnostic]]
 
 #### An added check
 
-- **Given** a check that returns an error at `x`, added to the list, and a file
+- **Given** a check that returns an error at `x`, passed in `checks`, and a file
   with a valid shape, and then one with an unknown key.
 - **When** `load_config` and `Settings.load` run on each.
 - **Then** for the first the diagnostics hold that error, `config` is `None` and

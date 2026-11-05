@@ -29,9 +29,12 @@ person needs to see what they are and where each value comes from.
 - **Diagnostic**: one finding of a check, with a severity (`error`, `warning` or
   `note`), the place it is about and a message.
 - **Source**: whether a setting's value comes from the file or is the default.
+- **Shape**: whether the file's keys, types and values fit the schema; whether
+  the names a value refers to exist is a check.
 - **Key path**: the dotted names that lead to a setting, such as
   `stages.define.session`; a list item adds its index, as in
-  `stages.define.rules_include[0]`, and a key that contains a dot is quoted.
+  `stages.define.rules_include[0]`, and a key that contains a dot is quoted as
+  in TOML, as `stages."a.b".goal`.
 - **Check**: a function from the `Config` and what it may read to diagnostics;
   one concern, such as the references among stages.
 - **Check run**: the loader's run of the shape and then every check, which
@@ -153,13 +156,16 @@ The built wheel gives a working `wio config`, `wio config list` and
 
 `docs/concepts.md` and `docs/v0.1-scope.md` state the three commands (`list`,
 `show` and `check`, with bare `wio config` showing the help), the `Diagnostic`
-and its shared output, and which checks the rules Work owns, not `wio config`.
-They no longer list the field names of a stage's session policy or the names of
-the config tables among the open points, nor `wio config list <kind>`.
+and its shared output, which checks the rules Work owns, not `wio config`, that
+an unknown key is an error and no longer a warning, the checks of `results`, of
+the Works directory and of an empty template name, and `continuable` in the
+config table and the Stage section. They no longer list the field names of a
+stage's session policy or the names of the config tables among the open points,
+nor `wio config list <kind>`.
 
 ### **AC-4** The glossary defines the new terms
 
-`GLOSSARY.md` defines Diagnostic, Source, Key path, Check and Check run.
+`GLOSSARY.md` defines Diagnostic, Source, Shape, Key path, Check and Check run.
 
 ## Additional context
 

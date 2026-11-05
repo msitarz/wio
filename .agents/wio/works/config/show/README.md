@@ -74,7 +74,8 @@ wio config list [--json]
 - **Given** a config that sets one `goal` of three lines and an action
   `description` of ninety characters.
 - **When** `wio config list` runs.
-- **Then** the goal's line shows the first line of the value and `…`, every line
+- **Then** the goal's line shows the first line of the value, then `…` and the
+  closing quote, as `stages.define.goal = "Turn an intent…"  # file`, every line
   is at most 80 columns wide with its key path and its `# file` or `# default`
   whole, and the lines are in key-path order.
 

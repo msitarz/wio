@@ -67,7 +67,7 @@ wio config check [--json]
 
 #### A warning
 
-- **Given** a valid config and a check added to the ordered list that returns a
+- **Given** a valid config and a check put in `wio.config.CHECKS` that returns a
   warning.
 - **When** `wio config check` runs.
 - **Then** it prints `warning: <where>: <message>` and exits 0.

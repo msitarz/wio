@@ -27,10 +27,9 @@ them.
 ## Glossary
 
 - **Reference**: an entry of `rule_presets`, `rules_include`, `rules_exclude`,
-  `rules_always_include` or `rules_always_exclude`: a bare name of a rule
-  preset of the config, or `<ruleset>.<item>`, where `<ruleset>` is a ruleset's
-  directory name or alias and `<item>` is a family, a code or a preset
-  ([the concepts](../../../../../../docs/concepts.md#names-and-references)).
+  `rules_always_include` or `rules_always_exclude`, as
+  [the concepts](../../../../../../docs/concepts.md#names-and-references)
+  define it.
 
 ## Non-Goals
 
@@ -54,7 +53,7 @@ them.
 
 - `FileSystem.list_dir` of `.agents/wio/rules`, for the names of the rulesets
   and whether each has a `ruleset.toml`.
-- Checks added to the ordered list of the loader.
+- Checks appended to `CHECKS` in `wio.config`.
 - A depth-first search for a cycle among the config's rule presets.
 
 ## Acceptance criteria
@@ -68,11 +67,14 @@ letter, then lower-case letters, digits, `-` and `_`.
 
 #### Wrong forms
 
-- **Given** the entries `Docs.DOC`, `docs.Doc1`, `docs.DOC001.x` and a
-  directory `My Rules`, holding a `ruleset.toml`, under `.agents/wio/rules`.
+- **Given** a stage `define` whose `rules_include` is `["Docs.DOC",
+  "docs.Doc1", "docs.DOC001.x"]`, with a ruleset `docs`, and a directory
+  `My Rules`, holding a `ruleset.toml`, under `.agents/wio/rules`.
 - **When** the checks run.
-- **Then** each is an error that names the form that part should have, and the
-  directory's error names its name.
+- **Then** each entry has one error, at `stages.define.rules_include[<n>]`, that
+  names the form that part should have and no error about an unknown ruleset,
+  and the directory has one error at `.agents/wio/rules/My Rules` that names the
+  form of a ruleset name.
 
 ### **AC-2** Every reference resolves to a ruleset or a preset
 
@@ -95,6 +97,14 @@ directory, and a bare name is a rule preset of the config.
 - **When** the checks run.
 - **Then** an error at `roots.wio.rule_presets[0]` names `docz` and one at
   `rules_always_include[0]` lists the config's rule presets.
+
+#### No rules directory
+
+- **Given** a repository without `.agents/wio/rules`, first with a config that
+  has no qualified reference and then with `rules_include = ["docs.DOC"]`.
+- **When** the checks run.
+- **Then** the first has no diagnostic, and the second has the unknown-ruleset
+  error; the check asks `is_dir` before `list_dir`.
 
 #### An alias
 

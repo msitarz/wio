@@ -52,7 +52,7 @@ must be usable and stay inside the repository before a command relies on them.
   `<dir>/<skill>/SKILL.md`.
 - `pathlib.PurePosixPath` to normalize a path and tell whether it leaves the
   repository.
-- Checks added to the ordered list of the loader.
+- Checks appended to `CHECKS` in `wio.config`.
 
 ## Acceptance criteria
 
@@ -63,7 +63,8 @@ once in its root.
 
 #### The errors
 
-- **Given** paths `src/`, `../x`, `/abs`, `a/./b` and `src` twice in one root.
+- **Given** a root `a` with paths `src/`, `../x`, `/abs` and `a/./b`, and a root
+  `b` with the path `src` twice; a repeat is judged on the normalized text.
 - **When** the checks run.
 - **Then** each of the first four is an error at its path that names the rule
   and the normalized form where one exists, and the repeat is an error that
@@ -93,7 +94,8 @@ the user's home.
 
 #### A skill path outside the repository
 
-- **Given** `[skills] paths = ["../skills"]`.
+- **Given** `[skills] paths = ["../skills"]`; a skill path follows the same rule
+  as a root path, normalized and inside the repository.
 - **When** the checks run.
 - **Then** an error at `skills.paths[0]` says the path must stay inside the
   repository.

@@ -118,15 +118,72 @@ class Config:
 - **When** a field is assigned, or a stage is added to `stages`.
 - **Then** each raises, and `hash` of the config equals `hash` of an equal one.
 
-The field names of a stage are `goal`, `skill`, `roots`, `rules_include`,
-`rules_exclude`, `gate`, `judge`, `session` (`"any"` by default) and
-`continuable` (`true` by default); `gate` is false by default, and an optional
-setting with no default, such as `judge` and `roots`, is `None`. A list is an
-empty tuple. A root's `paths` and an action's `description` have no default, so
-a `Root` and an `Action` cannot be built without them, and the value of
-`works.defaults.actions` is `frozendict[str, str | tuple[str, ...]]`, a stage
-preset id or a list of stage names. The names of the other nested types are
-provisional.
+The nested types have these required fields, types and defaults; only the class
+names are provisional. A root's `paths` and an action's `description` have no
+default, so a `Root` and an `Action` cannot be built without them.
+
+```python
+class Works:
+    dir: str = ".agents/wio/works"
+    hierarchy: Literal["flat", "nesting"] = "flat"
+    defaults: Defaults = Defaults()
+
+
+class Defaults:
+    actions: frozendict[str, str | tuple[str, ...]] = frozendict()
+
+
+class Templates:
+    dir: str = ".agents/wio/templates"
+    kinds: frozendict[str, str] = frozendict()
+
+
+class Trailers:
+    reader: Literal["scan", "git"] = "scan"
+
+
+class Skills:
+    paths: tuple[str, ...] = ()
+
+
+class Bundle:
+    separator: str = "\n\n"
+    size_threshold: int | None = None
+
+
+class Action:
+    description: str
+    after: tuple[str, ...] = ()
+    invalidated_by: tuple[str, ...] = ()
+    on_demand: bool = False
+
+
+class Root:
+    paths: tuple[str, ...]
+    rule_presets: tuple[str, ...] = ()
+
+
+class Stage:
+    goal: str | None = None
+    skill: str | None = None
+    roots: tuple[str, ...] | None = None
+    rules_include: tuple[str, ...] = ()
+    rules_exclude: tuple[str, ...] = ()
+    gate: bool = False
+    judge: Literal["human"] | None = None
+    session: Literal["any", "fresh"] = "any"
+    continuable: bool = True
+
+
+class RulePreset:
+    rules_include: tuple[str, ...] = ()
+    rules_exclude: tuple[str, ...] = ()
+
+
+class Ruleset:
+    alias: str | None = None
+    root_independent: bool = False
+```
 
 ### **AC-2** Every setting has a description
 

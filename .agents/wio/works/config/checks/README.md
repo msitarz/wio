@@ -51,11 +51,16 @@ error.
 - **Errors block everywhere.** A check that reports an error is run by
   `Settings.load` too, so it must be cheap and local: it reads paths, names and
   listings, and parses neither a template nor a rule.
+- **Reading the scenarios.** The scenarios of the leaves run the checks on a
+  `Config` in which everything they do not name is valid.
 - **Warnings and notes appear only in `wio config check`.** They never change an
   exit code and are not printed by other commands.
 - **Verification.** Each check's behaviour is verified by the leaf that adds it;
   that every error also stops the other commands is verified by AC-2 of this
-  parent, and that an empty file loads by the loader's AC-2. That a check is
+  parent, that warnings and notes appear only in `wio config check` by the
+  second scenario of that AC, that a check never stops the others by the
+  loader's AC-7 and AC-1 of this parent, and that an empty file loads by the
+  loader's AC-2. That a check is
   cheap and local is verified in the review of each check leaf, against the
   inputs the check receives.
 
@@ -104,9 +109,10 @@ command exits 2 with the same errors on standard error.
 #### Each group
 
 - **Given** a config with one error from each of the groups of AC-1.
-- **When** `wio config list` runs.
-- **Then** it exits 2, standard output is empty and standard error holds each
-  of the five errors.
+- **When** `wio config list` runs, and `ConfigSettings.load()` is called.
+- **Then** the command exits 2, standard output is empty and standard error
+  holds each of the five errors, and `load` raises a `ConfigurationError` whose
+  `diagnostics` hold the same five.
 
 #### Warnings and notes alone
 

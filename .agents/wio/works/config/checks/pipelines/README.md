@@ -24,7 +24,9 @@ another must resolve before any command builds a pipeline from them.
 - Whether a template's or a contract's pipeline resolves: the contracts and
   templates Works check those.
 - Rule references and paths, which the other check leaves own.
-- Reporting a stage, preset or action that nothing uses.
+- Reporting a stage, preset or action that nothing uses, and an empty stage
+  preset, which the contracts and templates Works check with the pipelines they
+  resolve.
 
 ## Assumptions
 
@@ -35,7 +37,7 @@ another must resolve before any command builds a pipeline from them.
 
 ## Mechanisms
 
-- Checks added to the ordered list of the loader, each a function from the
+- Checks appended to `CHECKS` in `wio.config`, each a function from the
   `Config` and what it may read to diagnostics.
 - A depth-first search for the `after` cycle, reporting the actions on it.
 
@@ -57,17 +59,20 @@ pipeline.
 
 #### Default actions
 
-- **Given** `[works.defaults.actions]` with `deliver = "missing"` where
-  `missing` is not a stage preset, `review = "define"` where `define` is a
-  stage, `build = ["define", "ghost"]` where `ghost` is not a stage,
-  `define = ["define"]` and `ship = ["define"]`, and `[actions]` declaring only
-  `define`, `deliver`, `review` and `build`.
+- **Given** a stage preset `solo = ["define"]`, and `[works.defaults.actions]`
+  with `deliver = "missing"` where `missing` is not a stage preset,
+  `review = "define"` where `define` is a stage,
+  `build = ["define", "ghost"]` where `ghost` is not a stage,
+  `twice = ["define", "define"]`, `define = ["define"]` and `ship = ["define"]`,
+  and `[actions]` declaring only `define`, `deliver`, `review`, `build` and
+  `twice`.
 - **When** the checks run.
 - **Then** an error at `works.defaults.actions.deliver` lists the known stage
   presets, one at `works.defaults.actions.review` says a string is a stage
   preset id and lists them, one at `works.defaults.actions.build[1]` lists the
-  known stages, one at `works.defaults.actions.ship` says `ship` is not a
-  declared action, and `define` passes.
+  known stages, one at `works.defaults.actions.twice[1]` says `define`
+  repeats, one at `works.defaults.actions.ship` says `ship` is not a declared
+  action, and `define` passes.
 
 ### **AC-2** A stage's roots are roots or `@work`
 
