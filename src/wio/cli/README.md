@@ -18,6 +18,8 @@ subcommand joins the command line by adding an entry made with
   command spec, and `Entry.wire` builds the command with the adapters its
   component needs. The usage lists every command on every run, so every entry is
   described every time, while only the chosen command is wired.
+- `Entry.wire` takes no platform parameter. The first adapter that differs by
+  platform adds it.
 - `component_entry` makes `describe` import `wio.<package>` and call the
   `describe()` that the package of every component provides.
 
@@ -64,14 +66,16 @@ process's own streams. [`dispatch.py`](dispatch.py) holds what it does.
   pointed at the streams of `stdio`, so the help and the errors go where the
   caller wants. The redirect is global to the process, so `main` is not meant to
   run on several threads at once.
-- The help is colored by Python's own rules, which look at the environment and
-  the stream, so a terminal gets color and a pipe or a file does not. The
+- The help is colored by Python's own rules, which look at `PYTHON_COLORS`,
+  `NO_COLOR`, `FORCE_COLOR`, `TERM=dumb` and the stream, so a terminal gets
+  color and a pipe or a file does not. The
   program is named `wio`, and its output is the same in process and as the
   installed command.
 
 ## Failures and exit codes
 
-A run ends with one of four exit codes, and `main` never lets an exception out:
+A run ends with one of four exit codes, and `main` never lets an `Exception`
+out:
 
 | Code | Meaning |
 | --- | --- |
@@ -90,6 +94,11 @@ A run ends with one of four exit codes, and `main` never lets an exception out:
   with the command's name and the code.
 - Everything, the failures included, is written to the streams of `stdio`, so
   the process's own streams stay untouched.
+- Every `WioError` means exit 2, whatever its class: there is no exit code per
+  error class and none for configuration errors.
+- The exceptions that other ports declare, such as `ValueError`, `OSError` and
+  `UnicodeDecodeError`, are bugs and exit 70, until the Work of the component
+  that owns the port maps them to a `WioError`.
 - `KeyboardInterrupt` and a `SystemExit` that a command raises are not handled.
 
 ## What every command follows
@@ -112,4 +121,6 @@ tests check the rest, because only a real command has output to check.
 - A command returns a failed check and raises a `WioError` only for what the
   user must fix, so the core never has to tell the two apart.
 - The program needs the `work-it-out` distribution installed, because the
-  summary and the version come from its metadata.
+  summary and the version come from its metadata, where they equal the
+  `description` and the `version` of `pyproject.toml`, in a synchronized
+  environment and in an installed wheel.
