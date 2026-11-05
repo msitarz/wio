@@ -33,7 +33,8 @@ Settled with the driver on 2026-11-05. A leaf of `2fh1ar`; planned roots:
   need not be a Work; plain directories only group files. How directories
   relate Works is the hierarchy leaf's (`jsymcg`).
 - **The marker** is `wio = 1`, the version of the metadata format:
-  - required in `+++` front matter, which Hugo and Zola also use;
+  - required in `+++` front matter, which Hugo and Zola also use (unconfirmed:
+    an assumption when this leaf is defined);
   - optional in the `<!-- wio` comment form, which marks itself and implies
     version 1; when present it is checked;
   - an unknown version, such as `2`, or a wrong type, such as `true` or `"1"`,

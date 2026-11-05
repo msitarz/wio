@@ -47,6 +47,10 @@ Settled with the driver on 2026-11-05. A leaf of `2fh1ar`; planned roots:
   templates serves both components, so it lives in a shared layer, probably
   `wio.formats`, since components do not import one another.
 - It depends on the command table (`41wfqk`), which owns the `Component` type.
+- A guarantee of this leaf (moved here from the parent's review): the
+  documents state the two commands with no subcommand in common, and no
+  mention of a removed form, such as `wio contracts template` or
+  `wio contracts tree`, is left.
 - Other documents that name `wio contracts template` change with it:
   `docs/concepts.md`, `docs/workflow.md`, `docs/split-exercises.md` and the
   define skill's steps in `docs/v0.1-scope.md`.

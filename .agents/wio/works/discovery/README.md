@@ -22,7 +22,7 @@ or writing templates first.
   relate and where their actions come from.
 - `wio contracts` serves contracts and `wio templates` serves templates, so each
   command covers the term of wio it names.
-- wio's own repository keeps its layout and its workflow under the new model.
+- wio's own repository keeps its layout and its contracts under the new model.
 
 ## Glossary
 
@@ -47,7 +47,8 @@ or writing templates first.
   `wio contracts new`, and a named file template as the default.
 - Generated integrations with workflows such as Kiro, for v0.3 or later.
 - Defining the `config` Work (`hwn995`), which takes up the `[works]` and
-  `[templates]` tables when it is defined.
+  `[templates]` tables, and with them whether wio's own actions and stages
+  still resolve, when it is defined.
 
 ## Assumptions
 
@@ -57,6 +58,8 @@ or writing templates first.
 - **A-2**: The tools that write or read those files keep a leading
   `<!-- wio -->` comment or `+++` block that a person adds, and do not drop it
   when they regenerate a file.
+- **A-3**: The survey below matches each tool's current documentation, which
+  the driver has not confirmed.
 
 ## Mechanisms
 
@@ -73,86 +76,85 @@ or writing templates first.
 
 ## Constraints
 
-- **Design only.** The children change documents, wio's own config and the
-  `Component` type of `src/wio/cli/table.py`, and implement no command.
+- **Design only.** The children change documents and wio's own config, and
+  implement no command; the one change to code is the `Component` type of
+  `src/wio/cli/table.py`, which the templates-command leaf (`be2081`) owns.
+  Verified by each child's review.
 - **One owner per topic.** Each child changes the sections of its own topic
   and links to a statement another child owns instead of restating it:
-  - which files are Works and the marker: the marked-files leaf (`bgctsc`);
+  - which files are Works, the marker and `[works] dir`: the marked-files leaf
+    (`bgctsc`);
   - parents, children and the hierarchy modes: the hierarchy leaf (`jsymcg`);
-  - templates, kinds and default actions: the optional-templates leaf
-    (`ms5t0t`);
+  - templates, kinds, `[templates]` and `[works.defaults.actions]`: the
+    optional-templates leaf (`ms5t0t`);
   - the commands `wio contracts` and `wio templates`: the templates-command
     leaf (`be2081`).
+
+  Verified by each child's review for its own sections, and across the
+  documents by this parent's integration under AC-1.
 - **Open points in one place.** What a child defers is stated once, in the Open
   points of `docs/concepts.md`, and, when it is a feature planned for a later
-  version, also in "Not in v0.1" of `docs/v0.1-scope.md`.
-- **Existing contracts stay valid.** No contract in wio's Works directory is
-  moved, renamed or changed for this Work: the comment form needs no marker,
-  and every Work directory there holds one contract.
+  version, also in "Not in v0.1" of `docs/v0.1-scope.md`. Verified by each
+  child's review.
 - **Terms.** The terms of this Glossary go into `GLOSSARY.md` with the child
-  that introduces them, and the documents use them as defined.
-- **Verification.** Each child's review judges its own sections. The
-  integration stage of this parent judges AC-1 to AC-3, which only the joined
-  documents can establish.
+  that introduces them, and the documents use them as defined. Verified by
+  each child's review, and across the documents under AC-1.
 
 ## Visuals
 
 The before state is drawn from `docs/concepts.md` and `docs/v0.1-scope.md` on
 `main` at commit `55706d117db746a0269431956c65777c4dfa0afe`. The after state
-is the design the children settle: the keys and commands are required, and the
-labels are provisional.
+shows only what changes. Required are the keys `[works] dir`,
+`[works] hierarchy`, `[works.defaults.actions]`, `[templates] dir` and
+`[templates.kinds]`, the marker `wio = 1`, and the subcommands of
+`wio contracts` and `wio templates`; the labels are provisional.
 
 Before: a Work is a directory whose `README.md` has a `wio` block, every Work
-names a template, and `wio contracts` serves contracts and templates alike.
+names a template, kinds are declared in `[kinds]`, and `wio contracts` serves
+contracts and templates alike.
 
 ```mermaid
 flowchart LR
-    dir["Works directory (fixed path)"]
-    sub["each directory"]
-    work["Work"]
+    dir["Works directory (no key)"]
+    work["Work: a directory whose README.md has a wio block"]
     gap["error: a directory without a contract between Works"]
-    tpl["template file (required)"]
-    actions["default actions"]
+    tpl["template (required)"]
+    kinds["[kinds]"]
     tree["parent and children from the directory tree"]
     contracts["wio contracts: new, list templates, template, check, show, tree"]
-    dir --> sub
-    sub -- "README.md with a wio block" --> work
-    sub --> gap
+    dir --> work
+    dir --> gap
     work -- "template" --> tpl
-    tpl --> actions
+    kinds -- "entry template" --> tpl
     work --> tree
-    contracts --> work
     contracts --> tpl
 ```
 
 After: any marked file is a Work, the hierarchy is a mode, templates are
-optional, and templates have a command of their own. Bold boxes are added, and
-bold dashed boxes change.
+optional, and templates have a command of their own. Bold boxes are added,
+bold dashed boxes change, and the error of the no-gap rule is removed.
 
 ```mermaid
 flowchart LR
     dir["[works] dir"]:::new
-    walk["recursive walk of *.md files"]:::new
-    work["Work"]:::changed
-    ignored["not a Work"]
-    tpl["template file (optional)"]:::changed
+    work["Work: a marked file"]:::changed
+    ignored["not a Work: an unmarked file"]:::new
+    tpl["template (optional), in [templates] dir"]:::changed
+    kinds["[templates.kinds]"]:::changed
     defaults["[works.defaults.actions]"]:::new
-    actions["default actions"]
     mode["[works] hierarchy"]:::new
     tree["parent and children: one Work per directory"]:::changed
     none["no parents or children (the default)"]:::new
     contracts["wio contracts: new, list, check, show"]:::changed
     templates["wio templates: list, show, check"]:::new
-    dir --> walk
-    walk -- "a wio comment block, or +++ with wio = 1" --> work
-    walk -- "unmarked" --> ignored
+    dir -- "a wio comment block, or +++ with wio = 1" --> work
+    dir -- "unmarked" --> ignored
     work -- "template" --> tpl
-    tpl --> actions
-    work -- "no template" --> defaults
-    defaults --> actions
+    kinds -- "entry template" --> tpl
+    work -- "no template: default actions" --> defaults
     mode -- "nesting" --> tree
     mode -- "flat" --> none
-    contracts --> work
+    contracts -- "list" --> work
     templates --> tpl
     classDef new stroke-width: 3px
     classDef changed stroke-width: 3px,stroke-dasharray: 4 3
@@ -164,19 +166,19 @@ flowchart LR
 
 A reader of the design documents finds one account of which files are Works,
 how they relate, where their actions come from and which command serves
-contracts or templates, with nothing left of the old model.
+contracts or templates, with nothing left of the old model in any document.
 
 - No section of `docs/concepts.md`, `docs/v0.1-scope.md`, `docs/workflow.md`,
   `docs/split-exercises.md`, `GLOSSARY.md` or `src/wio/GLOSSARY.md` states that
   a Work is a directory whose `README.md` is its contract, that every contract
-  names a template, that a directory between two Works must be a Work, or that
-  `wio contracts` lists or prints templates.
-- The documents state `wio contracts` and `wio templates` as two commands with
-  no subcommand in common, and every mention of a removed form, such as
-  `wio contracts template` or `wio contracts tree`, is gone.
-- Where two sections describe the same rule, such as the Works directory's
-  key or the effect of `flat` on `@descendants`, one states it and the other
-  links to it.
+  names a template, that a directory between two Works must be a Work, that
+  kinds are declared in `[kinds]`, or that `wio contracts` lists or prints
+  templates.
+- Each of these rules is stated in exactly one section of `docs/concepts.md`,
+  and every other section or document that mentions it links to that section:
+  the key of the Works directory, what makes a file a Work, what `flat` does to
+  `@descendants` and to the `shape` check, and where a contract without a
+  template takes its default actions from.
 
 ### **AC-2** The documents show a project adopting wio without restructuring
 
@@ -189,29 +191,29 @@ possible.
   superpowers.
 - It shows the `+++` block each file gains, with the marker and an id, and the
   config the project adds, with `[works] dir` and `[works.defaults.actions]`
-  and nothing else.
+  and nothing else; these keys are owned by `bgctsc` and `ms5t0t`.
 - It states which Works wio finds, that none of them has a parent, and which
-  actions each has and where they come from, each consistent with the sections
-  that state those rules.
-- The example fails this criterion if any step needs a template, a `[kinds]`
+  actions each has and where they come from, and each statement agrees with,
+  and links to, the sections that AC-1 names for what makes a file a Work, for
+  `flat` and for default actions.
+- The example fails this criterion if any step needs a template, a kinds
   table, a moved or renamed file, or a directory per spec.
 
-### **AC-3** wio's own repository follows the new model unchanged
+### **AC-3** wio's own Works follow the joined rules unchanged
 
-wio's own config and Works satisfy the documented rules of the `nesting` mode,
-without a contract being edited.
+wio's own Works directory satisfies the rules of all four children together
+under its `nesting` config, without a contract being edited.
 
-- `.agents/wio/config.toml` sets `[works] hierarchy = "nesting"` and declares
-  its kinds in `[templates.kinds]`, with no `[kinds]` table left.
-- Every directory under `.agents/wio/works` holds at most one marked file, no
-  marked file sits directly in `.agents/wio/works`, and every contract there
-  still uses the comment form without the marker.
+- Every directory under `.agents/wio/works` holds at most one marked file, and
+  no marked file sits directly in `.agents/wio/works`.
+- Every contract there is a marked file by the documented rules, in the comment
+  form without the marker, and names a template that `[templates.kinds]` and
+  `[templates] dir` still reach.
 - No contract under `.agents/wio/works` is edited to satisfy the new rules.
 
 ## Additional context
 
-Survey of current spec layouts, from each tool's own documentation, which is
-the basis of A-1:
+The survey behind A-1 and A-3, with each tool's documentation as its source:
 
 - [Spec Kit](https://github.com/github/spec-kit/blob/main/spec-driven.md): one
   directory per feature, `specs/003-chat-system/`, named like its git branch

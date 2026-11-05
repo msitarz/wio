@@ -51,7 +51,9 @@ Settled with the driver on 2026-11-05. A leaf of `2fh1ar`; planned roots:
   with `.agents/wio/templates` as its default, and `[kinds]` moves to
   `[templates.kinds]`, because a kind exists only to choose an entry template.
   Both are optional: a project without templates has no `[templates]` table.
-  Templates keep a required `kind`.
+  Templates keep a required `kind`. wio's own `.agents/wio/config.toml`
+  declares its kinds in `[templates.kinds]`, with no `[kinds]` table left, a
+  guarantee of this leaf (moved here from the parent's review).
 - **Open points** for `docs/concepts.md`:
   - a named file template as the default, `[works] default_template`, for
     defaults that need directives, such as a section required in every
