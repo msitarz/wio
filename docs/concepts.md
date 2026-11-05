@@ -280,8 +280,8 @@ ticket = "PAY-142"
 ```
 
 The title is the first heading and is stored nowhere else. There is no `parent`
-field, because the directory layout gives the hierarchy (see
-[Parent and leaf](#parent-and-leaf)).
+field, because the hierarchy mode derives the hierarchy from the directory
+layout (see [Parent and leaf](#parent-and-leaf)).
 
 The body is prose. wio reads its first heading as the title and its `##`
 headings, which are
@@ -681,9 +681,9 @@ The Work tree divides the work as its contracts do. It does not have to mirror
 the module tree or the directory tree of the code.
 
 When to split a Work, how the split is carried out, and whether the pieces
-become nested children or siblings, a **sibling split** that both modes
-allow, is a procedure that a stage and its
-skill own. wio only reads the result: the directory layout and the metadata.
+become nested children or siblings, a **sibling split** that both modes allow,
+is a procedure that a stage and its skill own. wio only reads the result: the
+directory layout and the metadata.
 [wio's own workflow](workflow.md#when-to-split) shows one such procedure.
 
 ### Roots of a Work

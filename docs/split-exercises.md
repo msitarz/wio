@@ -12,8 +12,9 @@ metadata.
 
 ## The model the exercises use
 
-- A Work is a directory with a contract. The tree is the hierarchy, and a Work
-  with child Works is a parent.
+- A Work is a marked file. Under `nesting`, the hierarchy mode these
+  exercises use, the directory tree is the hierarchy, and a Work with child
+  Works is a parent ([Parent and leaf](concepts.md#parent-and-leaf)).
 - `depends_on` is an array of Work ids. Together with an implicit dependency of
   each parent on its children, it forms a graph for delivery.
 - Defining runs top-down. Delivering runs bottom-up, in batches that can run in
