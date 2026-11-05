@@ -4,6 +4,7 @@
 import sys
 from typing import TYPE_CHECKING
 
+from wio.cli.dispatch import dispatch
 from wio.cli.table import COMMANDS
 lazy from wio.io import adapters
 
@@ -21,7 +22,7 @@ def main(
 ) -> int:
     """Run `wio` with the given arguments and streams.
 
-    This is the testable core of the command: it reads and writes only through
+    This is the testable core of the command: it writes its output through
     `stdio`, so a test can give it in-memory streams. It describes every entry
     of `commands` to build the usage, wires only the entry whose subcommand was
     chosen, and returns that command's exit code. Bare `wio` and `--help` print
@@ -40,8 +41,7 @@ def main(
         The exit code: 0 for the summary, the help and the version, the chosen
         command's own exit code, 0 or 1, and 2 for a usage mistake.
     """
-    del argv, stdio, commands
-    return 0
+    return dispatch(argv, stdio, commands)
 
 
 def console_main() -> int:

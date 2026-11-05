@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests for the channel marker and the expected failure of the first scenario."""
+"""Tests for the channel marker."""
 
 import subprocess
 import sys
@@ -62,33 +62,3 @@ def test_the_first_scenario_has_one_case_per_channel() -> None:
     assert both == sorted([Channel.IN_PROCESS.value, Channel.CLI.value])
     assert slow == [Channel.CLI.value]
     assert default == [Channel.IN_PROCESS.value]
-
-
-@pytest.mark.slow
-def test_the_first_scenario_is_expected_to_fail_on_both_channels() -> None:
-    """It xfails in the fast run and in the slow run, and both exit 0."""
-    # Given the delivered tree
-
-    # When the scenario runs on each channel
-    fast = _pytest("-q", SCENARIO)
-    slow = _pytest("-q", "-m", "slow", SCENARIO)
-
-    # Then each reports an expected failure and exits 0
-    assert (fast.returncode, "1 xfailed" in fast.stdout) == (0, True)
-    assert (slow.returncode, "1 xfailed" in slow.stdout) == (0, True)
-
-
-@pytest.mark.slow
-def test_the_first_scenario_fails_on_the_assertion() -> None:
-    """With xfail ignored, the failure is an AssertionError on the description."""
-    # Given the scenario on either channel
-
-    # When it runs with xfail ignored
-    result = _pytest("-q", "--runxfail", "-m", "slow or not slow", SCENARIO)
-
-    # Then both fail with an AssertionError about the missing description
-    assert result.returncode == 1
-    assert "2 failed" in result.stdout
-    assert "AssertionError" in result.stdout
-    assert result.stdout.count("Work It Out! Agentic Workflow Engine") >= 2
-    assert "ImportError" not in result.stdout

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the installed `wio` command."""
 
+import importlib.metadata
 import subprocess
 import sys
 from pathlib import Path
@@ -23,12 +24,19 @@ def test_the_console_script_is_installed() -> None:
 
 
 @pytest.mark.slow
-def test_the_installed_command_exits_zero_without_output() -> None:
-    """Running `wio` with no arguments succeeds silently, for now."""
+def test_the_installed_command_shows_the_version() -> None:
+    """Running `wio --version` prints the version of the distribution."""
     # Given the installed console script
 
-    # When it runs with no arguments
-    result = subprocess.run([str(SCRIPT)], capture_output=True, text=True, check=False)
+    # When it runs with --version
+    result = subprocess.run(
+        [str(SCRIPT), "--version"], capture_output=True, text=True, check=False
+    )
 
-    # Then it exits 0 and writes nothing
-    assert (result.returncode, result.stdout, result.stderr) == (0, "", "")
+    # Then it exits 0 and prints wio and the version
+    version = importlib.metadata.version("work-it-out")
+    assert (result.returncode, result.stdout, result.stderr) == (
+        0,
+        f"wio {version}\n",
+        "",
+    )
