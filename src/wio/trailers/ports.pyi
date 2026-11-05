@@ -13,20 +13,22 @@ from wio.models.events import ContextEvent
 class Contracts(Protocol):
     """The Work contracts that a record refers to."""
 
-    def criteria(self, work_id: str) -> frozenset[str] | None:
-        """Find the acceptance criteria of a Work.
+    def items(self, work_id: str) -> frozenset[str] | None:
+        """Find the item ids of a Work.
 
-        The Work is looked up in the working tree first and then in `HEAD`,
-        which is where a Work that the commit deletes still is. Checking the
-        index at commit time is the contract component's to decide, with
-        `Git.show_index`.
+        The ids are those that the `pattern` directives of the Work's template
+        give the Work's own sections, whatever the sections mean; an inherited
+        section's ids are not included. The Work is looked up in the working
+        tree first and then in `HEAD`, which is where a Work that the commit
+        deletes still is. Checking the index at commit time is the contract
+        component's to decide, with `Git.show_index`.
 
         Args:
             work_id: The Work's id.
 
         Returns:
-            The ids of the Work's criteria, such as `AC-1`, or `None` when no
-            such Work exists in either place.
+            The Work's item ids, such as `AC-1`, or `None` when no such Work
+            exists in either place.
         """
         ...
 

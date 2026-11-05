@@ -78,7 +78,7 @@ Single tools, for quick feedback:
   says which Work and stage the commit belongs to (see "Records" in
   [docs/concepts.md](docs/concepts.md#records)). Write `Wio-Work: none` when it
   belongs to no Work. When a commit serves several Works with the same action,
-  stage, criteria, result and judge, list their ids in one `Wio-Work`, such as
+  stage, item ids, result and judge, list their ids in one `Wio-Work`, such as
   `Wio-Work: k3m9xq, a7b2c4` (a comma and one space, dependencies and children
   first); if anything else differs, write a paragraph per Work. Once
   `wio trailers` exists, append its output instead of writing the record by
@@ -88,7 +88,7 @@ Single tools, for quick feedback:
   Wio-Work: k3m9xq
   Wio-Action: deliver
   Wio-Stage: architecture
-  Wio-Criteria: AC-1, AC-3
+  Wio-Items: AC-1, AC-3
   ```
 
   | Trailer | Meaning |
@@ -96,7 +96,7 @@ Single tools, for quick feedback:
   | `Wio-Work` | The Work's id, a comma-separated list of ids, or `none`. |
   | `Wio-Action` | The action, such as `define` or `deliver`. |
   | `Wio-Stage` | The stage the commit works on. |
-  | `Wio-Criteria` | Optional: the acceptance criteria this commit addresses. |
+  | `Wio-Items` | Optional: the item ids this commit addresses, such as `AC-1`. |
   | `Wio-Result` | Only for a gate (a review stage): `pass`, `fail` or `unknown`. |
   | `Wio-Judge` | For a gate: `agent`, or `human` when the driver judged. |
 

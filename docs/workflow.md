@@ -64,7 +64,7 @@ The leaf and parent templates give a contract these sections:
 | Additional context | Context, risks and links that fit nowhere above. |
 
 Assumptions and criteria carry ids so that an amendment can say precisely what
-changed, and so that records and reviews can cite the criteria a commit
+changed, and so that records and reviews can cite the items a commit
 addresses. The draft template has only a Purpose and an Intent section, which
 the define stage uses as working space.
 

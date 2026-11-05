@@ -5,7 +5,10 @@ This is a stand-in for `wio trailers check` until that command exists. It reads
 records the way the `scan` reader does: a record is a paragraph in which every
 line is a `Key: value` trailer and some key starts with `Wio-`, outside fenced
 code blocks. It checks only the shape of a record, not whether its Work, stage
-or criteria exist.
+or item ids exist. Unlike `wio trailers check` without `--require`, it reports
+an unknown `Wio-` key, such as the retired `Wio-Criteria`, as an error in every
+command: it checks only a pull request's own commits, never the older history,
+so a branch that still uses a retired key rewords those commits instead.
 
 `Wio-Work` takes one id, several ids separated by a comma and one space, or
 `none`. A list is the same as one record per id, in the order written; a Work
@@ -44,7 +47,7 @@ type Commit = tuple[str, str]  # (sha, message)
 TRAILER = re.compile(r"^(?P<key>[A-Za-z0-9][A-Za-z0-9-]*): (?P<value>\S.*)$")
 FENCE = re.compile(r"^\s*(```|~~~)")
 WORK_ID = re.compile(r"^[0-9a-hjkmnp-tv-z]{6,8}$")  # lowercase Crockford base32
-CRITERIA = re.compile(r"^AC-\d+(, AC-\d+)*$")
+ITEMS = re.compile(r"^[^\s,]+(, [^\s,]+)*$")  # item ids, a comma and one space apart
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 RESULT = re.compile(r"^(pass|fail|unknown)$")
 JUDGE = re.compile(r"^(human|agent)$")
@@ -52,7 +55,7 @@ KEY_ORDER = (
     "Wio-Work",
     "Wio-Action",
     "Wio-Stage",
-    "Wio-Criteria",
+    "Wio-Items",
     "Wio-Result",
     "Wio-Judge",
 )
@@ -71,7 +74,7 @@ NO_WORK = "none"
 FORMATS = (
     ("Wio-Action", NAME, "is not a name"),
     ("Wio-Stage", NAME, "is not a name"),
-    ("Wio-Criteria", CRITERIA, "must look like `AC-1, AC-3`"),
+    ("Wio-Items", ITEMS, "must be ids without spaces or commas, like `AC-1, A-2`"),
     ("Wio-Result", RESULT, "must be one of pass, fail, unknown"),
     ("Wio-Judge", JUDGE, "must be one of human, agent"),
 )
@@ -169,7 +172,7 @@ def _key_problems(keys: list[str]) -> list[str]:
 def work_ids(value: str) -> list[str]:
     """Split a `Wio-Work` value into the ids it lists.
 
-    Ids are separated by a comma and one space, the form `Wio-Criteria` uses.
+    Ids are separated by a comma and one space, the form `Wio-Items` uses.
 
     Args:
         value: The value, such as `k3m9xq` or `k3m9xq, a7b2c4`.
@@ -308,14 +311,14 @@ def expand(record: Record) -> list[Fields]:
 
 
 def _united(earlier: str | None, later: str | None) -> str | None:
-    """Unite two criteria lists, keeping the order of first appearance.
+    """Unite two lists of item ids, keeping the order of first appearance.
 
     Args:
-        earlier: The `Wio-Criteria` value of the earlier record, if any.
-        later: The `Wio-Criteria` value of the later record, if any.
+        earlier: The `Wio-Items` value of the earlier record, if any.
+        later: The `Wio-Items` value of the later record, if any.
 
     Returns:
-        The united list, or `None` when neither record has criteria.
+        The united list, or `None` when neither record has item ids.
     """
     parts = [part for value in (earlier, later) if value for part in value.split(", ")]
     return ", ".join(dict.fromkeys(parts)) or None
@@ -329,12 +332,12 @@ def _merge(earlier: Fields, later: Fields) -> Fields:
         later: The newer record, whose result and judge win.
 
     Returns:
-        The newer record with the criteria of both.
+        The newer record with the item ids of both.
     """
-    merged = {key: value for key, value in later.items() if key != "Wio-Criteria"}
-    criteria = _united(earlier.get("Wio-Criteria"), later.get("Wio-Criteria"))
-    if criteria:
-        merged["Wio-Criteria"] = criteria
+    merged = {key: value for key, value in later.items() if key != "Wio-Items"}
+    items = _united(earlier.get("Wio-Items"), later.get("Wio-Items"))
+    if items:
+        merged["Wio-Items"] = items
     return _canonical(merged)
 
 
