@@ -1,8 +1,11 @@
 <!-- wio
 id = "jsymcg"
-template = "feature.draft"
-roots = []
+template = "feature.leaf"
+roots = ["repo"]
 depends_on = ["bgctsc"]
+
+[actions]
+deliver = ["promote-docs", "docs-review"]
 -->
 
 # Hierarchy modes
@@ -13,50 +16,181 @@ Most spec workflows keep their specs flat, so wio must work without a Work
 hierarchy by default and derive one from directories only for a project that
 asks for it.
 
-## Intent
+## Goals
 
-Settled with the driver on 2026-11-05. A leaf of `2fh1ar`; planned roots:
-`repo`.
+- A project with flat specs uses wio with no hierarchy, without setting
+  anything.
+- A project that wants parents and children gets them from its directories by
+  setting one key.
+- wio's own repository keeps its parents and children.
+- A person or an agent learns why a file breaks the rules of the `nesting` mode.
 
-- **The setting.** `[works] hierarchy = "flat" | "nesting"`, two exclusive
-  modes. `flat` is the default; wio's own `.agents/wio/config.toml` sets
-  `nesting`, a guarantee of this leaf (moved here from the parent's review).
-- **The no-gap rule goes**, in both modes: a directory between the Works
-  directory and a Work need not be a Work, and plain directories only group
-  files. This leaf removes the rule from `docs/concepts.md` and from the
-  checks `docs/v0.1-scope.md` lists (moved here from the marked-files
-  leaf's review).
-- **`nesting`** keeps the hierarchy that the documents describe today, with
-  directories as the hierarchy:
-  - a directory holds at most one Work, in a marked `.md` file of any name; two
-    marked files in one directory are an error naming both. A file beside a
-    Work is never its child, unlike Hugo or Docusaurus sections, because in
-    spec tools the files of one directory are parts of one unit;
-  - a Work's parent is the Work of the nearest directory above it that holds
-    one; unmarked directories in between only group files;
-  - no Work file sits directly in the Works directory, because it would be the
-    parent of every Work; the Works directory may still hold an unmarked
-    `README.md`, such as an index for people;
-  - `wio contracts show <file>` names these as the reasons a file is not a
-    Work, beside those of the marked-files leaf (`bgctsc`).
-- **`flat`**: no Work has a parent or children.
-  - Any number of Works may share a directory.
-  - `@descendants` is empty, and there is no implicit dependency of a parent on
-    its children in the cycle check; only `depends_on` remains.
-  - The template's `shape` is not checked, since a `parent` shape could never
-    be satisfied and its warning never cleared. What `shape` means is the
-    workflow's business.
-  - `wio contracts new --parent` is an error.
-- **`wio contracts new`** writes `<slug>/README.md` in both modes, because a
-  directory gives the Work's artifacts a home and forges render a `README.md`.
-  Files a person writes or moves may have any name.
-- **Links back.** Its sections link to those of the marked-files leaf
-  (`bgctsc`), which is delivered first: from how directories relate Works,
-  and from the `nesting` reasons `wio contracts show` gives to that leaf's
-  list of reasons.
-- **Open points** for `docs/concepts.md`:
-  - a third exclusive mode, perhaps in v0.2, where a `parent` id field gives the
-    hierarchy and directories mean nothing; never mixed with `nesting`, so the
-    two cannot disagree;
-  - a configurable file name or layout for `wio contracts new`, such as
-    `spec.md` or `<slug>.md`, possibly in v0.2.
+## Non-Goals
+
+- Which files are Works, which the marked-files leaf (`bgctsc`) states.
+- A hierarchy given by a `parent` field, or a configurable file name for
+  `wio contracts new`, which this leaf records as open points.
+- Changing what a parent does with its children, such as inheritance or
+  `@descendants`, beyond saying what each mode gives them.
+
+## Assumptions
+
+- **A-1**: In the spec tools the parent surveys, the files of one directory are
+  parts of one unit and never a hierarchy of units, so a file beside a Work
+  should never be its child.
+
+## Mechanisms
+
+- `docs/concepts.md`, section 5 "Nesting", whose subsections "Parent and leaf",
+  "Roots of a Work", "Inheritance, computed" and "Dependencies" state the
+  hierarchy and what it gives.
+- `docs/concepts.md`, "Invariants wio checks" in section 6, "Identity and
+  location" in section 3 for `wio contracts new`, the config table of section
+  2, and section 15 "Open points".
+- `docs/v0.1-scope.md`, whose `wio contracts` outcome lists what Create does
+  and what Check verifies, and whose list "Not in v0.1" names deferred
+  features.
+- `GLOSSARY.md`, whose entries Parent and Leaf change and which gains Hierarchy
+  mode.
+- `.agents/wio/config.toml`, wio's own config, which sets the mode.
+
+## Constraints
+
+- **Links point back.** This leaf's sections link to those of the marked-files
+  leaf (`bgctsc`), which is delivered before it, and to no section that the
+  templates-command leaf (`be2081`) writes after it; that leaf adds the links
+  from its command section to this leaf's. Verified by docs-review.
+
+## Visuals
+
+Prose, because the change is a rule, not a structure. The before state is
+drawn from `docs/concepts.md` and `docs/v0.1-scope.md` on `main` at commit
+`55706d117db746a0269431956c65777c4dfa0afe`.
+
+- **Before:** the directory tree is always the hierarchy. A child is a
+  subdirectory whose `README.md` is a Work, and every directory between the
+  Works directory and a Work must be a Work.
+- **After:** `[works] hierarchy` chooses. Under `flat`, the default, no Work
+  has a parent. Under `nesting`, a directory holds at most one Work, and a
+  Work's parent is the Work of the nearest directory above it; plain
+  directories only group files in both modes.
+
+## Acceptance criteria
+
+### **AC-1** One key chooses the hierarchy
+
+`docs/concepts.md` states the setting, so a project chooses whether directories
+give its Works parents and children. It states these rules:
+
+- `[works] hierarchy` is `"flat"` or `"nesting"`, two exclusive modes; a
+  missing key means `"flat"`.
+- Any other value, or a value of another type, is a config error.
+- The config table of section 2 lists the key with both values and its default.
+- `GLOSSARY.md` adds Hierarchy mode as the parent's Glossary defines it, and
+  its entries Parent and Leaf say that only `nesting` gives a Work children.
+- `.agents/wio/config.toml` sets `hierarchy = "nesting"` in a `[works]` table.
+
+### **AC-2** Under `nesting`, directories are the hierarchy
+
+`docs/concepts.md`, in "Parent and leaf", states how `nesting` derives parents
+and children, so the hierarchy is still computed and never stored. It states
+these rules:
+
+- A directory holds at most one Work, in a marked file of any name; two marked
+  files in one directory are an error that names both.
+- A Work's parent is the Work of the nearest directory above its own that holds
+  one; a Work's children are the Works whose parent it is.
+- A file beside a Work, in the same directory, is never its child.
+- No marked file sits directly in the Works directory, because it would be the
+  parent of every Work; such a file is an error. The Works directory may hold
+  an unmarked file, such as a `README.md` index for people.
+- There is still no `parent` field and no `children` list.
+- What makes a file a Work links to the section of the marked-files leaf
+  (`bgctsc`).
+
+### **AC-3** Under `flat`, no Work has a parent
+
+`docs/concepts.md` states what `flat` gives, so a flat project meets no rule
+that only a hierarchy needs. It states these rules:
+
+- No Work has a parent or children, and any number of Works may share a
+  directory.
+- `@descendants` in `roots` resolves to nothing, and the existing warning for
+  a Work without children that lists it applies in both modes; the config's
+  `@descendants:<action>` in `invalidated_by` matches nothing and warns about
+  nothing.
+- No Work inherits a section, because no Work has an ancestor.
+- The cycle check sees only `depends_on`, because no parent depends on
+  children.
+- The template's `shape` is not checked, because a `parent` shape could never
+  be met; what `shape` means is the workflow's.
+- `wio contracts new --parent` is an error.
+
+### **AC-4** The no-gap rule is gone in both modes
+
+The documents no longer require a Work between two Works, so a project can
+group its spec files in plain directories. They state:
+
+- "Parent and leaf" in `docs/concepts.md` says that a directory between the
+  Works directory and a Work need not be a Work, in either mode, and that a
+  plain directory only groups files.
+- Neither "Invariants wio checks" in `docs/concepts.md` nor the Check outcome
+  of `docs/v0.1-scope.md` lists a check that every such directory is a Work.
+
+### **AC-5** wio says why a file breaks the `nesting` rules
+
+`docs/concepts.md` and the outcome of Show in `docs/v0.1-scope.md` state the
+reasons `wio contracts show` adds under `nesting`, so a person or an agent can
+learn why a file is not a Work there. They state:
+
+- a file in a directory that already holds another marked file is not a Work,
+  and the reason names the other file;
+- a marked file directly in the Works directory is not a Work, and the reason
+  says why;
+- both reasons are added to the reasons of the marked-files leaf (`bgctsc`),
+  linking to them; the exact wording is provisional.
+
+### **AC-6** `wio contracts new` keeps one directory per Work
+
+`docs/concepts.md`, in "Identity and location", and the Create outcome of
+`docs/v0.1-scope.md` state what `new` writes in each mode, so every new Work
+has a directory for its artifacts. They state:
+
+- `wio contracts new` writes `<slug>/README.md` in both modes, because the
+  directory gives the Work's artifacts a home and forges render a
+  `README.md`.
+- `--parent` creates the Work inside its parent's directory under `nesting`,
+  and is an error under `flat`.
+- A Work a person writes or moves may have any name; only `new` uses
+  `README.md`.
+
+### **AC-7** Switching modes migrates nothing
+
+`docs/concepts.md` states what a change of mode does, so a project can switch
+without fear for its history. It states:
+
+- Changing `[works] hierarchy` rewrites no file and keeps every record and
+  dependency, because they refer to ids.
+- Switching to `flat` gives every Work no parent; switching to `nesting` makes
+  each directory that holds two marked files an error until it is split.
+
+### **AC-8** The deferred hierarchy designs are recorded for later
+
+The two designs the Non-Goals leave out are stated once, so they are neither
+lost nor promised for v0.1. The documents state:
+
+- The Open points of `docs/concepts.md` hold a third exclusive mode, where a
+  `parent` id field gives the hierarchy and directories mean nothing, never
+  mixed with `nesting`, and a configurable file name or layout for
+  `wio contracts new`, such as `spec.md` or `<slug>.md`.
+- The open point on the `parent` mode notes that a `parent` key already exists
+  in some tools' front matter, such as MADR's for Jekyll navigation.
+- "Not in v0.1" of `docs/v0.1-scope.md` lists both, linking to the open points.
+
+## Additional context
+
+- A leaf of [Finding Work contracts in any Markdown file](../README.md)
+  (`2fh1ar`), whose AC-3 joins this leaf's `nesting` rules with those of its
+  siblings over wio's own Works.
+- The `nesting` mode keeps the hierarchy the documents describe today, so
+  wio's own Works need no change.
