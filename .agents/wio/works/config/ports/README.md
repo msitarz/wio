@@ -45,17 +45,17 @@ system, with real adapters for the local disk and for git.
   reader needs it too.
 - **A-2**: Nothing implements or imports `Git` outside the stubs, the glossary
   and the architecture README, so renaming it breaks no code.
-- **A-3**: `GitRepository` implements all four members of `Repository`, though
-  config needs two, because a class that lacks a member of the port cannot be
-  wired where the port is expected.
+- **A-3**: `GitRepository` has all four members of `Repository`, though config
+  needs two, because a class that lacks a member of the port cannot be wired
+  where the port is expected; the two it does not implement raise
+  `NotImplementedError` until the trailers Work, which owns what they mean.
 
 ## Mechanisms
 
 - `pathlib.Path` methods, in `LocalFileSystem` in `wio.io.adapters`.
 - `subprocess.run` of `git rev-parse --show-toplevel` and
   `git rev-parse --path-format=absolute --git-common-dir`, in `GitRepository` in
-  `wio.io.adapters`; `git show :<path>` and `git status --porcelain` for the
-  index and the changes.
+  `wio.io.adapters`.
 - The stubs `src/wio/io/ports.pyi` and `src/wio/models/commits.pyi`, which are
   the spec of the ports and are provisional only in the members the trailers
   Work may still extend.
@@ -168,25 +168,18 @@ to, from the working directory of the process.
 - **When** `root()` or `identity()` runs.
 - **Then** it raises `RuntimeError`.
 
-### **AC-4** `GitRepository` reports the index and the changes
+### **AC-4** The members trailers owns are declared and not yet implemented
 
-A `GitRepository` tells what is staged and whether the working tree has changes.
+`GitRepository` satisfies `Repository` where it is wired, and `show_index` and
+`is_dirty` say that the trailers Work implements them.
 
-#### The index
+#### Not implemented
 
-- **Given** a file `f` committed with `old`, then edited to `new` and staged,
-  and a staged new file `g`.
-- **When** `show_index(f)`, `show_index(g)` and `show_index(h)` run, `h` being
-  unknown.
-- **Then** they return `new`, the content of `g`, and `None`.
-
-#### Changes
-
-- **Given** a clean repository, then one with an edited tracked file, then one
-  with only an ignored file, then one with an untracked file that is not
-  ignored.
-- **When** `is_dirty()` runs in each.
-- **Then** it returns `False`, `True`, `False` and `True`.
+- **Given** a `GitRepository` in a git repository.
+- **When** `show_index(Path("f"))` and `is_dirty()` run.
+- **Then** each raises `NotImplementedError` whose message names the trailers
+  Work, and the type checker accepts a `GitRepository` where a `Repository` is
+  expected.
 
 ## Additional context
 
