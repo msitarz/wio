@@ -174,7 +174,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | --- | --- | --- | --- |
 | `Wio-Work` | *required* | The Works a commit is work on, or `none`. | [Records](#records) |
 | `Wio-Action`, `Wio-Stage` | *required* unless `Wio-Work: none` | The action and stage the commit is work on. | [Records](#records) |
-| `Wio-Items` | *optional* | The item ids the commit addresses, of any section with a `pattern`. | [Records](#records) |
+| `Wio-Items` | *optional* | The item ids the commit addresses, of the Work's own sections. | [Records](#records) |
 | `Wio-Result` | *required* on a gate, absent elsewhere | The gate's result. | [Records](#records) |
 | `Wio-Judge` | *optional*, on a gate | Who judged the gate; without it, a human did. | [Records](#records) |
 | `Merge`, `Revert`, `Reapply`, `fixup!`, `squash!` | — | Subjects of commits that need no record. | [Records](#records) |
@@ -1704,7 +1704,7 @@ Wio-Result: pass
 | `Wio-Work` | The Work's id; several ids separated by a comma and one space, for Works that share the rest of the record; or `none` for a commit that belongs to no Work. Required. |
 | `Wio-Action` | The action the stage belongs to. Required unless the Work is `none`. |
 | `Wio-Stage` | The stage the commit works on. Required unless the Work is `none`. |
-| `Wio-Items` | The item ids this commit addresses, of any section of the contract, separated by commas. Optional. |
+| `Wio-Items` | The item ids this commit addresses, of the Work's own sections, separated by a comma and one space. Optional. |
 | `Wio-Result` | The gate's result, one of the `results` in the config. Only for stages that judge an artifact. |
 | `Wio-Judge` | Who judged a gate: `human` or `agent`. Optional; a gate's record without it was judged by a human. |
 
@@ -1785,8 +1785,8 @@ wio trailers <work>[,<work>...] <action> <stage> [--items ...]
 ```
 
 It prints a checked record: each Work exists in the working tree or in `HEAD`,
-the item ids exist in the contract of every Work listed, the result is in the
-vocabulary and present exactly when the stage is a gate, and the stage is in
+the item ids are among each listed Work's own item ids, the result is in
+the vocabulary and present exactly when the stage is a gate, and the stage is in
 each Work's actions (a warning, as in `wio context`). On the command line the
 ids are separated by commas alone, and the record separates them with a comma
 and a space, in the order given. A list names no Work twice. A Work found only
@@ -1797,12 +1797,12 @@ against `HEAD`'s contract.
 With `--result` it also writes the `review` event to the event log, with the
 items `--cite` names (such as `--cite ARC001=fail --cite AC-2=pass`), so a
 reviewer records everything with one command. For a list of Works, each cited
-item id must exist in every Work's contract, the event is written once per Work,
-and the comparison with the `context` event below runs for each Work. Each item
-is checked: one whose form is a rule code must name a rule the config chooses,
-and any other must be an item id of the Work's contract, and its result must be
-in the vocabulary. The **reviewed commit** is worked out from the history:
-starting at `HEAD` and following first parents, wio skips the
+item id must be one of every Work's own item ids, the event is written once per
+Work, and the comparison with the `context` event below runs for each Work. Each
+item is checked: one whose form is a rule code must name a rule the config
+chooses, and any other must be one of the Work's own item ids, and its result
+must be in the vocabulary. The **reviewed commit** is worked out from the
+history: starting at `HEAD` and following first parents, wio skips the
 **pure gate commits** of this gate, those with at least one record, all of which
 belong to its action and stage once the lists are expanded (for this Work or for
 others, as when one gate approves a parent and its children), and the first
@@ -2086,6 +2086,10 @@ and its own selection give it.
   every item of a section is cited by some stage's records before a gate. v0.1
   only carries ids ([Item ids](#item-ids)), and records already hold what such
   a check would read, so adding it later breaks nothing.
+- How `--cite` tells an item id from a rule code when a template's `pattern`
+  yields ids that look like rule codes, such as `ARC1`. "By form" needs the form
+  of a code stated precisely, and then either `wio contracts check` rejects item
+  ids of that form or a cited rule is always qualified with its ruleset.
 - How the resolved view renders inherited sections: their heading levels,
   their order relative to the Work's own sections, and how each names the
   ancestor it comes from. The contract Work settles it before golden tests fix
