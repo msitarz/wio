@@ -54,6 +54,8 @@ Settled with the driver on 2026-11-05. A leaf of `2fh1ar`; planned roots:
   Templates keep a required `kind`. wio's own `.agents/wio/config.toml`
   declares its kinds in `[templates.kinds]`, with no `[kinds]` table left, a
   guarantee of this leaf (moved here from the parent's review).
+- **Links back.** Its section on default actions links to the import item
+  that the marked-files leaf (`bgctsc`) records, which needs them.
 - **Open points** for `docs/concepts.md`:
   - a named file template as the default, `[works] default_template`, for
     defaults that need directives, such as a section required in every

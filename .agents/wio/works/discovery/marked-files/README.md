@@ -38,7 +38,9 @@ Markdown file for a Work.
 
 ## Assumptions
 
-None.
+- **A-1**: No other tool writes `<!-- wio` followed by whitespace on a
+  Markdown file's first line, or a `wio` key in `+++` front matter, so the
+  marked forms are wio's alone.
 
 ## Mechanisms
 
@@ -54,9 +56,10 @@ None.
 
 ## Constraints
 
-- **Rules of the engine.** What makes a file a Work is stated once, as a rule
-  of the engine in `docs/concepts.md`, so every component that reads contracts
-  applies the same rule and links to it. Verified by docs-review.
+- **Links point back.** This leaf is delivered before its siblings, so its
+  sections link to no section a sibling writes; each sibling that depends on
+  it adds the links between its own sections and this leaf's. Verified by
+  docs-review here, and by each sibling's docs-review for its links.
 
 ## Visuals
 
@@ -80,9 +83,11 @@ drawn from `docs/concepts.md` and `docs/v0.1-scope.md` on `main` at commit
 `docs/concepts.md` states which files are Works, so a project can name and
 place its contracts as it likes.
 
-- A Work is a `.md` file under the Works directory whose metadata block starts
-  on the file's first line, in the comment form `<!-- wio` or as `+++` front
-  matter that holds the marker. A block that starts on any later line, a blank
+- A Work is a file whose name ends in `.md`, matched case-sensitively, under
+  the Works directory, whose metadata block starts on the file's first line: a
+  `<!-- wio` comment, where `wio` is followed by whitespace or the end of the
+  line, or `+++` front matter that holds the marker. A leading UTF-8
+  byte-order mark is skipped. A block that starts on any later line, a blank
   line included, does not make the file a Work.
 - The file's name and the directories above it play no part in whether it is a
   Work.
@@ -92,22 +97,25 @@ place its contracts as it likes.
 - The symbol tables of section 2 say the same, including a `[works] dir` entry
   in the config table, and no longer mention a directory's `README.md`.
 - `GLOSSARY.md` defines Work and Work contract by the marked file, and adds
-  Marked file and Marker as the parent's Glossary defines them.
+  Marked file, with the first-line rule, and Marker.
 
 ### **AC-2** The walk finds every marked file and nothing else
 
 `docs/concepts.md` states how wio finds the files it checks, so its result does
 not depend on a setting or on git.
 
-- wio walks the Works directory recursively and reads every `*.md` file in it.
-- It skips directories whose names start with `.`, and it follows no symbolic
-  link, to a directory or to a file, so every Work has exactly one path.
+- wio walks the Works directory recursively and reads every `.md` file in it.
+- Below the Works directory, it skips directories whose names start with `.`,
+  and it follows no symbolic link, to a directory or to a file, so every Work
+  has exactly one path.
+- A Works directory that does not exist holds no Works when it is the default,
+  and is an error when `[works] dir` sets it; a Works directory that is not a
+  directory, or is a symbolic link, is an error.
 - It reads the working tree, so a Work that is not committed yet is found, and
   it consults neither `.gitignore` nor a glob setting.
 - A directory between the Works directory and a Work need not be a Work: the
   no-gap rule is gone from `docs/concepts.md` and from the checks that
-  `docs/v0.1-scope.md` lists, and how directories relate Works links to the
-  section the hierarchy leaf (`jsymcg`) writes.
+  `docs/v0.1-scope.md` lists.
 
 ### **AC-3** The marker tells wio's front matter from any other
 
@@ -121,26 +129,30 @@ is never read as a Work and a Work wio cannot read is never dropped silently.
   the file and implies version 1; a marker given there is checked.
 - A marker with a version wio does not know, such as `2`, or of the wrong type,
   such as `true` or `"1"`, is an error that names the versions wio knows.
+- A `<!-- wio` block that does not close, or whose TOML does not parse, is an
+  error that names the file. `+++` front matter that does not close or parse
+  is the same error when its text contains `wio =`, and is otherwise silently
+  not a Work, because wio cannot tell it from another tool's.
 - The section says how a forgotten marker still shows: a `depends_on` that
   names the missing Work's id is an unknown id, and the Work is absent from
   the list of Works.
 
 ### **AC-4** wio says why a file is not a Work
 
-`docs/v0.1-scope.md` and `docs/concepts.md` state that `wio contracts show`
-takes a file, so a person or an agent can learn why a file is not a Work.
+`docs/concepts.md` and the outcome of Show in `docs/v0.1-scope.md` state the
+reasons `wio contracts show` gives for a file that is not a Work, so a person
+or an agent can learn why it is not.
 
-- `wio contracts show` takes a Work's id or a file's path; an argument that
-  contains `/` or ends in `.md` is a path.
-- For a file that is a Work it shows that Work, as it does for its id.
-- For a file that is not a Work it fails and names the reason: no metadata
-  block, a block that does not start on the first line, `+++` front matter
-  without the marker, a path outside the Works directory, a path under a
-  directory whose name starts with `.`, or a symbolic link.
-- The reasons the hierarchy modes add link to the section of the hierarchy leaf
-  (`jsymcg`) instead of being listed here, and the rest of `wio contracts`
-  links to the command section that the templates-command leaf (`be2081`)
-  writes.
+- For a file that is a Work, `show` shows that Work, as it does for its id.
+- For a file that is not a Work, it fails and names one of these reasons: the
+  path does not exist, the name does not end in `.md`, the file has no
+  metadata block, its block does not start on the first line, its `+++` front
+  matter has no marker, the path is outside the Works directory, the path is
+  under a directory below the Works directory whose name starts with `.`, or
+  the path is or runs through a symbolic link.
+- An unreadable block is not among these reasons, because it is the error AC-3
+  states.
+- The reasons are required; their exact wording is provisional.
 
 ### **AC-5** Importing specs without a marker is recorded for later
 
@@ -151,8 +163,8 @@ v0.1.
   specs: a mode that takes every `.md` file with front matter and an `id` as a
   Work, configurable id generation, and an id format that admits ids such as
   `SPEC-012`.
-- The item says that the mode needs default actions, and links to the section
-  on them that the optional-templates leaf (`ms5t0t`) writes.
+- The item says that the mode needs default actions for contracts without a
+  template.
 - "Not in v0.1" of `docs/v0.1-scope.md` lists the item, linking to the open
   point.
 
@@ -161,5 +173,10 @@ v0.1.
 - A leaf of [Finding Work contracts in any Markdown file](../README.md)
   (`2fh1ar`), whose constraints it inherits and whose AC-1 and AC-3 join this
   leaf's rules with those of its siblings.
-- Reading only the start of each file keeps the walk cheap, because a file whose
-  first line opens no block is ruled out at once.
+- The siblings add their links to this leaf's sections: the hierarchy leaf
+  (`jsymcg`) from how directories relate Works and from the reasons its modes
+  add to `show`; the optional-templates leaf (`ms5t0t`) from default actions to
+  the import item; the templates-command leaf (`be2081`) from the
+  `wio contracts show <id or file>` signature, which it owns, to these reasons.
+- There is no glob setting because the marker already rules out foreign files;
+  one can be added later without breaking anything.

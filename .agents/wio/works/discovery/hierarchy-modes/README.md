@@ -45,6 +45,10 @@ Settled with the driver on 2026-11-05. A leaf of `2fh1ar`; planned roots:
 - **`wio contracts new`** writes `<slug>/README.md` in both modes, because a
   directory gives the Work's artifacts a home and forges render a `README.md`.
   Files a person writes or moves may have any name.
+- **Links back.** Its sections link to those of the marked-files leaf
+  (`bgctsc`), which is delivered first: from how directories relate Works,
+  and from the `nesting` reasons `wio contracts show` gives to that leaf's
+  list of reasons.
 - **Open points** for `docs/concepts.md`:
   - a third exclusive mode, perhaps in v0.2, where a `parent` id field gives the
     hierarchy and directories mean nothing; never mixed with `nesting`, so the

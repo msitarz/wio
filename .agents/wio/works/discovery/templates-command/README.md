@@ -51,6 +51,9 @@ Settled with the driver on 2026-11-05. A leaf of `2fh1ar`; planned roots:
   documents state the two commands with no subcommand in common, and no
   mention of a removed form, such as `wio contracts template` or
   `wio contracts tree`, is left.
+- **Links back.** The `wio contracts show <id or file>` signature, and how a
+  path is told from an id (a `/` or a `.md` ending), are this leaf's, and
+  link to the reasons the marked-files leaf (`bgctsc`) states.
 - Other documents that name `wio contracts template` change with it:
   `docs/concepts.md`, `docs/workflow.md`, `docs/split-exercises.md` and the
   define skill's steps in `docs/v0.1-scope.md`.
