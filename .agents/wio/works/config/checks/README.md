@@ -20,19 +20,20 @@ error.
 - The same errors stop every other command, so no component sees a config that
   fails a check.
 - The repository's own config passes, and a hook after each edit keeps it so.
+- The installed package checks the config of any project, not only this one.
 
 ## Glossary
 
 - **Check**: a function from the `Config` and what it may read to diagnostics;
   one concern, such as the references among stages.
-- **Pass**: the loader's run of the shape and then every check, which `check`
-  prints and `Settings.load` refuses on.
+- **Check run**: the loader's run of the shape and then every check, which
+  `check` prints and `Settings.load` refuses on.
 
 ## Non-Goals
 
 - Checks that parse a template or a rule file, which the contracts, templates
-  and rules Works add to the same pass when they deliver: a template's kind and
-  directives, a ruleset's manifest, codes, families and presets, whether a
+  and rules Works add to the same check run when they deliver: a template's kind
+  and directives, a ruleset's manifest, codes, families and presets, whether a
   qualified reference resolves to a rule, and whether a root reaches a
   root-independent ruleset.
 - Reporting an unused stage, root or preset: templates and contracts name them
@@ -46,30 +47,28 @@ error.
 
 ## Mechanisms
 
-- The ordered list of checks and the pass of the loader.
+- The ordered list of checks and the check run of the loader.
 - `wio.formats`' renderer of diagnostics, shared by every `check` command.
 - `prek.toml` and `.claude/settings.json`, for the hooks of this repository.
 
 ## Constraints
 
-- **One pass.** A check never stops the others: the pass runs every check even
-  when one reports an error, and output is sorted, as the render does.
+- **One check run.** A check never stops the others: the run executes every
+  check even when one reports an error.
 - **Errors block everywhere.** A check that reports an error is run by
   `Settings.load` too, so it must be cheap and local: it reads paths, names and
   listings, and parses neither a template nor a rule.
 - **Warnings and notes appear only in `wio config check`.** They never change an
   exit code and are not printed by other commands.
-- **Messages** follow the loader's rule: they name the key path, what was found,
-  what is valid and what the setting is for.
 - **Verification.** Each check's behaviour is verified by the leaf that adds it;
   that every error also stops the other commands is verified by AC-2 of this
   parent.
 
 ## Visuals
 
-Before, no check exists beyond the shape (`main` at commit
-`e7b10d8cde19aaf60eaae4a650ffd96b29dcd6d3`). After, the checks join one pass
-behind the loader. Bold boxes are added.
+Before, nothing reads the config (`main` at commit
+`e7b10d8cde19aaf60eaae4a650ffd96b29dcd6d3`). After, the checks join one check
+run behind the loader. Bold boxes are added.
 
 ```mermaid
 flowchart LR
@@ -116,8 +115,8 @@ command exits 2 with the same errors on standard error.
 #### Warnings and notes alone
 
 - **Given** a config with a root path that does not exist yet, which is a
-  warning, and a non-empty `rules_always_include`, which is a note, and no
-  error.
+  warning, and a `rules_always_include` entry that resolves to a rule preset,
+  which is a note, and no error.
 - **When** `wio config list` and `wio config check` run.
 - **Then** `list` prints the settings and nothing of the warning or the note,
   and `check` prints both and exits 0.

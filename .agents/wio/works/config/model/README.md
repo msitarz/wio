@@ -21,6 +21,8 @@ plain, immutable types, defined once, before any of them can read the config.
 - A `ConfigurationError` carries the diagnostics that caused it.
 - Each setting's meaning is available to a message as a one-sentence
   description.
+- A mapping held by a `Config` is frozen in one place, so the checker's gap
+  with `frozendict` is worked around once.
 
 ## Non-Goals
 
@@ -37,7 +39,7 @@ plain, immutable types, defined once, before any of them can read the config.
   and every value in a `Config` is a frozen dataclass, a tuple, a string, a
   number or a boolean.
 - **A-2**: `wio.models` imports nothing from `wio` and `wio.errors` imports only
-  `wio.models`, after the dependency change of PR #80.
+  `wio.models`.
 
 ## Mechanisms
 
@@ -118,9 +120,13 @@ class Config:
 
 The field names of a stage are `goal`, `skill`, `roots`, `rules_include`,
 `rules_exclude`, `gate`, `judge`, `session` (`"any"` by default) and
-`continuable` (`true` by default); an optional setting with no default, such as
-`judge` and `roots`, is `None`, and a list is an empty tuple. The names of the
-other nested types are provisional.
+`continuable` (`true` by default); `gate` is false by default, and an optional
+setting with no default, such as `judge` and `roots`, is `None`. A list is an
+empty tuple. A root's `paths` and an action's `description` have no default, so
+a `Root` and an `Action` cannot be built without them, and the value of
+`works.defaults.actions` is `frozendict[str, str | tuple[str, ...]]`, a stage
+preset id or a list of stage names. The names of the other nested types are
+provisional.
 
 ### **AC-2** Every setting has a description
 
@@ -159,7 +165,7 @@ def sort_diagnostics(
 
 - **Given** a note at `b`, an error at `b`, an error at `a` and a warning at
   `a`.
-- **When** they are sorted with `sort_diagnostics`.
+- **When** they are sorted with `sort_diagnostics` of `wio.models`.
 - **Then** the order is by `where`, then error, warning and note, then
   `message`: the error at `a`, the warning at `a`, the error at `b`, the note
   at `b`. `where` is compared as a plain string, so `x[10]` sorts before `x[2]`.
@@ -182,8 +188,13 @@ def render_json(diagnostics: Iterable[Diagnostic]) -> str: ...
 - **When** both renderers run on it.
 - **Then** the text is the two lines `note: a: reserved` and
   `error: stages.x: unknown stage`, in that order, and the JSON is an array of
-  two objects with `severity`, `where` and `message`, in the same order; an
-  empty list renders as empty text and as `[]`.
+  two objects with `severity`, `where` and `message`, in the same order.
+
+#### No diagnostics
+
+- **Given** an empty list.
+- **When** both renderers run on it.
+- **Then** the text is empty and the JSON is `[]`.
 
 #### Importing
 

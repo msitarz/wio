@@ -135,11 +135,12 @@ never depend on the order the disk returns.
 
 #### Listing and missing paths
 
-- **Given** a directory holding `b`, `a` and `c`, and a path that does not
-  exist.
-- **When** `list_dir` runs on the directory and `read_text` on the missing path.
-- **Then** the listing is `a`, `b`, `c`, and the read raises
-  `FileNotFoundError`; `list_dir` of a file raises `NotADirectoryError`.
+- **Given** a directory holding `b`, `a` and `c`, a file, and a path that does
+  not exist.
+- **When** `list_dir` runs on the directory and on the file, and `read_text` on
+  the missing path.
+- **Then** the listing is `a`, `b`, `c`, the listing of the file raises
+  `NotADirectoryError`, and the read raises `FileNotFoundError`.
 
 ### **AC-3** `GitRepository` finds the root and the identity of a repository
 

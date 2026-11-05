@@ -18,9 +18,11 @@ them.
 - A reference to a ruleset, an alias or a rule preset that does not exist is an
   error that says what exists.
 - A name of the wrong form is an error that says the form.
-- A rule preset that refers to itself, and a preset in the final veto, are
-  errors.
+- A rule preset that refers to itself, directly or through others, is an error.
+- A field that takes a kind of name it does not accept is an error: a family or
+  a code in a root's `rule_presets`, and a preset in the final veto.
 - A ruleset directory without a manifest, and a clashing alias, are errors.
+- A note tells a driver what every session receives.
 
 ## Glossary
 
@@ -61,8 +63,8 @@ them.
 
 A bare name, a ruleset name, an alias and the parts of a qualified reference
 follow the forms of the concepts: a family is upper-case letters, a code is a
-family and digits, and a preset, a ruleset and an alias are lower-case with `-`
-and `_` allowed.
+family and digits, and a preset, a ruleset and an alias are a lower-case
+letter, then lower-case letters, digits, `-` and `_`.
 
 #### Wrong forms
 
@@ -79,12 +81,20 @@ directory, and a bare name is a rule preset of the config.
 
 #### Unknown ruleset and preset
 
-- **Given** `rules_include = ["docz.DOC", "mine", "docs.DOC"]` where there is a
-  ruleset `docs` and no rule preset `mine`.
+- **Given** a stage `define` with `rules_include = ["docz.DOC", "mine",
+  "docs.DOC"]` where there is a ruleset `docs` and no rule preset `mine`.
 - **When** the checks run.
-- **Then** an error at `rules_include[0]` names `docz` and lists the rulesets
-  and aliases, one at `rules_include[1]` lists the config's rule presets, and
-  the third passes.
+- **Then** an error at `stages.define.rules_include[0]` names `docz` and lists
+  the rulesets and aliases, one at `stages.define.rules_include[1]` lists the
+  config's rule presets, and the third passes.
+
+#### In a root and an always field
+
+- **Given** a root `wio` with `rule_presets = ["docz.all"]`, where there is no
+  ruleset or alias `docz`, and `rules_always_include = ["nope"]`.
+- **When** the checks run.
+- **Then** an error at `roots.wio.rule_presets[0]` names `docz` and one at
+  `rules_always_include[0]` lists the config's rule presets.
 
 #### An alias
 
@@ -99,20 +109,26 @@ it.
 
 #### A cycle
 
-- **Given** presets `a` including `b`, and `b` including `a`.
+- **Given** presets `a` including `b`, and `b` including `a`, and a preset `s`
+  including `s`.
 - **When** the checks run.
-- **Then** one error names `a` and `b`.
+- **Then** one error names `a` and `b`, and one names `s`.
 
-### **AC-4** The veto takes codes and families only
+### **AC-4** Each field takes only the kinds of name it needs
 
-`rules_always_exclude` holds codes and families, never a preset.
+A root's `rule_presets` take rule presets only, and `rules_always_exclude`
+takes qualified codes and families only; the other fields take every kind.
 
-#### A preset in the veto
+#### A family in a root and a preset in the veto
 
-- **Given** `rules_always_exclude = ["docs.recommended"]`.
+- **Given** a root `wio` with `rule_presets = ["docs.DOC", "docs.all"]`, and
+  `rules_always_exclude = ["docs.recommended", "mine", "docs.DOC001"]` where
+  `mine` is a config rule preset.
 - **When** the checks run.
-- **Then** an error at `rules_always_exclude[0]` says only codes and families
-  are allowed there.
+- **Then** an error at `roots.wio.rule_presets[0]` says a root takes rule
+  presets only, the second entry passes, errors at `rules_always_exclude[0]` and
+  `rules_always_exclude[1]` say only qualified codes and families are allowed
+  there, and the third passes.
 
 ### **AC-5** Rulesets and aliases are consistent
 
@@ -135,8 +151,7 @@ When `rules_always_include` is not empty, a note at it lists its entries.
 
 - **Given** `rules_always_include = ["process.fix-the-cause"]`.
 - **When** `wio config check` runs.
-- **Then** a note lists the entry, the exit code is unchanged, and
-  `Settings.load` does not report it.
+- **Then** a note lists the entry, and the exit code is unchanged.
 
 ## Additional context
 

@@ -22,7 +22,9 @@ every problem at once.
 - The source of every setting, the file or the default, is known without being
   part of `Config`.
 - Every other component receives a `Config` with no error in it, or none.
-- Further checks join the same pass without a change to the loader's callers.
+- Further checks join the same check run without a change to the loader's
+  callers.
+- A run that finds no problem imports nothing it does not use.
 
 ## Glossary
 
@@ -97,8 +99,9 @@ flowchart LR
 
 ### **AC-1** The config is found at the root of the repository
 
-The loader reads `<root>/.agents/wio/config.toml`, where the root is that of the
-working directory, and refuses when there is no repository or no file.
+The loader, in `wio.config`, reads `<root>/.agents/wio/config.toml`, where the
+root is that of the working directory, and refuses when there is no repository
+or no file.
 
 ```python
 @dataclass(frozen=True)
@@ -124,7 +127,7 @@ def load_config(repository: Repository, files: FileSystem) -> Loaded: ...
   config file.
 - **When** `load_config` runs in each.
 - **Then** each raises `ConfigurationError` that names the path looked at and
-  does not mention `wio init`, and an empty config file loads without error.
+  does not mention `wio init`.
 
 ### **AC-2** A key the file does not set keeps its default
 
@@ -142,8 +145,11 @@ set has the default of its field.
 
 ### **AC-3** The source of every setting is known
 
-`sources` maps every key path of the effective settings to `file` or `default`,
-built from the fields of `Config`, so it cannot drift from the schema.
+`sources` maps every key path of the effective settings that has a value to
+`file` or `default`, built from the fields of `Config`, so it cannot drift from
+the schema. It lists leaf settings only: a table entry such as `stages.define`
+has no key of its own, and its keys are `file` when set and `default` when not.
+An optional setting that is `None` has no entry.
 
 #### Defaults and file values
 
@@ -153,14 +159,15 @@ built from the fields of `Config`, so it cannot drift from the schema.
 - **Then** `works.hierarchy` is `file`, `works.dir` is `default`,
   `stages.define.goal` is `file`, `stages.define.session` is `default`, and
   every key path of `Config()`, with those of the stage, has an entry, except
-  the optional settings that are absent: `bundle.size_threshold`,
+  the optional settings that are `None`: `bundle.size_threshold`,
   `stages.define.judge` and `stages.define.roots` have none.
 
 #### A new field
 
 - **Given** the dataclasses of `Config`.
 - **When** the key paths of `sources` for an empty file are compared with the
-  fields found by walking them.
+  fields found by walking them, leaving out the optional settings that are
+  `None`.
 - **Then** they are the same set.
 
 ### **AC-4** Every shape problem is reported at once
@@ -194,6 +201,20 @@ default and an unknown key is dropped.
   `"nest"`, the allowed `"flat"` and `"nesting"` and the setting's description,
   and `trailers.reader` names the received `3`, the expected string and the
   description.
+
+#### A missing required key
+
+- **Given** a root without `paths`, and an action without `description`.
+- **When** `load_config` runs.
+- **Then** each has an error at its table that names the missing key and the
+  setting's description.
+
+#### A wrong default action
+
+- **Given** `[works.defaults.actions]` with `define = 3`.
+- **When** `load_config` runs.
+- **Then** an error at `works.defaults.actions.define` names the received `3`
+  and says a value is a stage preset id or a list of stage names.
 
 #### The other vocabularies
 
@@ -248,14 +269,14 @@ class ConfigSettings:
 - **Then** the first returns the `Config`, the second raises with both errors in
   `diagnostics` and in its message, and the third returns the `Config`.
 
-### **AC-7** A further check joins the same pass
+### **AC-7** A further check joins the same check run
 
 A check is a function from the `Config` and what it may read to diagnostics,
 kept in one ordered list that the loader runs after the shape, also when the
 shape has errors, on the best-effort `Config`, so a leaf that
 adds one changes neither the loader's callers nor `Settings.load`. The second
 parameter holds the repository root and the `FileSystem`; its shape is
-provisional, and the list and the pass are required.
+provisional, and the list and the check run are required.
 
 ```python
 Check = Callable[[Config, CheckInputs], Iterable[Diagnostic]]

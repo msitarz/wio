@@ -41,8 +41,9 @@ another must resolve before any command builds a pipeline from them.
 
 ### **AC-1** Stage presets and default actions name known stages
 
-Every stage in a stage preset, and every stage or preset a default action
-names, exists, and no stage appears twice in one pipeline.
+Every stage in a stage preset exists, a default action's string names a stage
+preset and each name in its list is a stage, and no stage appears twice in one
+pipeline.
 
 #### A missing stage and a repeated stage
 
@@ -55,11 +56,15 @@ names, exists, and no stage appears twice in one pipeline.
 #### Default actions
 
 - **Given** `[works.defaults.actions]` with `deliver = "missing"` where
-  `missing` is neither a stage preset nor a stage, `define = ["define"]` and
-  `ship = ["define"]`, and `[actions]` declaring only `define` and `deliver`.
+  `missing` is not a stage preset, `review = "define"` where `define` is a
+  stage, `build = ["define", "ghost"]` where `ghost` is not a stage,
+  `define = ["define"]` and `ship = ["define"]`, and `[actions]` declaring only
+  `define`, `deliver`, `review` and `build`.
 - **When** the checks run.
-- **Then** an error at `works.defaults.actions.deliver` lists the known presets
-  and stages, an error at `works.defaults.actions.ship` says `ship` is not a
+- **Then** an error at `works.defaults.actions.deliver` lists the known stage
+  presets, one at `works.defaults.actions.review` says a string is a stage
+  preset id and lists them, one at `works.defaults.actions.build[1]` lists the
+  known stages, one at `works.defaults.actions.ship` says `ship` is not a
   declared action, and `define` passes.
 
 ### **AC-2** A stage's roots are roots or `@work`
@@ -84,12 +89,14 @@ and gets a note.
 #### The errors
 
 - **Given** actions `a` (`after = ["b"]`), `b` (`after = ["a"]`), `c`
-  (`after = ["d"]`) where `d` is on demand, and `e` with
+  (`after = ["d"]`) where `d` is on demand, `h` (`after = ["zzz"]`) where
+  `zzz` is no action, and `e` with
   `invalidated_by = ["f", "@descendants:g"]` where neither `f` nor `g` is an
   action.
 - **When** the checks run.
 - **Then** there is one error for the cycle that names `a` and `b`, one at
-  `actions.c.after[0]` that says `d` is on demand, and one each at
+  `actions.c.after[0]` that says `d` is on demand, one at `actions.h.after[0]`
+  that names `zzz` and lists the declared actions, and one each at
   `actions.e.invalidated_by[0]` and `actions.e.invalidated_by[1]` that name the
   undeclared action and list the declared ones.
 
@@ -109,18 +116,6 @@ and gets a note.
 - **Given** `results = []`, and `results = ["pass", "pass"]`.
 - **When** the checks run on each.
 - **Then** each is an error at `results` that says what a result list needs.
-
-### **AC-5** An error of this leaf is reported and stops the other commands
-
-The errors above are errors of the pass, so `wio config check` reports them and
-`Settings.load` refuses on them.
-
-#### Both views
-
-- **Given** the config of AC-1's first scenario.
-- **When** `wio config check` and `wio config list` run.
-- **Then** the first exits 1 with the errors and the second exits 2 with the
-  same errors.
 
 ## Additional context
 

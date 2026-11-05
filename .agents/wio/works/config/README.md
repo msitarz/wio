@@ -21,8 +21,10 @@ person needs to see what they are and where each value comes from.
 - A person or an agent that edits the config is told what is wrong with it in
   the same turn.
 - The ports that components use to reach files and the repository name no tool.
+- A run that finds no problem loads nothing it does not need.
+- The documents describe the config and its commands as they are.
 
-## Glossary <!-- wio: inherit -->
+## Glossary
 
 - **Diagnostic**: one finding of a check, with a severity (`error`, `warning` or
   `note`), the place it is about and a message.
@@ -33,7 +35,7 @@ person needs to see what they are and where each value comes from.
 - Writing the config, and `wio init`, which comes in v0.2.
 - A walk up the directories, a per-directory override and a second config file.
 - Checks that parse a template or a rule file, which the contracts, templates
-  and rules Works add to the same pass.
+  and rules Works add to the same check run.
 - Suppressing a diagnostic and giving it a stable code.
 
 ## Assumptions
@@ -68,6 +70,11 @@ person needs to see what they are and where each value comes from.
   and a run that finds no problem imports neither `tomlkit`, `json` nor
   `difflib`.
 - **Output is deterministic.** It is sorted and has no timestamps.
+- **Verification.** The location of the config is verified by the loader's
+  AC-1, unknown keys and the content of messages by the loader's AC-4, the
+  order and the shape of diagnostics by the model's AC-3 and AC-4, the sorted
+  output of the commands by the show leaf's AC-2, and what a run imports by
+  AC-2 of this parent.
 
 ## Visuals
 
@@ -78,7 +85,7 @@ component reads it through the ports, and every other component reads it through
 
 ```mermaid
 flowchart LR
-    cli["wio.cli"]
+    cli["wio.cli"]:::changed
     config["wio.config"]:::new
     models["wio.models: Config, Diagnostic"]:::changed
     formats["wio.formats: decode_toml, render"]:::changed
@@ -124,8 +131,8 @@ The built wheel gives a working `wio config`, `wio config list` and
 #### A fresh interpreter
 
 - **Given** a new Python process and a repository with a valid config.
-- **When** `wio config check` runs through the entry point and `sys.modules` is
-  read.
+- **When** `main(["config", "check"], stdio)` of `wio.cli` runs in that
+  process and `sys.modules` is read.
 - **Then** none of the three is there.
 
 ### **AC-3** The documents describe the config and its commands
@@ -134,10 +141,13 @@ The built wheel gives a working `wio config`, `wio config list` and
 `show` and `check`, with bare `wio config` showing the help), that an unknown
 key is an error, that skills are looked up in the repository only, that a stage
 has exactly one of `goal` and `skill`, and the `Diagnostic` and its shared
-output, and they say which checks the rules Work owns, not `wio config`.
-`GLOSSARY.md` defines Diagnostic, Source, Check and Pass. The documents no
+output, and they say which checks the rules Work owns, not `wio config`. They no
 longer list the field names of a stage's session policy or the names of the
 config tables among the open points, nor `wio config list <kind>`.
+
+### **AC-4** The glossary defines the new terms
+
+`GLOSSARY.md` defines Diagnostic, Source, Check and Check run.
 
 ## Additional context
 

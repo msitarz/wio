@@ -33,15 +33,17 @@ after every edit of it, so that an agent is told what to fix before it goes on.
   `MultiEdit`, passes it a JSON document on standard input that holds the edited
   file's path in `tool_input.file_path`, and feeds standard error to the model
   when the hook exits 2.
+- **A-2**: `uv run wio` runs wio in this repository, as the other hooks run
+  their tools through `uv run`, so the hooks need no `wio` on `PATH`.
 
 ## Mechanisms
 
 - `wio.config`'s `check` subcommand on the command table, which uses the
   loader's diagnostics and the shared renderer, not `Settings.load`.
-- A local hook in `prek.toml` with `files` set to the config's path and
-  `pass_filenames = false`.
+- A local hook in `prek.toml` whose entry is `uv run wio config check`, with
+  `files` set to the config's path and `pass_filenames = false`.
 - `scripts/config_check_hook.py`, which reads the hook's JSON with the standard
-  library and runs `wio config check`.
+  library and runs `uv run wio config check`.
 - `.claude/settings.json`, which installs it as a second `PostToolUse` hook.
 - `docs/workflow.md`, which shows the script as an example.
 
@@ -63,7 +65,14 @@ wio config check [--json]
 - **When** `wio config check` runs on each.
 - **Then** the first prints nothing and exits 0, the second prints the error as
   `error: <key path>: <message>` and exits 1, and the third prints the warning
-  and exits 0; with `--json` the first prints `[]`.
+  and exits 0.
+
+#### JSON
+
+- **Given** a valid config, and a config with an unknown key.
+- **When** `wio config check --json` runs on each.
+- **Then** the first prints `[]` and exits 0, and the second prints an array of
+  one object with `severity`, `where` and `message`, and exits 1.
 
 #### A syntax error
 
@@ -99,11 +108,11 @@ installs it.
 
 #### An edit of the config with an error
 
-- **Given** the hook's JSON for an edit of `.agents/wio/config.toml`, and a
-  config with an error.
+- **Given** the hook's JSON for an edit whose `tool_input.file_path` is the
+  absolute path of `.agents/wio/config.toml`, and a config with an error.
 - **When** the script reads it on standard input.
-- **Then** it runs `wio config check`, prints the diagnostics to standard error
-  and exits 2.
+- **Then** it runs `uv run wio config check`, prints the diagnostics to standard
+  error and exits 2.
 
 #### Other edits and a valid config
 

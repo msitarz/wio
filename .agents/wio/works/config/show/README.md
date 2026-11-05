@@ -19,6 +19,8 @@ line.
 - `wio config list` shows every setting and its source in a short, stable form.
 - `wio config show` shows one setting or a table in full, with its meaning.
 - Both can be read by a program as JSON.
+- A config with errors is refused, not shown.
+- Starting the command costs no more than it needs.
 
 ## Non-Goals
 
@@ -47,8 +49,8 @@ line.
 
 ### **AC-1** Bare `wio config` shows the component's help
 
-`wio config` with no subcommand prints the usage of `wio config` and its
-subcommands `list` and `show`, and exits 0.
+`wio config` with no subcommand prints the usage of `wio config` and the
+subcommands it has, and exits 0.
 
 #### The help
 
@@ -60,8 +62,8 @@ subcommands `list` and `show`, and exits 0.
 
 Each setting that has a value is one line, `key.path = value  # file` or
 `# default`, with the value in TOML syntax (strings quoted, lists as arrays),
-sorted by key path, at most 80 columns wide; an absent optional setting is not
-listed.
+sorted by key path, at most 80 columns wide unless the key path and the label
+alone reach 80; an absent optional setting is not listed.
 
 ```text
 wio config list [--json]
@@ -69,8 +71,8 @@ wio config list [--json]
 
 #### Lines and shortening
 
-- **Given** a config that sets one `goal` of three lines and an `alias` of
-  ninety characters.
+- **Given** a config that sets one `goal` of three lines and an action
+  `description` of ninety characters.
 - **When** `wio config list` runs.
 - **Then** the goal's line shows the first line of the value and `…`, every line
   is at most 80 columns wide with its key path and its `# file` or `# default`
@@ -94,7 +96,8 @@ wio config list [--json]
 ### **AC-3** `wio config show` prints a setting or a table in full
 
 `wio config show [key.path]` prints the setting or the table at the key path in
-full, each with its source, and under a setting its description.
+full, each with its source; for a single setting it also prints the setting's
+description under the line, and a table prints the setting lines only.
 
 ```text
 wio config show [key.path] [--json]
@@ -103,25 +106,30 @@ wio config show [key.path] [--json]
 #### A setting
 
 - **Given** a config that sets `[works] hierarchy = "nesting"`.
-- **When** `wio config show works.hierarchy` runs.
-- **Then** the output is `works.hierarchy = "nesting"  # file` and under it the
-  description of the setting.
+- **When** `wio config show works.hierarchy` and
+  `wio config show works.hierarchy --json` run.
+- **Then** the first prints `works.hierarchy = "nesting"  # file` and under it
+  the description of the setting, and the second prints
+  `{"works.hierarchy": {"value": "nesting", "source": "file"}}`.
 
 #### A table and the whole config
 
 - **Given** a config with two stages, one with a three-line `goal`.
-- **When** `wio config show stages` and `wio config show` run.
-- **Then** the first prints every setting under `stages`, the goal in full, the
-  second every setting of the config, and with `--json` each gives the object of
-  `list --json` restricted to the key paths under the argument (for a single
-  setting, an object of one key path), with no description.
+- **When** `wio config show stages` and `wio config show` run, and again with
+  `--json`.
+- **Then** the first prints every setting under `stages`, the goal in full and
+  no description, the second every setting of the config, and with `--json`
+  each gives the object of `list --json` restricted to the key paths under the
+  argument.
 
 #### An unknown key path
 
-- **Given** the key path `stage.define`.
-- **When** `wio config show stage.define` runs.
-- **Then** it exits 2 with a message that names the closest match `stages` and
-  the valid top-level keys.
+- **Given** the key paths `stage.define` and `stages.definer`, with a stage
+  `define`.
+- **When** `wio config show` runs on each.
+- **Then** each exits 2; the first names the closest match `stages` and the
+  valid top-level keys, and the second names `stages.define` and the children
+  of `stages`.
 
 ### **AC-4** A config with errors is refused
 

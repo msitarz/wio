@@ -63,15 +63,15 @@ once in its root.
 - **Given** paths `src/`, `../x`, `/abs`, `a/./b` and `src` twice in one root.
 - **When** the checks run.
 - **Then** each of the first four is an error at its path that names the rule
-  and the normalized form, and the repeat is an error that names the first
-  occurrence; the same path in two roots is allowed.
+  and the normalized form where one exists, and the repeat is an error that
+  names the first occurrence; the same path in two roots is allowed.
 
 #### A missing path
 
 - **Given** a root path `docs/new` that does not exist.
 - **When** `wio config check` runs.
-- **Then** a warning at the path says it does not exist yet, the exit code is
-  unchanged, and `Settings.load` does not report it.
+- **Then** a warning at the path says it does not exist yet, and the exit code
+  is unchanged.
 
 ### **AC-2** A stage's skill is found in the repository
 
@@ -85,7 +85,8 @@ the user's home.
   stage naming `c`, which exists only in the user's home.
 - **When** the checks run.
 - **Then** `a` and `b` pass, and `c` is an error at `stages.<name>.skill` that
-  lists the directories searched and says the user's home is not searched.
+  lists the directories searched in the order `[skills] paths`,
+  `.agents/skills`, `.claude/skills`, and says the user's home is not searched.
 
 #### A skill path outside the repository
 
