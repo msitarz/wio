@@ -174,7 +174,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | --- | --- | --- | --- |
 | `Wio-Work` | *required* | The Works a commit is work on, or `none`. | [Records](#records) |
 | `Wio-Action`, `Wio-Stage` | *required* unless `Wio-Work: none` | The action and stage the commit is work on. | [Records](#records) |
-| `Wio-Criteria` | *optional* | The item ids the commit addresses, such as acceptance criteria. | [Records](#records) |
+| `Wio-Items` | *optional* | The item ids the commit addresses, of any section with a `pattern`. | [Records](#records) |
 | `Wio-Result` | *required* on a gate, absent elsewhere | The gate's result. | [Records](#records) |
 | `Wio-Judge` | *optional*, on a gate | Who judged the gate; without it, a human did. | [Records](#records) |
 | `Merge`, `Revert`, `Reapply`, `fixup!`, `squash!` | — | Subjects of commits that need no record. | [Records](#records) |
@@ -495,10 +495,31 @@ that a `pattern` directive gives the items of a section, such as `AC-1`.
 They let records and reviews say which parts of a contract a commit addresses
 or a gate judged, without wio knowing what the parts mean. A template decides
 which sections carry ids and what they look like; a workflow decides what they
-stand for. In [wio's own workflow](workflow.md#2-what-a-contract-states) they
-are acceptance criteria, so the trailer that carries them is `Wio-Criteria`
-and the flag is `--criteria`, named after that common use. Ids belong to their
-Work: `AC-1` of one Work and `AC-1` of another are different items.
+stand for. In [wio's own workflow](workflow.md#2-what-a-contract-states) most
+are acceptance criteria, but the engine treats every id alike, whatever its
+section: the trailer that carries them is `Wio-Items` and the flag is
+`--items`, and neither names a section.
+
+- **Ids describe themselves.** A record lists ids without saying which section
+  they come from, so an id must be unique in its contract. `wio contracts check`
+  fails when two sections match the same id, when an id appears twice, or when
+  an id holds whitespace or a comma, which separate ids in a record. Patterns
+  stay free regular expressions: wio checks the ids a contract has, not whether
+  two patterns could ever overlap, so templates are free to choose prefixes
+  such as `AC-` and `A-`.
+- **Ids belong to their Work.** `AC-1` of one Work and `AC-1` of another are
+  different items. A Work's ids are those of its own sections only: an inherited
+  section is context in a descendant's resolved view, and its ids are neither
+  part of the descendant's ids nor checked against them, so a child can have a
+  `C-1` of its own beside its parent's. A record of the child cannot cite the
+  parent's items; work on them is recorded on the parent, and a child item that
+  contributes to one tracks it ([Tracking items](#tracking-items-planned)).
+- **Ids are citations, not policy.** wio checks that the ids a record or a
+  review cites exist, and it stores, folds and shows them, but it never judges
+  coverage, such as whether every criterion was delivered before a gate. That
+  judgement belongs to a stage's skill and criteria, which can read the ids a
+  stage addressed from wio's output. A template that wants coverage enforced
+  has no directive for it yet ([Open points](#15-open-points)).
 
 This is the direction for v0.1, not a settled grammar: how wio finds the items
 of a section, and so their ids, is open ([Open points](#15-open-points)).
@@ -684,7 +705,7 @@ AC-2 = ["31as8f AC-3", "871df7 AC-4"]
   computed from the descendants.
 - A parent item that nothing tracks is a warning, not an error. Some items are
   established only by a stage of the parent itself.
-- Records carry no extra trailer for this. Their `Wio-Criteria` together with
+- Records carry no extra trailer for this. Their `Wio-Items` together with
   the contract's links gives the same information.
 - Inherited sections, such as a parent's constraints, are not covered. They
   are inherited, not traced.
@@ -1674,7 +1695,7 @@ a paragraph of git trailers in the commit's message:
 Wio-Work: k3m9xq
 Wio-Action: deliver
 Wio-Stage: architecture-review
-Wio-Criteria: AC-1, AC-3
+Wio-Items: AC-1, AC-3
 Wio-Result: pass
 ```
 
@@ -1683,7 +1704,7 @@ Wio-Result: pass
 | `Wio-Work` | The Work's id; several ids separated by a comma and one space, for Works that share the rest of the record; or `none` for a commit that belongs to no Work. Required. |
 | `Wio-Action` | The action the stage belongs to. Required unless the Work is `none`. |
 | `Wio-Stage` | The stage the commit works on. Required unless the Work is `none`. |
-| `Wio-Criteria` | The item ids this commit addresses, such as acceptance criteria, separated by commas. Optional. |
+| `Wio-Items` | The item ids this commit addresses, of any section of the contract, separated by commas. Optional. |
 | `Wio-Result` | The gate's result, one of the `results` in the config. Only for stages that judge an artifact. |
 | `Wio-Judge` | Who judged a gate: `human` or `agent`. Optional; a gate's record without it was judged by a human. |
 
@@ -1696,14 +1717,14 @@ Wio-Result: pass
   serves several Works, such as the `review-contract` gate that approves a
   parent and its children together, writes one list when every other trailer is
   the same, and one paragraph per Work when anything else differs. The ids are
-  separated by a comma and one space, as in `Wio-Criteria`. Nothing is listed
+  separated by a comma and one space, as in `Wio-Items`. Nothing is listed
   twice, and `none` is never listed. A record of a parent says nothing about its
   children, because progress is read for each Work, action and stage on its own.
   Two cautions follow from that. The order of the ids matters when one Work's
   staleness depends on another's record
   ([What `wio next` proposes](#what-wio-next-proposes)), so list dependencies
   and children before the Works that depend on them. And item ids belong to
-  their Work, so `Wio-Criteria: AC-1` on a list means each Work's own `AC-1`:
+  their Work, so `Wio-Items: AC-1` on a list means each Work's own `AC-1`:
   list Works together only when that is what the record means.
 - **Every commit of a stage carries the stage's record.** A stage that takes
   four commits has four records, and only the latest counts. No record says
@@ -1725,7 +1746,8 @@ Wio-Result: pass
   stage addressed are the union over its records that are newer than the latest
   record of every earlier stage in its pipeline, the same window that decides
   currency. When an earlier stage is redone, the run starts over, and so do its
-  ids. A record without `Wio-Criteria` adds none.
+  ids. A record without `Wio-Items` adds none. The union is shown, never
+  judged ([Item ids](#item-ids)).
 - **Unknown ids are ignored.** A record of a Work that was deleted refers to
   nothing and does no harm.
 - **A revert takes its commit's records back.** `git revert` writes
@@ -1758,7 +1780,7 @@ Wio-Result: pass
   because it needs a record of another stage between the two.
 
 ```text
-wio trailers <work>[,<work>...] <action> <stage> [--criteria ...]
+wio trailers <work>[,<work>...] <action> <stage> [--items ...]
              [--result ...] [--judge ...] [--cite ...]
 ```
 
@@ -1820,10 +1842,13 @@ modes, because a message is checked either when it is written or long after.
   commits in CI. It checks the shape of every record (the keys, the id's form, a
   result's value, the ids of a list), and reports names that the current config
   does not know as **warnings**: a record that was valid when it was written
-  never fails later because the config changed. It does not check that Works and
-  item ids exist, because Works are deleted later and the readers ignore unknown
-  ids. A message without a record passes: a pull request whose commits all
-  belong to no Work has none in its body.
+  never fails later because the config changed. A `Wio-` key it does not know,
+  such as `Wio-Criteria`, which carried item ids before `Wio-Items` did, is a
+  warning too, and the readers ignore its value, so old records still count for
+  their Work and stage. It does not check that Works and item ids exist, because
+  Works are deleted later and the readers ignore unknown ids. A message without
+  a record passes: a pull request whose commits all belong to no Work has none
+  in its body.
 
 In both modes, a `Wio-` line that the configured reader cannot see is reported,
 as an error at commit time and as a warning afterwards: for `scan`, a `Wio-`
@@ -2057,6 +2082,10 @@ and its own selection give it.
   the directive grammar must be able to apply to subheadings. How a `pattern`
   that contains a comma or `-->` is written is open too. The directive-grammar
   Work settles both.
+- A directive by which a template asks for coverage of its items, such as that
+  every item of a section is cited by some stage's records before a gate. v0.1
+  only carries ids ([Item ids](#item-ids)), and records already hold what such
+  a check would read, so adding it later breaks nothing.
 - How the resolved view renders inherited sections: their heading levels,
   their order relative to the Work's own sections, and how each names the
   ancestor it comes from. The contract Work settles it before golden tests fix

@@ -73,7 +73,7 @@ system-level review. Its integration commit carries the record:
 Wio-Work: c4n7xt
 Wio-Action: deliver
 Wio-Stage: integration
-Wio-Criteria: AC-1, AC-2, AC-3
+Wio-Items: AC-1, AC-2, AC-3
 ```
 
 ### What exercise 1 showed

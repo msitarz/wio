@@ -107,7 +107,7 @@ feat(config): read config.toml
 Wio-Work: k3m9xq
 Wio-Action: deliver
 Wio-Stage: implementation
-Wio-Criteria: AC-1, AC-2
+Wio-Items: AC-1, AC-2
 ```
 
 **4. Stop at the gate.** `implementation-review` runs in a fresh session with

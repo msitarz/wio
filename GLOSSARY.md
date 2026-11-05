@@ -32,7 +32,7 @@ commit messages.
 | Rule code | The stable identifier of a rule: a family prefix and a number. |
 | Family | The letters of a rule code. They group rules by topic and belong to a ruleset. |
 | Bundle | The text `wio context` prints for a session. |
-| Record | A paragraph of `Wio-*` git trailers in a commit message that says the commit is work on a stage of one or more Works, with its criteria and, for a gate, its result and who judged it. |
+| Record | A paragraph of `Wio-*` git trailers in a commit message that says the commit is work on a stage of one or more Works, with the item ids it addresses and, for a gate, its result and who judged it. |
 | Promote | To carry what a contract guarantees, with its reasons and diagrams, into the documents next to the code. |
 | Retire | To delete a contract, which git history keeps, once what it guarantees was promoted. |
 | Driver | Whoever advances the Work: a human now, an orchestrator later. It chooses the action and the stage; wio only proposes. |
