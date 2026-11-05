@@ -32,7 +32,7 @@ def _message(*paragraphs: str) -> str:
     "record",
     [
         RECORD,
-        f"{RECORD}\nWio-Criteria: AC-1, AC-3",
+        f"{RECORD}\nWio-Items: AC-1, AC-3",
         f"{RECORD}\nWio-Result: pass",
         f"{RECORD}\nWio-Result: pass\nWio-Judge: human",
         "Wio-Work: k3m9xq, a7b2c4\nWio-Action: define\nWio-Stage: define",
@@ -60,7 +60,7 @@ def test_valid_records_have_no_problems(record: str) -> None:
         ("Wio-Work: k3m9xq\nWio-Action: deliver", "Wio-Stage is missing"),
         ("Wio-Work: K3M9XQ\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
         ("Wio-Work: k3m9xi\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
-        (f"{RECORD}\nWio-Criteria: 1, 3", "must look like"),
+        (f"{RECORD}\nWio-Items: AC-1,AC-3", "must look like"),
         (f"{RECORD}\nWio-Result: maybe", "must be one of"),
         (f"{RECORD}\nWio-Result: pass\nWio-Judge: robot", "must be one of human"),
         (f"{RECORD}\nWio-Judge: human", "Wio-Judge needs a Wio-Result"),
@@ -89,6 +89,7 @@ def test_valid_records_have_no_problems(record: str) -> None:
         ("Wio-Work: none\nWio-Judge: human", "not allowed when Wio-Work is none"),
         (f"{RECORD}\nWio-Stage: wiring", "appears more than once"),
         (f"{RECORD}\nWio-Typo: x", "unknown trailer Wio-Typo"),
+        (f"{RECORD}\nWio-Criteria: AC-1", "unknown trailer Wio-Criteria"),
         ("Wio-Work: none\nWio-Stage: define", "not allowed when Wio-Work is none"),
         ("Wio-Work: k3m9xq\nWio-Action: Deliver\nWio-Stage: x", "is not a name"),
     ],
@@ -258,20 +259,20 @@ def _collect(*messages: str) -> list[str]:
 
 
 def test_a_works_consecutive_records_of_one_stage_become_one() -> None:
-    """Four commits of a stage leave one record, with the criteria united."""
+    """Four commits of a stage leave one record, with the item ids united."""
     # Given a Work with a record in each of four commits of one stage
     messages = [
-        _record("k3m9xq", "define", "Wio-Criteria: AC-1"),
+        _record("k3m9xq", "define", "Wio-Items: AC-1"),
         _record("k3m9xq", "define"),
-        _record("k3m9xq", "define", "Wio-Criteria: AC-2, AC-1"),
-        _record("k3m9xq", "define", "Wio-Criteria: AC-3"),
+        _record("k3m9xq", "define", "Wio-Items: AC-2, AC-1"),
+        _record("k3m9xq", "define", "Wio-Items: AC-3"),
     ]
 
     # When their records are collected
     collected = _collect(*messages)
 
-    # Then one record remains, with each criterion once, in order of appearance
-    assert collected == [_record("k3m9xq", "define", "Wio-Criteria: AC-1, AC-2, AC-3")]
+    # Then one record remains, with each item id once, in order of appearance
+    assert collected == [_record("k3m9xq", "define", "Wio-Items: AC-1, AC-2, AC-3")]
 
 
 def test_the_latest_result_and_judge_of_a_merged_gate_win() -> None:
@@ -333,11 +334,11 @@ def test_a_list_in_a_commit_is_read_as_one_record_per_work() -> None:
 
 
 def test_blocks_with_any_other_difference_stay_apart() -> None:
-    """Different criteria, results or stages keep records separate."""
-    # Given consecutive records for two Works that differ in their criteria
+    """Different item ids, results or stages keep records separate."""
+    # Given consecutive records for two Works that differ in their item ids
     messages = [
-        _record("k3m9xq", "define", "Wio-Criteria: AC-1"),
-        _record("jsk0yt", "define", "Wio-Criteria: AC-2"),
+        _record("k3m9xq", "define", "Wio-Items: AC-1"),
+        _record("jsk0yt", "define", "Wio-Items: AC-2"),
     ]
 
     # When their records are collected
@@ -369,9 +370,9 @@ def test_a_merged_record_takes_its_later_position() -> None:
     """A Work's repeated record moves past the records written between them."""
     # Given a Work recorded, another Work recorded, and the first recorded again
     messages = [
-        _record("k3m9xq", "define", "Wio-Criteria: AC-1"),
+        _record("k3m9xq", "define", "Wio-Items: AC-1"),
         _record("jsk0yt", "review", "Wio-Result: pass"),
-        _record("k3m9xq", "define", "Wio-Criteria: AC-2"),
+        _record("k3m9xq", "define", "Wio-Items: AC-2"),
     ]
 
     # When their records are collected
@@ -380,7 +381,7 @@ def test_a_merged_record_takes_its_later_position() -> None:
     # Then the first Work's merged record comes after the other Work's
     assert collected == [
         messages[1],
-        _record("k3m9xq", "define", "Wio-Criteria: AC-1, AC-2"),
+        _record("k3m9xq", "define", "Wio-Items: AC-1, AC-2"),
     ]
 
 
