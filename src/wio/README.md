@@ -18,7 +18,7 @@ docstring.
 | `wio.ports` | The stub of the ports two or more components share |
 | `wio.io.adapters` | The adapters of the ports of `wio.io` |
 | `wio.env.adapters` | The adapters of the ports of `wio.env` |
-| `wio.config`, `wio.contracts`, `wio.rules`, `wio.trailers`, `wio.log`, `wio.context` | The components, one per subcommand |
+| `wio.config`, `wio.contracts`, `wio.templates`, `wio.rules`, `wio.trailers`, `wio.log`, `wio.context` | The components, one per subcommand |
 | `wio.cli` | The composition root |
 
 These are the modules of `wio` in [`tach.toml`](../../tach.toml): every package
@@ -42,6 +42,7 @@ flowchart LR
     subgraph components
         config
         contracts
+        templates
         rules
         trailers
         log

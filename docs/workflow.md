@@ -76,7 +76,7 @@ the define stage uses as working space.
 only a purpose and an intent section, which serve as working space while the
 `define` stage interviews the driver. Once the intent is clear, the stage
 decides whether the Work is a leaf or a parent, prints that template with
-`wio contracts template <name> --work <id>` and rewrites the contract in its
+`wio templates show <name> --work <id>` and rewrites the contract in its
 shape. `--work` keeps the Work's id and its dependencies, so the Work keeps its
 records. The stage passes no `--keep`, so the new template's roots and actions
 apply: a leaf gets the typed-boundary delivery, and a parent gets
