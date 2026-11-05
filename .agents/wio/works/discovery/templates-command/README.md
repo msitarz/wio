@@ -55,26 +55,23 @@ None.
 - `tach.toml`, whose modules give each component its allowed dependencies.
 - `docs/v0.1-scope.md`, whose table of parts and whose sections per command
   state each command's outcome, including the steps of the define skill.
-- `docs/concepts.md`, `docs/workflow.md`, `docs/split-exercises.md` and
-  `.agents/wio/config.toml`, which name the commands that change.
+- `docs/concepts.md`, `docs/workflow.md`, `docs/split-exercises.md`,
+  `README.md`, `GLOSSARY.md` and `.agents/wio/config.toml`, which name the
+  commands that change.
 - `src/wio/README.md`, `src/wio/cli/README.md` and `src/wio/GLOSSARY.md`,
   which list the components.
 
 ## Constraints
 
-- **Links point back.** Every sibling is delivered before this leaf, so this
-  leaf adds the links between its command sections and theirs. Verified by
-  docs-review.
-- **Only the name of a component.** The new package holds a docstring and
-  nothing else, so no command is implemented, as the parent's "Design only"
-  requires. Verified by implementation-review.
+- **Only the scaffold.** The new package holds a docstring and nothing else.
+  Verified by implementation-review.
 
 ## Visuals
 
-The before state is drawn from `src/wio/README.md`, `src/wio/cli/table.py` and
-`docs/v0.1-scope.md` on `main` at commit
+The before state is checked against `src/wio/README.md`, `src/wio/cli/table.py`
+and `docs/v0.1-scope.md` on `main` at commit
 `55706d117db746a0269431956c65777c4dfa0afe`. Only the components and the commands
-that change are shown; the bold box is added.
+that change are shown; the bold box is added and the bold dashed box changes.
 
 Before: six components, and `wio contracts` serves templates too.
 
@@ -94,12 +91,13 @@ After: seven components, and `wio templates` serves templates.
 flowchart LR
     cli["wio.cli"]
     subgraph components
-        contracts["contracts: new, list, check, show"]
+        contracts["contracts: new, list, check, show"]:::changed
         templates["templates: list, show, check"]:::new
         others["config, rules, trailers, log, context"]
     end
     cli --> components
     classDef new stroke-width: 3px
+    classDef changed stroke-width: 3px,stroke-dasharray: 4 3
 ```
 
 ## Acceptance criteria
@@ -115,11 +113,15 @@ states these rules:
 - `wio contracts` has `new`, `list`, `check` and `show`; `wio templates` has
   `list`, `show` and `check`.
 - `wio contracts new [<kind>]` is the signature of `new`, and
-  `wio contracts show <id or file>` that of `show`; an argument that contains
-  `/` or ends in `.md` is a path, and any other is an id.
-- No document, and no stage goal in `.agents/wio/config.toml`, names
-  `wio contracts template`, `wio contracts tree` or a `wio contracts` that
-  lists templates; the steps of the define skill name `wio templates show`.
+  `wio contracts show <id or file>` that of `show`; a `show` argument that
+  contains `/` or ends in `.md` is a path, and any other is an id.
+- `show` given an id that no Work has is an error; given a path that does not
+  exist, it gives the reason the marked-files leaf (`bgctsc`) states.
+- No file under `docs/`, neither `README.md` nor `GLOSSARY.md`, and no stage
+  goal in `.agents/wio/config.toml` names `wio contracts template` or
+  `wio contracts tree`; the steps of the define skill name
+  `wio templates show`. Work contracts under `.agents/wio/works` are outside
+  this rule, because they record what changed.
 
 ### **AC-2** `wio contracts list` lists the Works
 
@@ -128,7 +130,9 @@ prints, so one command shows the Works of a repository in either mode. It
 states these rules:
 
 - It prints each Work's id, title, path, template, roots and dependencies, and
-  no status.
+  no status; the template is empty for a contract without one.
+- It lists Works and never templates.
+- With no Works it prints an empty list and exits 0.
 - Under `nesting` it indents each child below its parent; under `flat` it is a
   plain list.
 - The columns and the shape of its `--json` output are provisional.
@@ -144,7 +148,8 @@ states these rules:
 - `--work <id>` prints the skeleton for that Work, carrying its id and
   dependencies, `--keep roots` and `--keep actions` carry more, and what is not
   carried is listed on standard error.
-- An unknown template name is an error.
+- An unknown template name is an error, and so is a `--work` id that no Work
+  has.
 
 ### **AC-4** `wio templates` lists and checks the templates
 
@@ -159,7 +164,9 @@ rules:
   an entry template that exists and has that kind. With no templates it
   passes.
 - `wio config check` checks the shape of the `[templates]` table and reads no
-  template, in `docs/concepts.md` and `docs/v0.1-scope.md` alike.
+  template, in `docs/concepts.md` and `docs/v0.1-scope.md` alike; with no
+  `[templates]` table it passes, because the optional-templates leaf (`ms5t0t`)
+  makes the table optional, linking to it.
 - `wio contracts check` reports a contract whose template is missing, or that
   `wio templates check` rejects, and points to `wio templates check` instead
   of repeating its findings.
@@ -189,7 +196,9 @@ Work can add the `wio templates` entry to the table of commands.
   one-sentence docstring that says it is the `wio templates` command, and
   nothing else.
 - `tests/unit/test_packages.py` lists `templates` in `PACKAGES`, and `tach.toml`
-  declares `wio.templates` with the dependencies the other components have.
+  declares `wio.templates` with the dependencies the other components have,
+  without adding it to the dependencies of `wio.cli`, since nothing imports
+  it yet.
 - `make check` passes, so `test_the_component_names_match_the_packages`, the
   package test, `tach check` and `pyrefly` accept the new component.
 - `src/wio/README.md`, its diagram included, `src/wio/cli/README.md` and the
