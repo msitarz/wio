@@ -220,9 +220,10 @@ rule that its leaf's section states, and links to it.
   none sits directly in `.agents/wio/works`.
 - Every contract names a template that `[templates.kinds]` and
   `[templates] dir` reach.
-- No contract that exists at commit `55706d117db746a0269431956c65777c4dfa0afe`
-  outside `.agents/wio/works/discovery` is edited, as
-  `git diff 55706d1 -- .agents/wio/works` shows.
+- No commit that carries a record of this Work or of one of its children
+  changes a file under `.agents/wio/works` outside
+  `.agents/wio/works/discovery`, as the files each such commit changes show;
+  contracts that other Works change or retire meanwhile do not count.
 
 ## Additional context
 
