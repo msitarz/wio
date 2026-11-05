@@ -24,6 +24,8 @@ so adopting wio takes a marker and an id per file and a few lines of config.
   ids and pass sections on to its descendants.
 - A project configures its templates and kinds in one table, or leaves it out.
 - `wio contracts new` creates a Work without a template.
+- An agent's bundle shows a contract's content without the metadata and
+  directives that only wio reads.
 
 ## Non-Goals
 
@@ -46,6 +48,9 @@ None.
   template gives a contract.
 - `docs/concepts.md`, "Anatomy" and "Identity and location" in section 3,
   which state a contract's title and what `wio contracts new` writes.
+- `docs/concepts.md`, "What it is" in section 3 and the resolved contract in
+  section 11 "The context compiler", which say what a bundle shows of a
+  contract.
 - `docs/concepts.md`, "Inheritance, computed" in section 5, "Where the pipeline
   comes from" in section 6, "Invariants wio checks", the symbol tables of
   section 2, and section 15 "Open points".
@@ -234,6 +239,23 @@ nor promised for v0.1. The documents state:
   existing file, linking to their open points.
 - The Open points also hold generated integrations with workflows such as
   Kiro, written by `wio init` as config, never as code paths in the engine.
+
+### **AC-8** A bundle leaves out what only wio reads
+
+`docs/concepts.md`, in "What it is" and in the resolved contract of section 11
+"The context compiler", states what a bundle shows of a contract, so the agent
+reads the contract's content and none of wio's own markup. It states these
+rules:
+
+- A bundle shows each contract, and each section it inherits, without its
+  metadata block, in the comment form or as `+++` front matter.
+- It also leaves out every directive comment at the end of a heading, now that
+  a contract without a template may carry directives (AC-3), and those of the
+  inherited sections.
+- Every other HTML comment stays in the bundle as written: what it says is the
+  workflow's, not wio's.
+- The Work's id still reaches the agent, through the command that the bundle's
+  header names.
 
 ## Additional context
 
