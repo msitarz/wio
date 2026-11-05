@@ -83,6 +83,11 @@ apply: a leaf gets the typed-boundary delivery, and a parent gets
 `roots = ["@descendants"]` and the integrate delivery. The intent section does
 not carry over.
 
+A contract created from a template keeps the template's authoring comments,
+and the stage follows them while it fills each section in. The agent deletes
+each authoring comment once its section is written, and deletes the sections it
+leaves empty, unless they are required.
+
 The draft requires only a Purpose, because that is all a fresh Work can supply.
 Works created by a split can sit in the tree for a while before they are
 defined, and they must still pass `wio contracts check`. The leaf and parent

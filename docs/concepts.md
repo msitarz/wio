@@ -17,8 +17,7 @@ That is the whole engine:
    **contract**, whose first line opens a `wio` metadata block
    ([Which files are Works](#which-files-are-works)). The block names the
    Work's **template**, if it follows one, its roots, its dependencies and its
-   own actions. wio
-   reads the rest of the file only by its headings.
+   own actions. wio reads the rest of the file only by its headings.
 2. **Check.** wio checks each contract: the metadata, and the sections that
    its directives require, from its template or, without one, from its own
    headings.
@@ -109,7 +108,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `[x]` | *optional* | The one table for the project's own data: wio skips its contents, while any other unknown key gets a warning. | [Anatomy](#anatomy) |
 | `tracks` | *reserved* | Planned: which items of other Works an item contributes to. | [Tracking items](#tracking-items-planned) |
 | First heading | *open* | The Work's title. | [Anatomy](#anatomy) |
-| `##` headings | — | The sections checked against the template, and the ones a descendant inherits. | [Checking a contract](#checking-a-contract-against-its-template) |
+| `##` headings | — | The sections checked against their directives, from the template or, without one, from the contract's own headings, and the ones a descendant inherits. | [Checking a contract](#checking-a-contract-against-its-template) |
 | Directory layout | — | Under `nesting`, a Work's parent is the Work of the nearest directory above that holds exactly one; under `flat`, no Work has a parent. | [Parent and leaf](#parent-and-leaf) |
 
 ### A template
@@ -276,7 +275,8 @@ deliver = ["implementation"]
 - `depends_on`: an optional array of Work ids that this Work waits for (see
   [Dependencies](#dependencies)).
 - `[actions]`: optional. The pipelines of the Work's actions, where it differs
-  from its template's defaults (see
+  from its template's defaults or, without a template, from the config's
+  defaults (see
   [Where the pipeline comes from](#where-the-pipeline-comes-from)).
 
 Contract metadata carries no comments. Explanations belong to the template.
@@ -997,7 +997,9 @@ in `template`. They apply only to a contract without a template and are never
 layered under a named template, so every contract has one source of default
 actions. They are checked as a contract's `[actions]` are: their actions, stage
 presets and stages exist; an empty list there is the same as leaving the action
-out. A contract with neither a template nor defaults needs its own `[actions]`.
+out. A contract with neither a template nor defaults needs its own `[actions]`,
+and a Work that resolves to no action is an error
+([Invariants wio checks](#invariants-wio-checks)).
 `wio contracts show` says where each of a Work's actions comes from: the
 contract, its template or the config defaults.
 
@@ -1120,17 +1122,18 @@ on, and they do not judge how a workflow is built:
   least one stage. An empty list in a contract's `[actions]` removes that
   action; it is not an empty pipeline. Work with no stage to run belongs in a
   ticketing system, not in the repository.
-- Every action name, stage preset id and stage name in a template or a contract
-  exists, `after` has no cycle and names no on-demand action, the names in
-  `invalidated_by` are declared actions with a known prefix, and every stage's
-  skill can be found.
+- Every action name, stage preset id and stage name in a template, a contract or
+  `[works.defaults.actions]` exists, `after` has no cycle and names no on-demand
+  action, the names in `invalidated_by` are declared actions with a known
+  prefix, and every stage's skill can be found.
 - Every root a contract or a stage names is a root in the config. The config
   keys roots by name, so TOML itself rejects a duplicate name.
 - Every `depends_on` id exists, and there are no cycles in the graph of listed
   dependencies plus each parent's implicit dependency on its children.
 - No stage appears twice in one pipeline. Records key on the Work, the action
   and the stage, so two positions of one stage could not be told apart.
-- Required sections are present, as the template's directives say. A `##`
+- Required sections are present, as the contract's directives say
+  ([Directives](#directives)). In a contract that follows a template, a `##`
   heading the template does not have is a warning, and so, under `nesting`, is
   a Work whose children do not match its template's `shape`.
 
