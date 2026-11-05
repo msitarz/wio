@@ -538,10 +538,10 @@ ticket = ""      # in the template; the contract gets [x] ticket = ""
 ```
 
 A contract created from a template therefore has exactly the shape the template
-describes, and the agent that fills it in sees that shape. `wio contracts
-template <name>` prints that prepared skeleton without creating a Work, so a
-skill can name a template and show it to the agent without knowing which file
-holds it. That skeleton carries no `id`: pasted as it is, it fails
+describes, and the agent that fills it in sees that shape.
+`wio templates show <name>` prints that prepared skeleton without creating a
+Work, so a skill can name a template and show it to the agent without knowing
+which file holds it. That skeleton carries no `id`: pasted as it is, it fails
 `wio contracts check`, and the output is the same on every run. With
 `--work <id>`, it is the skeleton for that existing Work: `template` is the
 requested template, and the Work's `id` and `depends_on` are carried over,
@@ -598,11 +598,13 @@ draft to a leaf or a parent, is a procedure of the stages that define it. wio
 does not know about it. It only checks the result. So a kind's templates and
 the skills of its define stages are written together, as one package: the
 skills know which templates the kind has, name them, and print them with
-`wio contracts template <name> --work <id>`, and the agent rewrites the contract
+`wio templates show <name> --work <id>`, and the agent rewrites the contract
 in the chosen shape. wio does not rewrite contracts itself.
 
-`wio config check` fails when a kind's entry template does not exist or has
+`wio templates check` fails when a kind's entry template does not exist or has
 another kind, and when a template names a kind that is not declared.
+`wio config check` checks only the shape of the `[templates]` table and reads
+no template, so a project without templates passes it.
 
 Anyone can add a template, and with it a kind, and that is the main extension
 point for projects.
@@ -1103,8 +1105,8 @@ this.
 
 ### Invariants wio checks
 
-`wio contracts check` and `wio config check` verify mechanically what wio relies
-on, and they do not judge how a workflow is built:
+`wio contracts check`, `wio templates check` and `wio config check` verify
+mechanically what wio relies on, and they do not judge how a workflow is built:
 
 - Every template a contract names exists, and its kind is a declared kind.
   Every kind's entry template exists and has that kind.
@@ -1376,7 +1378,7 @@ path, so paths are used for three things:
 
 - the header of each group of rules in a bundle, so the agent knows which files
   the rules are for ([The context compiler](#11-the-context-compiler));
-- the scope that `wio contracts tree` shows;
+- the roots that `wio contracts list` shows for each Work;
 - `wio rules list --path <file>`, which answers "which rules apply to this
   file?": every root whose paths contain the file, then the rules of their
   rule presets, and the always fields, optionally with a stage's selection too

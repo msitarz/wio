@@ -170,7 +170,7 @@ after:   context/rule-selection/                  (parent, still s9t2wy)
   system-level guarantees (rule ACC006), so the parent gets new criteria for
   what only the joined result establishes, such as "a stage gets exactly the
   rules that the layers select and its roots allow". The skill prints the parent
-  template with `wio contracts template feature.parent --work s9t2wy`, without
+  template with `wio templates show feature.parent --work s9t2wy`, without
   `--keep`, so the parent gets the template's roots, `["@descendants"]`, and its
   pipelines instead of the leaf's, and wio lists the leaf's roots and overrides
   it did not carry. It adds Constraints and Visuals and rewrites the contract in

@@ -10,7 +10,7 @@ the architecture it sits in is in the [overview of `src/wio`](../README.md).
 subcommand joins the command line by adding an entry made with
 `component_entry`, and nothing else.
 
-- `Entry.package` is typed `Component`, a `Literal` of the six components, so
+- `Entry.package` is typed `Component`, a `Literal` of the seven components, so
   the type checker rejects a package name that is not a component. A new package
   under `src/wio` fails the unit test of the names until the driver decides
   whether it is a component.
