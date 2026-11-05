@@ -5,14 +5,18 @@ Provisional: the names `table` and `COMMANDS` may change; `Component`, `Entry`
 and `component_entry` are required as written.
 """
 
-from collections.abc import Callable, Sequence
+import importlib
 from dataclasses import dataclass
-from typing import Final, Literal
+from typing import TYPE_CHECKING, Final, Literal
 
-from wio.cli.ports import Command, CommandSpec
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
+    from wio.cli.ports import Command, CommandSpec
 
 type Component = Literal["config", "contracts", "rules", "trailers", "log", "context"]
 """The components of wio, so the type checker rejects any other package name."""
+
 
 @dataclass(frozen=True)
 class Entry:
@@ -34,6 +38,7 @@ class Entry:
     It runs once, and only when the subcommand was chosen.
     """
 
+
 def component_entry(package: Component, wire: Callable[[], Command]) -> Entry:
     """Make the entry of a component's command.
 
@@ -48,7 +53,18 @@ def component_entry(package: Component, wire: Callable[[], Command]) -> Entry:
     Returns:
         The entry for the table.
     """
-    ...
 
-COMMANDS: Final[Sequence[Entry]]
+    def describe() -> CommandSpec:
+        """Import the component's package and describe its command.
+
+        Returns:
+            The command spec the package's `describe()` returns.
+        """
+        spec: CommandSpec = importlib.import_module(f"wio.{package}").describe()
+        return spec
+
+    return Entry(package=package, describe=describe, wire=wire)
+
+
+COMMANDS: Final[Sequence[Entry]] = ()
 """Every subcommand of wio, empty until a component adds its entry."""

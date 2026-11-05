@@ -1,14 +1,27 @@
 # SPDX-License-Identifier: Apache-2.0
 """Helpers that tests share, such as running git in a sandbox."""
 
+import json
 import os
 import subprocess
+import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import pytest
 
     from tests.sandbox import Sandbox
+
+
+_ROOT = Path(__file__).resolve().parents[1]
+
+_IMPORT_LIGHT = """
+import argparse, importlib, json, sys
+name = sys.argv[1]
+importlib.import_module(name).describe().configure(argparse.ArgumentParser())
+sys.stdout.write(json.dumps(sorted(m for m in sys.modules if m.startswith(name + "."))))
+"""
 
 
 def git(
@@ -64,4 +77,12 @@ def import_light_violations(module: str) -> list[str]:
         The sorted names of the modules under the package, other than its
         `__init__`, that are loaded by then. An empty list means it is light.
     """
-    raise NotImplementedError
+    done = subprocess.run(
+        [sys.executable, "-c", _IMPORT_LIGHT, module],
+        cwd=_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    names: list[str] = json.loads(done.stdout)
+    return names
