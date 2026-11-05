@@ -24,6 +24,8 @@ so adopting wio takes a marker and an id per file and a few lines of config.
   ids and pass sections on to its descendants.
 - A project configures its templates and kinds in one table, or leaves it out.
 - `wio contracts new` creates a Work without a template.
+- An agent's bundle shows a contract's content without the metadata and
+  directives that only wio reads.
 
 ## Non-Goals
 
@@ -46,6 +48,9 @@ None.
   template gives a contract.
 - `docs/concepts.md`, "Anatomy" and "Identity and location" in section 3,
   which state a contract's title and what `wio contracts new` writes.
+- `docs/concepts.md`, "What it is" in section 3 and the resolved contract in
+  section 11 "The context compiler", which say what a bundle shows of a
+  contract.
 - `docs/concepts.md`, "Inheritance, computed" in section 5, "Where the pipeline
   comes from" in section 6, "Invariants wio checks", the symbol tables of
   section 2, and section 15 "Open points".
@@ -72,11 +77,14 @@ drawn from `docs/concepts.md` and `docs/v0.1-scope.md` on `main` at commit
 - **Before:** every contract names a template, which gives its default
   actions, its directives and its kind. Directives are removed from a contract
   at creation and read only from its template. Kinds are declared in `[kinds]`,
-  and `wio contracts new` needs a kind.
+  and `wio contracts new` needs a kind. A bundle shows "the resolved contract",
+  without saying what of the file it leaves out.
 - **After:** `template` is optional. A contract without one takes its default
   actions from `[works.defaults.actions]` and its directives from its own
   headings. Templates and kinds live in an optional `[templates]` table, and
-  `wio contracts new` without a kind writes a bare contract.
+  `wio contracts new` without a kind writes a bare contract. A bundle shows a
+  contract and its inherited sections without the metadata block and the
+  directive comments on headings; other comments stay.
 
 ## Acceptance criteria
 
@@ -234,6 +242,23 @@ nor promised for v0.1. The documents state:
   existing file, linking to their open points.
 - The Open points also hold generated integrations with workflows such as
   Kiro, written by `wio init` as config, never as code paths in the engine.
+
+### **AC-8** A bundle leaves out what only wio reads
+
+`docs/concepts.md`, in "What it is" and in the resolved contract of section 11
+"The context compiler", states what a bundle shows of a contract, so the agent
+reads the contract's content and none of wio's own markup. It states these
+rules:
+
+- A bundle shows each contract, and each section it inherits, without its
+  metadata block, in either of the forms that "Metadata forms" in
+  `docs/concepts.md` states, linking to it.
+- It also leaves out every directive comment at the end of a heading, now that
+  a contract without a template may carry directives (AC-3), and those of the
+  inherited sections.
+- Every other HTML comment stays in the bundle as written.
+- The Work's id still reaches the agent, because the bundle's header names the
+  Work and the command that produced the bundle.
 
 ## Additional context
 
