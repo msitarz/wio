@@ -109,9 +109,8 @@ def test_every_entry_of_the_real_table_names_a_component() -> None:
 @pytest.mark.slow
 def test_import_light_violations_names_an_eager_import() -> None:
     """The check names the implementation that an eager package loads."""
-    # Given two fixture packages, created in the implementation stage, one whose
-    # __init__ imports an implementation module eagerly and one that imports it
-    # lazily, each with a describe
+    # Given two fixture packages, one whose __init__ imports an implementation
+    # module eagerly and one that imports it lazily, each with a describe
     heavy, light = f"{FIXTURES}.heavy", f"{FIXTURES}.light"
 
     # When import_light_violations runs for each
