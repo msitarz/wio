@@ -117,20 +117,31 @@ what it needs: no `tomlkit`, and no `json` unless `--json` is given. Python
 3.15's lazy imports are used wherever a module is not needed at start. The
 criterion looks at `sys.modules` after a run, not at the clock.
 
-**Checks.** Only what config can verify alone: the cross-references among
-actions, stage presets, stages, results and roots; among config rule presets
-(bare names), with their cycles; the forms of names and qualified references;
-a preset in `rules_always_exclude`; a duplicate or clashing alias; a `rules_*`
-key where none belongs; `after` cycles, `judge`, root paths (normalized, inside
-the repo, no duplicates, a missing path is a warning), skill lookup, and the
-shape of the `[templates]` table. `wio config check` reads no template and does
-not check that a kind's entry template exists: `wio templates check` does.
-Checks that parse a template or a rule (a template's kind, its directives, a
-ruleset's manifest, codes, families and presets, whether a qualified reference
+**Checks.** Only what config can verify alone, reading the config and listing
+directories. Errors: a TOML syntax error (`file:line:column`), an unknown key, a
+wrong type, a value outside its vocabulary (`hierarchy`, `reader`, `session`,
+`judge`), the shape of the `[templates]` table; the cross-references among
+actions, stage presets, `[works.defaults.actions]`, stages, results and roots,
+with no stage twice in a pipeline and no `after` cycle; among config rule
+presets (bare names), with their cycles; the forms of names and qualified
+references; a preset in `rules_always_exclude`; a `rules_*` key where none
+belongs; a reference, a `[rulesets.<name>]` entry or an alias whose ruleset has
+no directory, a directory without `ruleset.toml`, and a duplicate or clashing
+alias (the part before the dot of a reference is a directory name or an alias,
+both resolved from the config and the directory listing; the item after it waits
+for the rules Work); root paths that are not normalized, leave the repo or
+repeat in one root; a stage with both or neither of `goal` and `skill`; and a
+stage's skill found nowhere in `[skills] paths`, `.agents/skills` or
+`.claude/skills`. The user's home is never searched: a skill belongs to the
+repo. Warning: a root path that does not exist yet. Notes: an `invalidated_by`
+entry with another `@` prefix, which v0.2 reserves, and `rules_always_include`.
+Nothing reports an unused stage, root or preset, because templates and contracts
+also name them, which config cannot see. `wio config check` reads no template
+and does not check that a kind's entry template exists: `wio templates check`
+does. Checks that parse a template or a rule (a template's kind, its directives,
+a ruleset's manifest, codes, families and presets, whether a qualified reference
 resolves, and whether a root reaches a root-independent ruleset) are deferred:
 each is added by the contracts, templates or rules Work as part of its own
-delivery, and the contracts of those Works must say how they add a check. The
-exact list and the severity of each is open; it is settled next.
+delivery, and the contracts of those Works must say how they add a check.
 
-**Open.** The list of checks and their severities (leaf 5), and the criteria of
-each leaf.
+**Open.** The criteria of each leaf.
