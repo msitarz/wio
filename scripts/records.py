@@ -5,7 +5,10 @@ This is a stand-in for `wio trailers check` until that command exists. It reads
 records the way the `scan` reader does: a record is a paragraph in which every
 line is a `Key: value` trailer and some key starts with `Wio-`, outside fenced
 code blocks. It checks only the shape of a record, not whether its Work, stage
-or item ids exist.
+or item ids exist. Unlike `wio trailers check` without `--require`, it reports
+an unknown `Wio-` key, such as the retired `Wio-Criteria`, as an error in every
+command: it checks only a pull request's own commits, never the older history,
+so a branch that still uses a retired key rewords those commits instead.
 
 `Wio-Work` takes one id, several ids separated by a comma and one space, or
 `none`. A list is the same as one record per id, in the order written; a Work
@@ -71,7 +74,7 @@ NO_WORK = "none"
 FORMATS = (
     ("Wio-Action", NAME, "is not a name"),
     ("Wio-Stage", NAME, "is not a name"),
-    ("Wio-Items", ITEMS, "must look like `AC-1, AC-3`"),
+    ("Wio-Items", ITEMS, "must be ids without spaces or commas, like `AC-1, A-2`"),
     ("Wio-Result", RESULT, "must be one of pass, fail, unknown"),
     ("Wio-Judge", JUDGE, "must be one of human, agent"),
 )

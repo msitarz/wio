@@ -60,7 +60,7 @@ def test_valid_records_have_no_problems(record: str) -> None:
         ("Wio-Work: k3m9xq\nWio-Action: deliver", "Wio-Stage is missing"),
         ("Wio-Work: K3M9XQ\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
         ("Wio-Work: k3m9xi\nWio-Action: a\nWio-Stage: b", "is not a Work id"),
-        (f"{RECORD}\nWio-Items: AC-1,AC-3", "must look like"),
+        (f"{RECORD}\nWio-Items: AC-1,AC-3", "must be ids without spaces"),
         (f"{RECORD}\nWio-Result: maybe", "must be one of"),
         (f"{RECORD}\nWio-Result: pass\nWio-Judge: robot", "must be one of human"),
         (f"{RECORD}\nWio-Judge: human", "Wio-Judge needs a Wio-Result"),
