@@ -23,7 +23,8 @@ def test_the_component_names_match_the_packages() -> None:
 
     # When the first without the second is compared to the names in Component
 
-    # Then the two are equal
+    # Then the two are equal (the names come from
+    # typing.get_args(Component.__value__), because Component is a `type` alias)
 
 
 def test_every_entry_of_the_real_table_names_a_component() -> None:
@@ -37,8 +38,9 @@ def test_every_entry_of_the_real_table_names_a_component() -> None:
 
 def test_import_light_violations_names_an_eager_import() -> None:
     """The check names the implementation that an eager package loads."""
-    # Given two fixture packages, one whose __init__ imports an implementation
-    # module eagerly and one that imports it lazily, each with a describe
+    # Given two fixture packages, created in the implementation stage, one whose
+    # __init__ imports an implementation module eagerly and one that imports it
+    # lazily, each with a describe
 
     # When import_light_violations runs for each
 
