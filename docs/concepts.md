@@ -2352,6 +2352,9 @@ and its own selection give it.
   Work its records name. It needs the record reader, so it belongs with v0.2.
 - Whether `wio contracts new` also avoids ids that appear in the history, so a
   deleted Work's id is never reused with its old records.
+- Suppressing a diagnostic, and a stable code on each one, so users can look
+  one up or silence it. A diagnostic has a severity, a `where` and a message
+  until a suppression is wanted.
 - The form of the metadata block (comment or `+++`) as a config setting, with a
   command that rewrites contracts and templates. Templates must keep their
   comments, so the rewrite either swaps only the delimiters or reads with a
