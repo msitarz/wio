@@ -1,17 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The errors of `wio.formats`.
-
-The stub is the spec until the Work that implements the decoder replaces it with
-a `.py` of the same annotations and docstrings.
-"""
+"""The errors of `wio.formats`."""
 
 from wio.errors import WioError
+
 
 class TomlSyntaxError(WioError):
     """A text that is not valid TOML, with where its first problem is.
 
     It names no file: the caller knows which file it decoded and adds that.
-    `str` of it holds the message, the line and the column.
+    `str` of it is `<message> (line <line>, column <column>)`.
 
     Attributes:
         message: What `tomllib` found wrong, without the position.
@@ -31,3 +28,7 @@ class TomlSyntaxError(WioError):
             line: The line of the first problem, counted from 1.
             column: The column of the first problem, counted from 1.
         """
+        super().__init__(f"{message} (line {line}, column {column})")
+        self.message = message
+        self.line = line
+        self.column = column

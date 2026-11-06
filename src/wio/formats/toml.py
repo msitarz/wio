@@ -1,9 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The decoder of TOML text, the only reader of `tomllib` in `src/wio`.
+"""The decoder of TOML text, the only reader of `tomllib` in `src/wio`."""
 
-The stub is the spec until the Work that implements the decoder replaces it with
-a `.py` of the same annotations and docstrings.
-"""
 
 def decode_toml(text: str) -> dict[str, object]:
     """Decode a TOML document into plain Python data.
@@ -23,3 +20,4 @@ def decode_toml(text: str) -> dict[str, object]:
         TomlSyntaxError: The text is not valid TOML. It carries the line and
             column of the first problem, and no file name.
     """
+    raise NotImplementedError
