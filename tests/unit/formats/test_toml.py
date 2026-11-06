@@ -11,7 +11,6 @@ import pytest
 from wio.errors import WioError
 lazy from wio.formats import TomlSyntaxError, decode_toml
 
-STUB = "the decoder is not implemented yet"
 ROOT = Path(__file__).resolve().parents[3]
 RUFF = Path(sys.executable).parent / "ruff"
 
@@ -32,7 +31,6 @@ sys.stdout.write(json.dumps([before, "tomllib" in sys.modules]))
 """
 
 
-@pytest.mark.skip(reason=STUB)
 def test_a_toml_text_becomes_plain_data() -> None:
     """AC-1: a valid document is nested dicts, lists and scalars."""
     # Given a document with a key, a table, a string and a list, and an empty text
@@ -47,7 +45,6 @@ def test_a_toml_text_becomes_plain_data() -> None:
     assert empty == {}
 
 
-@pytest.mark.skip(reason=STUB)
 def test_an_invalid_value_carries_its_position() -> None:
     """AC-2: a syntax error is a WioError with a message, a line and a column."""
     # Given a text whose second line is an invalid value
@@ -65,7 +62,6 @@ def test_an_invalid_value_carries_its_position() -> None:
     assert str(error) == f"{error.message} (line 2, column 5)"
 
 
-@pytest.mark.skip(reason=STUB)
 @pytest.mark.parametrize(
     ("text", "position"),
     [("a = 1\na = 2\n", (2, 6)), ('a = "x', (1, 7))],
@@ -84,7 +80,6 @@ def test_a_duplicate_key_and_an_unterminated_string_are_placed(
     assert (caught.value.line, caught.value.column) == position
 
 
-@pytest.mark.skip(reason=STUB)
 @pytest.mark.slow
 @pytest.mark.parametrize("form", FORMS)
 def test_only_wio_formats_may_import_tomllib(form: str) -> None:
@@ -109,7 +104,6 @@ def test_only_wio_formats_may_import_tomllib(form: str) -> None:
     }
 
 
-@pytest.mark.skip(reason=STUB)
 @pytest.mark.slow
 def test_importing_the_decoder_loads_no_toml_parser() -> None:
     """AC-4: `tomllib` loads on the first decode, not on import."""
@@ -147,7 +141,7 @@ def _tid251(source: str, filename: str) -> bool:
             "--stdin-filename",
             filename,
             "--output-format",
-            "concise",
+            "json",
             "-",
         ],
         cwd=ROOT,
@@ -156,4 +150,5 @@ def _tid251(source: str, filename: str) -> bool:
         text=True,
         check=False,
     )
-    return "TID251" in done.stdout
+    found: list[dict[str, object]] = json.loads(done.stdout)
+    return any(item["code"] == "TID251" for item in found)

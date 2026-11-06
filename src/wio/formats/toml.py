@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """The decoder of TOML text, the only reader of `tomllib` in `src/wio`."""
 
+lazy import tomllib
+
+from wio.formats.errors import TomlSyntaxError
+
 
 def decode_toml(text: str) -> dict[str, object]:
     """Decode a TOML document into plain Python data.
@@ -20,4 +24,7 @@ def decode_toml(text: str) -> dict[str, object]:
         TomlSyntaxError: The text is not valid TOML. It carries the line and
             column of the first problem, and no file name.
     """
-    raise NotImplementedError
+    try:
+        return tomllib.loads(text)
+    except tomllib.TOMLDecodeError as error:
+        raise TomlSyntaxError(error.msg, error.lineno, error.colno) from error
