@@ -13,6 +13,8 @@ SRC = Path(__file__).resolve().parents[2] / "src" / "wio"
 SHARED = SRC / "ports.pyi"
 PORTS = [SHARED, *sorted(SRC.glob("*/ports.pyi"))]
 MODELS = sorted((SRC / "models").glob("*.pyi"))
+IMPLEMENTED = sorted((SRC / "models").glob("[!_]*.py"))
+ERRORS = SRC / "errors.py"
 OWNERS = {"cli", "context", "env", "io", "trailers"}
 
 
@@ -184,16 +186,16 @@ def _alias_parts(path: Path) -> dict[str, set[str]]:
 
 
 def _named_types(declared: set[str]) -> set[str]:
-    """List the shared types the ports name, including an alias's members.
+    """List the shared types the ports and the errors name, with an alias's members.
 
     Args:
         declared: The types the models stubs declare.
 
     Returns:
-        The names the ports import from `wio.models`, plus the declared types
-        inside any type alias among them.
+        The names the ports and `wio.errors` import from `wio.models`, plus the
+        declared types inside any type alias among them.
     """
-    named = {name for path in PORTS for name in _models_named_by(path)}
+    named = {name for path in [*PORTS, ERRORS] for name in _models_named_by(path)}
     parts = {k: v for path in MODELS for k, v in _alias_parts(path).items()}
     return named | {m for a in named for m in parts.get(a, set()) if m in declared}
 
@@ -336,15 +338,40 @@ def test_a_shared_type_stub_imports_only_the_stdlib_and_shared_types(
     assert problems == []
 
 
+def _unused_types(named: set[str]) -> set[str]:
+    """List the types of the stubs of which no type is named.
+
+    Args:
+        named: The shared types the ports and the errors name.
+
+    Returns:
+        The types of each stub that declares none of the named types.
+    """
+    return {
+        name
+        for path in MODELS
+        if not _declared_types(path) & named
+        for name in _declared_types(path)
+    }
+
+
 def test_the_shared_types_are_those_the_ports_name() -> None:
-    """Every type a port names has one stub, and no stub goes unused."""
-    # Given the types the stubs declare, and the types the ports name
-    declared = [name for path in MODELS for name in _declared_types(path)]
+    """Every type a port or an error names has one module, and no stub goes unused.
+
+    A type of an implemented module is judged by the criteria of the Work that
+    implemented it, so only the stubs must be named. A stub is used when one of
+    its types is named, because the others make up that type.
+    """
+    # Given the types the stubs declare, the types the implemented modules
+    # declare, and the types the ports and the errors name
+    stubbed = [name for path in MODELS for name in _declared_types(path)]
+    built = [name for path in IMPLEMENTED for name in _declared_types(path)]
+    declared = [*stubbed, *built]
     named = _named_types(set(declared))
 
     # When the two are compared
     undeclared = named - set(declared)
-    unused = set(declared) - named
+    unused = _unused_types(named)
     repeated = {name for name in declared if declared.count(name) > 1}
 
     # Then they match, and no type is declared twice

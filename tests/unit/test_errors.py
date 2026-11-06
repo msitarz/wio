@@ -50,3 +50,13 @@ def test_tach_lets_every_package_use_wio_errors() -> None:
         for p in users
         if p not in {"wio.models", "wio.errors"} and "wio.errors" not in modules[p]
     ] == []
+
+
+@pytest.mark.skip(reason="a stub until the implementation stage")
+def test_a_configuration_error_keeps_its_diagnostics() -> None:
+    """A `ConfigurationError` keeps the findings it was raised with (AC-5)."""
+    # Given two error diagnostics and a message built from them
+
+    # When errors with and without them are caught as WioError
+
+    # Then the first has none and the second keeps both, in order
