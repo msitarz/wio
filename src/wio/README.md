@@ -79,10 +79,11 @@ flowchart LR
 
 ## Shared types
 
-`wio.models` holds the types the ports name, as plain immutable data. They are
-defined once, before the loader that builds a `Config`, so every component
-receives the settings and reports problems in the same types, and none needs
-to know how the file was read.
+`wio.models` holds the types the ports name, as plain immutable data: `Config`
+in `wio.models.config`, `Diagnostic` in `wio.models.diagnostics` and `freeze` in
+`wio.models.frozen`. They are defined once, before the loader that builds a
+`Config`, so every component receives the settings and reports problems in the
+same types, and none needs to know how the file was read.
 
 - `Config` is a tree of frozen dataclasses whose fields are named as the TOML
   keys, so a key path is a chain of field names. `Config()` is the effective
