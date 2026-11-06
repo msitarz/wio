@@ -338,29 +338,12 @@ def test_a_shared_type_stub_imports_only_the_stdlib_and_shared_types(
     assert problems == []
 
 
-def _unused_types(named: set[str]) -> set[str]:
-    """List the types of the stubs of which no type is named.
-
-    Args:
-        named: The shared types the ports and the errors name.
-
-    Returns:
-        The types of each stub that declares none of the named types.
-    """
-    return {
-        name
-        for path in MODELS
-        if not _declared_types(path) & named
-        for name in _declared_types(path)
-    }
-
-
 def test_the_shared_types_are_those_the_ports_name() -> None:
-    """Every type a port or an error names has one module, and no stub goes unused.
+    """Every type a port or an error names has one module, and no stub type goes unused.
 
-    A type of an implemented module is judged by the criteria of the Work that
-    implemented it, so only the stubs must be named. A stub is used when one of
-    its types is named, because the others make up that type.
+    Each type of a stub must be named, directly or as a member of a named alias,
+    by a port or by `wio.errors`. A type of an implemented module is judged by
+    the criteria of the Work that implemented it, so it need not be named.
     """
     # Given the types the stubs declare, the types the implemented modules
     # declare, and the types the ports and the errors name
@@ -371,7 +354,7 @@ def test_the_shared_types_are_those_the_ports_name() -> None:
 
     # When the two are compared
     undeclared = named - set(declared)
-    unused = _unused_types(named)
+    unused = set(stubbed) - named
     repeated = {name for name in declared if declared.count(name) > 1}
 
     # Then they match, and no type is declared twice
