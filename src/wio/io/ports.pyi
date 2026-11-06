@@ -3,10 +3,10 @@
 
 These ports are shared infrastructure that `wio.io` owns, an exception to the
 rule that the consumer owns its ports. A component reaches the filesystem,
-standard streams and git only through them. Provisional: the members of
-`FileSystem` and `Git` are the ones the data flows of the scope document need,
-and the Works that add an adapter may rename or extend them; `Stdio` is
-required as written.
+standard streams and the repository only through them, and no port names a
+tool. Provisional: the members of `FileSystem`, `Repository` and `History` are
+the ones the data flows of the scope document need, and the Works that add an
+adapter may rename or extend them; `Stdio` is required as written.
 """
 
 from collections.abc import Sequence
@@ -136,11 +136,11 @@ class Stdio(Protocol):
     stderr: TextIO
     """The stream a command writes notes, warnings and errors to."""
 
-class Git(Protocol):
-    """Reads the history, the index and the files of a git repository.
+class Repository(Protocol):
+    """Tells where the repository is and what state its index and changes are in.
 
     Every method raises `RuntimeError` when the working directory is not inside
-    a git repository, and `ValueError` for a revision or range that git rejects.
+    a repository.
     """
 
     def root(self) -> Path:
@@ -148,18 +148,45 @@ class Git(Protocol):
 
         Returns:
             The absolute path of the repository root, the base of every path
-            that `show` and `list_files` take.
+            that `History.show` and `History.list_files` take.
         """
         ...
 
-    def common_dir(self) -> Path:
-        """Find the repository's common git directory.
+    def identity(self) -> Path:
+        """Find the path that identifies the clone.
 
         Returns:
-            The absolute path shared by every worktree of one clone, which
-            identifies the repository.
+            The absolute path that every checkout of one clone shares, so
+            worktrees of one clone have the same identity.
         """
         ...
+
+    def show_index(self, path: Path) -> str | None:
+        """Read a file as it is staged in the index.
+
+        Args:
+            path: The file, relative to the repository root.
+
+        Returns:
+            The staged content, or `None` when the index has no such file.
+        """
+        ...
+
+    def is_dirty(self) -> bool:
+        """Tell whether the working tree has uncommitted changes.
+
+        Returns:
+            True when a tracked file differs from `HEAD` or the index, or when
+            an untracked file that is not ignored exists.
+        """
+        ...
+
+class History(Protocol):
+    """Reads the revisions of a repository, and never changes them.
+
+    Every method raises `RuntimeError` when the working directory is not inside
+    a repository, and `ValueError` for a revision or range that is rejected.
+    """
 
     def rev_parse(self, revision: str) -> str:
         """Resolve a revision to a full commit id.
@@ -214,25 +241,5 @@ class Git(Protocol):
 
         Returns:
             The file's content, or `None` when it did not exist then.
-        """
-        ...
-
-    def show_index(self, path: Path) -> str | None:
-        """Read a file as it is staged in the index.
-
-        Args:
-            path: The file, relative to the repository root.
-
-        Returns:
-            The staged content, or `None` when the index has no such file.
-        """
-        ...
-
-    def is_dirty(self) -> bool:
-        """Tell whether the working tree has uncommitted changes.
-
-        Returns:
-            True when a tracked file differs from `HEAD` or the index, or when
-            an untracked file that is not ignored exists.
         """
         ...
