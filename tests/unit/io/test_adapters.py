@@ -24,8 +24,8 @@ def test_the_standard_streams_adapter_wraps_the_real_streams() -> None:
     assert stdio.stderr is sys.stderr
 
 
-def test_the_standard_streams_adapter_is_the_only_adapter() -> None:
-    """The ports for files and git have no adapter yet."""
+def test_the_module_holds_the_adapters_of_the_ports_that_have_one() -> None:
+    """`History` has no adapter yet: the trailers Work adds it."""
     # Given the module that holds the adapters
 
     # When its public classes are listed
@@ -35,8 +35,8 @@ def test_the_standard_streams_adapter_is_the_only_adapter() -> None:
         if isinstance(value, type) and value.__module__ == adapters.__name__
     )
 
-    # Then only the adapter for standard streams is there
-    assert public == ["SystemStdio"]
+    # Then the adapters for files, the repository and standard streams are there
+    assert public == ["GitRepository", "LocalFileSystem", "SystemStdio"]
 
 
 def test_the_standard_streams_adapter_reads_the_streams_when_it_is_created(
