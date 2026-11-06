@@ -154,7 +154,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `[templates.kinds]` | *optional* | The valid kinds, each with its entry template. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `[actions.<name>]` | *open* | An action, with its `description`, `after`, `invalidated_by` and `on_demand`. | [What an action is](#what-an-action-is), [What `wio next` proposes](#what-wio-next-proposes) |
 | `[roots.<name>]` | *open* | A root: its `paths`, and its `rule_presets` (*optional*), which select its rules. | [Roots and rulesets](#9-roots-and-rulesets) |
-| `[stages.<name>]` | *open* | A stage: a `goal` or a `skill` is required, and `rules_include`, `rules_exclude`, `roots`, `gate`, `judge` and `session` are optional. | [Stage](#7-stage) |
+| `[stages.<name>]` | *open* | A stage: exactly one of `goal` and `skill` is required, and `rules_include`, `rules_exclude`, `roots`, `gate`, `judge` and `session` are optional. | [Stage](#7-stage) |
 | `[stage_presets]` | *open* | Named, ordered lists of stages. | [Stage presets](#13-stage-presets-process-built-on-the-engine) |
 | `[rule_presets.<name>]` | *optional* | Named selections of rules, with `rules_include` and `rules_exclude`. | [Rule presets](#rule-presets) |
 | `[rulesets.<name>]` | *optional* | A ruleset's `alias` (*optional*, at most one) and `root_independent` (*optional*, `false` by default). | [Rulesets on disk](#rulesets-on-disk) |
@@ -1205,8 +1205,8 @@ A stage definition has these parts:
 | Part | Meaning |
 | --- | --- |
 | `name` | Identifier used in config, rules, records and logs. |
-| `goal` | A short text that says what to produce. Used when the instructions fit in a few lines. |
-| `skill` | A skill name, used instead of a goal when the procedure needs references, templates or scripts. |
+| `goal` | A short text that says what to produce. Used when the instructions fit in a few lines. Exactly one of `goal` and `skill`. |
+| `skill` | A skill name, used instead of a goal when the procedure needs references, templates or scripts. Exactly one of `goal` and `skill`. |
 | `rules_include`, `rules_exclude` | Optional. Which rules the stage adds and drops, after its roots' rule presets ([How a rule is selected](#how-a-rule-is-selected)). |
 | `roots` | Optional. Which roots the stage selects rules from ([Which roots a stage selects](#which-roots-a-stage-selects)). Without it, the stage uses the Work's roots. |
 | `gate` | Optional. `true` when the stage judges an artifact, so each of its records carries a result ([Gate](#8-gate)). |
@@ -1228,26 +1228,28 @@ session = "fresh"
 The key that marks a stage as not continuable is open
 ([Open points](#15-open-points)).
 
-A stage with only a goal is valid. A stage with a skill hands its
-procedure to that skill. The engine does not care which; it prints the goal or
-names the skill, and compiles the rules.
+A stage has exactly one of a goal and a skill: with both or with neither,
+`wio config check` reports an error, so moving a stage from a goal to a skill
+means replacing the key and no goal silently stands in for a missing skill. A
+stage with a skill hands its procedure to that skill. The engine does not care
+which; it prints the goal or names the skill, and compiles the rules.
 
 wio does not load or run skills, but it finds them, so it can check that a
 stage's skill exists and tell when it changed. A skill is a directory named
-after it that holds a `SKILL.md`, which is the shape harnesses use. wio looks
-for it in this order, and the first match wins:
+after it that holds a `SKILL.md`, which is the shape harnesses use. A skill
+belongs to the repository, so wio never looks in the user's home. It looks in
+this order, and the first match wins:
 
 1. the directories in the config's `[skills] paths`, such as
    `paths = [".agents/wio/skills"]`, for skills meant only for wio, which no
    harness loads by default and whose descriptions therefore never take up an
    agent's context;
-2. the project directories harnesses read, such as `.agents/skills` and
-   `.claude/skills`;
-3. the same directories in the user's home.
+2. the project directories `.agents/skills` and `.claude/skills`. Other
+   harnesses' directories are added through `[skills] paths`, because wio keeps
+   no built-in list of them.
 
 `wio config check` fails when a stage names a skill that none of them holds,
-and adds a note when a skill is found only in the user's home, because another
-machine may not have it.
+and a `[skills] paths` entry must stay inside the repository.
 
 Stage names are global in the config, so the same stage can appear in the
 pipelines of several actions. That is why every command, record and event
@@ -2352,6 +2354,9 @@ and its own selection give it.
   Work its records name. It needs the record reader, so it belongs with v0.2.
 - Whether `wio contracts new` also avoids ids that appear in the history, so a
   deleted Work's id is never reused with its old records.
+- Suppressing a diagnostic, and a stable code on each one, so users can look
+  one up or silence it. A diagnostic has a severity, a `where` and a message
+  until a suppression is wanted.
 - The form of the metadata block (comment or `+++`) as a config setting, with a
   command that rewrites contracts and templates. Templates must keep their
   comments, so the rewrite either swaps only the delimiters or reads with a

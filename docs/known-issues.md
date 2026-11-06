@@ -60,3 +60,22 @@ wheel elsewhere only moves the dependency.
 **What is being done.** Nothing yet: re-run a failed job. If the failures
 repeat, the workflows move to `uv sync --frozen` and a single `uv lock --check`
 step keeps the lock honest.
+
+## `pyrefly` rejects building a `frozendict` from a mapping
+
+**What fails.** Python 3.15 has a built-in `frozendict`, which `Config` uses for
+its open tables. With pyrefly 1.4.0, the latest release, the bundled stub gives
+`frozendict.__init__` no positional parameter, so `frozendict({"a": 1})` is
+reported as `bad-argument-count`, though it is valid and the checker still
+catches a value of the wrong type once the call is accepted.
+
+**What it puts at risk.** Without a workaround no code can build a
+`frozendict` from a mapping and pass `make check`.
+
+**Why it is not fixed yet.** The stub is bundled with pyrefly, and no newer
+release is available. Loosening the rule for the whole project would hide real
+mistakes.
+
+**What is being done.** One helper in `wio.models` builds every `frozendict`,
+with a single narrow `# pyrefly: ignore[bad-argument-count]` that names this
+entry. Delete the suppression, and this entry, when a release accepts the call.
