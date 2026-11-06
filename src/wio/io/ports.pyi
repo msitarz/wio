@@ -4,9 +4,11 @@
 These ports are shared infrastructure that `wio.io` owns, an exception to the
 rule that the consumer owns its ports. A component reaches the filesystem,
 standard streams and the repository only through them, and no port names a
-tool. Provisional: the members of `FileSystem`, `Repository` and `History` are
+tool. Provisional: the members of `FileSystem` and `History`, and `show_index`
+and `is_dirty` of `Repository`, which the trailers Work may still extend, are
 the ones the data flows of the scope document need, and the Works that add an
-adapter may rename or extend them; `Stdio` is required as written.
+adapter may rename or extend them; `root` and `identity` of `Repository` and
+`Stdio` are required as written.
 """
 
 from collections.abc import Sequence

@@ -43,6 +43,10 @@ class LocalFileSystem:
 
         Returns:
             The file's content, with its line ends as stored.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            UnicodeDecodeError: If the file is not valid UTF-8.
         """
         return path.read_bytes().decode("utf-8")
 
@@ -54,6 +58,9 @@ class LocalFileSystem:
 
         Returns:
             The file's bytes.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
         """
         return path.read_bytes()
 
@@ -118,7 +125,12 @@ class LocalFileSystem:
             path: The directory.
 
         Returns:
-            The entries sorted by name.
+            The entries sorted by name, so the listing never depends on the
+            order the disk returns.
+
+        Raises:
+            FileNotFoundError: If the path does not exist.
+            NotADirectoryError: If the path is not a directory.
         """
         return sorted(path.iterdir(), key=lambda entry: entry.name)
 
@@ -155,8 +167,13 @@ def _git_path(*arguments: str) -> Path:
 class GitRepository:
     """The repository of the working directory, read with git, as `Repository`.
 
-    `root` and `identity` ask git. `show_index` and `is_dirty` belong to the
-    trailers Work and raise `NotImplementedError` until it implements them.
+    `root` and `identity` ask git, which must be installed wherever wio runs
+    because the `git` trailer reader needs it too; a missing git raises
+    `RuntimeError`, as a directory outside a repository does. `show_index` and
+    `is_dirty` belong to the trailers Work: they exist and raise
+    `NotImplementedError` so that the class has every member of `Repository`
+    and can be wired where the port is expected, until that Work gives them
+    their meaning.
     """
 
     def root(self) -> Path:
