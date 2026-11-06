@@ -4,11 +4,13 @@
 These ports are shared infrastructure that `wio.io` owns, an exception to the
 rule that the consumer owns its ports. A component reaches the filesystem,
 standard streams and the repository only through them, and no port names a
-tool. Provisional: the members of `FileSystem` and `History`, and `show_index`
+tool. `History` is a port apart from `Repository`, so that a component that
+reads revisions does not depend on the members that report the repository's
+state. Provisional: the members of `FileSystem` and `History`, and `show_index`
 and `is_dirty` of `Repository`, which the trailers Work may still extend, are
-the ones the data flows of the scope document need, and the Works that add an
-adapter may rename or extend them; `root` and `identity` of `Repository` and
-`Stdio` are required as written.
+the ones the data flows of the scope document need, and the Work that needs a
+new member adds it, such as a `FileSystem` member for walking a tree;
+`root` and `identity` of `Repository` and `Stdio` are required as written.
 """
 
 from collections.abc import Sequence
@@ -118,6 +120,7 @@ class FileSystem(Protocol):
             filesystem's order.
 
         Raises:
+            FileNotFoundError: If the path does not exist.
             NotADirectoryError: If the path is not a directory.
         """
         ...
