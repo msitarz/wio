@@ -87,8 +87,9 @@ same types, and none needs to know how the file was read.
 
 - `Config` is a tree of frozen dataclasses whose fields are named as the TOML
   keys, so a key path is a chain of field names. `Config()` is the effective
-  settings of an empty config file: the defaults and the required fields
-  (`Root.paths`, `Action.description`) are those of the
+  settings of an empty config file: its defaults, and the fields that have none
+  (`Root.paths`, `Action.description`), are the fields of
+  `wio.models.config`, and the keys are listed in the
   [config](../../docs/concepts.md#the-config). Every field carries a
   one-sentence `description` in its metadata, which a message can quote. A
   `Config` holds what it is given and judges nothing: the loader builds it.
@@ -102,7 +103,7 @@ same types, and none needs to know how the file was read.
   written `frozendict()`, which needs no suppression.
 - A `Diagnostic` is a severity, a place and a message, shared by every `check`
   command. It has no code and cannot be suppressed, and its place is a plain
-  string, not a structure: both are
+  string, not a structure. Both are
   [open points](../../docs/concepts.md#15-open-points).
 - `sort_diagnostics` gives the one order: by place, compared as a plain string
   (so `x[10]` sorts before `x[2]`), then error, warning and note, then message.
