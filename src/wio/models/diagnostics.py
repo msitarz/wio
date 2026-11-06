@@ -27,6 +27,21 @@ class Diagnostic:
     message: str
 
 
+_RANK: dict[Severity, int] = {"error": 0, "warning": 1, "note": 2}
+
+
+def _key(diagnostic: Diagnostic) -> tuple[str, int, str]:
+    """Give the sort key of a diagnostic.
+
+    Args:
+        diagnostic: The finding.
+
+    Returns:
+        Its place, the rank of its severity and its message.
+    """
+    return (diagnostic.where, _RANK[diagnostic.severity], diagnostic.message)
+
+
 def sort_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ...]:
     """Put diagnostics in the one order every renderer prints them.
 
@@ -36,8 +51,5 @@ def sort_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ...
     Returns:
         The findings sorted by `where`, then error, warning and note, then
         `message`, as plain strings (so `x[10]` sorts before `x[2]`).
-
-    Raises:
-        NotImplementedError: Until the implementation stage.
     """
-    raise NotImplementedError
+    return tuple(sorted(diagnostics, key=_key))

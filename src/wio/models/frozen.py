@@ -20,8 +20,6 @@ def freeze[K, V](mapping: Mapping[K, V]) -> frozendict[K, V]:
     Returns:
         An immutable `frozendict` with the same items, hashable when its keys
         and values are.
-
-    Raises:
-        NotImplementedError: Until the implementation stage.
     """
-    raise NotImplementedError
+    # See docs/known-issues.md: pyrefly's stub of `frozendict` takes no mapping.
+    return frozendict(mapping)  # pyrefly: ignore[bad-argument-count]

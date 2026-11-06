@@ -3,13 +3,20 @@
 
 import dataclasses
 import inspect
+from dataclasses import FrozenInstanceError
+from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
 from wio.models import config as module
-from wio.models.config import Config
+from wio.models.config import Config, Stage
+from wio.models.frozen import freeze
 
-STUB = pytest.mark.skip(reason="a stub until the implementation stage")
+if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+
+SRC = Path(__file__).resolve().parents[3] / "src"
 
 
 def test_a_config_with_no_arguments_holds_the_defaults() -> None:
@@ -42,14 +49,23 @@ def test_a_config_with_no_arguments_holds_the_defaults() -> None:
     assert all(len(table) == 0 for table in tables)
 
 
-@STUB
 def test_a_config_is_immutable_and_hashable() -> None:
     """A config cannot change and equal configs hash equal (AC-1)."""
-    # Given a `Config` with one stage, and an equal one
+    # Given a Config with one stage, an equal one, and a field name
+    config = Config(stages=freeze({"build": Stage(goal="Build it.")}))
+    equal = Config(stages=freeze({"build": Stage(goal="Build it.")}))
+    name = "results"
+    table = cast("MutableMapping[str, Stage]", config.stages)
 
     # When a field is assigned, or a stage is added to `stages`
+    with pytest.raises(FrozenInstanceError):
+        setattr(config, name, ())
+    with pytest.raises(TypeError):
+        table["other"] = Stage()
 
     # Then each raises, and the hash equals that of an equal config
+    assert hash(config) == hash(equal)
+    assert config == equal
 
 
 def test_every_setting_has_a_description() -> None:
@@ -74,13 +90,28 @@ def test_every_setting_has_a_description() -> None:
     assert undescribed == []
 
 
-@STUB
 def test_one_helper_holds_the_only_pyrefly_suppression() -> None:
     """`freeze` builds a `frozendict` and holds the only suppression (AC-6)."""
-    # Given the source tree and a mapping.
+    # Given the source tree and a mapping
+    mapping = {"a": (1, 2)}
+    marker = "pyrefly: " + "ignore"
+    hits = [
+        (path, line)
+        for path in SRC.rglob("*.py")
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if marker in line
+    ]
 
     # When the mapping is frozen and the pyrefly suppressions of `src` are
-    # searched.
+    # searched
+    frozen = freeze(mapping)
 
-    # Then the result is a hashable `frozendict`, and one occurrence names `bad-
-    # argument-count` and the known issue, in the helper.
+    # Then the result is a hashable frozendict, and one occurrence names
+    # bad-argument-count, in the helper that names the known issue
+    assert frozen == mapping
+    assert isinstance(hash(frozen), int)
+    assert len(hits) == 1
+    path, line = hits[0]
+    assert path.name == "frozen.py"
+    assert "bad-argument-count" in line
+    assert "known-issues.md" in path.read_text(encoding="utf-8")
