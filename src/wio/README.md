@@ -77,6 +77,25 @@ flowchart LR
     sharedports --> models
 ```
 
+## Shared types
+
+`wio.models` holds the types the ports name, as plain immutable data.
+
+- `Config` is a tree of frozen dataclasses whose fields are named as the TOML
+  keys, so a key path is a chain of field names. `Config()` is the effective
+  settings of an empty config file, and every field carries a one-sentence
+  `description` in its metadata, which a message can quote. A `Config` holds
+  what it is given and judges nothing.
+- The open tables of a `Config` are `frozendict`s, built only through
+  `wio.models.frozen.freeze`, which holds the one pyrefly suppression that the
+  [known issues](../../docs/known-issues.md) explain.
+- A `Diagnostic` is a severity, a place and a message, shared by every `check`
+  command. `sort_diagnostics` gives the one order, by place as a plain string,
+  then error, warning and note, then message, and `wio.formats` renders them as
+  text or JSON in that order, importing `json` only for JSON.
+- `ConfigurationError` carries the diagnostics that caused it, so a caller can
+  render them its own way.
+
 ## Ports and adapters
 
 wio uses the ports-and-adapters architecture. A port is an interface that says
