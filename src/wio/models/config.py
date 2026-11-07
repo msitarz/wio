@@ -89,6 +89,20 @@ class Skills:
 
 
 @dataclass(frozen=True)
+class Gates:
+    """What the gates of the stages can decide."""
+
+    results: tuple[str, ...] = field(
+        default=("pass", "fail", "unknown"),
+        metadata={
+            "description": (
+                "What a gate can decide; `pass`, `fail` and `unknown` by default."
+            )
+        },
+    )
+
+
+@dataclass(frozen=True)
 class Bundle:
     """How a context bundle is joined."""
 
@@ -249,18 +263,14 @@ class Config:
     """The effective settings read from `.agents/wio/config.toml`.
 
     It is immutable once built, so every component that holds it sees the same
-    results, Works, templates, trailers, skills, bundle, actions, roots,
+    gates, Works, templates, trailers, skills, bundle, actions, roots,
     stages, stage presets, rule presets, rulesets and always fields. Two equal
     configs compare and hash equal, and a mapping it holds cannot be changed.
     """
 
-    results: tuple[str, ...] = field(
-        default=("pass", "fail", "unknown"),
-        metadata={
-            "description": (
-                "What a gate can decide; `pass`, `fail` and `unknown` by default."
-            )
-        },
+    gates: Gates = field(
+        default=Gates(),
+        metadata={"description": "What a gate can decide."},
     )
     works: Works = field(
         default=Works(), metadata={"description": "Where Works are found."}

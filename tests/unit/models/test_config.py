@@ -37,7 +37,7 @@ def test_a_config_with_no_arguments_holds_the_defaults() -> None:
     ]
 
     # Then the defaults of AC-1 hold and every open table is empty.
-    assert config.results == ("pass", "fail", "unknown")
+    assert config.gates.results == ("pass", "fail", "unknown")
     assert config.works.hierarchy == "flat"
     assert config.works.dir == ".agents/wio/works"
     assert config.templates.dir == ".agents/wio/templates"
@@ -54,7 +54,7 @@ def test_a_config_is_immutable_and_hashable() -> None:
     # Given a Config with one stage, an equal one, and a field name
     config = Config(stages=freeze({"build": Stage(goal="Build it.")}))
     equal = Config(stages=freeze({"build": Stage(goal="Build it.")}))
-    name = "results"
+    name = "gates"
     table = cast("MutableMapping[str, Stage]", config.stages)
 
     # When a field is assigned, or a stage is added to `stages`
@@ -86,7 +86,7 @@ def test_every_setting_has_a_description() -> None:
     ]
 
     # Then each has a non-empty description in its metadata
-    assert len(classes) == 12
+    assert len(classes) == 13
     assert undescribed == []
 
 
