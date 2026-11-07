@@ -146,7 +146,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
-| `results` | *open* | The results a gate can record. | [The event log](#the-event-log) |
+| `[gates] results` | *open* | The results a gate can record. | [The event log](#the-event-log) |
 | `[works] dir` | *optional* | The Works directory, relative to the repository root; `.agents/wio/works` by default. | [Which files are Works](#which-files-are-works) |
 | `[works] hierarchy` | *optional* | The hierarchy mode, `"flat"` or `"nesting"`; `"flat"` by default. | [Parent and leaf](#parent-and-leaf) |
 | `[works.defaults.actions]` | *optional* | The default actions of a contract without a template. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
@@ -1088,8 +1088,8 @@ records the direction chosen (currency from records, `after` for order,
 `invalidated_by` for staleness, on-demand actions, gates with results). The Work
 that builds `wio next` settles the details against the records v0.1 produces.
 The record format is fixed in v0.1. Config keys may be added in v0.2, and the
-keys v0.1 defines keep their meaning: `results` stays the vocabulary, and which
-results let the next stage start becomes a key of its own, such as
+keys v0.1 defines keep their meaning: `gates.results` stays the vocabulary, and
+which results let the next stage start becomes a key of its own, such as
 `[gates] continue = ["pass"]`. The cases it must settle are listed in the
 [open points](#15-open-points).
 
@@ -1303,8 +1303,8 @@ The engine records how the artifact fared, and nothing about the decision.
 
 In the engine a gate is not a separate object. It is a stage marked
 `gate = true`, whose job is to judge the previous stage's artifact, and every
-record of it carries a **result** from the `results` vocabulary in the config
-([Records](#records)). It is a normal stage with its own rules, such as
+record of it carries a **result** from the `gates.results` vocabulary in the
+config ([Records](#records)). It is a normal stage with its own rules, such as
 reviewer-only ones, and usually a fresh session. The mark lets wio require the
 result: `wio trailers` refuses a gate's record without one, and a stage that is
 not a gate cannot record one. The bundle's header says when a stage is a gate.
@@ -1999,7 +1999,7 @@ Wio-Result: pass
 | `Wio-Action` | The action the stage belongs to. Required unless the Work is `none`. |
 | `Wio-Stage` | The stage the commit works on. Required unless the Work is `none`. |
 | `Wio-Items` | The item ids this commit addresses, of the Work's own sections, separated by a comma and one space. Optional. |
-| `Wio-Result` | The gate's result, one of the `results` in the config. Only for stages that judge an artifact. |
+| `Wio-Result` | The gate's result, one of the `gates.results` in the config. Only for stages that judge an artifact. |
 | `Wio-Judge` | Who judged a gate: `human` or `agent`. Optional; a gate's record without it was judged by a human. |
 
 - **One record is one paragraph.** A commit message can hold several records,
@@ -2250,6 +2250,7 @@ Results come from a vocabulary that the config declares, so a misspelled
 result is an error:
 
 ```toml
+[gates]
 results = ["pass", "fail", "unknown"]
 ```
 

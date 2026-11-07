@@ -93,6 +93,8 @@ same types, and none needs to know how the file was read.
   [config](../../docs/concepts.md#the-config). Every field carries a
   one-sentence `description` in its metadata, which a message can quote. A
   `Config` holds what it is given and judges nothing: the loader builds it.
+  The results a gate can record are `gates.results`, the table `[gates]` of the
+  file, which holds only them until `wio next` needs more.
 - A `Config` hashes, and equal configs hash equal, because every value in it is
   a frozen dataclass, a tuple, a string, a number or a boolean, and its
   `frozendict`s are hashable when their values are. So a `Config` can be a key
