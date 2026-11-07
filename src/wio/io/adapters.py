@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import TextIO
 
+    from wio.env.ports import Environment
+
 
 class SystemStdio:
     """The process's own standard streams, as the `Stdio` port.
@@ -175,7 +177,18 @@ class GitRepository:
     `NotImplementedError` so that the class has every member of `Repository`
     and can be wired where the port is expected, until that Work gives them
     their meaning.
+
+    It is given an `Environment` and runs git in the working directory that the
+    environment reports, never in one it finds itself, so a test can fix it.
     """
+
+    def __init__(self, environment: Environment) -> None:
+        """Keep the environment that tells where the working directory is.
+
+        Args:
+            environment: Reports the working directory git runs in.
+        """
+        self._environment: Environment = environment
 
     def root(self) -> Path:
         """Find the top of the working tree.

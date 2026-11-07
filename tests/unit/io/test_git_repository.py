@@ -8,20 +8,29 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tests.support import enter, git
+from tests.unit.env.fakes import FakeEnvironment
+from wio.env.adapters import ProcessEnvironment
 from wio.io import adapters
 
 if TYPE_CHECKING:
     from tests.sandbox import Sandbox
+    from wio.env.ports import Environment
     from wio.io.ports import Repository
 
+STUB = pytest.mark.skip(reason="stub of the architecture stage")
 
-def _wired() -> Repository:
+
+def _wired(environment: Environment | None = None) -> Repository:
     """Wire the adapter where the port is expected.
+
+    Args:
+        environment: Where the working directory comes from; the process's own
+            by default.
 
     Returns:
         A `GitRepository`, which type checking accepts as a `Repository`.
     """
-    return adapters.GitRepository()
+    return adapters.GitRepository(environment or ProcessEnvironment())
 
 
 @pytest.mark.slow
@@ -177,3 +186,64 @@ def test_the_members_trailers_owns_name_the_trailers_work() -> None:
         repository.show_index(Path("f"))
     with pytest.raises(NotImplementedError, match="trailers Work"):
         repository.is_dirty()
+
+
+@STUB
+@pytest.mark.slow
+def test_the_root_is_found_from_the_directory_the_environment_reports(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-3: git runs where the environment says, not where the process is."""
+    # Given a repository with a subdirectory, and a process running outside it
+    git(sandbox, "init", "-q", check=True)
+    sub = sandbox.root / "sub"
+    sub.mkdir()
+    enter(sandbox, monkeypatch)
+    monkeypatch.chdir(sandbox.root.parent)
+    repository = _wired(FakeEnvironment(sub))
+
+    # When root runs
+    root = repository.root()
+
+    # Then it is the top of that repository
+    assert root == sandbox.root.resolve()
+
+
+@STUB
+def test_git_runs_in_the_directory_the_environment_reports(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-3: the directory is handed to git as its working directory."""
+    # Given a git that records how it is run, and an environment's directory
+    seen: list[object] = []
+    done = subprocess.CompletedProcess([], 0, stdout="/r\n", stderr="")
+
+    def run(_command: list[str], **options: object) -> subprocess.CompletedProcess[str]:
+        seen.append(options.get("cwd"))
+        return done
+
+    monkeypatch.setattr(subprocess, "run", run)
+    repository = _wired(FakeEnvironment(Path("/somewhere")))
+
+    # When root runs
+    repository.root()
+
+    # Then git was run in that directory
+    assert seen == [Path("/somewhere")]
+
+
+@STUB
+def test_the_error_names_the_directory_the_environment_reports(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-3: outside a repository the message names the environment's directory."""
+    # Given a git that rejects the directory
+    _fake_run(monkeypatch, subprocess.CompletedProcess([], 128, "", "fatal: no"))
+    repository = _wired(FakeEnvironment(Path("/somewhere")))
+
+    # When root runs
+    with pytest.raises(RuntimeError) as caught:
+        repository.root()
+
+    # Then the message names that directory
+    assert "/somewhere" in str(caught.value)

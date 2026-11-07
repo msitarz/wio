@@ -11,6 +11,7 @@ import pytest
 
 from tests.support import enter, git
 from wio.config import load_config
+from wio.env.adapters import ProcessEnvironment
 from wio.errors import ConfigurationError
 from wio.io import adapters
 
@@ -91,7 +92,8 @@ def test_the_config_is_found_from_a_subdirectory(
     monkeypatch.chdir(sub)
 
     # When load_config runs with the real adapters
-    loaded = load_config(adapters.GitRepository(), adapters.LocalFileSystem())
+    repository = adapters.GitRepository(ProcessEnvironment())
+    loaded = load_config(repository, adapters.LocalFileSystem())
 
     # Then the hierarchy is nesting
     assert loaded.config is not None
@@ -106,8 +108,9 @@ def test_outside_a_repository_the_error_names_the_working_directory(
     enter(sandbox, monkeypatch)
 
     # When load_config runs with the real adapters
+    repository = adapters.GitRepository(ProcessEnvironment())
     with pytest.raises(ConfigurationError) as caught:
-        load_config(adapters.GitRepository(), adapters.LocalFileSystem())
+        load_config(repository, adapters.LocalFileSystem())
 
     # Then the error names the working directory and not wio init
     assert str(sandbox.root.resolve()) in str(caught.value)
