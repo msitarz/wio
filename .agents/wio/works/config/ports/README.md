@@ -29,9 +29,9 @@ system, with real adapters for the local disk and for git.
 
 - An adapter for `History`, which the trailers Work adds with its reader.
 - A second version control system, and pygit2, which has no Python 3.15 wheel.
-- Members of `Environment` beyond `working_directory`, and the adapters of
-  `Clock`, `Entropy` and `Directories`, which the Work that first needs them
-  adds.
+- Implementations of members of `Environment` beyond `working_directory`, and
+  the adapters of `Clock`, `Entropy` and `Directories`, which the Work that
+  first needs them adds.
 - New members of `FileSystem`, such as walking a tree or telling a symbolic
   link, which the Work that needs them adds.
 
@@ -183,7 +183,8 @@ class GitRepository:
 
 #### From a linked worktree
 
-- **Given** a clone and a linked worktree made with `git worktree add`.
+- **Given** a clone and a linked worktree made with `git worktree add`, and a
+  `ProcessEnvironment` of a process running in each.
 - **When** `identity()` runs in each.
 - **Then** both return the same path, and `root()` differs.
 
@@ -234,9 +235,11 @@ implemented, and it satisfies the port where it is wired.
 #### Not implemented
 
 - **Given** a `ProcessEnvironment`.
-- **When** `get("HOME")` runs.
-- **Then** it raises `NotImplementedError` whose message names the Work that
-  first needs it.
+- **When** each member of `Environment` other than `working_directory` runs,
+  which today is `get("HOME")`.
+- **Then** each raises `NotImplementedError` whose message names the member and
+  says that the Work that first needs it implements it, such as "get is
+  implemented by the Work that first needs it".
 
 #### Wired as the port
 

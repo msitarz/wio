@@ -108,14 +108,19 @@ flowchart LR
     formats["wio.formats: decode_toml, render"]:::changed
     io["wio.io: FileSystem, Repository, History"]:::changed
     adapters["wio.io.adapters: LocalFileSystem, GitRepository"]:::new
+    env["wio.env: Environment"]
+    envadapters["wio.env.adapters: ProcessEnvironment"]:::new
     settings["wio.ports: Settings"]
     other["other components"]
     cli --> config
     cli --> adapters
+    cli --> envadapters
     config --> models
     config --> formats
     config -- "ports" --> io
     adapters --> io
+    adapters -- "ports" --> env
+    envadapters --> env
     other -- "ports" --> settings
     config -. "implements" .-> settings
     errors["wio.errors: ConfigurationError"]:::changed
