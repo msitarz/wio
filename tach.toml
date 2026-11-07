@@ -174,3 +174,8 @@ depends_on = [
     "tests.sandbox",
     "tests.support",
 ]
+
+# Tooling tests probe the repository's own configuration with its own tools.
+[[modules]]
+path = "tests.tooling"
+depends_on = []
