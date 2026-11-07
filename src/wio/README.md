@@ -189,6 +189,11 @@ implementation of its own.
   adapter of it. `GitRepository` is given an `Environment`, so it runs git in
   the directory the environment reports, and only `ProcessEnvironment` reads
   the process's own working directory.
+- An adapter implements the members its first consumer needs and has every
+  member of its port, so that it can be wired where the port is expected: the
+  others raise `NotImplementedError` naming the member and the Work that first
+  needs it. `ProcessEnvironment` implements only `working_directory`, and
+  `GitRepository` stubs `show_index` and `is_dirty` until the trailers Work.
 
 ## The outside world
 

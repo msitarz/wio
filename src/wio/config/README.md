@@ -23,11 +23,10 @@ shape and handed over complete, or is refused with every problem at once.
   when there is no repository, and does not mention `wio init`, which does not
   exist before v0.2. A key the file omits keeps the default of its field, so an
   empty file is valid and gives `Config()`, and a file need set only what
-  differs from the defaults. The component
-  does not read the working directory itself: the `Repository` adapter is given
-  it by an `Environment` and names it in the message of its `RuntimeError`,
-  which the port documents, so every component reaches the environment through
-  a port.
+  differs from the defaults. The component does not read the working directory
+  itself: the `Repository` adapter is given it by an `Environment` and names it
+  in the message of its `RuntimeError`, which the port documents, so every
+  component reaches the environment through a port.
 - **A syntax error is one diagnostic.** A file that is not valid TOML gives one
   error whose place is `.agents/wio/config.toml:<line>:<column>`, relative to
   the root, no `Config` and no `sources`, because nothing can be checked in
