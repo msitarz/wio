@@ -76,7 +76,10 @@ def _bans_cwd(filename: str) -> bool:
     Returns:
         Whether ruff reported the ban for `Path.cwd()` and `os.getcwd()`.
     """
-    probe = "import os\nfrom pathlib import Path\n\nHERE = (Path.cwd(), os.getcwd())\n"
+    probe = (
+        "import os\nfrom pathlib import Path\n\n"
+        "HERE = (Path.cwd(), os.getcwd(), os.getcwdb())\n"
+    )
     ruff = Path(sys.executable).parent / "ruff"
     done = subprocess.run(
         [str(ruff), "check", "--stdin-filename", filename, "-"],
@@ -86,7 +89,7 @@ def _bans_cwd(filename: str) -> bool:
         text=True,
         check=False,
     )
-    return done.stdout.count("banned-api") == 2
+    return done.stdout.count("banned-api") == 3
 
 
 @pytest.mark.slow

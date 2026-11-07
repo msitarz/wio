@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for `GitRepository`, the adapter of the `Repository` port."""
 
+import os
 import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -191,7 +192,7 @@ def test_a_git_that_cannot_be_run_says_so_and_what_to_do(
     # Then the message says git cannot be run and asks for it to be installed
     message = str(caught.value)
     assert "cannot run git" in message
-    assert "install git" in message
+    assert "git is installed" in message
     assert "PosixPath" not in message
 
 
@@ -214,6 +215,30 @@ def test_a_working_directory_that_does_not_exist_says_so(tmp_path: Path) -> None
         assert "does not exist" in message
         assert "run wio from a directory inside the repository" in message
         assert "cannot run git" not in message
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root can enter any directory")
+def test_a_working_directory_that_cannot_be_entered_says_so(tmp_path: Path) -> None:
+    """AC-3: a directory without permission is named and git is not blamed."""
+    # Given an environment whose directory exists but cannot be entered
+    locked = tmp_path / "locked"
+    locked.mkdir()
+    locked.chmod(0o000)
+    repository = _wired(FakeEnvironment(locked))
+
+    # When root runs
+    try:
+        with pytest.raises(RuntimeError) as caught:
+            repository.root()
+    finally:
+        locked.chmod(0o700)
+
+    # Then the message names the directory, says it cannot be entered and what to do
+    message = str(caught.value)
+    assert str(locked) in message
+    assert "cannot be entered" in message
+    assert "run wio from a directory inside the repository" in message
+    assert "cannot run git" not in message
 
 
 def test_a_working_directory_that_is_a_file_says_so(tmp_path: Path) -> None:

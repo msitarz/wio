@@ -27,9 +27,9 @@ shape and handed over complete, or is refused with every problem at once.
   itself: the `Repository` adapter is given it by an `Environment` and names it
   in the message of its `RuntimeError`, which the port documents, so every
   component reaches the environment through a port. That message also says
-  whether the directory does not exist, is not a directory or is in no
-  repository, and what to do, so the error of the loader tells a person the next
-  step.
+  whether the directory does not exist, is not a directory, cannot be entered or
+  is in no repository, and what to do, so the error of the loader tells a person
+  the next step.
 - **A syntax error is one diagnostic.** A file that is not valid TOML gives one
   error whose place is `.agents/wio/config.toml:<line>:<column>`, relative to
   the root, no `Config` and no `sources`, because nothing can be checked in

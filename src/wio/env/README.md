@@ -12,6 +12,6 @@ every input it sees. The terms Environment, Port and Adapter are defined in the
   that first needs them implements them.
 - Only `ProcessEnvironment` reads the process's working directory. Ruff enforces
   it: `pathlib.Path.cwd`, `os.getcwd` and `os.getcwdb` are banned in
-  [`pyproject.toml`](../../../pyproject.toml) everywhere but
+  [`pyproject.toml`](../../../pyproject.toml) in `src/wio` outside
   `src/wio/env/adapters.py`, so a component that needs the directory is given an
   `Environment` instead.

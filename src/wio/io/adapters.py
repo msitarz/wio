@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The real adapters of the ports of `wio.io`."""
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -141,21 +142,24 @@ _NEXT = "run wio from a directory inside the repository"
 
 
 def _check_directory(directory: Path) -> None:
-    """Check that the directory git is to run in exists and is a directory.
+    """Check that the directory git is to run in exists and can be entered.
 
     Args:
         directory: The working directory the environment reported.
 
     Raises:
-        RuntimeError: If it does not exist or is not a directory. The message
-            names it, says which, and says to run wio from inside the
-            repository.
+        RuntimeError: If it does not exist, is not a directory or cannot be
+            entered. The message names it, says which, and says to run wio
+            from inside the repository.
     """
     if not directory.exists():
         message = f"the working directory {directory} does not exist; {_NEXT}"
         raise RuntimeError(message)
     if not directory.is_dir():
         message = f"the working directory {directory} is not a directory; {_NEXT}"
+        raise RuntimeError(message)
+    if not os.access(directory, os.X_OK):
+        message = f"the working directory {directory} cannot be entered; {_NEXT}"
         raise RuntimeError(message)
 
 
@@ -187,7 +191,7 @@ def _git_path(environment: Environment, *arguments: str) -> Path:
         )
     except OSError as error:
         reason = error.strerror or str(error)
-        message = f"cannot run git: {reason}; install git and make sure it is on PATH"
+        message = f"cannot run git: {reason}; check that git is installed and on PATH"
         raise RuntimeError(message) from error
     if done.returncode != 0:
         message = (
@@ -203,12 +207,12 @@ class GitRepository:
 
     `root` and `identity` ask git, which must be installed wherever wio runs
     because the `git` trailer reader needs it too. A missing git, a working
-    directory that does not exist or is not a directory, and a directory
-    outside a repository each raise a `RuntimeError` that says which and what to
-    do. `show_index` and `is_dirty` belong to the trailers Work: they exist and
-    raise `NotImplementedError` so that the class has every member of
-    `Repository` and can be wired where the port is expected, until that Work
-    gives them their meaning.
+    directory that does not exist, is not a directory or cannot be entered, and
+    a directory outside a repository each raise a `RuntimeError` that says which
+    and what to do. `show_index` and `is_dirty` belong to the trailers Work:
+    they exist and raise `NotImplementedError` so that the class has every
+    member of `Repository` and can be wired where the port is expected, until
+    that Work gives them their meaning.
 
     It is given an `Environment` and runs git in the working directory that the
     environment reports, never in one it finds itself, so a test can fix it.
