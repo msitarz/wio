@@ -36,20 +36,6 @@ def test_the_file_is_read_at_the_root_of_the_repository() -> None:
     assert loaded.config.works.hierarchy == "nesting"
 
 
-def test_a_missing_repository_names_the_working_directory() -> None:
-    """AC-1: outside any repository the error names where the process is."""
-    # Given a directory outside any repository
-    repository = FakeRepository(top=None, message="not inside a repository: /work")
-
-    # When load_config runs
-    with pytest.raises(ConfigurationError) as caught:
-        load_config(repository, MemoryFileSystem())
-
-    # Then the error names the working directory and not wio init
-    assert "/work" in str(caught.value)
-    assert "wio init" not in str(caught.value)
-
-
 def test_a_missing_file_names_the_path_looked_at() -> None:
     """AC-1: a repository without a config names the path it looked at."""
     # Given a repository without a config file

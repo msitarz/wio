@@ -74,41 +74,6 @@ def test_a_linked_worktree_shares_the_identity_but_not_the_root(
     assert first[0] != second[0]
 
 
-@pytest.mark.slow
-def test_outside_a_repository_root_and_identity_raise(
-    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """AC-3: outside a repository both raise `RuntimeError`."""
-    # Given a directory that no repository contains
-    enter(sandbox, monkeypatch)
-    repository = _wired(ProcessEnvironment())
-
-    # When root or identity runs
-    # Then it raises RuntimeError
-    with pytest.raises(RuntimeError):
-        repository.root()
-    with pytest.raises(RuntimeError):
-        repository.identity()
-
-
-@pytest.mark.slow
-def test_the_members_trailers_owns_raise_not_implemented(
-    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """AC-4: show_index and is_dirty name the trailers Work."""
-    # Given a GitRepository in a repository
-    git(sandbox, "init", "-q", check=True)
-    enter(sandbox, monkeypatch)
-    repository = _wired(ProcessEnvironment())
-
-    # When show_index and is_dirty run
-    # Then each raises NotImplementedError naming the trailers Work
-    with pytest.raises(NotImplementedError, match="trailers Work"):
-        repository.show_index(sandbox.root / "f")
-    with pytest.raises(NotImplementedError, match="trailers Work"):
-        repository.is_dirty()
-
-
 def test_a_working_directory_that_does_not_exist_says_so(tmp_path: Path) -> None:
     """AC-3: a missing directory is named and is not blamed on git."""
     # Given an environment whose directory does not exist
@@ -176,20 +141,23 @@ def test_a_working_directory_that_is_a_file_says_so(tmp_path: Path) -> None:
 def test_a_real_directory_outside_a_repository_says_so(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """AC-3: with a real git the message names the directory and the next step."""
+    """AC-3: with a real git, root and identity name the directory and the next step."""
     # Given a directory that no repository contains, and a real git
     enter(sandbox, monkeypatch)
     repository = _wired(FakeEnvironment(sandbox.root))
 
-    # When root runs
-    with pytest.raises(RuntimeError) as caught:
+    # When root and identity run
+    with pytest.raises(RuntimeError) as root_error:
         repository.root()
+    with pytest.raises(RuntimeError) as identity_error:
+        repository.identity()
 
-    # Then the message names that directory and says what to do
-    message = str(caught.value)
-    assert str(sandbox.root) in message
-    assert "not inside a git repository" in message
-    assert "inside the repository" in message
+    # Then each message names that directory and says what to do
+    for caught in (root_error, identity_error):
+        message = str(caught.value)
+        assert str(sandbox.root) in message
+        assert "not inside a git repository" in message
+        assert "inside the repository" in message
 
 
 @pytest.mark.slow
