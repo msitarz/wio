@@ -3,6 +3,7 @@
 
 import dataclasses
 import inspect
+import tomllib
 from dataclasses import FrozenInstanceError
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -16,7 +17,8 @@ from wio.models.frozen import freeze
 if TYPE_CHECKING:
     from collections.abc import MutableMapping
 
-SRC = Path(__file__).resolve().parents[3] / "src"
+ROOT = Path(__file__).resolve().parents[3]
+SRC = ROOT / "src"
 
 
 def test_a_config_with_no_arguments_holds_the_defaults() -> None:
@@ -47,6 +49,23 @@ def test_a_config_with_no_arguments_holds_the_defaults() -> None:
     assert config.skills.paths == ()
     assert config.rules_always_include == config.rules_always_exclude == ()
     assert all(len(table) == 0 for table in tables)
+
+
+def test_the_gates_hold_only_the_results_vocabulary_of_the_toml_table() -> None:
+    """`gates.results` is the vocabulary, and `Gates` declares nothing else (AC-1)."""
+    # Given the sample config of the repository and an empty Config
+    text = (ROOT / ".agents" / "wio" / "config.toml").read_text(encoding="utf-8")
+    table = tomllib.loads(text)["gates"]
+    config = Config()
+
+    # When the key path of the TOML table is followed in the Config
+    fields = [f.name for f in dataclasses.fields(config.gates)]
+
+    # Then the same key path holds the same vocabulary, `results` is no field of
+    # the Config itself, and `Gates` declares only `results`
+    assert tuple(table["results"]) == config.gates.results
+    assert "results" not in {f.name for f in dataclasses.fields(config)}
+    assert fields == ["results"]
 
 
 def test_a_config_is_immutable_and_hashable() -> None:
