@@ -11,7 +11,8 @@ every input it sees. The terms Environment, Port and Adapter are defined in the
   other members raise `NotImplementedError` naming the member, until the Work
   that first needs them implements them.
 - Only `ProcessEnvironment` reads the process's working directory. Ruff enforces
-  it: `pathlib.Path.cwd`, `os.getcwd` and `os.getcwdb` are banned in
-  [`pyproject.toml`](../../../pyproject.toml) in `src/wio` outside
+  it: the three direct calls `pathlib.Path.cwd`, `os.getcwd` and `os.getcwdb`
+  are banned in [`pyproject.toml`](../../../pyproject.toml) in `src/wio` outside
   `src/wio/env/adapters.py`, so a component that needs the directory is given an
-  `Environment` instead.
+  `Environment` instead. The ban does not cover every way to find the working
+  directory, such as `Path().cwd()`.

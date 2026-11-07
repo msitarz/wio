@@ -208,10 +208,11 @@ class GitRepository:
     because the `git` trailer reader needs it too. A missing git, a working
     directory that does not exist, is not a directory or cannot be entered, and
     a directory outside a repository each raise a `RuntimeError` that says which
-    and what to do. `show_index` and `is_dirty` belong to the trailers Work:
-    they exist and raise `NotImplementedError` so that the class has every
-    member of `Repository` and can be wired where the port is expected, until
-    that Work gives them their meaning.
+    and what to do, and names the working directory except when git cannot be
+    run. `show_index` and `is_dirty` belong to the trailers Work: they exist and
+    raise `NotImplementedError` so that the class has every member of
+    `Repository` and can be wired where the port is expected, until that Work
+    gives them their meaning.
 
     It is given an `Environment` and runs git in the working directory that the
     environment reports, never in one it finds itself, so a test can fix it.

@@ -20,8 +20,9 @@ shape and handed over complete, or is refused with every problem at once.
   file keeps every command reading the same settings.
 - **Absence is an error.** No repository, no file or an unreadable file raises
   `ConfigurationError` that names the path looked at, or the working directory
-  when there is no repository, and does not mention `wio init`, which does not
-  exist before v0.2. A key the file omits keeps the default of its field, so an
+  when there is no repository (only when git cannot be run does it name the
+  tool instead), and does not mention `wio init`, which does not exist before
+  v0.2. A key the file omits keeps the default of its field, so an
   empty file is valid and gives `Config()`, and a file need set only what
   differs from the defaults. The component does not read the working directory
   itself: the `Repository` adapter is given it by an `Environment` and names it
@@ -32,7 +33,8 @@ shape and handed over complete, or is refused with every problem at once.
   The messages of a missing file and of a file that cannot be read name the path
   once, say in words what is wrong (it is missing, unreadable for permissions, a
   directory, not valid UTF-8) and what to do next, and carry no Python-style
-  error text, so a person or an agent knows the next step.
+  error text, so a person or an agent knows the next step. For any other OS
+  error the message gives the OS's own reason, such as "Input/output error".
 - **A syntax error is one diagnostic.** A file that is not valid TOML gives one
   error whose place is `.agents/wio/config.toml:<line>:<column>`, relative to
   the root, no `Config` and no `sources`, because nothing can be checked in
