@@ -21,12 +21,17 @@ system, with real adapters for the local disk and for git.
   through `Repository`, without a word of git in the port.
 - A component that reads revisions asks `History`, a port apart from
   `Repository`.
+- The adapter that finds the repository is given the working directory through
+  `Environment` and never reads the process's own, so a test can fix it like
+  every other input.
 
 ## Non-Goals
 
 - An adapter for `History`, which the trailers Work adds with its reader.
 - A second version control system, and pygit2, which has no Python 3.15 wheel.
-- An `Environment` adapter.
+- Members of `Environment` beyond `working_directory`, and the adapters of
+  `Clock`, `Entropy` and `Directories`, which the Work that first needs them
+  adds.
 - New members of `FileSystem`, such as walking a tree or telling a symbolic
   link, which the Work that needs them adds.
 
@@ -40,13 +45,20 @@ system, with real adapters for the local disk and for git.
   needs two, because a class that lacks a member of the port cannot be wired
   where the port is expected; the two it does not implement raise
   `NotImplementedError` until the trailers Work, which owns what they mean.
+- **A-4**: `ProcessEnvironment` has every member of `Environment`, though the
+  repository needs only `working_directory`, so that it can be wired where the
+  port is expected; the others raise `NotImplementedError` until the Work that
+  first needs them, which owns what they mean.
 
 ## Mechanisms
 
 - `pathlib.Path` methods, in `LocalFileSystem` in `wio.io.adapters`.
 - `subprocess.run` of `git rev-parse --show-toplevel` and
   `git rev-parse --path-format=absolute --git-common-dir`, in `GitRepository` in
-  `wio.io.adapters`.
+  `wio.io.adapters`, run in the directory that the `Environment` it is given
+  reports.
+- `pathlib.Path.cwd`, in `ProcessEnvironment` in `wio.env.adapters`, the one
+  place that reads the process's working directory.
 - The stubs `src/wio/io/ports.pyi` and `src/wio/models/commits.pyi`, which are
   the spec of the ports and are provisional only in the members the trailers
   Work may still extend.
@@ -56,7 +68,8 @@ system, with real adapters for the local disk and for git.
 Before, one port mixes where the process is with how history is read (`main`
 at commit `e7b10d8cde19aaf60eaae4a650ffd96b29dcd6d3`). After, two
 ports split them, and the adapters of `wio.io.adapters` implement the ones that
-exist. Bold boxes are added, and bold dashed boxes change.
+exist; `GitRepository` is given an `Environment`, which `ProcessEnvironment`
+implements. Bold boxes are added, and bold dashed boxes change.
 
 ```mermaid
 flowchart LR
@@ -70,9 +83,13 @@ flowchart LR
         fs2["FileSystem"]
         gitrepo["GitRepository"]:::new
         local["LocalFileSystem"]:::new
+        env["Environment: working_directory"]
+        procenv["ProcessEnvironment"]:::new
     end
     gitrepo -- "implements" --> repo
     local -- "implements" --> fs2
+    gitrepo -- "reads the directory from" --> env
+    procenv -- "implements" --> env
     classDef new stroke-width: 3px
     classDef changed stroke-width: 3px,stroke-dasharray: 4 3
 ```
@@ -103,7 +120,8 @@ class History(Protocol):
 
 `identity` is described as the absolute path that every checkout of one clone
 shares, and `Repository` and `History` raise `RuntimeError` outside a
-repository, as `Git` did. `src/wio/models/commits.pyi`,
+repository, as `Git` did; the message of `Repository` names the working
+directory. `src/wio/models/commits.pyi`,
 `src/wio/trailers/ports.pyi`, `GLOSSARY.md` and `src/wio/README.md` use the new
 names, and the glossary defines Repository (the working tree the process runs
 in and the state of its index and changes), History (the revisions of a
@@ -145,13 +163,20 @@ never depend on the order the disk returns.
 
 ### **AC-3** `GitRepository` finds the root and the identity of a repository
 
-A `GitRepository` answers where the working tree is and which clone it belongs
-to, from the working directory of the process.
+A `GitRepository` is given an `Environment`, and answers where the working tree
+is and which clone it belongs to, from the working directory that the
+`Environment` reports. It runs git there and calls nothing that reads the
+process's own working directory.
+
+```python
+class GitRepository:
+    def __init__(self, environment: Environment) -> None: ...
+```
 
 #### From a subdirectory
 
-- **Given** a git repository with a subdirectory `sub`, and the process
-  running in `sub`.
+- **Given** a git repository with a subdirectory `sub`, the process running in
+  `sub`, and a `ProcessEnvironment`.
 - **When** `root()` and `identity()` run.
 - **Then** `root()` is the absolute path of the top of the repository, and
   `identity()` is the absolute path of its `.git` directory.
@@ -162,11 +187,19 @@ to, from the working directory of the process.
 - **When** `identity()` runs in each.
 - **Then** both return the same path, and `root()` differs.
 
+#### From the directory the environment reports
+
+- **Given** a git repository with a subdirectory `sub`, an `Environment` whose
+  `working_directory()` is `sub`, and a process running elsewhere.
+- **When** `root()` runs.
+- **Then** it is the absolute path of the top of that repository.
+
 #### Outside a repository
 
-- **Given** a directory that no git repository contains.
+- **Given** a directory that no git repository contains, as the working
+  directory of an `Environment`.
 - **When** `root()` or `identity()` runs.
-- **Then** it raises `RuntimeError`.
+- **Then** it raises `RuntimeError` whose message names that directory.
 
 ### **AC-4** The members trailers owns are declared and not yet implemented
 
@@ -182,8 +215,33 @@ to, from the working directory of the process.
 
 #### Wired as the port
 
-- **Given** a module that assigns a `GitRepository()` to a variable annotated
-  `Repository`.
+- **Given** a module that assigns a `GitRepository(environment)` to a variable
+  annotated `Repository`, with an `environment` annotated `Environment`.
+- **When** `pyrefly check` runs.
+- **Then** it reports no error.
+
+### **AC-5** `ProcessEnvironment` reports the process's working directory
+
+A `ProcessEnvironment` is an `Environment` of which only `working_directory` is
+implemented, and it satisfies the port where it is wired.
+
+#### The working directory
+
+- **Given** a process running in a directory.
+- **When** `working_directory()` runs.
+- **Then** it returns the absolute path of that directory.
+
+#### Not implemented
+
+- **Given** a `ProcessEnvironment`.
+- **When** `get("HOME")` runs.
+- **Then** it raises `NotImplementedError` whose message names the Work that
+  first needs it.
+
+#### Wired as the port
+
+- **Given** a module that assigns a `ProcessEnvironment()` to a variable
+  annotated `Environment`.
 - **When** `pyrefly check` runs.
 - **Then** it reports no error.
 
