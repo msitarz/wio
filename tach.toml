@@ -183,4 +183,4 @@ depends_on = [
 # and the test setup, such as the channel marker of the acceptance tests.
 [[modules]]
 path = "tests.tooling"
-depends_on = ["tests.acceptance"]
+depends_on = ["tests.acceptance", "wio.cli", "wio.models"]
