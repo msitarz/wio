@@ -32,6 +32,10 @@ plain, immutable types, defined once, before any of them can read the config.
   [the concepts](../../../../../docs/concepts.md#15-open-points).
 - A structured location in a diagnostic: `where` is a string.
 - Other models of `wio.models`.
+- A `continue` key of `[gates]`, which says which results let the next stage
+  start: it is declared when `wio next` needs it, and `results` stays the
+  vocabulary
+  ([the concepts](../../../../../docs/concepts.md#what-wio-next-proposes)).
 
 ## Assumptions
 
@@ -62,7 +66,7 @@ to settle.
 ```mermaid
 flowchart LR
     config["Config"]
-    config --> results["results: tuple[str, ...]"]
+    config --> gates["gates: Gates (results: tuple[str, ...])"]
     config --> works["works: Works (dir, hierarchy, defaults: Defaults)"]
     config --> templates["templates: Templates (dir, kinds)"]
     config --> trailers["trailers: Trailers (reader)"]
@@ -87,7 +91,7 @@ is a chain of field names.
 ```python
 @dataclass(frozen=True)
 class Config:
-    results: tuple[str, ...] = ("pass", "fail", "unknown")
+    gates: Gates = Gates()
     works: Works = Works()
     templates: Templates = Templates()
     trailers: Trailers = Trailers()
@@ -107,7 +111,8 @@ class Config:
 
 - **Given** `Config()`.
 - **When** its fields are read.
-- **Then** `works.hierarchy` is `"flat"`, `works.dir` is `.agents/wio/works`,
+- **Then** `gates.results` is `("pass", "fail", "unknown")`,
+  `works.hierarchy` is `"flat"`, `works.dir` is `.agents/wio/works`,
   `templates.dir` is `.agents/wio/templates`, `trailers.reader` is `"scan"`,
   `bundle.separator` is a blank line, `bundle.size_threshold` is `None`, the
   skill paths are `()`, and every open table is empty.
@@ -144,6 +149,10 @@ class Trailers:
 
 class Skills:
     paths: tuple[str, ...] = ()
+
+
+class Gates:
+    results: tuple[str, ...] = ("pass", "fail", "unknown")
 
 
 class Bundle:
