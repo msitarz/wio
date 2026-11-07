@@ -182,8 +182,8 @@ implementation of its own.
   it states, so a second implementation is a decision, not an accident.
 - Fakes of ports live under `tests`, never in `src`, so the package ships only
   what runs.
-- Only `wio.cli` and the unit tests import an adapter, so a component cannot
-  bypass its ports.
+- Only `wio.cli` and the unit and integration tests import an adapter, so a
+  component cannot bypass its ports.
 - An adapter that needs another layer of the outside world is given it through
   that layer's port, imported under `TYPE_CHECKING`, and never imports the
   adapter of it. `GitRepository` is given an `Environment`, so it runs git in

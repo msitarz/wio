@@ -1,15 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests of `wio.errors` and of the dependency table that lets packages use it."""
-
-import tomllib
-from pathlib import Path
+"""Tests of `wio.errors`."""
 
 import pytest
 
 from wio.errors import ConfigurationError, WioError
 from wio.models.diagnostics import Diagnostic
-
-TACH = Path(__file__).parents[2] / "tach.toml"
 
 
 def test_a_configuration_error_is_a_wio_error() -> None:
@@ -31,26 +26,6 @@ def test_a_configuration_error_is_a_wio_error() -> None:
     assert str(caught.value) == "no config at /x"
     assert not issubclass(WioError, ValueError)
     assert not issubclass(ConfigurationError, ValueError)
-
-
-def test_tach_lets_every_package_use_wio_errors() -> None:
-    """`wio.models` is plain, `wio.errors` needs only it, and the rest use both."""
-    # Given tach.toml of the tree
-    text = TACH.read_text(encoding="utf-8")
-
-    # When it is read
-    modules = {m["path"]: m["depends_on"] for m in tomllib.loads(text)["modules"]}
-
-    # Then wio.models has an empty depends_on, wio.errors lists only wio.models,
-    # and every other wio.* module and tests.unit list wio.errors
-    assert modules["wio.models"] == []
-    assert modules["wio.errors"] == ["wio.models"]
-    users = [p for p in modules if p.startswith("wio.") or p == "tests.unit"]
-    assert [
-        p
-        for p in users
-        if p not in {"wio.models", "wio.errors"} and "wio.errors" not in modules[p]
-    ] == []
 
 
 def test_a_configuration_error_keeps_its_diagnostics() -> None:

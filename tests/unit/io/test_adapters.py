@@ -2,26 +2,12 @@
 """Tests for the adapters of `wio.io`."""
 
 import io
-import sys
 from typing import TYPE_CHECKING
 
 from wio.io import adapters
 
 if TYPE_CHECKING:
     import pytest
-
-
-def test_the_standard_streams_adapter_wraps_the_real_streams() -> None:
-    """The adapter for standard streams hands out `sys`'s own streams."""
-    # Given the adapter for standard streams
-
-    # When it is created
-    stdio = adapters.SystemStdio()
-
-    # Then its streams are the process's streams
-    assert stdio.stdin is sys.stdin
-    assert stdio.stdout is sys.stdout
-    assert stdio.stderr is sys.stderr
 
 
 def test_the_module_holds_the_adapters_of_the_ports_that_have_one() -> None:

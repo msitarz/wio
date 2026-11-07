@@ -27,8 +27,43 @@ and the conventions. Examples are sketches.
 | Layer | Location | Use for | Do not use for |
 |---|---|---|---|
 | Unit | `tests/unit/` (mirrors `src/wio/`) | Internals: directive grammar (parametrized tables), the pure `compile(...)` core, id generation, parsers | Cross-module behaviour |
+| Integration | `tests/integration/` (mirrors `src/wio/`) | Code with something real behind it: an adapter on real git or a real disk, the process's working directory and environment, a fresh interpreter (what an import loads), the installed command | Behaviour a user relies on (acceptance); input tables (unit) |
+| Tooling | `tests/tooling/` | The repository's own configuration, layout and hygiene as its tools see them: lint rules probed with `ruff`, what git ignores, the stub rules of the ports, that the sources and the sample config agree with the models | The behaviour of wio |
 | Acceptance | `tests/acceptance/` (mirrors features) | Behaviour a user or skill relies on: rule selection, contract check results, config validation, record checks, exit codes | Exhaustive input tables, flag parsing details |
 | Golden | `tests/golden/` (expected files only) | Byte-stable output (context bundles, rendered templates) | Anything with timestamps or ordering that is not deterministic |
+
+The `tests/packaging/` and `tests/scripts/` directories are two more groups,
+for the built package and for the scripts of the repository.
+
+**Which group a test belongs to.** Ask in this order, and take the first yes:
+
+1. Does it assert on what a user or a skill sees, through the DSL or the CLI
+   channel? It is an acceptance test.
+2. Does it check a tool's configuration or the files of the repository, such as
+   a lint rule, an ignored file or the layout of the sources? It is a tooling
+   test.
+3. Does something real stand behind the code it calls: git, files whose state it
+   depends on, the working directory or the environment of the process, a fresh
+   interpreter, the installed command? It is an integration test, however fast
+   it runs.
+4. Otherwise one module is tested with its collaborators replaced, and it is a
+   unit test. A `tmp_path` directory that only gives the code an inert input
+   does not make a unit test an integration test; a test that asserts on what
+   the real disk does does.
+
+A file that mixes the two is split: the unit tests stay in `tests/unit/...`, and
+the rest moves to the same path under `tests/integration/` or `tests/tooling/`.
+
+**Markers.** Every directory under `tests/` that holds tests is a group, and its
+marker is its name: `unit`, `integration`, `acceptance`, `tooling`, `packaging`
+and `scripts`. `tests/conftest.py` sets the marker from the path, so
+`pytest -m integration` runs that group whatever its tests are called. A test
+outside every group, or marked with another group's name, fails collection. A
+new group is a directory, a registered marker and a module in `tach.toml`.
+
+`slow` is separate from the group. It says that a test spawns a subprocess or
+builds the package, and the default run leaves it out. An integration test with
+only a temporary directory is not slow and runs by default.
 
 Not covered here: LLM behaviour of skills (`wio-define`, and the review skills
 that come later). That
@@ -42,8 +77,10 @@ tests/
 ├── conftest.py             # register_assert_rewrite, shared options and markers,
 │                           # and the `sandbox` fixture
 ├── sandbox.py              # Sandbox: the directory and environment of a test
-├── support.py              # helpers tests share, such as running git in a sandbox
+├── support.py              # helpers tests share: git in a sandbox, a fake `Environment`
 ├── unit/                   # mirrors src/wio/
+├── integration/            # mirrors src/wio/: the code with something real behind it
+├── tooling/                # tests of the repository's configuration and hygiene
 ├── acceptance/
 │   ├── conftest.py         # `wio` fixture, channel parametrization, assertrepr hook
 │   ├── channels.py         # Channel enum
@@ -72,8 +109,10 @@ own package only when a second consumer (for example `wio-eval`) needs it.
 and `tests.support` depend on nothing else in `tests`, so any group may use
 them; the acceptance setup imports only `wio.cli` and `wio.io` and its own
 parts; `tests/scripts` imports `scripts` and the shared helpers, never the
-acceptance setup; and nothing in `src` or `scripts` imports `tests`. A new
-group of tests needs an entry there.
+acceptance setup; the integration tests import the adapters and the shared
+helpers, never the unit tests, so a fake that both use lives in `tests.support`;
+the tooling tests import only the acceptance setup they check; and nothing in
+`src` or `scripts` imports `tests`. A new group of tests needs an entry there.
 
 ## 4. The DSL
 
@@ -247,6 +286,12 @@ addopts = ["--import-mode=importlib", "-m", "not slow"]
 markers = [
     "channels(*channels): run once per listed Channel",
     "slow: spawns a real subprocess (git, the CLI) or builds the package",
+    "unit: tests/unit, one module with its collaborators replaced",
+    "integration: tests/integration, code with something real behind it",
+    "acceptance: tests/acceptance, behaviour asserted through the DSL",
+    "tooling: tests/tooling, the repository's configuration and hygiene",
+    "packaging: tests/packaging, the built wheel and sdist",
+    "scripts: tests/scripts, the scripts of the repository",
 ]
 ```
 
@@ -280,6 +325,8 @@ markers = [
 
 - A test that spawns a subprocess (git, the CLI) or builds the package is
   marked `slow`. `make slow` runs those tests, and CI runs that target.
+- A test lives in the group its subject asks for (see section 2) and never
+  carries another group's marker by hand; the directory sets it.
 - Use `tmp_path` for every repo; never write outside it. The `Sandbox` sets
   `WIO_HOME` inside `tmp_path` so tests never touch the real Wio home, and it
   gives git an empty global config, no system config, a ceiling at `tmp_path`,

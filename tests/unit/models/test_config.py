@@ -3,7 +3,6 @@
 
 import dataclasses
 import inspect
-import tomllib
 from dataclasses import FrozenInstanceError
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -51,19 +50,15 @@ def test_a_config_with_no_arguments_holds_the_defaults() -> None:
     assert all(len(table) == 0 for table in tables)
 
 
-def test_the_gates_hold_only_the_results_vocabulary_of_the_toml_table() -> None:
-    """`gates.results` is the vocabulary, and `Gates` declares nothing else (AC-1)."""
-    # Given the sample config of the repository and an empty Config
-    text = (ROOT / ".agents" / "wio" / "config.toml").read_text(encoding="utf-8")
-    table = tomllib.loads(text)["gates"]
+def test_the_gates_hold_only_the_results_vocabulary() -> None:
+    """`Gates` declares only `results`, and `results` is no field of `Config` (AC-1)."""
+    # Given an empty Config
     config = Config()
 
-    # When the key path of the TOML table is followed in the Config
+    # When the fields of the Config and of its gates are listed
     fields = [f.name for f in dataclasses.fields(config.gates)]
 
-    # Then the same key path holds the same vocabulary, `results` is no field of
-    # the Config itself, and `Gates` declares only `results`
-    assert tuple(table["results"]) == config.gates.results
+    # Then `results` is not a field of the Config, and `Gates` declares only it
     assert "results" not in {f.name for f in dataclasses.fields(config)}
     assert fields == ["results"]
 
@@ -107,30 +102,3 @@ def test_every_setting_has_a_description() -> None:
     # Then each has a non-empty description in its metadata
     assert len(classes) == 13
     assert undescribed == []
-
-
-def test_one_helper_holds_the_only_pyrefly_suppression() -> None:
-    """`freeze` builds a `frozendict` and holds the only suppression (AC-6)."""
-    # Given the source tree and a mapping
-    mapping = {"a": (1, 2)}
-    marker = "pyrefly: " + "ignore"
-    hits = [
-        (path, line)
-        for path in SRC.rglob("*.py")
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if marker in line
-    ]
-
-    # When the mapping is frozen and the pyrefly suppressions of `src` are
-    # searched
-    frozen = freeze(mapping)
-
-    # Then the result is a hashable frozendict, and one occurrence names
-    # bad-argument-count, in the helper that names the known issue
-    assert frozen == mapping
-    assert isinstance(hash(frozen), int)
-    assert len(hits) == 1
-    path, line = hits[0]
-    assert path.name == "frozen.py"
-    assert "bad-argument-count" in line
-    assert "known-issues.md" in path.read_text(encoding="utf-8")

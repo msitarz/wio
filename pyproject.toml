@@ -79,6 +79,13 @@ filterwarnings = ["error"]
 markers = [
     "channels(*channels): run once per listed Channel",
     "slow: spawns a real subprocess (git, the CLI) or builds the package",
+    # One marker per directory under tests/, set by tests/conftest.py.
+    "unit: tests/unit, one module with its collaborators replaced",
+    "integration: tests/integration, code with something real behind it",
+    "acceptance: tests/acceptance, behaviour asserted through the DSL",
+    "tooling: tests/tooling, the repository's configuration and hygiene",
+    "packaging: tests/packaging, the built wheel and sdist",
+    "scripts: tests/scripts, the scripts of the repository",
 ]
 addopts = [
   "-ra",

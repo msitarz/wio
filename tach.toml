@@ -41,16 +41,16 @@ depends_on = ["wio.models", "wio.errors"]
 path = "wio.ports"
 depends_on = ["wio.models", "wio.errors"]
 
-# Adapters: only `wio.cli` and the unit tests may import them.
+# Adapters: only `wio.cli` and the unit and integration tests may import them.
 [[modules]]
 path = "wio.io.adapters"
 depends_on = ["wio.io", "wio.env", "wio.models", "wio.errors"]
-visibility = ["wio.cli", "tests.unit"]
+visibility = ["wio.cli", "tests.unit", "tests.integration"]
 
 [[modules]]
 path = "wio.env.adapters"
 depends_on = ["wio.env", "wio.errors"]
-visibility = ["wio.cli", "tests.unit"]
+visibility = ["wio.cli", "tests.unit", "tests.integration"]
 
 # Components: they never import one another, and meet only in `wio.cli`.
 [[modules]]
@@ -161,3 +161,26 @@ depends_on = [
     "wio.io.adapters",
     "wio.ports",
 ]
+
+# Integration tests meet the adapters, and the code that has something real
+# behind it, with the shared helpers. They never use the unit tests.
+[[modules]]
+path = "tests.integration"
+depends_on = [
+    "wio.cli",
+    "wio.config",
+    "wio.env",
+    "wio.env.adapters",
+    "wio.errors",
+    "wio.io",
+    "wio.io.adapters",
+    "tests.acceptance.drivers",
+    "tests.sandbox",
+    "tests.support",
+]
+
+# Tooling tests probe the repository's own configuration with its own tools,
+# and the test setup, such as the channel marker of the acceptance tests.
+[[modules]]
+path = "tests.tooling"
+depends_on = ["tests.acceptance", "wio.cli", "wio.models"]
