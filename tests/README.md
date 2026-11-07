@@ -76,7 +76,7 @@ tests/
 ├── conftest.py             # register_assert_rewrite, shared options and markers,
 │                           # and the `sandbox` fixture
 ├── sandbox.py              # Sandbox: the directory and environment of a test
-├── support.py              # helpers tests share, such as running git in a sandbox
+├── support.py              # helpers tests share: git in a sandbox, a fake `Environment`
 ├── unit/                   # mirrors src/wio/
 ├── integration/            # mirrors src/wio/: the code with something real behind it
 ├── tooling/                # tests of the repository's configuration and hygiene
@@ -108,8 +108,10 @@ own package only when a second consumer (for example `wio-eval`) needs it.
 and `tests.support` depend on nothing else in `tests`, so any group may use
 them; the acceptance setup imports only `wio.cli` and `wio.io` and its own
 parts; `tests/scripts` imports `scripts` and the shared helpers, never the
-acceptance setup; and nothing in `src` or `scripts` imports `tests`. A new
-group of tests needs an entry there.
+acceptance setup; the integration tests import the adapters and the shared
+helpers, never the unit tests, so a fake that both use lives in `tests.support`;
+the tooling tests import only the acceptance setup they check; and nothing in
+`src` or `scripts` imports `tests`. A new group of tests needs an entry there.
 
 ## 4. The DSL
 

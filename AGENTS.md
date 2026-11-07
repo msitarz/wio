@@ -33,7 +33,9 @@ for single tools. The checks are defined in `prek.toml` (hooks) and
 Single tools, for quick feedback:
 
 - `uv run pytest`: the fast tests in random order. Add `-p no:randomly` to
-  debug, `-k name` to select, and `-m slow` to run the slow tests instead.
+  debug, `-k name` to select, `-m slow` to run the slow tests instead, and
+  `-m unit`, `-m integration` or `-m tooling` to run one group of tests (see
+  [tests/README.md](tests/README.md)).
 - `uv run ruff check --fix` and `uv run ruff format`: lint and format Python.
 - `uv run pyrefly check`: strict type check of `scripts`, `src` and `tests`.
 - `uv run complexipy src tests`: cognitive complexity.
