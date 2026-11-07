@@ -28,7 +28,7 @@ and the conventions. Examples are sketches.
 |---|---|---|---|
 | Unit | `tests/unit/` (mirrors `src/wio/`) | Internals: directive grammar (parametrized tables), the pure `compile(...)` core, id generation, parsers | Cross-module behaviour |
 | Integration | `tests/integration/` (mirrors `src/wio/`) | Code with something real behind it: an adapter on real git or a real disk, the process's working directory and environment, a fresh interpreter (what an import loads), the installed command | Behaviour a user relies on (acceptance); input tables (unit) |
-| Tooling | `tests/tooling/` | The repository's own configuration and hygiene as its tools see them: lint rules probed with `ruff`, what git ignores | The behaviour of wio |
+| Tooling | `tests/tooling/` | The repository's own configuration, layout and hygiene as its tools see them: lint rules probed with `ruff`, what git ignores, the stub rules of the ports, that the sources and the sample config agree with the models | The behaviour of wio |
 | Acceptance | `tests/acceptance/` (mirrors features) | Behaviour a user or skill relies on: rule selection, contract check results, config validation, record checks, exit codes | Exhaustive input tables, flag parsing details |
 | Golden | `tests/golden/` (expected files only) | Byte-stable output (context bundles, rendered templates) | Anything with timestamps or ordering that is not deterministic |
 
@@ -39,8 +39,9 @@ for the built package and for the scripts of the repository.
 
 1. Does it assert on what a user or a skill sees, through the DSL or the CLI
    channel? It is an acceptance test.
-2. Does it check a tool's configuration or the state of the repository, such as
-   a lint rule or an ignored file? It is a tooling test.
+2. Does it check a tool's configuration or the files of the repository, such as
+   a lint rule, an ignored file or the layout of the sources? It is a tooling
+   test.
 3. Does something real stand behind the code it calls: git, files whose state it
    depends on, the working directory or the environment of the process, a fresh
    interpreter, the installed command? It is an integration test, however fast
