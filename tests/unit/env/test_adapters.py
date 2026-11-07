@@ -12,8 +12,6 @@ if TYPE_CHECKING:
 
     from wio.env.ports import Environment
 
-STUB = pytest.mark.skip(reason="stub of the architecture stage")
-
 
 def _wired() -> Environment:
     """Wire the adapter where the port is expected.
@@ -39,7 +37,6 @@ def test_the_module_holds_the_adapters_of_the_ports_that_have_one() -> None:
     assert public == ["ProcessEnvironment"]
 
 
-@STUB
 def test_the_working_directory_is_the_absolute_directory_of_the_process(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

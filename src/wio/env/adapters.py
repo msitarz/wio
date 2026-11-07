@@ -1,10 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The real adapters of the ports of `wio.env`."""
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from pathlib import Path
+from pathlib import Path
 
 
 class ProcessEnvironment:
@@ -33,6 +30,7 @@ class ProcessEnvironment:
         """Find the directory the process runs in.
 
         Returns:
-            The absolute working directory of the process.
+            The absolute working directory of the process, the one place of
+            `src/wio` that reads it.
         """
-        raise NotImplementedError
+        return Path.cwd()

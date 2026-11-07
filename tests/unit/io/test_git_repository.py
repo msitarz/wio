@@ -18,15 +18,12 @@ if TYPE_CHECKING:
     from wio.io.ports import Repository
 
 
-PROCESS = pytest.mark.skip(reason="ProcessEnvironment.working_directory is a stub")
-
-
 def _wired(environment: Environment | None = None) -> Repository:
     """Wire the adapter where the port is expected.
 
     Args:
-        environment: Where the working directory comes from; the process's own
-            by default.
+        environment: Where the working directory comes from; a fake that
+            reports `/r` by default.
 
     Returns:
         A `GitRepository`, which type checking accepts as a `Repository`.
@@ -34,7 +31,6 @@ def _wired(environment: Environment | None = None) -> Repository:
     return adapters.GitRepository(environment or FakeEnvironment(Path("/r")))
 
 
-@PROCESS
 @pytest.mark.slow
 def test_root_and_identity_from_a_subdirectory(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -56,7 +52,6 @@ def test_root_and_identity_from_a_subdirectory(
     assert identity == (sandbox.root / ".git").resolve()
 
 
-@PROCESS
 @pytest.mark.slow
 def test_a_linked_worktree_shares_the_identity_but_not_the_root(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -80,7 +75,6 @@ def test_a_linked_worktree_shares_the_identity_but_not_the_root(
     assert first[0] != second[0]
 
 
-@PROCESS
 @pytest.mark.slow
 def test_outside_a_repository_root_and_identity_raise(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
