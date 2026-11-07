@@ -4,16 +4,12 @@
 import dataclasses
 from typing import TYPE_CHECKING
 
-import pytest
-
 from tests.unit.config.fakes import load_text
 from wio.models.config import Config, Stage
 from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:
     from wio.config import CheckInputs
-
-pytestmark = pytest.mark.skip(reason="stub of the architecture stage")
 
 
 def _errors(text: str) -> dict[str, str]:

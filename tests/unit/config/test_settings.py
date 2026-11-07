@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from wio.config import CheckInputs
     from wio.ports import Settings
 
-SHAPE = pytest.mark.skip(reason="needs the shape, stubbed until implementation")
 
 BAD = '[works]\nhierarchy = "nest"\n[trailers]\nreader = 3\n'
 
@@ -60,7 +59,6 @@ def _warning_and_note(_config: Config, _inputs: CheckInputs) -> list[Diagnostic]
     return [Diagnostic("warning", "w", "careful"), Diagnostic("note", "n", "fyi")]
 
 
-@SHAPE
 def test_load_returns_the_config_or_raises_with_every_error() -> None:
     """AC-6: valid, two shape errors, and a valid one with a warning and a note."""
     # Given a valid config, one with two shape errors, and a valid one whose
@@ -87,7 +85,6 @@ def test_load_returns_the_config_or_raises_with_every_error() -> None:
     assert soft_config == Config()
 
 
-@SHAPE
 def test_an_added_check_joins_the_shape_in_one_run() -> None:
     """AC-7: a check returns its error beside the shape's, also with an error."""
     # Given a check that errors at x, a valid file and one with an unknown key
