@@ -4,7 +4,6 @@
 import importlib.metadata
 import io
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, TextIO
 
 from wio import cli
@@ -76,19 +75,3 @@ def test_console_main_runs_the_core_on_the_adapter_for_the_process_streams(
     # Then it passed the arguments after the program name and the fake streams
     assert calls == [(["x", "y"], fake)]
     assert code == 7
-
-
-def test_the_placeholder_is_gone() -> None:
-    """Neither the greeting, its module nor its test is left."""
-    # Given the package and the source and test trees as they are
-    root = Path(__file__).resolve().parents[3]
-
-    # When the placeholder is looked for
-    found = (
-        hasattr(cli, "hello"),
-        (root / "src" / "wio" / "cli.py").exists(),
-        (root / "tests" / "unit" / "test_cli.py").exists(),
-    )
-
-    # Then none of the three exists
-    assert found == (False, False, False)
