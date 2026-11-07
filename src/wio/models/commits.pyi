@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The type for a commit as `wio.io.ports.Git` reports it.
+"""The type for a commit as `wio.io.ports.History` reports it.
 
 The stub is the spec until the Work that first reads commits replaces it with a
 `.py` of the same annotations. It declares no fields: the first Work that reads

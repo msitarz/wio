@@ -21,7 +21,7 @@ class Contracts(Protocol):
         section's ids are not included. The Work is looked up in the working
         tree first and then in `HEAD`, which is where a Work that the commit
         deletes still is. Checking the index at commit time is the contract
-        component's to decide, with `Git.show_index`.
+        component's to decide, with `Repository.show_index`.
 
         Args:
             work_id: The Work's id.
