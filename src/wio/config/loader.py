@@ -93,14 +93,14 @@ def _root(repository: Repository) -> Path:
         The absolute root.
 
     Raises:
-        ConfigurationError: There is no repository; the message carries the
-            adapter's account of where it looked.
+        ConfigurationError: There is no repository or it cannot be found; the
+            message is the adapter's own, which says what is wrong and what to
+            do, and the loader adds nothing to it.
     """
     try:
         return repository.root()
     except RuntimeError as error:
-        message = f"cannot find the repository that holds the config: {error}"
-        raise ConfigurationError(message) from error
+        raise ConfigurationError(str(error)) from error
 
 
 def _read(files: FileSystem, path: Path) -> str:
@@ -114,17 +114,51 @@ def _read(files: FileSystem, path: Path) -> str:
         The text of the file.
 
     Raises:
-        ConfigurationError: The file is missing or cannot be read; the message
-            names the path.
+        ConfigurationError: The file is missing or cannot be read. The message
+            names the path once, says in words what is wrong and what to do, and
+            carries no Python-style error text.
     """
     try:
         return files.read_text(path)
     except FileNotFoundError as error:
-        message = f"no config file at {path}"
+        message = f"no config file at {path}; create it there, an empty file is valid"
         raise ConfigurationError(message) from error
     except (OSError, UnicodeDecodeError) as error:
-        message = f"cannot read the config file at {path}: {error}"
-        raise ConfigurationError(message) from error
+        raise ConfigurationError(_unreadable(path, error)) from error
+
+
+def _unreadable(path: Path, error: OSError | UnicodeDecodeError) -> str:
+    """Say why the config file cannot be read, and what to do.
+
+    Args:
+        path: The absolute path of the file.
+        error: What reading it raised.
+
+    Returns:
+        A sentence that names the path once, says what is wrong in words and
+        says what to do next.
+    """
+    match error:
+        case PermissionError():
+            return (
+                f"the config file {path} cannot be read because of its "
+                "permissions; make it readable"
+            )
+        case IsADirectoryError():
+            return f"the config file {path} is a directory; replace it with a file"
+        case NotADirectoryError():
+            return (
+                f"the config file {path} cannot be reached because part of its "
+                "path is a file, not a directory; move the file"
+            )
+        case UnicodeDecodeError():
+            return f"the config file {path} is not valid UTF-8; save it as UTF-8"
+        case _:
+            reason = error.strerror or type(error).__name__
+            return (
+                f"the config file {path} cannot be read: {reason}; "
+                "check that it can be opened"
+            )
 
 
 def _syntax(error: TomlSyntaxError) -> Diagnostic:

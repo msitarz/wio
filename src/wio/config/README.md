@@ -28,8 +28,11 @@ shape and handed over complete, or is refused with every problem at once.
   in the message of its `RuntimeError`, which the port documents, so every
   component reaches the environment through a port. That message also says
   whether the directory does not exist, is not a directory, cannot be entered or
-  is in no repository, and what to do, so the error of the loader tells a person
-  the next step.
+  is in no repository, and what to do, and the loader passes it on unchanged.
+  The messages of a missing file and of a file that cannot be read name the path
+  once, say in words what is wrong (it is missing, unreadable for permissions, a
+  directory, not valid UTF-8) and what to do next, and carry no Python-style
+  error text, so a person or an agent knows the next step.
 - **A syntax error is one diagnostic.** A file that is not valid TOML gives one
   error whose place is `.agents/wio/config.toml:<line>:<column>`, relative to
   the root, no `Config` and no `sources`, because nothing can be checked in

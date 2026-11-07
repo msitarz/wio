@@ -195,8 +195,7 @@ def _git_path(environment: Environment, *arguments: str) -> Path:
         raise RuntimeError(message) from error
     if done.returncode != 0:
         message = (
-            f"not inside a git repository (working directory {directory}); {_NEXT}."
-            f" git said: {done.stderr.strip()}"
+            f"not inside a git repository (working directory {directory}); {_NEXT}"
         )
         raise RuntimeError(message)
     return Path(done.stdout.strip())

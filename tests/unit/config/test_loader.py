@@ -59,25 +59,76 @@ def test_a_missing_file_names_the_path_looked_at() -> None:
     with pytest.raises(ConfigurationError) as caught:
         load_config(FakeRepository(), files)
 
-    # Then the error names the path and not wio init
-    assert str(CONFIG) in str(caught.value)
-    assert "wio init" not in str(caught.value)
+    # Then the error names the path once, says to create it there, and not wio init
+    message = str(caught.value)
+    assert message.count(str(CONFIG)) == 1
+    assert "create" in message
+    assert "wio init" not in message
 
 
-def test_a_file_that_cannot_be_read_is_a_configuration_error() -> None:
-    """AC-1: a file that is not UTF-8 text is refused with its path."""
+READ_ERRORS = (
+    (
+        PermissionError(13, "Permission denied", str(CONFIG)),
+        "because of its permissions",
+        "make it readable",
+    ),
+    (
+        IsADirectoryError(21, "Is a directory", str(CONFIG)),
+        "is a directory",
+        "replace it with a file",
+    ),
+    (
+        NotADirectoryError(20, "Not a directory", str(CONFIG)),
+        "is a file, not a directory",
+        "move the file",
+    ),
+    (
+        UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte"),
+        "is not valid UTF-8",
+        "save it as UTF-8",
+    ),
+    (
+        OSError(5, "Input/output error", str(CONFIG)),
+        "Input/output error",
+        "check that it can be opened",
+    ),
+)
 
-    # Given a config file whose text cannot be decoded
-    reason = "invalid start byte"
-    failure = UnicodeDecodeError("utf-8", b"\xff", 0, 1, reason)
+
+@pytest.mark.parametrize(("failure", "problem", "advice"), READ_ERRORS)
+def test_a_file_that_cannot_be_read_says_why_and_what_to_do(
+    failure: Exception, problem: str, advice: str
+) -> None:
+    """AC-1: each way a read fails is told in words, naming the path once."""
+    # Given a config file that cannot be read for one reason
     files = MemoryFileSystem({CONFIG: ""}, failure=failure)
 
     # When load_config runs
     with pytest.raises(ConfigurationError) as caught:
         load_config(FakeRepository(), files)
 
-    # Then the error names the path
-    assert str(CONFIG) in str(caught.value)
+    # Then the error names the path once, says what is wrong and what to do, and
+    # has no Python-style error text
+    message = str(caught.value)
+    assert message.count(str(CONFIG)) == 1
+    assert problem in message
+    assert advice in message
+    assert "[Errno" not in message
+    assert "wio init" not in message
+
+
+def test_a_missing_repository_gives_the_adapters_message_once() -> None:
+    """AC-1: the loader adds nothing to the one message of the adapter."""
+    # Given a repository whose adapter explains the problem and what to do
+    explained = "not inside a git repository (working directory /work); run wio"
+    repository = FakeRepository(top=None, message=explained)
+
+    # When load_config runs
+    with pytest.raises(ConfigurationError) as caught:
+        load_config(repository, MemoryFileSystem())
+
+    # Then the error is that message and nothing else
+    assert str(caught.value) == explained
 
 
 def test_an_empty_file_and_a_partial_one_keep_the_defaults() -> None:
