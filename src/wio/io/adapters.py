@@ -137,10 +137,11 @@ class LocalFileSystem:
         return sorted(path.iterdir(), key=lambda entry: entry.name)
 
 
-def _git_path(*arguments: str) -> Path:
-    """Run `git rev-parse` in the working directory and read the path it prints.
+def _git_path(environment: Environment, *arguments: str) -> Path:
+    """Run `git rev-parse` in the environment's directory and read its path.
 
     Args:
+        environment: Reports the working directory git runs in.
         *arguments: The options after `git rev-parse`.
 
     Returns:
@@ -148,11 +149,14 @@ def _git_path(*arguments: str) -> Path:
 
     Raises:
         RuntimeError: If the working directory is not inside a repository, or
-            git is not installed. The message names the working directory.
+            git is not installed. The message names the working directory the
+            environment reported.
     """
+    directory = environment.working_directory()
     try:
         done = subprocess.run(
             ["git", "rev-parse", *arguments],
+            cwd=directory,
             capture_output=True,
             text=True,
             check=False,
@@ -161,7 +165,7 @@ def _git_path(*arguments: str) -> Path:
         message = f"cannot run git: {error}"
         raise RuntimeError(message) from error
     if done.returncode != 0:
-        where = f"working directory {Path.cwd()}"
+        where = f"working directory {directory}"
         message = f"not inside a git repository ({where}): {done.stderr.strip()}"
         raise RuntimeError(message)
     return Path(done.stdout.strip())
@@ -196,7 +200,7 @@ class GitRepository:
         Returns:
             The absolute path of the repository root.
         """
-        return _git_path("--show-toplevel")
+        return _git_path(self._environment, "--show-toplevel")
 
     def identity(self) -> Path:
         """Find the path that identifies the clone.
@@ -205,7 +209,9 @@ class GitRepository:
             The absolute path of the git directory that every worktree of one
             clone shares.
         """
-        return _git_path("--path-format=absolute", "--git-common-dir")
+        return _git_path(
+            self._environment, "--path-format=absolute", "--git-common-dir"
+        )
 
     def show_index(self, path: Path) -> str | None:
         """Read a file as it is staged in the index.

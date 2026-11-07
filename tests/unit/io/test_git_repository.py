@@ -17,7 +17,8 @@ if TYPE_CHECKING:
     from wio.env.ports import Environment
     from wio.io.ports import Repository
 
-STUB = pytest.mark.skip(reason="stub of the architecture stage")
+
+PROCESS = pytest.mark.skip(reason="ProcessEnvironment.working_directory is a stub")
 
 
 def _wired(environment: Environment | None = None) -> Repository:
@@ -30,9 +31,10 @@ def _wired(environment: Environment | None = None) -> Repository:
     Returns:
         A `GitRepository`, which type checking accepts as a `Repository`.
     """
-    return adapters.GitRepository(environment or ProcessEnvironment())
+    return adapters.GitRepository(environment or FakeEnvironment(Path("/r")))
 
 
+@PROCESS
 @pytest.mark.slow
 def test_root_and_identity_from_a_subdirectory(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -46,7 +48,7 @@ def test_root_and_identity_from_a_subdirectory(
     monkeypatch.chdir(sub)
 
     # When root and identity run
-    repository = _wired()
+    repository = _wired(ProcessEnvironment())
     root, identity = repository.root(), repository.identity()
 
     # Then they are the absolute top of the tree and its `.git` directory
@@ -54,6 +56,7 @@ def test_root_and_identity_from_a_subdirectory(
     assert identity == (sandbox.root / ".git").resolve()
 
 
+@PROCESS
 @pytest.mark.slow
 def test_a_linked_worktree_shares_the_identity_but_not_the_root(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -64,7 +67,7 @@ def test_a_linked_worktree_shares_the_identity_but_not_the_root(
     git(sandbox, "commit", "-q", "--allow-empty", "-m", "start", check=True)
     linked = sandbox.root.parent / "linked"
     git(sandbox, "worktree", "add", "-q", str(linked), check=True)
-    repository = _wired()
+    repository = _wired(ProcessEnvironment())
 
     # When identity runs in each
     enter(sandbox, monkeypatch)
@@ -77,6 +80,7 @@ def test_a_linked_worktree_shares_the_identity_but_not_the_root(
     assert first[0] != second[0]
 
 
+@PROCESS
 @pytest.mark.slow
 def test_outside_a_repository_root_and_identity_raise(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -84,7 +88,7 @@ def test_outside_a_repository_root_and_identity_raise(
     """AC-3: outside a repository both raise `RuntimeError`."""
     # Given a directory that no repository contains
     enter(sandbox, monkeypatch)
-    repository = _wired()
+    repository = _wired(ProcessEnvironment())
 
     # When root or identity runs
     # Then it raises RuntimeError
@@ -188,7 +192,6 @@ def test_the_members_trailers_owns_name_the_trailers_work() -> None:
         repository.is_dirty()
 
 
-@STUB
 @pytest.mark.slow
 def test_the_root_is_found_from_the_directory_the_environment_reports(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -209,7 +212,6 @@ def test_the_root_is_found_from_the_directory_the_environment_reports(
     assert root == sandbox.root.resolve()
 
 
-@STUB
 def test_git_runs_in_the_directory_the_environment_reports(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -232,7 +234,6 @@ def test_git_runs_in_the_directory_the_environment_reports(
     assert seen == [Path("/somewhere")]
 
 
-@STUB
 def test_the_error_names_the_directory_the_environment_reports(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
