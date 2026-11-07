@@ -157,11 +157,11 @@ The built wheel gives a working `wio config`, `wio config list` and
 `docs/concepts.md` and `docs/v0.1-scope.md` state the three commands (`list`,
 `show` and `check`, with bare `wio config` showing the help), the `Diagnostic`
 and its shared output, which checks the rules Work owns, not `wio config`, that
-an unknown key is an error and no longer a warning, the checks of `results`, of
-the Works directory and of an empty template name, and `continuable` in the
-config table and the Stage section. They no longer list the field names of a
-stage's session policy or the names of the config tables among the open points,
-nor `wio config list <kind>`.
+an unknown key is an error and no longer a warning, the checks of
+`gates.results`, of the Works directory and of an empty template name, and
+`continuable` in the config table and the Stage section. They no longer list the
+field names of a stage's session policy or the names of the config tables among
+the open points, nor `wio config list <kind>`.
 
 ### **AC-4** The glossary defines the new terms
 

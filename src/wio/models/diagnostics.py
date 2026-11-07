@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: Apache-2.0
+"""The type of a finding, shared by every `check` command."""
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+type Severity = Literal["error", "warning", "note"]
+
+
+@dataclass(frozen=True)
+class Diagnostic:
+    """One finding of a check: how serious, where and what.
+
+    It is immutable, and `where` is a plain string, such as a key path.
+
+    Attributes:
+        severity: How serious the finding is.
+        where: The place of the finding, compared as a plain string.
+        message: What is wrong or worth knowing.
+    """
+
+    severity: Severity
+    where: str
+    message: str
+
+
+_RANK: dict[Severity, int] = {"error": 0, "warning": 1, "note": 2}
+
+
+def _key(diagnostic: Diagnostic) -> tuple[str, int, str]:
+    """Give the sort key of a diagnostic.
+
+    Args:
+        diagnostic: The finding.
+
+    Returns:
+        Its place, the rank of its severity and its message.
+    """
+    return (diagnostic.where, _RANK[diagnostic.severity], diagnostic.message)
+
+
+def sort_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ...]:
+    """Put diagnostics in the one order every renderer prints them.
+
+    Args:
+        diagnostics: The findings, in any order.
+
+    Returns:
+        The findings sorted by `where`, then error, warning and note, then
+        `message`, as plain strings (so `x[10]` sorts before `x[2]`).
+    """
+    return tuple(sorted(diagnostics, key=_key))

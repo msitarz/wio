@@ -77,6 +77,47 @@ flowchart LR
     sharedports --> models
 ```
 
+## Shared types
+
+`wio.models` holds the types the ports name, as plain immutable data: `Config`
+in `wio.models.config`, `Diagnostic` in `wio.models.diagnostics` and `freeze` in
+`wio.models.frozen`. They are defined once, before the loader that builds a
+`Config`, so every component receives the settings and reports problems in the
+same types, and none needs to know how the file was read.
+
+- `Config` is a tree of frozen dataclasses whose fields are named as the TOML
+  keys, so a key path is a chain of field names. `Config()` is the effective
+  settings of an empty config file: its defaults, and the fields that have none
+  (`Root.paths`, `Action.description`), are the fields of
+  `wio.models.config`, and the keys are listed in the
+  [config](../../docs/concepts.md#the-config). Every field carries a
+  one-sentence `description` in its metadata, which a message can quote. A
+  `Config` holds what it is given and judges nothing: the loader builds it.
+  The results a gate can record are `gates.results`, the table `[gates]` of the
+  file, which holds only them until `wio next` needs more.
+- A `Config` hashes, and equal configs hash equal, because every value in it is
+  a frozen dataclass, a tuple, a string, a number or a boolean, and its
+  `frozendict`s are hashable when their values are. So a `Config` can be a key
+  or a cache entry.
+- A `frozendict` of a `Config` that is built from a mapping goes through
+  `wio.models.frozen.freeze`, which holds the one pyrefly suppression that the
+  [known issues](../../docs/known-issues.md) explain. The empty defaults are
+  written `frozendict()`, which needs no suppression.
+- A `Diagnostic` is a severity, a place and a message, shared by every `check`
+  command. It has no code and cannot be suppressed, and its place is a plain
+  string, not a structure. Both are
+  [open points](../../docs/concepts.md#15-open-points).
+- `sort_diagnostics` gives the one order: by place, compared as a plain string
+  (so `x[10]` sorts before `x[2]`), then error, warning and note, then message.
+  `wio.formats` renders diagnostics in that order, as one
+  `error|warning|note: <where>: <message>` line each or as a JSON array of
+  objects with `severity`, `where` and `message`. An empty list renders as
+  empty text and as `[]`, and `json` is imported only for JSON.
+- `ConfigurationError` carries the diagnostics that caused it, in the order
+  given, so a caller can render them its own way. `str` of it is the message it
+  was raised with, such as the rendered diagnostics. It has no diagnostics
+  when none are given.
+
 ## Ports and adapters
 
 wio uses the ports-and-adapters architecture. A port is an interface that says

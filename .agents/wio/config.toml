@@ -6,6 +6,7 @@
 # points in docs/concepts.md.
 
 # What a gate can decide. Records and review events use these values.
+[gates]
 results = ["pass", "fail", "unknown"]
 
 # wio's own Works keep one directory per Work, nested under their parents.

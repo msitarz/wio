@@ -145,6 +145,8 @@ depends_on = []
 path = "tests.unit"
 depends_on = [
     "wio.errors",
+    "wio.models",
+    "wio.formats",
     "tests.acceptance",
     "tests.acceptance.dsl",
     "tests.acceptance.drivers",

@@ -17,7 +17,7 @@ another must resolve before any command builds a pipeline from them.
 - A reference to a stage, a stage preset, an action or a root that does not
   exist is an error that says what exists.
 - A pipeline that lists a stage twice, and an `after` cycle, are errors.
-- The vocabulary of `results` and of the reserved `@` entries is checked.
+- The vocabulary of `gates.results` and of the reserved `@` entries is checked.
 
 ## Non-Goals
 
@@ -32,7 +32,7 @@ another must resolve before any command builds a pipeline from them.
 
 - **A-1**: A stage preset, a root and an action are keyed by their names in
   their tables, so a duplicate name is already rejected by TOML.
-- **A-2**: The driver decided that `results` has at least one entry and no
+- **A-2**: The driver decided that `gates.results` has at least one entry and no
   duplicate.
 
 ## Mechanisms
@@ -114,15 +114,16 @@ and gets a note.
 - **When** the checks run.
 - **Then** a note, not an error, says it is reserved.
 
-### **AC-4** `results` is a usable vocabulary
+### **AC-4** `gates.results` is a usable vocabulary
 
-`results` is not empty and has no duplicate.
+`gates.results` is not empty and has no duplicate.
 
 #### An empty list and a duplicate
 
-- **Given** `results = []`, and `results = ["pass", "pass"]`.
+- **Given** `[gates] results = []`, and `[gates] results = ["pass", "pass"]`.
 - **When** the checks run on each.
-- **Then** each is an error at `results` that says what a result list needs.
+- **Then** each is an error at `gates.results` that says what a result list
+  needs.
 
 ## Additional context
 
