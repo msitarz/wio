@@ -153,9 +153,11 @@ depends_on = [
     "tests.sandbox",
     "tests.support",
     "wio.cli",
+    "wio.config",
     "wio.env",
     "wio.env.adapters",
     "wio.formats",
     "wio.io",
     "wio.io.adapters",
+    "wio.ports",
 ]
