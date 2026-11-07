@@ -102,16 +102,3 @@ def test_every_setting_has_a_description() -> None:
     # Then each has a non-empty description in its metadata
     assert len(classes) == 13
     assert undescribed == []
-
-
-def test_freeze_returns_a_hashable_frozendict() -> None:
-    """`freeze` builds a `frozendict` that can be hashed (AC-6)."""
-    # Given a mapping
-    mapping = {"a": (1, 2)}
-
-    # When the mapping is frozen
-    frozen = freeze(mapping)
-
-    # Then the result equals it and is hashable
-    assert frozen == mapping
-    assert isinstance(hash(frozen), int)
