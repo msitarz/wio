@@ -146,7 +146,8 @@ class Repository(Protocol):
     """Tells where the repository is and what state its index and changes are in.
 
     Every method raises `RuntimeError` when the working directory is not inside
-    a repository.
+    a repository, and its message names the working directory, so a caller can
+    tell a person where it looked.
     """
 
     def root(self) -> Path:

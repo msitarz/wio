@@ -21,9 +21,10 @@ from wio.models.config import Config
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance
 
-pytestmark = pytest.mark.skip(reason="stub of the architecture stage")
+SHAPE = pytest.mark.skip(reason="needs the shape, stubbed until implementation")
 
 
+@SHAPE
 def test_the_file_is_read_at_the_root_of_the_repository() -> None:
     """AC-1: the file is `<root>/.agents/wio/config.toml`."""
     # Given a repository whose config sets the hierarchy to nesting
@@ -82,6 +83,7 @@ def test_a_file_that_cannot_be_read_is_a_configuration_error() -> None:
     assert str(CONFIG) in str(caught.value)
 
 
+@SHAPE
 def test_an_empty_file_and_a_partial_one_keep_the_defaults() -> None:
     """AC-2: a key the file does not set has the default of its field."""
     # Given an empty file, and one that sets a reader and one stage
@@ -142,6 +144,7 @@ def _leaves(child: object, path: str) -> set[str]:
     return {path}
 
 
+@SHAPE
 def test_the_source_of_each_setting_is_the_file_or_the_default() -> None:
     """AC-3: a key set to its default is still `file`; the rest is `default`."""
     # Given a file that sets the default hierarchy and one stage with a goal
@@ -163,6 +166,7 @@ def test_the_source_of_each_setting_is_the_file_or_the_default() -> None:
     assert "stages.define.roots" not in sources
 
 
+@SHAPE
 def test_the_sources_follow_the_fields_of_config() -> None:
     """AC-3: the key paths of an empty file are the fields found by walking."""
     # Given the dataclasses of Config

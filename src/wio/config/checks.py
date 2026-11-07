@@ -59,4 +59,4 @@ def run_checks(
     Returns:
         Every diagnostic that the checks returned, in the order they came.
     """
-    raise NotImplementedError
+    return tuple(found for check in checks for found in check(config, inputs))

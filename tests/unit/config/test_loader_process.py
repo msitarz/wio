@@ -17,10 +17,8 @@ from wio.io import adapters
 if TYPE_CHECKING:
     from tests.sandbox import Sandbox
 
-pytestmark = [
-    pytest.mark.slow,
-    pytest.mark.skip(reason="stub of the architecture stage"),
-]
+pytestmark = pytest.mark.slow
+SHAPE = pytest.mark.skip(reason="needs the shape, stubbed until implementation")
 
 ROOT = Path(__file__).resolve().parents[3]
 HEAVY = ("difflib", "json", "tomlkit")
@@ -66,6 +64,7 @@ def _imported(text: str) -> list[str]:
     return names
 
 
+@SHAPE
 def test_a_valid_file_loads_without_the_heavy_modules() -> None:
     """AC-8: no difflib, json or tomlkit for a valid file; difflib for a typo."""
     # Given a new Python process and a valid config, and one with an unknown key
@@ -79,6 +78,7 @@ def test_a_valid_file_loads_without_the_heavy_modules() -> None:
     assert typo == ["difflib"]
 
 
+@SHAPE
 def test_the_config_is_found_from_a_subdirectory(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:

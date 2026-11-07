@@ -4,8 +4,9 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
+from wio.models.config import Config
+
 if TYPE_CHECKING:
-    from wio.models.config import Config
     from wio.models.diagnostics import Diagnostic
 
 type Source = Literal["file", "default"]
@@ -40,4 +41,5 @@ def read_shape(data: dict[str, object]) -> Shape:
     Returns:
         The best-effort `Config`, every problem of the shape and the sources.
     """
-    raise NotImplementedError
+    del data
+    return Shape(Config(), (), frozendict())

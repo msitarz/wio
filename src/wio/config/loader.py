@@ -2,9 +2,14 @@
 """The loader: finds the config file, reads it and returns what it found."""
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from wio.config.checks import CHECKS
+from wio.config.checks import CHECKS, CheckInputs, run_checks
+from wio.config.shape import read_shape
+from wio.errors import ConfigurationError
+from wio.models.diagnostics import Diagnostic, sort_diagnostics
+lazy from wio.formats import TomlSyntaxError, decode_toml
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -13,7 +18,9 @@ if TYPE_CHECKING:
     from wio.config.shape import Source
     from wio.io.ports import FileSystem, Repository
     from wio.models.config import Config
-    from wio.models.diagnostics import Diagnostic
+
+CONFIG_PATH = Path(".agents/wio/config.toml")
+"""The config file, relative to the root of the repository."""
 
 
 @dataclass(frozen=True)
@@ -63,4 +70,71 @@ def load_config(
         ConfigurationError: There is no repository, or no readable file; the
             message names the path or the working directory that was looked at.
     """
-    raise NotImplementedError
+    root = _root(repository)
+    text = _read(files, root / CONFIG_PATH)
+    try:
+        data = decode_toml(text)
+    except TomlSyntaxError as error:
+        return Loaded(None, (_syntax(error),), frozendict())
+    shape = read_shape(data)
+    checked = run_checks(shape.config, CheckInputs(root, files), checks)
+    found = sort_diagnostics((*shape.diagnostics, *checked))
+    blocked = any(item.severity == "error" for item in found)
+    return Loaded(None if blocked else shape.config, found, shape.sources)
+
+
+def _root(repository: Repository) -> Path:
+    """Find the root of the repository that holds the working directory.
+
+    Args:
+        repository: The port that finds it.
+
+    Returns:
+        The absolute root.
+
+    Raises:
+        ConfigurationError: There is no repository; the message carries the
+            adapter's account of where it looked.
+    """
+    try:
+        return repository.root()
+    except RuntimeError as error:
+        message = f"cannot find the repository that holds the config: {error}"
+        raise ConfigurationError(message) from error
+
+
+def _read(files: FileSystem, path: Path) -> str:
+    """Read the config file.
+
+    Args:
+        files: The port that reads it.
+        path: The absolute path of the file.
+
+    Returns:
+        The text of the file.
+
+    Raises:
+        ConfigurationError: The file is missing or cannot be read; the message
+            names the path.
+    """
+    try:
+        return files.read_text(path)
+    except FileNotFoundError as error:
+        message = f"no config file at {path}"
+        raise ConfigurationError(message) from error
+    except (OSError, UnicodeDecodeError) as error:
+        message = f"cannot read the config file at {path}: {error}"
+        raise ConfigurationError(message) from error
+
+
+def _syntax(error: TomlSyntaxError) -> Diagnostic:
+    """Turn a syntax error into the one diagnostic of an invalid file.
+
+    Args:
+        error: What the decoder raised.
+
+    Returns:
+        An error at `<file>:<line>:<column>`, the file relative to the root.
+    """
+    where = f"{CONFIG_PATH.as_posix()}:{error.line}:{error.column}"
+    return Diagnostic("error", where, error.message)

@@ -146,7 +146,7 @@ def _git_path(*arguments: str) -> Path:
 
     Raises:
         RuntimeError: If the working directory is not inside a repository, or
-            git is not installed.
+            git is not installed. The message names the working directory.
     """
     try:
         done = subprocess.run(
@@ -159,7 +159,8 @@ def _git_path(*arguments: str) -> Path:
         message = f"cannot run git: {error}"
         raise RuntimeError(message) from error
     if done.returncode != 0:
-        message = f"not inside a git repository: {done.stderr.strip()}"
+        where = f"working directory {Path.cwd()}"
+        message = f"not inside a git repository ({where}): {done.stderr.strip()}"
         raise RuntimeError(message)
     return Path(done.stdout.strip())
 
