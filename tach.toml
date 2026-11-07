@@ -153,6 +153,7 @@ depends_on = [
     "wio.cli",
     "wio.env",
     "wio.env.adapters",
+    "wio.formats",
     "wio.io",
     "wio.io.adapters",
 ]

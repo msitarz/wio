@@ -142,6 +142,9 @@ extend-select = [
     "UP",    # pyupgrade
 ]
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"tomllib".msg = "Decode TOML with `wio.formats.decode_toml`, which reports where a syntax error is."
+
 [tool.ruff.lint.pylint]
 max-statements = 20
 max-bool-expr = 3
@@ -160,7 +163,9 @@ notice-rgx = '\A(#!.*\n)?# SPDX-License-Identifier: Apache-2\.0\n'
 known-first-party = ["wio"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "D", "PLR2004"]
+"tests/**" = ["S101", "D", "PLR2004", "TID251"]
+"scripts/**" = ["TID251"]
+"src/wio/formats/**" = ["TID251"]  # the one place that may import tomllib
 "*.pyi" = ["PYI048", "PIE790"]  # stubs carry a docstring plus `...`
 
 [tool.rumdl]
