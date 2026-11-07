@@ -217,3 +217,90 @@ def test_a_key_with_a_dot_is_quoted_in_its_path() -> None:
 
     # Then the key path quotes the name
     assert list(errors) == ['stages."a.b".session']
+
+
+def test_a_list_of_strings_given_something_else_says_what_it_takes() -> None:
+    """AC-4: a root whose paths are a string is told it takes a list of strings."""
+    # Given a root whose paths are one string
+    text = '[roots.r]\npaths = "p"\n'
+
+    # When load_config runs
+    errors = _errors(text)
+
+    # Then the one error names what was received, what is expected and the setting
+    assert list(errors) == ["roots.r.paths"]
+    message = errors["roots.r.paths"]
+    assert 'received "p"' in message
+    assert "expected a list of strings" in message
+    assert "The paths of the root; required." in message
+
+
+def test_a_boolean_an_integer_and_a_table_are_named_by_their_kind() -> None:
+    """AC-4: each wrong type says which kind of value the key takes."""
+    # Given a flag set to a word, a threshold set to a word, and two tables set to a
+    # number
+    text = """
+works = 3
+[templates]
+kinds = 3
+[bundle]
+size_threshold = "big"
+[stages.s]
+goal = "g"
+continuable = "yes"
+"""
+
+    # When load_config runs
+    errors = _errors(text)
+
+    # Then each error names what was received and the kind the key takes
+    assert 'received "yes", expected a boolean' in errors["stages.s.continuable"]
+    assert 'received "big", expected an integer' in errors["bundle.size_threshold"]
+    assert "received 3, expected a table." in errors["templates.kinds"]
+    assert "received 3, expected a table (" in errors["works"]
+
+
+def test_a_stage_preset_and_a_list_of_stages_are_both_accepted() -> None:
+    """AC-4: an action's pipeline is a preset id or a list of stage names."""
+    # Given one action set to a preset id and another to a list of stage names
+    text = '[works.defaults.actions]\ndefine = "define-feature"\ndeliver = ["a", "b"]\n'
+
+    # When load_config runs
+    loaded = load_text(text)
+
+    # Then there is no error, and each is kept as written
+    assert loaded.diagnostics == ()
+    assert loaded.config is not None
+    assert dict(loaded.config.works.defaults.actions) == {
+        "define": "define-feature",
+        "deliver": ("a", "b"),
+    }
+
+
+def test_a_pipeline_that_is_neither_is_told_what_it_takes() -> None:
+    """AC-4: a number, and a list with a number in it, are reported separately."""
+    # Given one action set to a number and another to a list holding a number
+    text = '[works.defaults.actions]\nx = 3\ny = ["a", 1]\n'
+
+    # When load_config runs
+    errors = _errors(text)
+
+    # Then the number is told the two forms, and the item is told it is not a string
+    assert (
+        "stage preset id or a list of stage names" in errors["works.defaults.actions.x"]
+    )
+    assert "received 1, expected a string" in errors["works.defaults.actions.y[1]"]
+    assert set(errors) == {"works.defaults.actions.x", "works.defaults.actions.y[1]"}
+
+
+def test_an_entry_of_an_open_table_has_the_file_as_its_source() -> None:
+    """AC-3: a name the file adds to an open table is a setting of the file."""
+    # Given a stage preset and an action pipeline, both entries of open tables
+    text = '[stage_presets]\nx = ["a"]\n[works.defaults.actions]\ndefine = "p"\n'
+
+    # When load_config runs
+    sources = load_text(text).sources
+
+    # Then each entry is `file`
+    assert sources["stage_presets.x"] == "file"
+    assert sources["works.defaults.actions.define"] == "file"
