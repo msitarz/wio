@@ -66,6 +66,7 @@ flowchart LR
     cli --> envadapters
     ioadapters --> io
     ioadapters --> models
+    ioadapters -- "ports" --> env
     envadapters --> env
     components -- "ports" --> io
     components -- "ports" --> env
@@ -183,6 +184,11 @@ implementation of its own.
   what runs.
 - Only `wio.cli` and the unit tests import an adapter, so a component cannot
   bypass its ports.
+- An adapter that needs another layer of the outside world is given it through
+  that layer's port, imported under `TYPE_CHECKING`, and never imports the
+  adapter of it. `GitRepository` is given an `Environment`, so it runs git in
+  the directory the environment reports, and only `ProcessEnvironment` reads
+  the process's own working directory.
 
 ## The outside world
 
