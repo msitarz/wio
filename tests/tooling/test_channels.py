@@ -9,7 +9,7 @@ import pytest
 
 from tests.acceptance.channels import Channel
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 SCENARIO = "tests/acceptance/cli/test_bare.py"
 
 

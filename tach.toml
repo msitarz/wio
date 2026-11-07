@@ -167,15 +167,20 @@ depends_on = [
 [[modules]]
 path = "tests.integration"
 depends_on = [
+    "wio.cli",
+    "wio.config",
     "wio.env",
     "wio.env.adapters",
+    "wio.errors",
     "wio.io",
     "wio.io.adapters",
+    "tests.acceptance.drivers",
     "tests.sandbox",
     "tests.support",
 ]
 
-# Tooling tests probe the repository's own configuration with its own tools.
+# Tooling tests probe the repository's own configuration with its own tools,
+# and the test setup, such as the channel marker of the acceptance tests.
 [[modules]]
 path = "tests.tooling"
-depends_on = []
+depends_on = ["tests.acceptance"]
