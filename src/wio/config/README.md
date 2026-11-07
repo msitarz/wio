@@ -20,14 +20,16 @@ shape and handed over complete, or is refused with every problem at once.
 - **Absence is an error.** No repository, no file or an unreadable file raises
   `ConfigurationError` that names the path looked at, or the working directory
   when there is no repository, and does not mention `wio init`, which does not
-  exist before v0.2. An empty file is valid and gives `Config()`. The component
+  exist before v0.2. A key the file omits keeps the default of its field, so an
+  empty file is valid and gives `Config()`, and a file need set only what
+  differs from the defaults. The component
   does not read the working directory itself: the `Repository` adapter names it
   in the message of its `RuntimeError`, which the port documents, so every
   component reaches the environment through a port.
 - **A syntax error is one diagnostic.** A file that is not valid TOML gives one
   error whose place is `.agents/wio/config.toml:<line>:<column>`, relative to
-  the root, and no `Config`, because nothing can be checked in text that is not
-  a document.
+  the root, no `Config` and no `sources`, because nothing can be checked in
+  text that is not a document.
 - **`Loaded.config` is `None` whenever any diagnostic is an error.** Every other
   component receives a `Config` with no error in it, or none. Warnings and notes
   never block. Diagnostics come back in the order of `sort_diagnostics`.
