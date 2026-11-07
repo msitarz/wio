@@ -15,7 +15,11 @@ from pathlib import Path
 from typing import Protocol
 
 class Environment(Protocol):
-    """Reads the process's environment variables and working directory."""
+    """Reads the process's environment variables and working directory.
+
+    An adapter may leave a member to the Work that first needs it, and then it
+    raises `NotImplementedError` naming the member.
+    """
 
     def get(self, name: str) -> str | None:
         """Read an environment variable.

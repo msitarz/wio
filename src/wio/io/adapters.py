@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The real adapters of the ports of `wio.io`."""
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -9,6 +10,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import TextIO
+
+    from wio.env.ports import Environment
 
 
 class SystemStdio:
@@ -135,31 +138,65 @@ class LocalFileSystem:
         return sorted(path.iterdir(), key=lambda entry: entry.name)
 
 
-def _git_path(*arguments: str) -> Path:
-    """Run `git rev-parse` in the working directory and read the path it prints.
+_NEXT = "run wio from a directory inside the repository"
+
+
+def _check_directory(directory: Path) -> None:
+    """Check that the directory git is to run in exists and can be entered.
 
     Args:
+        directory: The working directory the environment reported.
+
+    Raises:
+        RuntimeError: If it does not exist, is not a directory or cannot be
+            entered. The message names it, says which, and says to run wio
+            from inside the repository.
+    """
+    if not directory.exists():
+        message = f"the working directory {directory} does not exist; {_NEXT}"
+        raise RuntimeError(message)
+    if not directory.is_dir():
+        message = f"the working directory {directory} is not a directory; {_NEXT}"
+        raise RuntimeError(message)
+    if not os.access(directory, os.X_OK):
+        message = f"the working directory {directory} cannot be entered; {_NEXT}"
+        raise RuntimeError(message)
+
+
+def _git_path(environment: Environment, *arguments: str) -> Path:
+    """Run `git rev-parse` in the environment's directory and read its path.
+
+    Args:
+        environment: Reports the working directory git runs in.
         *arguments: The options after `git rev-parse`.
 
     Returns:
         The path git printed.
 
     Raises:
-        RuntimeError: If the working directory is not inside a repository, or
-            git is not installed.
+        RuntimeError: If the working directory does not exist, is not a
+            directory or is not inside a repository, or git cannot be run. Each
+            message says what is wrong and what to do, and names the working
+            directory the environment reported, except when git cannot be run.
     """
+    directory = environment.working_directory()
+    _check_directory(directory)
     try:
         done = subprocess.run(
             ["git", "rev-parse", *arguments],
+            cwd=directory,
             capture_output=True,
             text=True,
             check=False,
         )
     except OSError as error:
-        message = f"cannot run git: {error}"
+        reason = error.strerror or str(error)
+        message = f"cannot run git: {reason}; check that git is installed and on PATH"
         raise RuntimeError(message) from error
     if done.returncode != 0:
-        message = f"not inside a git repository: {done.stderr.strip()}"
+        message = (
+            f"not inside a git repository (working directory {directory}); {_NEXT}"
+        )
         raise RuntimeError(message)
     return Path(done.stdout.strip())
 
@@ -168,13 +205,26 @@ class GitRepository:
     """The repository of the working directory, read with git, as `Repository`.
 
     `root` and `identity` ask git, which must be installed wherever wio runs
-    because the `git` trailer reader needs it too; a missing git raises
-    `RuntimeError`, as a directory outside a repository does. `show_index` and
-    `is_dirty` belong to the trailers Work: they exist and raise
-    `NotImplementedError` so that the class has every member of `Repository`
-    and can be wired where the port is expected, until that Work gives them
-    their meaning.
+    because the `git` trailer reader needs it too. A missing git, a working
+    directory that does not exist, is not a directory or cannot be entered, and
+    a directory outside a repository each raise a `RuntimeError` that says which
+    and what to do, and names the working directory except when git cannot be
+    run. `show_index` and `is_dirty` belong to the trailers Work: they exist and
+    raise `NotImplementedError` so that the class has every member of
+    `Repository` and can be wired where the port is expected, until that Work
+    gives them their meaning.
+
+    It is given an `Environment` and runs git in the working directory that the
+    environment reports, never in one it finds itself, so a test can fix it.
     """
+
+    def __init__(self, environment: Environment) -> None:
+        """Keep the environment that tells where the working directory is.
+
+        Args:
+            environment: Reports the working directory git runs in.
+        """
+        self._environment: Environment = environment
 
     def root(self) -> Path:
         """Find the top of the working tree.
@@ -182,7 +232,7 @@ class GitRepository:
         Returns:
             The absolute path of the repository root.
         """
-        return _git_path("--show-toplevel")
+        return _git_path(self._environment, "--show-toplevel")
 
     def identity(self) -> Path:
         """Find the path that identifies the clone.
@@ -191,7 +241,9 @@ class GitRepository:
             The absolute path of the git directory that every worktree of one
             clone shares.
         """
-        return _git_path("--path-format=absolute", "--git-common-dir")
+        return _git_path(
+            self._environment, "--path-format=absolute", "--git-common-dir"
+        )
 
     def show_index(self, path: Path) -> str | None:
         """Read a file as it is staged in the index.

@@ -44,7 +44,7 @@ depends_on = ["wio.models", "wio.errors"]
 # Adapters: only `wio.cli` and the unit tests may import them.
 [[modules]]
 path = "wio.io.adapters"
-depends_on = ["wio.io", "wio.models", "wio.errors"]
+depends_on = ["wio.io", "wio.env", "wio.models", "wio.errors"]
 visibility = ["wio.cli", "tests.unit"]
 
 [[modules]]
@@ -153,9 +153,11 @@ depends_on = [
     "tests.sandbox",
     "tests.support",
     "wio.cli",
+    "wio.config",
     "wio.env",
     "wio.env.adapters",
     "wio.formats",
     "wio.io",
     "wio.io.adapters",
+    "wio.ports",
 ]

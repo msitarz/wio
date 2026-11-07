@@ -10,8 +10,8 @@ state. Provisional: the members of `FileSystem` and `History`, and `show_index`
 and `is_dirty` of `Repository`, which the trailers Work may still extend, are
 the ones the data flows of the scope document need, and the Work that needs a
 new member adds it, such as a `FileSystem` member for walking a tree or for
-telling a symbolic link;
-`root` and `identity` of `Repository` and `Stdio` are required as written.
+telling a symbolic link; `root` and `identity` of `Repository` and `Stdio` are
+required as written.
 """
 
 from collections.abc import Sequence
@@ -146,7 +146,11 @@ class Repository(Protocol):
     """Tells where the repository is and what state its index and changes are in.
 
     Every method raises `RuntimeError` when the working directory is not inside
-    a repository.
+    a repository, does not exist, is not a directory or cannot be entered, and
+    when the tool that reads the repository cannot be run. The message says
+    which, names the working directory (except when the tool cannot be run) and
+    says what to do, so a caller can tell a person where it looked and what to
+    try.
     """
 
     def root(self) -> Path:

@@ -66,6 +66,7 @@ flowchart LR
     cli --> envadapters
     ioadapters --> io
     ioadapters --> models
+    ioadapters -- "ports" --> env
     envadapters --> env
     components -- "ports" --> io
     components -- "ports" --> env
@@ -81,9 +82,10 @@ flowchart LR
 
 `wio.models` holds the types the ports name, as plain immutable data: `Config`
 in `wio.models.config`, `Diagnostic` in `wio.models.diagnostics` and `freeze` in
-`wio.models.frozen`. They are defined once, before the loader that builds a
-`Config`, so every component receives the settings and reports problems in the
-same types, and none needs to know how the file was read.
+`wio.models.frozen`. They are defined once, before the
+[loader](config/README.md) that builds a `Config`, so every component receives
+the settings and reports problems in the same types, and none needs to know how
+the file was read.
 
 - `Config` is a tree of frozen dataclasses whose fields are named as the TOML
   keys, so a key path is a chain of field names. `Config()` is the effective
@@ -182,6 +184,16 @@ implementation of its own.
   what runs.
 - Only `wio.cli` and the unit tests import an adapter, so a component cannot
   bypass its ports.
+- An adapter that needs another layer of the outside world is given it through
+  that layer's port, imported under `TYPE_CHECKING`, and never imports the
+  adapter of it. `GitRepository` is given an `Environment`, so it runs git in
+  the directory the environment reports, and only `ProcessEnvironment` reads
+  the process's own working directory.
+- An adapter implements the members its first consumer needs and has every
+  member of its port, so that it can be wired where the port is expected: the
+  others raise `NotImplementedError` naming the member and the Work that first
+  needs it. `ProcessEnvironment` implements only `working_directory`, and
+  `GitRepository` stubs `show_index` and `is_dirty` until the trailers Work.
 
 ## The outside world
 

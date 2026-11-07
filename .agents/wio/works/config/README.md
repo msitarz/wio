@@ -63,7 +63,9 @@ person needs to see what they are and where each value comes from.
 - `wio.models.config`, `Diagnostic` and `wio.formats`' decoder and renderer,
   shared with every other component.
 - The `FileSystem`, `Repository` and `History` ports of `wio.io`, with
-  `LocalFileSystem` and `GitRepository`.
+  `LocalFileSystem` and `GitRepository`, and the `Environment` port of
+  `wio.env`, with `ProcessEnvironment`, which tells `GitRepository` where the
+  process is.
 - The `Settings` port of `wio.ports`, which every other component reads the
   config through.
 
@@ -106,14 +108,19 @@ flowchart LR
     formats["wio.formats: decode_toml, render"]:::changed
     io["wio.io: FileSystem, Repository, History"]:::changed
     adapters["wio.io.adapters: LocalFileSystem, GitRepository"]:::new
+    env["wio.env: Environment"]
+    envadapters["wio.env.adapters: ProcessEnvironment"]:::new
     settings["wio.ports: Settings"]
     other["other components"]
     cli --> config
     cli --> adapters
+    cli --> envadapters
     config --> models
     config --> formats
     config -- "ports" --> io
     adapters --> io
+    adapters -- "ports" --> env
+    envadapters --> env
     other -- "ports" --> settings
     config -. "implements" .-> settings
     errors["wio.errors: ConfigurationError"]:::changed
