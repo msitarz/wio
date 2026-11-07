@@ -14,7 +14,7 @@ docstring.
 | `wio.models` | The shared types the ports name |
 | `wio.env` | Ports for what the process knows about its surroundings |
 | `wio.formats` | Pure codecs between text and the shared types |
-| `wio.io` | Ports for the filesystem, standard streams and git |
+| `wio.io` | Ports for the filesystem, standard streams and the repository |
 | `wio.ports` | The stub of the ports two or more components share |
 | `wio.io.adapters` | The adapters of the ports of `wio.io` |
 | `wio.env.adapters` | The adapters of the ports of `wio.env` |
@@ -103,8 +103,9 @@ has no `ports.pyi`.
   runtime module, and it is satisfied structurally, so a provider never imports
   the stub of its consumer and no port names a neighbor.
 - `wio.io` and `wio.env` own their ports, an exception to consumer ownership,
-  because the filesystem, the standard streams, git and the environment are
-  shared infrastructure that every component reaches the same way.
+  because the filesystem, the standard streams, the repository and the
+  environment are shared infrastructure that every component reaches the same
+  way.
 - A port that two or more components consume with the same members and
   signatures is declared once, in `src/wio/ports.pyi`, so the components do
   not drift apart on a copy.
@@ -143,7 +144,7 @@ implementation of its own.
 
 ## The outside world
 
-Components reach the filesystem, the standard streams and git only through the
-ports of `wio.io`, and the environment variables, the working directory, the
-clock, randomness and the well-known directories only through those of
-`wio.env`, so a test can fix every input a component sees.
+Components reach the filesystem, the standard streams and the repository only
+through the ports of `wio.io`, and the environment variables, the working
+directory, the clock, randomness and the well-known directories only through
+those of `wio.env`, so a test can fix every input a component sees.
