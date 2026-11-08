@@ -101,10 +101,60 @@ nor `Settings.load`.
 so a command prints one message and a caller can render the diagnostics its own
 way.
 
+## The command
+
+`wio config` lets a person or an agent see the effective settings, where each
+value comes from and what each setting is for. The package's `describe()`
+returns the spec of the command, and `ConfigCommand` runs it. The spec is made
+in the `__init__` of the package, so describing the command loads no other
+module of `wio.config`, and `ConfigCommand` is bound with a `lazy` import for
+the same reason: every run of `wio` describes every command, and a run that does
+not choose `config` must not pay for it.
+
+- **Bare `wio config`** prints its own usage and exits 0, without reading the
+  config file, so it works in a project whose config is broken.
+- **`list`** prints one line for each setting that has a value, as
+  `key.path = value  # file` or `# default`, in key-path order. A line is at
+  most 80 columns where it can be. A string of several lines shows its first
+  line, then `…` before the closing quote, a string or an array that is too long
+  is cut with `…`, and the key path and the label are never cut, so a line whose
+  key path and label reach 80 columns shows `…` as its value and is longer.
+- **`show`** prints the setting or the table at a key path in full, with its
+  source. A single setting is followed by a line with its description, and a
+  table prints the setting lines only. With no key path it prints the whole
+  config. A string is written on one line, its newlines as `\n`, so every
+  setting stays one line.
+- **`--json`**, on both, writes one object that maps each key path to
+  `{"value": ..., "source": ...}`, sorted by key path and never shortened. The
+  `json` module is imported only for it.
+- **A table with no setting**, such as `roots` of a config without roots, prints
+  nothing and exits 0, and `{}` with `--json`.
+- **What cannot be shown exits 2** and says what to ask for. An unknown key path
+  names the closest match and the keys it could have been, an optional setting
+  that is not set says so, and an item of a list is refused because a list is
+  shown whole, under its own key path.
+- **A config with an error is refused** like it is for every other command:
+  nothing reaches standard output and standard error lists the errors.
+  `list` and `show` read `Loaded.sources`, which `Settings` does not return, so
+  they call `load_config` and raise the errors themselves through
+  `config_or_raise`, the one place that `ConfigSettings.load` shares.
+
+Three small modules hold the logic, so each can be tested without the others:
+
+- `settings_of` in `listing.py` walks the `Config` once and yields a `Setting`
+  for each leaf that has a value, with the source from `Loaded.sources` and the
+  description from the field. A list is a leaf and a table has no setting of its
+  own. The same module writes the lines and the JSON object.
+- `resolve` in `keypath.py` follows a key path through the `Config` and returns
+  a `Target`, a single setting or a table, judging it by the fields of the
+  `Config` alone. That is how a table without entries is told from an unknown
+  key.
+- `ConfigCommand` in `command.py` composes them with the loader and writes to
+  the streams it is given.
+
 ## What is not here
 
 - The cross-reference, path and skill checks, and the `wio config check`
   command, which join the check run through `CHECKS`.
-- Printing the settings, which the `show` command does with `Loaded.sources`.
 - Reading `continuable`: the field exists so that people and agents can read
   it, and no component acts on it.

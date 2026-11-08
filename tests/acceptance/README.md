@@ -42,7 +42,7 @@ records), it creates a real repository in `tmp_path`.
 | Layer | Role |
 |---|---|
 | Scenario (test function) | States what happens, in domain terms |
-| `Wio` facade | Domain verbs: `config`, `rules`, `work`, `context`, `trailers`, `check`, `contracts_new`. Applies defaults. |
+| `Wio` facade | Domain verbs: `with_config`, `run_config`, `rules`, `work`, `context`, `trailers`, `check`, `contracts_new`. Applies defaults. |
 | Builders | Produce a minimal valid repo state; tests override only what they are about |
 | `WioDriver` (Protocol) | Narrow interface: run an operation against a prepared temp repo, return a result object |
 | Test drivers | In-process and CLI implementations of the Protocol |
