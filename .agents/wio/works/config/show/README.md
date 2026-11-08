@@ -146,7 +146,7 @@ wio config show [key.path] [--json]
 ### **AC-4** A config with errors is refused
 
 `list` and `show` print the errors of the config and exit 2, as any command
-does.
+does, and so they do when there is no repository to find the config in.
 
 #### An invalid config
 
@@ -154,6 +154,13 @@ does.
 - **When** `wio config list` and `wio config show` run.
 - **Then** each exits 2, standard output is empty and standard error lists the
   error.
+
+#### Outside a repository
+
+- **Given** a directory that is in no git repository.
+- **When** `wio config list` and `wio config show` run in it.
+- **Then** each exits 2, standard output is empty and standard error names the
+  directory and says to run wio from inside the repository.
 
 ### **AC-5** The command is light to start
 
