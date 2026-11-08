@@ -14,7 +14,7 @@ repo. It covers the test layers, the directory layout and the conventions.
 
 | Layer | Location | Use for | Do not use for |
 |---|---|---|---|
-| Unit | `tests/unit/` (mirrors `src/wio/`) | Internals: directive grammar (parametrized tables), the pure `compile(...)` core, id generation, parsers | Cross-module behaviour |
+| Unit | `tests/unit/` (mirrors `src/wio/`) | One component's logic run against fakes of its ports, and its functions on their own when a case is hard to reach through the public entry | Anything with something real behind it (integration); what a user sees (acceptance) |
 | Integration | `tests/integration/` (mirrors `src/wio/`) | Code with something real behind it: an adapter on real git or a real disk, the process's working directory and environment, a fresh interpreter (what an import loads), the installed command | Behaviour a user relies on (acceptance); input tables (unit) |
 | Tooling | `tests/tooling/` | The repository's own configuration, layout and hygiene as its tools see them: lint rules probed with `ruff`, what git ignores, the stub rules of the ports, that the sources and the sample config agree with the models | The behaviour of wio |
 | Acceptance | `tests/acceptance/` (mirrors features) | Behaviour a user or skill relies on: rule selection, contract check results, config validation, record checks, exit codes | Exhaustive input tables, flag parsing details |
@@ -64,6 +64,7 @@ skills, for example the command sequence a skill runs.
 ```text
 tests/
 ├── conftest.py
+├── fakes.py
 ├── sandbox.py
 ├── support.py
 ├── unit/                   # mirrors src/wio/
