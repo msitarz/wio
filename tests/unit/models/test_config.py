@@ -22,7 +22,7 @@ SRC = ROOT / "src"
 
 def test_a_config_with_no_arguments_holds_the_defaults() -> None:
     """A `Config()` is the settings of an empty config file (AC-1)."""
-    # Given `Config()`.
+    # Given a config with no setting changed.
     config = Config()
 
     # When its fields are read.

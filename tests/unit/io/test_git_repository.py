@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.support import FakeEnvironment
+from tests.fakes import FakeEnvironment
 from wio.io import adapters
 
 if TYPE_CHECKING:
@@ -58,7 +58,7 @@ def test_root_and_identity_ask_the_commands_the_contract_names(
     done = subprocess.CompletedProcess([], 0, stdout="/r/.git\n", stderr="")
     calls = _fake_run(monkeypatch, done)
 
-    # When root and identity run
+    # When the root and the identity are asked for
     repository = _wired(FakeEnvironment(tmp_path))
     root, identity = repository.root(), repository.identity()
 
@@ -78,7 +78,7 @@ def test_a_directory_outside_a_repository_says_so_and_what_to_do(
     _fake_run(monkeypatch, subprocess.CompletedProcess([], 128, "", "fatal: no"))
     repository = _wired(FakeEnvironment(tmp_path))
 
-    # When root runs
+    # When the root is asked for
     with pytest.raises(RuntimeError) as caught:
         repository.root()
 
@@ -102,7 +102,7 @@ def test_a_git_that_cannot_be_run_says_so_and_what_to_do(
     monkeypatch.setattr(subprocess, "run", missing)
     repository = _wired(FakeEnvironment(tmp_path))
 
-    # When root runs
+    # When the root is asked for
     with pytest.raises(RuntimeError) as caught:
         repository.root()
 
@@ -118,7 +118,7 @@ def test_the_members_trailers_owns_name_the_trailers_work() -> None:
     # Given a GitRepository
     repository = _wired()
 
-    # When show_index and is_dirty run
+    # When the index is shown and the dirtiness is asked for
     # Then each raises NotImplementedError naming the trailers Work
     with pytest.raises(NotImplementedError, match="trailers Work"):
         repository.show_index(Path("f"))
@@ -141,7 +141,7 @@ def test_git_runs_in_the_directory_the_environment_reports(
     monkeypatch.setattr(subprocess, "run", run)
     repository = _wired(FakeEnvironment(tmp_path))
 
-    # When root runs
+    # When the root is asked for
     repository.root()
 
     # Then git was run in that directory

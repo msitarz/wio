@@ -91,7 +91,7 @@ def test_an_added_check_joins_the_shape_in_one_run() -> None:
     valid = '[stages.s]\ngoal = "g"\n'
     unknown = '[stages.s]\ngoal = "g"\nsessions = "any"\n'
 
-    # When load_config and Settings.load run on each
+    # When each is loaded as a config and as settings
     first = load_text(valid, checks=(_error_at_x,))
     second = load_text(unknown, checks=(_error_at_x,))
     with pytest.raises(ConfigurationError):
@@ -119,7 +119,7 @@ def test_the_loader_runs_the_checks_in_order_with_the_root_and_files() -> None:
 
     files = MemoryFileSystem({CONFIG: ""})
 
-    # When load_config runs
+    # When the config is loaded
     load_config(FakeRepository(), files, checks=(first, second))
 
     # Then they ran in order with the root and the file port
@@ -128,7 +128,7 @@ def test_the_loader_runs_the_checks_in_order_with_the_root_and_files() -> None:
 
 def test_the_default_checks_are_the_ordered_tuple_of_wio_config() -> None:
     """AC-7: CHECKS is one tuple that the loader and Settings default to."""
-    # Given the checks of wio.config
+    # Given the checks of the config component
 
     # When they are read
     checks = wio.config.CHECKS

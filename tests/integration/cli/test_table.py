@@ -16,7 +16,8 @@ def test_import_light_violations_names_an_eager_import() -> None:
     # module eagerly and one that imports it lazily, each with a describe
     heavy, light = f"{FIXTURES}.heavy", f"{FIXTURES}.light"
 
-    # When import_light_violations runs for each
+    # When the implementation modules that each package loads on describing are
+    # listed
     found = import_light_violations(heavy), import_light_violations(light)
 
     # Then it returns the implementation module for the first and an empty list
@@ -29,7 +30,7 @@ def test_every_entry_of_the_real_table_is_import_light() -> None:
     """Describing a real command loads none of its implementation."""
     # Given the real table of commands
 
-    # When import_light_violations runs for "wio." + entry.package of each
+    # When the same is listed for the package of each real command
     found = [import_light_violations(f"wio.{entry.package}") for entry in COMMANDS]
 
     # Then each returns an empty list

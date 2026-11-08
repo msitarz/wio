@@ -53,8 +53,8 @@ class _Command:
 
 def test_describing_an_entry_does_not_wire_it(monkeypatch: pytest.MonkeyPatch) -> None:
     """The `describe` of a `component_entry` returns the spec and wires nothing."""
-    # Given a stand-in module installed as wio.config whose describe() returns a
-    # spec, and an entry from component_entry("config", wire)
+    # Given a stand-in for the config component that describes a spec, and an
+    # entry that would wire it
     spec = _Spec()
     stand_in = types.SimpleNamespace(describe=lambda: spec)
     monkeypatch.setitem(sys.modules, "wio.config", stand_in)
@@ -66,7 +66,7 @@ def test_describing_an_entry_does_not_wire_it(monkeypatch: pytest.MonkeyPatch) -
 
     entry = component_entry("config", wire)
 
-    # When the entry's describe() is called
+    # When the entry is described
     described: CommandSpec = entry.describe()
 
     # Then it returns that spec and wire was not called

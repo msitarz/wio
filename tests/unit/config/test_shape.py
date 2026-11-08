@@ -31,7 +31,7 @@ def test_an_unknown_key_suggests_the_closest_and_lists_the_valid_keys() -> None:
     # Given a stage with a key `sessions`
     text = '[stages.define]\ngoal = "g"\nsessions = "any"\n'
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then one error is at the key, says it is unknown, suggests session and lists
@@ -59,7 +59,7 @@ goal = "g"
 rules_always_include = ["a"]
 """
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then each error names the tables whose schema has the key
@@ -73,7 +73,7 @@ def test_a_wrong_value_and_a_wrong_type_come_back_together() -> None:
     # Given a hierarchy that is not allowed and a reader that is not a string
     text = '[works]\nhierarchy = "nest"\n[trailers]\nreader = 3\n'
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then two errors name what was received, what is valid and the description
@@ -93,7 +93,7 @@ def test_a_missing_required_key_names_the_key_and_its_description() -> None:
     # Given a root without paths and an action without a description
     text = "[roots.wio]\n[actions.deliver]\n"
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then each table has an error naming the key and the setting's description
@@ -116,7 +116,7 @@ def test_a_broken_entry_does_not_cascade_into_a_check() -> None:
             if root not in config.roots
         ]
 
-    # When load_config runs
+    # When the config is loaded
     loaded = load_text(text, checks=(unknown_roots,))
 
     # Then only the missing paths is reported and the stand-in reports none
@@ -128,7 +128,7 @@ def test_a_wrong_default_action_says_what_a_value_is() -> None:
     # Given a default action set to an integer
     text = "[works.defaults.actions]\ndefine = 3\n"
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then the error names the received value and the two forms
@@ -142,7 +142,7 @@ def test_the_other_vocabularies_list_their_allowed_values() -> None:
     # Given a session and a judge that are not allowed
     text = '[stages.s]\ngoal = "g"\nsession = "later"\njudge = "robot"\n'
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then one error lists any and fresh and one lists human
@@ -156,7 +156,7 @@ def test_a_date_or_a_time_is_never_a_setting() -> None:
     # Given a key set to a date and another set to a time
     text = "[works]\ndir = 1979-05-27\n[trailers]\nreader = 07:32:00\n"
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then each has an error that says so
@@ -170,7 +170,7 @@ def test_goal_and_skill_are_exactly_one() -> None:
     # Given a stage with both and a stage with neither
     text = '[stages.both]\ngoal = "g"\nskill = "s"\n[stages.neither]\ngate = true\n'
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then each error says what goal and skill are, and that one is needed
@@ -195,7 +195,7 @@ def test_an_entry_of_the_wrong_type_is_dropped_and_the_rest_is_kept() -> None:
         captured.append(config)
         return []
 
-    # When load_config runs
+    # When the config is loaded
     loaded = load_text(text, checks=(capture,))
 
     # Then both are errors, the bad entry is gone and the good items stay
@@ -212,7 +212,7 @@ def test_a_key_with_a_dot_is_quoted_in_its_path() -> None:
     # Given a stage whose name contains a dot and a bad value in it
     text = '[stages."a.b"]\ngoal = "g"\nsession = "later"\n'
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then the key path quotes the name
@@ -224,7 +224,7 @@ def test_a_list_of_strings_given_something_else_says_what_it_takes() -> None:
     # Given a root whose paths are one string
     text = '[roots.r]\npaths = "p"\n'
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then the one error names what was received, what is expected and the setting
@@ -250,7 +250,7 @@ goal = "g"
 continuable = "yes"
 """
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then each error names what was received and the kind the key takes
@@ -265,7 +265,7 @@ def test_a_stage_preset_and_a_list_of_stages_are_both_accepted() -> None:
     # Given one action set to a preset id and another to a list of stage names
     text = '[works.defaults.actions]\ndefine = "define-feature"\ndeliver = ["a", "b"]\n'
 
-    # When load_config runs
+    # When the config is loaded
     loaded = load_text(text)
 
     # Then there is no error, and each is kept as written
@@ -282,7 +282,7 @@ def test_a_pipeline_that_is_neither_is_told_what_it_takes() -> None:
     # Given one action set to a number and another to a list holding a number
     text = '[works.defaults.actions]\nx = 3\ny = ["a", 1]\n'
 
-    # When load_config runs
+    # When the config is loaded
     errors = _errors(text)
 
     # Then the number is told the two forms, and the item is told it is not a string
@@ -298,7 +298,7 @@ def test_an_entry_of_an_open_table_has_the_file_as_its_source() -> None:
     # Given a stage preset and an action pipeline, both entries of open tables
     text = '[stage_presets]\nx = ["a"]\n[works.defaults.actions]\ndefine = "p"\n'
 
-    # When load_config runs
+    # When the config is loaded
     sources = load_text(text).sources
 
     # Then each entry is `file`

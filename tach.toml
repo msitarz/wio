@@ -105,9 +105,13 @@ depends_on = [
 path = "scripts"
 depends_on = []
 
-# Shared test helpers: a sandbox, and helpers built on it.
+# Shared test helpers: a sandbox, helpers built on it, and fakes.
 [[modules]]
 path = "tests.sandbox"
+depends_on = []
+
+[[modules]]
+path = "tests.fakes"
 depends_on = []
 
 [[modules]]
@@ -150,6 +154,7 @@ depends_on = [
     "tests.acceptance",
     "tests.acceptance.dsl",
     "tests.acceptance.drivers",
+    "tests.fakes",
     "tests.sandbox",
     "tests.support",
     "wio.cli",
@@ -175,6 +180,7 @@ depends_on = [
     "wio.io",
     "wio.io.adapters",
     "tests.acceptance.drivers",
+    "tests.fakes",
     "tests.sandbox",
     "tests.support",
 ]

@@ -47,7 +47,7 @@ def test_bare_and_help_print_the_summary_and_the_commands_by_name() -> None:
         Fake(Spec("alpha", "The first one.")).entry(),
     ]
 
-    # When main([], stdio) and main(["--help"], stdio) run
+    # When the command runs bare and with --help
     bare, helped = run_main([], table), run_main(["--help"], table)
 
     # Then both return 0 with the same standard output, which holds the Summary,
@@ -66,7 +66,7 @@ def test_the_help_of_a_subcommand_wires_nothing() -> None:
     # records its call
     ok = Fake(Spec("ok", "Works.", flag=True))
 
-    # When main(["ok", "--help"], stdio) runs
+    # When the command ok runs with --help
     code, out, _ = run_main(["ok", "--help"], [ok.entry()])
 
     # Then it returns 0, standard output names --flag, and wire was not called
@@ -79,11 +79,11 @@ def test_version_prints_the_version_of_the_distribution() -> None:
     """`--version` prints `wio <version>` and a newline."""
     # Given the synchronized environment
 
-    # When main(["--version"], stdio) runs
+    # When the command runs with --version
     code, out, err = run_main(["--version"], [])
 
-    # Then it returns 0, standard output is wio, a space, the version from
-    # importlib.metadata and a newline, and standard error is empty
+    # Then it returns 0, standard output is wio, a space, the installed
+    # version and a newline, and standard error is empty
     version = importlib.metadata.version("work-it-out")
     assert (code, out, err) == (0, f"wio {version}\n", "")
 
@@ -94,7 +94,7 @@ def test_only_the_chosen_command_is_wired_once() -> None:
     ok, no = Fake(Spec("ok", "Works.")), Fake(Spec("no", "Fails."))
     table = [ok.entry(), no.entry()]
 
-    # When main(["ok"], stdio) runs, then bare, --help and --version
+    # When the command ok runs, then bare, with --help and with --version
     run_main(["ok"], table)
     wired_after_ok = (ok.wired, no.wired)
     others: list[list[str]] = [[], ["--help"], ["--version"]]
@@ -116,7 +116,7 @@ def test_a_commands_exit_code_is_the_runs() -> None:
     no = Fake(Spec("no", "Fails."), code=1)
     table = [ok.entry(), no.entry()]
 
-    # When main(["ok", "--flag"], stdio) and main(["no"], stdio) run
+    # When the command ok runs with --flag and the command no runs
     codes = run_main(["ok", "--flag"], table)[0], run_main(["no"], table)[0]
 
     # Then they return 0 and 1, and ok received --flag in its arguments
@@ -133,7 +133,7 @@ def test_a_usage_mistake_exits_two(argv: list[str], word: str) -> None:
     # Given a table with the entry ok
     table = [Fake(Spec("ok", "Works.")).entry()]
 
-    # When main runs with a mistake
+    # When the command runs with a mistake
     code, out, err = run_main(argv, table)
 
     # Then it returns 2 without raising, standard output is empty and standard
@@ -151,7 +151,7 @@ def test_the_output_is_plain_when_the_streams_are_not_terminals(
     _plain(monkeypatch)
     table = [Fake(Spec("ok", "Works.")).entry()]
 
-    # When main([], stdio) and main(["nope"], stdio) run
+    # When the command runs bare and with an unknown command
     _, out, _ = run_main([], table)
     _, _, err = run_main(["nope"], table)
 
@@ -167,11 +167,11 @@ def test_the_help_is_colored_on_a_terminal_unless_no_color_is_set(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Python's color rules decide the color of the help on a terminal."""
-    # Given standard output on a pseudo-terminal from os.openpty, and the same
+    # Given standard output on a pseudo-terminal, and the same
     # environment
     _plain(monkeypatch)
 
-    # When main(["--help"], stdio) runs, then again with NO_COLOR=1
+    # When the command runs with --help, then again with NO_COLOR=1
     colored = run_on_terminal(["--help"], [], "stdout")
     monkeypatch.setenv("NO_COLOR", "1")
     plain = run_on_terminal(["--help"], [], "stdout")

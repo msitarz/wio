@@ -22,7 +22,7 @@ def _wired() -> Environment:
 
 def test_the_module_holds_the_adapters_of_the_ports_that_have_one() -> None:
     """AC-5: only `Environment` has an adapter; the other ports wait for a Work."""
-    # Given the module that holds the adapters of wio.env
+    # Given the module that holds the adapters of the environment component
 
     # When its public classes are listed
     public = [
@@ -40,7 +40,7 @@ def test_the_other_members_name_themselves_and_the_work_that_implements_them() -
     # Given a ProcessEnvironment
     environment = _wired()
 
-    # When each member other than working_directory runs
+    # When each member other than the working directory runs
     # Then it raises NotImplementedError naming the member and the Work
     with pytest.raises(NotImplementedError) as caught:
         environment.get("HOME")

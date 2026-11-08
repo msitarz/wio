@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.support import FakeEnvironment, enter, git
+from tests.fakes import FakeEnvironment
+from tests.support import enter, git
 from wio.env.adapters import ProcessEnvironment
 from wio.io import adapters
 
@@ -42,7 +43,7 @@ def test_root_and_identity_from_a_subdirectory(
     enter(sandbox, monkeypatch)
     monkeypatch.chdir(sub)
 
-    # When root and identity run
+    # When the root and the identity are asked for
     repository = _wired(ProcessEnvironment())
     root, identity = repository.root(), repository.identity()
 
@@ -63,7 +64,7 @@ def test_a_linked_worktree_shares_the_identity_but_not_the_root(
     git(sandbox, "worktree", "add", "-q", str(linked), check=True)
     repository = _wired(ProcessEnvironment())
 
-    # When identity runs in each
+    # When the identity is asked for in each
     enter(sandbox, monkeypatch)
     first = (repository.root(), repository.identity())
     monkeypatch.chdir(linked)
@@ -80,7 +81,7 @@ def test_a_working_directory_that_does_not_exist_says_so(tmp_path: Path) -> None
     missing = tmp_path / "gone"
     repository = _wired(FakeEnvironment(missing))
 
-    # When root and identity run
+    # When the root and the identity are asked for
     with pytest.raises(RuntimeError) as root_error:
         repository.root()
     with pytest.raises(RuntimeError) as identity_error:
@@ -104,7 +105,7 @@ def test_a_working_directory_that_cannot_be_entered_says_so(tmp_path: Path) -> N
     locked.chmod(0o000)
     repository = _wired(FakeEnvironment(locked))
 
-    # When root runs
+    # When the root is asked for
     try:
         with pytest.raises(RuntimeError) as caught:
             repository.root()
@@ -126,7 +127,7 @@ def test_a_working_directory_that_is_a_file_says_so(tmp_path: Path) -> None:
     file.write_text("x", encoding="utf-8")
     repository = _wired(FakeEnvironment(file))
 
-    # When root runs
+    # When the root is asked for
     with pytest.raises(RuntimeError) as caught:
         repository.root()
 
@@ -146,7 +147,7 @@ def test_a_real_directory_outside_a_repository_says_so(
     enter(sandbox, monkeypatch)
     repository = _wired(FakeEnvironment(sandbox.root))
 
-    # When root and identity run
+    # When the root and the identity are asked for
     with pytest.raises(RuntimeError) as root_error:
         repository.root()
     with pytest.raises(RuntimeError) as identity_error:
@@ -173,7 +174,7 @@ def test_the_root_is_found_from_the_directory_the_environment_reports(
     monkeypatch.chdir(sandbox.root.parent)
     repository = _wired(FakeEnvironment(sub))
 
-    # When root runs
+    # When the root is asked for
     root = repository.root()
 
     # Then it is the top of that repository
