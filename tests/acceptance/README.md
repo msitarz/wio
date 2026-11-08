@@ -23,26 +23,13 @@ tests, their directory layout, the DSL and the channels. Examples are sketches.
 
 ## 2. Directory layout
 
-```text
-acceptance/
-├── conftest.py             # `wio` fixture, channel parametrization, assertrepr hook
-├── channels.py             # Channel enum
-├── dsl/
-│   ├── wio.py              # Wio facade: config(), rules(), work(), context(), trailers(), check()
-│   ├── builders.py         # minimal-valid config.toml, contract, rule, template
-│   └── results.py          # Bundle, CheckResult, ...
-├── drivers/
-│   ├── base.py             # WioDriver Protocol
-│   ├── in_process.py       # calls the library
-│   └── cli.py              # subprocess; parses --json; reads exit codes
-├── cli/                    # the scenarios of the `wio` command line itself
-└── config/ contracts/ rules/ context/ trailers/ log/   # one folder per v0.1 feature
-```
-
-Scenario folders follow the feature tree (`config`, `contracts`, `rules`,
-`context`, `trailers`, `log`), so coverage gaps are easy to see. The DSL lives
-inside `tests/acceptance/` because nothing else uses it yet; promote it to its
-own package only when a second consumer (for example `wio-eval`) needs it.
+The scenarios live in one folder per v0.1 feature (`config`, `contracts`,
+`rules`, `context`, `trailers`, `log`) and in `cli/` for the `wio` command line
+itself, so coverage gaps are easy to see. The facade and its results are in
+`dsl/`, the test drivers in `drivers/`, and the channel setup in `channels.py`
+and `conftest.py`. The DSL lives inside `tests/acceptance/` because nothing else
+uses it yet; promote it to its own package only when a second consumer (for
+example `wio-eval`) needs it.
 
 ## 3. The DSL
 
@@ -174,25 +161,8 @@ because it spawns the real command, so `make test` runs the in-process case and
 `make slow` the CLI case of the same scenario. Future channels (MCP, a skill's
 command sequence) are new test drivers; scenarios do not change.
 
-```python
-def pytest_generate_tests(metafunc):
-    marker = metafunc.definition.get_closest_marker("channels")
-    if marker:
-        params = [
-            pytest.param(
-                c, id=c.value, marks=[pytest.mark.slow] if c is Channel.CLI else []
-            )
-            for c in marker.args
-        ]
-        metafunc.parametrize("channel", params)
-
-
-@pytest.fixture
-def channel() -> Channel:
-    return Channel.IN_PROCESS
-```
-
-Define `channel` as a regular fixture with a default rather than relying on
+`conftest.py` and `channels.py` hold the working version of this. Define
+`channel` as a regular fixture with a default rather than relying on
 `metafunc.fixturenames` alone. If BDD-style steps are ever added with
 pytest-bdd, their fixtures are not visible when tests are generated.
 

@@ -65,10 +65,9 @@ skills, for example the command sequence a skill runs.
 
 ```text
 tests/
-├── conftest.py             # register_assert_rewrite, shared options and markers,
-│                           # and the `sandbox` fixture
-├── sandbox.py              # Sandbox: the directory and environment of a test
-├── support.py              # helpers tests share: git in a sandbox, a fake `Environment`
+├── conftest.py
+├── sandbox.py
+├── support.py
 ├── unit/                   # mirrors src/wio/
 ├── integration/            # mirrors src/wio/: the code with something real behind it
 ├── tooling/                # tests of the repository's configuration and hygiene
@@ -88,6 +87,10 @@ helpers, never the unit tests, so a fake that both use lives in `tests.support`;
 the tooling tests import only the acceptance setup they check; and nothing in
 `src` or `scripts` imports `tests`. A new group of tests needs an entry there.
 
+Pytest's settings, the markers among them, are in `[tool.pytest]` of
+`pyproject.toml`. `pythonpath = ["."]` lets tests import `tests.*` without
+`__init__.py` files.
+
 ## 4. What acceptance tests do not cover
 
 - **Directive grammar** (`required`, `items`, `pattern`, `inherit`):
@@ -101,30 +104,7 @@ the tooling tests import only the acceptance setup they check; and nothing in
 - **Flag parsing details**: ordinary unit tests.
 - **Skill behaviour**: `wio-eval`.
 
-## 5. pyproject configuration
-
-```toml
-[tool.pytest]
-testpaths = ["tests"]
-pythonpath = ["."]
-addopts = ["--import-mode=importlib", "-m", "not slow"]
-markers = [
-    "channels(*channels): run once per listed Channel",
-    "slow: spawns a real subprocess (git, the CLI) or builds the package",
-    "unit: tests/unit, one module with its collaborators replaced",
-    "integration: tests/integration, code with something real behind it",
-    "acceptance: tests/acceptance, behaviour asserted through the DSL",
-    "tooling: tests/tooling, the repository's configuration and hygiene",
-    "packaging: tests/packaging, the built wheel and sdist",
-    "scripts: tests/scripts, the scripts of the repository",
-]
-```
-
-`pythonpath = ["."]` allows `from tests.acceptance.dsl.wio import Wio` without
-`__init__.py` files everywhere. `addopts` deselects the slow tests, so
-`uv run pytest` runs the fast set and `uv run pytest -m slow` the slow one.
-
-## 6. Conventions
+## 5. Conventions
 
 - Test names state the behaviour:
   `test_reviewer_only_rules_never_reach_the_author_stage`.
@@ -135,19 +115,6 @@ markers = [
   it in the Then section, rather than computing inside the `assert`. A section
   may be empty only when there is nothing to put in it, and its comment stays
   (`# Given no setup`).
-
-  ```python
-  def test_a_message_without_a_record_is_reported() -> None:
-      # Given a commit message with prose and no record
-      message = _message("docs: x", "Body.")
-
-      # When its problems are computed
-      problems = records.message_problems(message)
-
-      # Then the only problem says how to add a record
-      assert problems == ["no Wio-* record; add one, or `Wio-Work: none`"]
-  ```
-
 - A test that spawns a subprocess (git, the CLI) or builds the package is
   marked `slow`. `make slow` runs those tests, and CI runs that target.
 - A test lives in the group its subject asks for (see section 2) and never
@@ -160,17 +127,3 @@ markers = [
 - The event log is redirected per test by `WIO_HOME` (the log must never block
   a command).
 - No sleeps. No timestamps in compared output.
-
-## 7. Order of work
-
-1. Dataclass models with explicit validation, and the config loader (unit
-   tests).
-2. `tests/acceptance/` skeleton: `Wio` facade, builders, in-process test driver,
-   CLI test driver, with the bare `wio` scenario in `tests/acceptance/cli/`,
-   then targeting `wio config check`.
-3. `wio contracts new / list / check`, developed against the DSL.
-4. `wio trailers` and `wio trailers check`.
-5. `wio rules check` and `wio context`, with golden tests.
-6. `wio log`, with the `context` and `review` events.
-7. Add the CLI channel to the scenarios where exit codes, `--json` or
-   environment matter.
