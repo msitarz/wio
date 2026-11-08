@@ -42,7 +42,7 @@ records), it creates a real repository in `tmp_path`.
 | Layer | Role |
 |---|---|
 | Scenario (test function) | States what happens, in domain terms |
-| `Wio` facade | Domain verbs: `with_config`, `run_config`, `rules`, `work`, `context`, `trailers`, `check`, `contracts_new`. Applies defaults. |
+| `Wio` facade | Domain verbs: `config`, `rules`, `work`, `context`, `trailers`, `check`, `contracts_new`. Applies defaults. |
 | Builders | Produce a minimal valid repo state; tests override only what they are about |
 | `WioDriver` (Protocol) | Narrow interface: run an operation against a prepared temp repo, return a result object |
 | Test drivers | In-process and CLI implementations of the Protocol |
@@ -74,6 +74,12 @@ def test_reviewer_only_rules_never_reach_the_author_stage(wio):
     # Then the review rule is not in it
     assert "ARC001" not in bundle
 ```
+
+The builders speak in objects, as `wio.config(stages=[...])` does. A scenario
+about the text of a file, such as a syntax error, a quoted key or an invalid
+config, cannot be written with objects, so the facade also has `with_config`,
+which writes a string as the config file, and `run_config`, which runs
+`wio config` with arguments and returns its streams and exit code.
 
 A test that needs more than three builder overrides is a sign the builder
 default is wrong or the scenario is testing two things.
