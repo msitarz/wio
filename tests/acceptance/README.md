@@ -31,6 +31,10 @@ and `conftest.py`. The DSL lives inside `tests/acceptance/` because nothing else
 uses it yet; promote it to its own package only when a second consumer (for
 example `wio-eval`) needs it.
 
+Wio does not lint Markdown, so a scenario never needs `rumdl` or a diagram
+renderer. Where a scenario needs git (for example a commit message with
+records), it creates a real repository in `tmp_path`.
+
 ## 3. The DSL
 
 ### 3.1 Layers
