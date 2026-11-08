@@ -9,6 +9,7 @@ from tests.unit.config.fakes import load_text
 from wio.config.listing import (
     WIDTH,
     Setting,
+    as_object,
     full_line,
     quote,
     settings_of,
@@ -196,3 +197,18 @@ def test_a_control_character_is_escaped_in_a_quoted_string() -> None:
 
     # Then each is escaped as TOML escapes it
     assert quoted == '"a\\tb\\\\c\\u0007"'
+
+
+def test_the_json_object_is_in_key_path_order_whatever_the_order_given() -> None:
+    """The object maps each key path to its whole value and source, sorted."""
+    # Given settings handed over out of key-path order, one holding a list
+    later = Setting("works.hierarchy", "flat", "default", "")
+    earlier = Setting("gates.results", ("pass", "fail"), "file", "")
+
+    # When they are described as the JSON object
+    found = as_object([later, earlier])
+
+    # Then the key paths are in order and a list keeps its items
+    assert list(found) == ["gates.results", "works.hierarchy"]
+    assert found["gates.results"] == {"value": ("pass", "fail"), "source": "file"}
+    assert found["works.hierarchy"] == {"value": "flat", "source": "default"}
