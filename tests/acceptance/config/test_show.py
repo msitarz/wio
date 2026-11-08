@@ -20,10 +20,15 @@ pytestmark = [
 def test_bare_config_shows_the_help(wio: Wio) -> None:
     """AC-1: bare `wio config` names its subcommands and exits 0."""
     # Given a repository with a valid config
+    wio.with_config("")
+
     # When `wio config` runs
+    output = wio.run_config()
+
     # Then the output names list and show and the exit code is 0
-    del wio
-    pytest.skip("stub: the implementation stage writes this test")
+    assert "list" in output.stdout
+    assert "show" in output.stdout
+    assert output.exit_code == 0
 
 
 def test_list_shortens_the_lines_and_labels_the_sources(wio: Wio) -> None:

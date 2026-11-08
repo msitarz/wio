@@ -3,14 +3,19 @@
 
 import pytest
 
+from tests.support import import_light_violations
+
 
 @pytest.mark.slow
 def test_describing_the_command_loads_no_submodule_of_the_package() -> None:
     """AC-5: the table of commands is described without the implementation."""
     # Given a new Python process
+
     # When the table of commands is described
+    found = import_light_violations("wio.config")
+
     # Then no submodule of `wio.config` is in `sys.modules`
-    pytest.skip("stub: the implementation stage writes this test")
+    assert found == []
 
 
 @pytest.mark.slow

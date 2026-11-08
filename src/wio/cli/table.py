@@ -9,6 +9,10 @@ import importlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, Literal
 
+lazy from wio.config import ConfigCommand
+lazy from wio.env import adapters as env
+lazy from wio.io import adapters as io
+
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
@@ -68,5 +72,15 @@ def component_entry(package: Component, wire: Callable[[], Command]) -> Entry:
     return Entry(package=package, describe=describe, wire=wire)
 
 
-COMMANDS: Final[Sequence[Entry]] = ()
-"""Every subcommand of wio, empty until a component adds its entry."""
+def _config() -> Command:
+    """Wire `wio config` to the local disk and the git repository.
+
+    Returns:
+        The command, reading the config file through the adapters.
+    """
+    repository = io.GitRepository(env.ProcessEnvironment())
+    return ConfigCommand(repository, io.LocalFileSystem())
+
+
+COMMANDS: Final[Sequence[Entry]] = (component_entry("config", _config),)
+"""Every subcommand of wio, one entry for each component that has a command."""

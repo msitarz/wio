@@ -83,6 +83,22 @@ def load_config(
     return Loaded(None if blocked else shape.config, found, shape.sources)
 
 
+def config_or_raise(loaded: Loaded) -> Config:
+    """Hand over the `Config` of a load, or refuse with every error at once.
+
+    Args:
+        loaded: What `load_config` returned.
+
+    Returns:
+        The `Config`; warnings and notes never block.
+
+    Raises:
+        ConfigurationError: A diagnostic is an error. It carries every error and
+            its message renders them.
+    """
+    raise NotImplementedError
+
+
 def _root(repository: Repository) -> Path:
     """Find the root of the repository that holds the working directory.
 

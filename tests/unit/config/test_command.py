@@ -1,23 +1,85 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of `wio config` run through the command line with fake ports."""
 
+import io
+from dataclasses import dataclass
+from typing import TextIO
+
 import pytest
+
+from tests.unit.config.fakes import CONFIG, FakeRepository, MemoryFileSystem
+from wio import cli
+from wio.cli.table import component_entry
+from wio.config import ConfigCommand
+
+TEXT = """
+[works]
+hierarchy = "nesting"
+
+[stages.define]
+goal = "Turn an intent into a Work"
+"""
+
+
+@dataclass
+class _Stdio:
+    """In-memory standard streams that satisfy the `Stdio` port."""
+
+    stdin: TextIO
+    stdout: TextIO
+    stderr: TextIO
+
+
+@dataclass(frozen=True)
+class _Ran:
+    """What one run wrote and returned."""
+
+    stdout: str
+    stderr: str
+    code: int
+
+
+def _run(text: str | None, *argv: str) -> _Ran:
+    """Run `wio config ...` on a config held in memory.
+
+    Args:
+        text: The content of the config file, or `None` for no file.
+        *argv: The arguments after `wio config`.
+
+    Returns:
+        The streams and the exit code.
+    """
+    files = MemoryFileSystem({} if text is None else {CONFIG: text})
+    entry = component_entry("config", lambda: ConfigCommand(FakeRepository(), files))
+    out, err = io.StringIO(), io.StringIO()
+    code = cli.main(["config", *argv], _Stdio(io.StringIO(), out, err), (entry,))
+    return _Ran(out.getvalue(), err.getvalue(), code)
 
 
 def test_bare_config_shows_its_help_and_the_views() -> None:
     """The usage of `wio config` names the subcommands it has."""
     # Given a repository with a valid config
+
     # When `wio config` runs with no subcommand
+    ran = _run(TEXT)
+
     # Then the usage names list and show and the run succeeds
-    pytest.skip("stub: the implementation stage writes this test")
+    assert "usage: wio config" in ran.stdout
+    assert "list" in ran.stdout
+    assert "show" in ran.stdout
+    assert (ran.stderr, ran.code) == ("", 0)
 
 
 def test_bare_config_needs_no_config_file() -> None:
     """The help does not load the settings."""
     # Given a repository without a config file
+
     # When `wio config` runs with no subcommand
+    ran = _run(None)
+
     # Then the usage is shown all the same
-    pytest.skip("stub: the implementation stage writes this test")
+    assert "usage: wio config" in ran.stdout
+    assert ran.code == 0
 
 
 def test_list_prints_one_line_for_each_setting_with_its_source() -> None:

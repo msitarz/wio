@@ -35,3 +35,27 @@ class Wio:
             stderr=result.stderr,
             exit_code=result.exit_code,
         )
+
+    def with_config(self, text: str) -> None:
+        """Make the sandbox a repository whose config file holds a text.
+
+        Args:
+            text: The content of `.agents/wio/config.toml`.
+        """
+        self.driver.prepare({".agents/wio/config.toml": text})
+
+    def run_config(self, *args: str) -> Output:
+        """Run `wio config` with some arguments.
+
+        Args:
+            *args: The arguments after `config`, such as `list` and `--json`.
+
+        Returns:
+            Both output streams and the exit code.
+        """
+        result = self.driver.run(["config", *args])
+        return Output(
+            stdout=result.stdout,
+            stderr=result.stderr,
+            exit_code=result.exit_code,
+        )
