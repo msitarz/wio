@@ -60,14 +60,6 @@ def test_an_unknown_key_in_an_empty_table_says_it_has_no_entries() -> None:
     pytest.skip("stub: the implementation stage writes this test")
 
 
-def test_a_single_unknown_key_with_one_valid_key_uses_the_singular() -> None:
-    """The message says `is` for one valid key."""
-    # Given a table with one entry, the stage `define`
-    # When a key below the entry's single sibling is asked for
-    # Then the message lists the one entry
-    pytest.skip("stub: the implementation stage writes this test")
-
-
 def test_an_optional_setting_that_is_not_set_is_refused() -> None:
     """`judge` has no value."""
     # Given a stage without a judge

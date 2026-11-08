@@ -46,12 +46,18 @@ def resolve(config: Config, key: str) -> Target:
             key that needs it; empty for the whole config.
 
     Returns:
-        The target: one setting, or a table, which may be empty.
+        The target: one setting, or a table, which may be empty. It judges the
+        key path by the fields of the `Config` alone, so a table that holds no
+        entry, such as `roots` of a config without roots, is a valid empty table
+        and not an unknown key.
 
     Raises:
-        ConfigurationError: The key path is malformed; or it names nothing, in
-            which case the message gives the closest match and the valid keys;
-            or it names an optional setting that is not set; or it reaches into
-            a list, which is shown whole.
+        ConfigurationError: The key path is malformed, and the message shows how
+            to write one; or it names nothing, and the message gives the closest
+            match and the valid keys of the table it stopped at; or it names an
+            optional setting that is not set; or it asks for an item of a list,
+            which is shown whole, and the message names the list's own key path;
+            or it asks for an item of something that is no list, or for a key
+            below a setting.
     """
     ...

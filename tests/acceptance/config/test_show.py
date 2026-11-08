@@ -75,7 +75,8 @@ def test_show_unset_empty_and_inside_a_list(wio: Wio) -> None:
     """AC-3: an unset setting and a list item exit 2, an empty table exits 0."""
     # Given a stage without a judge, no roots and a rules_include list
     # When each is shown
-    # Then they exit 2, print nothing (or {}) and exit 0, and exit 2
+    # Then the judge exits 2 saying it is not set, roots print nothing and exit 0
+    # (an empty object with --json), and the list item exits 2 naming the list
     del wio
     pytest.skip("stub: the implementation stage writes this test")
 
@@ -84,7 +85,8 @@ def test_show_an_unknown_key_path_suggests_the_closest(wio: Wio) -> None:
     """AC-3: a typo names the closest match and the valid keys."""
     # Given a config with a stage `define`
     # When two misspelled key paths are shown
-    # Then both exit 2, the first names `stages` and the second `stages.define`
+    # Then both exit 2, the first names the closest match `stages` and the valid
+    # top-level keys, and the second names `stages.define` and the stages
     del wio
     pytest.skip("stub: the implementation stage writes this test")
 

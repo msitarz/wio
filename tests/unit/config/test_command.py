@@ -106,11 +106,3 @@ def test_a_config_with_an_error_is_refused_by_both_views() -> None:
     # When it is listed and shown
     # Then each exits 2 with empty standard output and the error
     pytest.skip("stub: the implementation stage writes this test")
-
-
-def test_a_missing_config_file_is_refused() -> None:
-    """Listing needs a config file to read."""
-    # Given a repository without a config file
-    # When the settings are listed
-    # Then it exits 2 and names the file
-    pytest.skip("stub: the implementation stage writes this test")

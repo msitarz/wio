@@ -8,8 +8,30 @@ printed, and the `json` module is imported only for `--json`.
 """
 
 from argparse import Namespace
+from collections.abc import Callable
+from typing import Literal
 
 from wio.io.ports import FileSystem, Repository, Stdio
+
+class Arguments(Namespace):
+    """The attributes of the parsed arguments that `ConfigCommand.run` reads.
+
+    `wio.config.describe()` makes the parser set them; the command reads them
+    from the `Namespace` it is given.
+    """
+
+    config_view: Literal["list", "show"] | None
+    """The subcommand chosen, `None` for bare `wio config`."""
+
+    config_help: Callable[[], str]
+    """Returns the usage of `wio config`; set by the parser of `config`, so bare
+    `wio config` prints it without loading the config file."""
+
+    json: bool
+    """Whether to write one JSON object; present for `list` and `show`."""
+
+    key: str
+    """The key path of `show`, empty for the whole config; present for `show`."""
 
 class ConfigCommand:
     """Runs `wio config`: bare for its help, `list` and `show` for the settings."""
@@ -27,9 +49,7 @@ class ConfigCommand:
         """Run the chosen view.
 
         Args:
-            args: The parsed arguments: `config_view` is `list`, `show` or
-                `None`, `config_help` returns the help text, `json` says whether
-                to write one JSON object, and `key` is the key path of `show`.
+            args: The parsed arguments, with the attributes of `Arguments`.
             stdio: The streams to write to.
 
         Returns:
