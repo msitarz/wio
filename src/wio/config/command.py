@@ -9,12 +9,9 @@ given, a config with an error is refused before anything is printed, and the
 from typing import TYPE_CHECKING, Literal, cast
 lazy import json
 
+from wio.config.keypath import resolve
+from wio.config.listing import as_object, full_line, settings_of, short_line
 from wio.config.loader import config_or_raise, load_config
-
-# The leaves are stubs until the implementation stage writes them, so they are
-# bound lazily and a run that needs none, such as bare `wio config`, still works.
-lazy from wio.config.keypath import resolve
-lazy from wio.config.listing import as_object, full_line, settings_of, short_line
 
 if TYPE_CHECKING:
     from argparse import Namespace

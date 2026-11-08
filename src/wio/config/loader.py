@@ -9,7 +9,7 @@ from wio.config.checks import CHECKS, CheckInputs, run_checks
 from wio.config.shape import read_shape
 from wio.errors import ConfigurationError
 from wio.models.diagnostics import Diagnostic, sort_diagnostics
-lazy from wio.formats import TomlSyntaxError, decode_toml
+lazy from wio.formats import TomlSyntaxError, decode_toml, render_text
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -96,7 +96,10 @@ def config_or_raise(loaded: Loaded) -> Config:
         ConfigurationError: A diagnostic is an error. It carries every error and
             its message renders them.
     """
-    raise NotImplementedError
+    if loaded.config is not None:
+        return loaded.config
+    errors = tuple(item for item in loaded.diagnostics if item.severity == "error")
+    raise ConfigurationError(render_text(errors), errors)
 
 
 def _root(repository: Repository) -> Path:
