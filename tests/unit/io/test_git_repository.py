@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.support import FakeEnvironment
+from tests.fakes import FakeEnvironment
 from wio.io import adapters
 
 if TYPE_CHECKING:

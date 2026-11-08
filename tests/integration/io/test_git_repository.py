@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.support import FakeEnvironment, enter, git
+from tests.fakes import FakeEnvironment
+from tests.support import enter, git
 from wio.env.adapters import ProcessEnvironment
 from wio.io import adapters
 
