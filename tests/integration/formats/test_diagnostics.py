@@ -27,5 +27,5 @@ def test_rendering_text_does_not_import_json() -> None:
         check=True,
     )
 
-    # Then `json` is not in `sys.modules`
+    # Then the json module is not among the modules it holds
     assert done.stdout == "False"

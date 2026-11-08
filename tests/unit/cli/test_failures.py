@@ -20,12 +20,12 @@ STEPS = ("describe", "configure", "wire", "run")
 def test_a_wio_error_exits_two_with_its_message(step: str) -> None:
     """A `WioError` at any step is reported as `error:` and its message."""
     # Given four commands, whose describe, configure, wire and run each raise
-    # ConfigurationError("no config"), each in an entry with the package
+    # a configuration error saying "no config", each in an entry with the package
     # "config" and injected functions
     message = "no config"
     table = [Fake.failing(step, ConfigurationError(message)).entry()]
 
-    # When main([name], stdio) runs for each
+    # When each command runs
     code, out, err = run_main(["failing"], table)
 
     # Then each returns 2, standard error is "error: no config" and a newline,
@@ -37,14 +37,13 @@ def test_the_message_of_a_wio_error_is_plain_on_a_terminal(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Standard error holds no escape character, whatever the color rules say."""
-    # Given standard error on a pseudo-terminal from os.openpty and
-    # FORCE_COLOR=1, and a command whose run raises ConfigurationError("no
-    # config")
+    # Given standard error on a pseudo-terminal and FORCE_COLOR=1, and a command
+    # whose run raises a configuration error saying "no config"
     monkeypatch.setenv("FORCE_COLOR", "1")
     message = "no config"
     table = [Fake.failing("run", ConfigurationError(message)).entry()]
 
-    # When main runs it
+    # When the command runs it
     written = run_on_terminal(["failing"], table, "stderr")
 
     # Then standard error is exactly "error: no config" and a newline, with no
@@ -61,7 +60,7 @@ def test_a_bug_exits_seventy_with_its_traceback(step: str) -> None:
     message = "boom"
     table = [Fake.failing(step, RuntimeError(message)).entry()]
 
-    # When main([name], stdio) runs for each
+    # When each command runs
     code, out, err = run_main(["failing"], table)
 
     # Then each returns 70, standard output is empty, and the last line of
@@ -75,7 +74,7 @@ def test_an_exit_code_outside_zero_and_one_is_a_bug() -> None:
     # Given a command whose run returns 3
     table = [Fake(Spec("odd", "Returns 3."), code=3).entry()]
 
-    # When main runs it
+    # When the command runs it
     code, out, err = run_main(["odd"], table)
 
     # Then it returns 70, standard output is empty, and standard error names the
@@ -87,7 +86,7 @@ def test_an_exit_code_outside_zero_and_one_is_a_bug() -> None:
 
 def test_the_core_writes_only_to_stdio(capsys: pytest.CaptureFixture[str]) -> None:
     """The process's own streams hold nothing, whatever happens in a run."""
-    # Given in-memory stdio and the process's sys.stdout and sys.stderr captured
+    # Given in-memory stdio and the process's own standard output and error captured
     table: list[Entry] = [
         Fake.failing("run", ConfigurationError("no config"), "wio-error").entry(),
         Fake.failing("run", RuntimeError("boom"), "bug").entry(),
@@ -96,7 +95,7 @@ def test_the_core_writes_only_to_stdio(capsys: pytest.CaptureFixture[str]) -> No
     out, err = io.StringIO(), io.StringIO()
     stdio = FakeStdio(stdout=out, stderr=err)
 
-    # When main runs --help, --version, an unknown subcommand and three
+    # When the command runs --help, --version, an unknown subcommand and three
     # commands, one raising a WioError, one raising RuntimeError and one
     # returning 3
     for argv in (["--help"], ["--version"], ["nope"], ["wio-error"], ["bug"], ["odd"]):

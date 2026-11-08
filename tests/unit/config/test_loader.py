@@ -28,7 +28,7 @@ def test_the_file_is_read_at_the_root_of_the_repository() -> None:
     text = '[works]\nhierarchy = "nesting"\n'
     files = MemoryFileSystem({CONFIG: text})
 
-    # When load_config runs
+    # When the config is loaded
     loaded = load_config(FakeRepository(), files)
 
     # Then the hierarchy is nesting
@@ -41,7 +41,7 @@ def test_a_missing_file_names_the_path_looked_at() -> None:
     # Given a repository without a config file
     files = MemoryFileSystem()
 
-    # When load_config runs
+    # When the config is loaded
     with pytest.raises(ConfigurationError) as caught:
         load_config(FakeRepository(), files)
 
@@ -89,7 +89,7 @@ def test_a_file_that_cannot_be_read_says_why_and_what_to_do(
     # Given a config file that cannot be read for one reason
     files = MemoryFileSystem({CONFIG: ""}, failure=failure)
 
-    # When load_config runs
+    # When the config is loaded
     with pytest.raises(ConfigurationError) as caught:
         load_config(FakeRepository(), files)
 
@@ -109,7 +109,7 @@ def test_a_missing_repository_gives_the_adapters_message_once() -> None:
     explained = "not inside a git repository (working directory /work); run wio"
     repository = FakeRepository(top=None, message=explained)
 
-    # When load_config runs
+    # When the config is loaded
     with pytest.raises(ConfigurationError) as caught:
         load_config(repository, MemoryFileSystem())
 
@@ -122,11 +122,11 @@ def test_an_empty_file_and_a_partial_one_keep_the_defaults() -> None:
     # Given an empty file, and one that sets a reader and one stage
     partial = '[trailers]\nreader = "git"\n[stages.define]\ngoal = "g"\n'
 
-    # When load_config runs on each
+    # When each is loaded
     empty_loaded = load_text("")
     partial_loaded = load_text(partial)
 
-    # Then the first is Config() and the second has the reader and the stage
+    # Then the first is the default config and the second has the reader and the stage
     assert empty_loaded.config == Config()
     assert empty_loaded.diagnostics == ()
     config = partial_loaded.config
@@ -182,7 +182,7 @@ def test_the_source_of_each_setting_is_the_file_or_the_default() -> None:
     # Given a file that sets the default hierarchy and one stage with a goal
     text = '[works]\nhierarchy = "flat"\n[stages.define]\ngoal = "g"\n'
 
-    # When load_config runs
+    # When the config is loaded
     sources = load_text(text).sources
 
     # Then the sources say file and default, and cover every setting but the None
@@ -214,7 +214,7 @@ def test_a_syntax_error_is_one_diagnostic_with_a_position() -> None:
     # Given a config whose second line is `b = = 2`
     text = "a = 1\nb = = 2\n"
 
-    # When load_config runs
+    # When the config is loaded
     loaded = load_text(text)
 
     # Then one error is at the file, line 2, column 5, and there is no Config

@@ -29,7 +29,7 @@ def test_the_working_directory_is_the_absolute_directory_of_the_process(
     # Given a process running in a directory
     monkeypatch.chdir(tmp_path)
 
-    # When working_directory runs
+    # When the working directory is asked for
     directory = _wired().working_directory()
 
     # Then it is the absolute path of that directory

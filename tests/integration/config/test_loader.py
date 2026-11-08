@@ -68,7 +68,7 @@ def test_a_valid_file_loads_without_the_heavy_modules() -> None:
     """AC-8: no difflib, json or tomlkit for a valid file; difflib for a typo."""
     # Given a new Python process and a valid config, and one with an unknown key
 
-    # When load_config runs and sys.modules is read
+    # When the config is loaded and the modules the process holds are read
     valid = _imported('[works]\nhierarchy = "nesting"\n')
     typo = _imported('[trailers]\nreaders = "git"\n')
 
@@ -91,7 +91,7 @@ def test_the_config_is_found_from_a_subdirectory(
     enter(sandbox, monkeypatch)
     monkeypatch.chdir(sub)
 
-    # When load_config runs with the real adapters
+    # When the config is loaded with the real adapters
     repository = adapters.GitRepository(ProcessEnvironment())
     loaded = load_config(repository, adapters.LocalFileSystem())
 
@@ -107,7 +107,7 @@ def test_outside_a_repository_the_error_names_the_working_directory(
     # Given a directory outside any repository
     enter(sandbox, monkeypatch)
 
-    # When load_config runs with the real adapters
+    # When the config is loaded with the real adapters
     repository = adapters.GitRepository(ProcessEnvironment())
     with pytest.raises(ConfigurationError) as caught:
         load_config(repository, adapters.LocalFileSystem())

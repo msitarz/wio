@@ -18,7 +18,7 @@ def test_diagnostics_sort_by_place_then_severity_then_message() -> None:
     wide = Diagnostic("error", "x[10]", "m")
     narrow = Diagnostic("error", "x[2]", "m")
 
-    # When they are sorted with `sort_diagnostics`
+    # When they are sorted
     ordered = sort_diagnostics([note_b, error_b, error_a, warning_a])
     indexes = sort_diagnostics([narrow, wide])
 

@@ -24,7 +24,8 @@ def test_importing_the_decoder_loads_no_toml_parser() -> None:
     """AC-4: `tomllib` loads on the first decode, not on import."""
     # Given a new Python process
 
-    # When it imports wio.formats, checks sys.modules, decodes, and checks again
+    # When it imports the formats, lists the modules it holds, decodes, and lists
+    # them again
     done = subprocess.run(
         [sys.executable, "-c", _PROBE],
         cwd=ROOT,

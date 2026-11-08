@@ -12,7 +12,7 @@ def test_a_toml_text_becomes_plain_data() -> None:
     # Given a document with a key, a table, a string and a list, and an empty text
     text = 'a = 1\n[t]\ns = "x"\nl = [1, 2]\n'
 
-    # When decode_toml runs on each
+    # When each is decoded
     data = decode_toml(text)
     empty = decode_toml("")
 
@@ -26,7 +26,7 @@ def test_an_invalid_value_carries_its_position() -> None:
     # Given a text whose second line is an invalid value
     text = "a = 1\nb = = 2\n"
 
-    # When decode_toml runs
+    # When the text is decoded
     with pytest.raises(TomlSyntaxError) as caught:
         decode_toml(text)
 
@@ -48,7 +48,7 @@ def test_a_duplicate_key_and_an_unterminated_string_are_placed(
     """AC-2: the position is the problem's, not the start of the text."""
     # Given a text with a duplicate key, or an unterminated string
 
-    # When decode_toml runs on it
+    # When it is decoded
     with pytest.raises(TomlSyntaxError) as caught:
         decode_toml(text)
 

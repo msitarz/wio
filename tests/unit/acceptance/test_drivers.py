@@ -49,7 +49,7 @@ def test_the_cli_driver_runs_in_the_sandbox(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The subprocess gets the sandbox's directory and environment."""
-    # Given the CLI driver and a spy in place of subprocess.run
+    # Given the CLI driver and a spy in place of starting a process
     calls: list[dict[str, Any]] = []
 
     def spy(

@@ -20,7 +20,7 @@ def test_reading_returns_text_as_stored_and_bytes_and_rejects_bad_utf8(
     (tmp_path / "b.bin").write_bytes(b"\xff\xfe\x00")
     disk = LocalFileSystem()
 
-    # When read_text and read_bytes run on them
+    # When they are read as text and as bytes
     text = disk.read_text(tmp_path / "a.txt")
     data = disk.read_bytes(tmp_path / "b.bin")
 
@@ -39,7 +39,7 @@ def test_writing_creates_parents_and_appending_adds_to_the_file(
     disk = LocalFileSystem()
     target = tmp_path / "x" / "y" / "f"
 
-    # When write_text and then append_text run on a path inside it
+    # When text is written to a path inside it and then appended
     disk.write_text(target, "a")
     disk.append_text(target, "b")
 
@@ -62,7 +62,7 @@ def test_listing_is_sorted_and_missing_paths_raise(tmp_path: Path) -> None:
         (tmp_path / "d" / name).write_text("", encoding="utf-8")
     disk = LocalFileSystem()
 
-    # When list_dir runs on each and read_text runs on the missing path
+    # When each is listed and the missing path is read as text
     listing = disk.list_dir(tmp_path / "d")
 
     # Then the listing is sorted and the file and the missing path raise
