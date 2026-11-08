@@ -6,8 +6,9 @@ the same annotations. A line is written in TOML syntax, so a person or an agent
 can read a value as the config file would hold it.
 """
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from typing import Final
 
 from wio.config.shape import Source
 from wio.models.config import Config
@@ -15,7 +16,7 @@ from wio.models.config import Config
 type Value = str | bool | int | tuple[str, ...]
 """What a setting holds: a string, a boolean, an integer or a list of strings."""
 
-WIDTH: int
+WIDTH: Final = 80
 """The columns a line of `list` fits in, unless its key path and label do not."""
 
 @dataclass(frozen=True)
@@ -34,7 +35,7 @@ class Setting:
     source: Source
     description: str
 
-def settings_of(config: Config, sources: dict[str, Source]) -> tuple[Setting, ...]:
+def settings_of(config: Config, sources: Mapping[str, Source]) -> tuple[Setting, ...]:
     """List every setting of a config that has a value, sorted by key path.
 
     Args:
@@ -92,7 +93,8 @@ def short_line(setting: Setting) -> str:
     Returns:
         `key.path = value  # file` with the value shortened to fit. A string of
         several lines shows its first line then `…` before the closing quote,
-        and an array that does not fit keeps its leading items then `…`. The key
+        a single line that is too long is cut with `…` before the closing
+        quote, and an array that does not fit keeps its leading items then `…`. The key
         path and the label are always whole, so when they leave no room the
         value is `…` and the line is longer than `WIDTH`.
     """
@@ -107,7 +109,7 @@ def as_object(settings: Iterable[Setting]) -> dict[str, dict[str, object]]:
     Returns:
         A mapping from each key path, in key-path order, to `{"value": ...,
         "source": "file" | "default"}`. A value is never shortened, and a tuple
-        is a list, so `json.dumps` writes it as a JSON array. It imports no
+        stays a tuple, which `json.dumps` writes as a JSON array. It imports no
         module: the caller serializes it, so `json` is loaded only with
         `--json`.
     """

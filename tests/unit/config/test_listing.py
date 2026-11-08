@@ -40,7 +40,7 @@ def test_a_long_string_is_cut_so_that_the_line_is_80_columns() -> None:
     """The label stays whole and the value gives way."""
     # Given a description of ninety characters
     # When its short line is written
-    # Then the line is exactly 80 columns and ends with the cut mark and label
+    # Then the line is at most 80 columns and ends with the cut mark and label
     pytest.skip("stub: the implementation stage writes this test")
 
 
@@ -78,9 +78,9 @@ def test_the_full_line_shows_the_whole_value() -> None:
 
 def test_values_are_written_in_toml_syntax() -> None:
     """Strings are quoted and lists are arrays."""
-    # Given a value
-    # When it is written
-    # Then it is TOML
+    # Given a string, a boolean, an integer and a list of strings
+    # When each is written as a setting's value
+    # Then it appears as the config file would hold it
     pytest.skip("stub: the implementation stage writes this test")
 
 

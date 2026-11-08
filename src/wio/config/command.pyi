@@ -53,10 +53,16 @@ class ConfigCommand:
             stdio: The streams to write to.
 
         Returns:
-            0. Bare `wio config` writes its help and reads no config file.
+            0. Bare `wio config` writes its help and reads no config file. `list`
+            and `show` write to `stdio.stdout` only, one line per setting. A
+            single setting shown by `show` is followed by a line that holds its
+            description.
 
         Raises:
-            ConfigurationError: The config has an error, or the key path names
-                nothing that can be shown; the command line exits 2.
+            ConfigurationError: The config has an error: it carries every error
+                and renders them as its message, as `ConfigSettings.load` does,
+                and nothing is written to `stdio.stdout`. Or the key path, which
+                `show` judges after the config is loaded, names nothing that can
+                be shown. The command line exits 2.
         """
         ...
