@@ -1,0 +1,8 @@
+# A config whose stage selects a root that is not declared.
+
+[roots.contract]
+paths = [".agents/wio/works"]
+
+[stages.define]
+goal = "Define."
+roots = ["contract", "src"]

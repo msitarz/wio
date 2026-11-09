@@ -1,0 +1,33 @@
+# A config whose stage presets and default actions name stages, stage presets
+# and actions that do not exist, or repeat a stage.
+
+[stages.define]
+goal = "Define."
+
+[stage_presets]
+p = ["define", "review"]
+q = ["define", "define"]
+solo = ["define"]
+
+[actions.define]
+description = "Define."
+
+[actions.deliver]
+description = "Deliver."
+
+[actions.review]
+description = "Review."
+
+[actions.build]
+description = "Build."
+
+[actions.twice]
+description = "Twice."
+
+[works.defaults.actions]
+deliver = "missing"
+review = "define"
+build = ["define", "ghost"]
+twice = ["define", "define"]
+define = ["define"]
+ship = ["define"]
