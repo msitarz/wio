@@ -75,6 +75,7 @@ Single tools, for quick feedback:
 
 ## Workflow
 
+- When creating a new git worktree, put it in `.claude/worktrees` directory.
 - Commit messages follow Conventional Commits. The commitizen hook checks them.
 - End every commit message with a record: a paragraph of `Wio-*` trailers that
   says which Work and stage the commit belongs to (see "Records" in
