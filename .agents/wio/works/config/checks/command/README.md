@@ -15,13 +15,16 @@ after every edit of it, so that an agent is told what to fix before it goes on.
 ## Goals
 
 - `wio config check` prints every diagnostic of the config as text or JSON and
-  says by its exit code whether there was an error.
+  says by its exit code whether there was an error, and in text says so when it
+  found none.
 - Committing a change to the config runs the check.
 - An agent that edits the config is told the errors in the same turn.
 - Other projects can copy the recipe for the hook.
 
 ## Non-Goals
 
+- Coloring the message that says the check passed: wio's own messages are never
+  colored.
 - The checks beyond the shape, which the other leaves add.
 - A hook for any harness but Claude Code in this repository: the recipe shows
   the idea, and each project does its own.
@@ -55,7 +58,8 @@ after every edit of it, so that an agent is told what to fix before it goes on.
 ### **AC-1** `wio config check` prints the diagnostics of the config
 
 The command prints each diagnostic, sorted, to standard output as text or with
-`--json` as an array, and exits 0 when none is an error and 1 when any is.
+`--json` as an array, and exits 0 when none is an error and 1 when any is. A
+text run that finds no diagnostic prints `Config check passed!`.
 
 ```text
 wio config check [--json]
@@ -65,15 +69,16 @@ wio config check [--json]
 
 - **Given** a valid config, and a config with an unknown key.
 - **When** `wio config check` runs on each.
-- **Then** the first prints nothing and exits 0, and the second prints the error
-  as `error: <key path>: <message>` and exits 1.
+- **Then** the first prints `Config check passed!` and exits 0, and the second
+  prints the error as `error: <key path>: <message>` and exits 1.
 
 #### A warning
 
 - **Given** a valid config and a check put in `wio.config.CHECKS` that returns a
   warning.
 - **When** `wio config check` runs.
-- **Then** it prints `warning: <where>: <message>` and exits 0.
+- **Then** it prints `warning: <where>: <message>`, not `Config check passed!`,
+  and exits 0.
 
 #### JSON
 
