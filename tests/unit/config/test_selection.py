@@ -1,5 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests of the checks of rule references and rulesets."""
+"""Tests of the checks of rule references and rulesets.
+
+The in-memory file system of `tests/unit/config/fakes.py` serves them once it
+learns directories: a path is a directory when it is the parent of a stored key,
+`list_dir` lists the stored files and the child directories of a path, and it
+records the calls it receives. That changes `is_dir`, so the tests of the root
+paths are run again with it.
+"""
 
 import pytest
 
@@ -28,6 +35,16 @@ def test_a_reference_has_the_form_of_its_kind(text: str, kind: str) -> None:
     # told apart, and any other text says which part is wrong and the form it
     # should have
     del text, kind
+    pytest.skip("not implemented")
+
+
+def test_the_directories_are_read_with_is_dir_before_list_dir() -> None:
+    """AC-2, AC-5: the entries that are directories, and which hold a manifest."""
+    # Given `.agents/wio/rules` with a ruleset `docs` that has a `ruleset.toml`, a
+    # directory `bare` without one, and a stray file
+    # When the rulesets are read
+    # Then the names are `bare` and `docs`, sorted, only `bare` is without a
+    # manifest, and the file is ignored
     pytest.skip("not implemented")
 
 
@@ -85,6 +102,40 @@ def test_an_alias_resolves_like_the_name_of_its_ruleset() -> None:
     pytest.skip("not implemented")
 
 
+def test_the_first_problem_of_a_reference_in_its_field_wins() -> None:
+    """AC-2, AC-4: the form, then what the field takes, then resolution."""
+    # Given a veto entry `docz.recommended` with an unknown ruleset, a root entry
+    # `docs.DOC001` whose ruleset is unknown, and a root entry `nope`
+    # When the references are judged
+    # Then the first says only qualified codes and families are allowed, since its
+    # ruleset part is not the problem, the second says a root takes rule presets
+    # only, and the third lists the config's rule presets
+    pytest.skip("not implemented")
+
+
+@pytest.mark.parametrize(
+    "where",
+    [
+        "stages.s.rules_include[0]",
+        "stages.s.rules_exclude[0]",
+        "rule_presets.p.rules_include[0]",
+        "rule_presets.p.rules_exclude[0]",
+        "roots.r.rule_presets[0]",
+        "rules_always_include[0]",
+        "rules_always_exclude[0]",
+    ],
+)
+def test_every_field_that_holds_references_is_judged_at_its_key_path(
+    where: str,
+) -> None:
+    """AC-2: a stage, a config preset, a root and the two always fields."""
+    # Given an unknown ruleset in the field at `where`
+    # When the rule references are checked
+    # Then one error is at `where`
+    del where
+    pytest.skip("not implemented")
+
+
 def test_rule_presets_that_include_one_another_are_one_error() -> None:
     """AC-3: one error names the presets of a cycle, and a self loop is one."""
     # Given presets `a` including `b`, `b` including `a`, and `s` including `s`
@@ -119,10 +170,11 @@ def test_a_root_takes_rule_presets_only_and_a_veto_takes_codes_and_families() ->
 def test_rulesets_without_a_directory_or_manifest_and_clashing_aliases_fail() -> None:
     """AC-5: each error names the ruleset and what is wrong."""
     # Given `[rulesets.ghost]` with no directory, a directory `bare` without a
-    # `ruleset.toml`, two rulesets with the alias `d`, and an alias equal to
-    # another ruleset's name
+    # `ruleset.toml`, two rulesets with the alias `d`, an alias equal to another
+    # ruleset's name, and an alias equal to its own ruleset's name
     # When the rulesets are checked
-    # Then each is an error that names the ruleset and what is wrong
+    # Then each but the last is one error that names the ruleset and what is
+    # wrong, and the last has none
     pytest.skip("not implemented")
 
 

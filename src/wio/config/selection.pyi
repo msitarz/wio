@@ -11,7 +11,9 @@ directory before `list_dir` of it, `is_dir` of each entry, and `exists` of its
 known by its directory name or by its alias (A-1). Whether the family, code or
 rule preset after the dot exists needs the rule files, which the rules Work
 reads. Every `where` is a key path built with `join_path` and `item_path`, except
-that a directory is at `.agents/wio/rules/<name>`, as written; a message words
+that a directory is at `.agents/wio/rules/<name>`, as written; a config that
+selects rules names rulesets that exist, so a fixture or a test whose config
+selects a ruleset holds its directory with a `ruleset.toml`; a message words
 its names and lists with `quoted` and `and_list` of `wio.config.messages`, and
 says that none is declared when a list would be empty. The checks are appended
 to `wio.config.CHECKS`.
@@ -142,9 +144,10 @@ def judge_reference(
         `Takes.VETO` a bare name or a qualified rule preset, saying "only
         qualified codes and families are allowed in `rules_always_exclude`"; a
         ruleset part that is not in `known`, saying "unknown ruleset `<part>`"
-        and listing the declared rulesets and aliases; a bare name that is not in
-        `presets`, saying "unknown rule preset `<name>`" and listing the declared
-        rule presets. An item after the dot is never looked up.
+        and "Declared rulesets and aliases: `a`, `b`." or "No rulesets are
+        declared."; a bare name that is not in `presets`, saying "unknown rule
+        preset `<name>`" and "Declared rule presets: `a`, `b`." or "No rule
+        presets are declared." An item after the dot is never looked up.
     """
     ...
 
@@ -163,10 +166,11 @@ def check_rule_references(config: Config, inputs: CheckInputs) -> Iterable[Diagn
         `roots.<name>.rule_presets[<i>]`, `rules_always_include[<i>]` and
         `rules_always_exclude[<i>]`. A root takes `Takes.ROOT`,
         `rules_always_exclude` takes `Takes.VETO`, and every other field takes
-        `Takes.ANY`. The names known are the directories and the aliases of the
-        rulesets that have a directory; with no rules directory a qualified
-        reference is an unknown ruleset, and a config with none gets no
-        diagnostic.
+        `Takes.ANY`. The names known are every directory name, one without a
+        `ruleset.toml` included, and the alias, in the form of a ruleset name, of
+        each `[rulesets.<name>]` table whose name is a directory; with no rules
+        directory a qualified reference is an unknown ruleset, and a config with
+        none gets no diagnostic.
     """
     ...
 
@@ -183,7 +187,8 @@ def check_rule_preset_cycles(
         One error for each group of rule presets that include one another,
         directly or through others, a self loop included, at
         `rule_presets.<first>.rules_include` where `<first>` is the least name,
-        that names every preset of the group in sorted order. Only a bare name in
+        that names every preset of the group in sorted order, not as a path; the
+        groups come from `find_cycles` of `wio.config.pipelines`. Only a bare name in
         a preset's `rules_include` that is a rule preset of the config is an edge;
         `rules_exclude` and qualified references are not.
     """
@@ -204,8 +209,10 @@ def check_rulesets(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
         `rulesets.<name>` for a table that has no directory. For an alias, an
         error at `rulesets.<name>.alias` when it is not a ruleset name in form,
         when an earlier ruleset in the table has it, naming that ruleset, and
-        when it is the name of a ruleset, a directory or a table, naming it. Each
-        message names the ruleset and what is wrong.
+        when it is the name of another ruleset, a directory or a table, naming
+        it; the first that applies, so an alias gets one error, and an alias equal
+        to its own ruleset's name is not a clash. The name of a table is not
+        judged for its form. Each message names the ruleset and what is wrong.
     """
     ...
 
