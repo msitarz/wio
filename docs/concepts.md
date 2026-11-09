@@ -164,6 +164,12 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `[trailers] reader` | *optional* | How records are read from messages: `scan` or `git`. | [Reading records](#reading-records) |
 | Bundle settings | *optional* | A size threshold and the separator between rules; their keys are *open*. | [The context compiler](#11-the-context-compiler) |
 
+`wio config` shows these settings with their source (`list` and `show`), and
+`wio config check` prints every diagnostic of the file, one
+`<severity>: <where>: <message>` line each, which every `check` command shares,
+including a `[gates] results` that is empty or repeats a result. An error makes
+every other command refuse the config. Bare `wio config` prints the help.
+
 ### Special values
 
 | Symbol | Presence | Purpose | See |
@@ -1302,9 +1308,9 @@ who shares the author's context shares the author's blind spots. A stage may
 also mark itself as **not continuable** with `continuable = false`, so a later
 stage will not reuse it. Otherwise a session may be continued from the previous
 stage, which saves tokens because the contract and rules are already loaded. In
-v0.1 `wio context` only prints this advice. The driver follows it, and nothing
-else reads `continuable`: `wio config` shows it, so people and agents can read
-it.
+v0.1 `wio context` only prints this advice. The driver follows it, and no
+component acts on `continuable` yet: `wio config` shows it, so people and
+agents can read it.
 
 ## 8. Gate
 
@@ -1825,10 +1831,10 @@ does:
 
 Two commands report problems of rule selection, and what each reports follows
 from what it reads. `wio config check` reads the config and the names of the
-directories under `.agents/wio/rules/`, and nothing of a rule file. `wio rules
-check` reads the rule files and the manifests, so it owns every check that needs
-them. A `rules_*` key on a template or a contract is the templates and contracts
-Works' to report.
+directories under `.agents/wio/rules/` and whether each has a `ruleset.toml`,
+and nothing of a rule file. `wio rules check` reads the rule files and the
+manifests, so it owns every check that needs them. A `rules_*` key on a template
+or a contract is the templates and contracts Works' to report.
 
 `wio config check` reports these errors:
 
