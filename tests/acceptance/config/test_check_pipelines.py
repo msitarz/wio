@@ -44,10 +44,11 @@ def test_after_and_invalidated_by_name_declared_actions(wio: Wio) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-def test_an_empty_gate_vocabulary_fails(wio: Wio) -> None:
-    """AC-4: `gates.results = []` is an error at `gates.results`."""
-    # Given a config with `gates.results = []`
+@pytest.mark.parametrize("results", ["[]", '["pass", "pass"]'])
+def test_an_empty_or_duplicated_gate_vocabulary_fails(wio: Wio, results: str) -> None:
+    """AC-4: an empty or duplicated `gates.results` is an error there."""
+    # Given a config with `gates.results` set to `results`
     # When `wio config check` runs
     # Then it prints an error at `gates.results` and exits 1
-    del wio
+    del wio, results
     pytest.skip("stub: the implementation stage writes this test")

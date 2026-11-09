@@ -6,9 +6,10 @@ returns diagnostics, and never raises for a problem of the config. The `Config`
 is best effort, so a check skips what the shape already reported, such as a
 list that holds no strings, and judges only names. A name that does not resolve
 is an error whose message lists what exists, so an agent that edits the config
-corrects it in one turn. The stub is the spec until the implementation stage
-replaces it with a `.py` of the same annotations, and the wiring stage appends
-the checks to `wio.config.CHECKS`.
+corrects it in one turn. Every `where` is a key path built with `join_path`,
+so a name with a dot is quoted, and a message words its names and lists with
+`quoted` and `and_list` of `wio.config.messages`. The checks are appended to
+`wio.config.CHECKS`.
 """
 
 from collections.abc import Iterable, Mapping, Sequence
@@ -60,13 +61,18 @@ def check_actions(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
     Returns:
         An error at `actions.<name>.after[<i>]` for an action that is not
         declared, naming it and listing the declared actions, and for one that is
-        on demand, saying so. One error for each `after` cycle, at
-        `actions.<first>.after` where `<first>` is the least action name on the
-        cycle, that names every action on it. An error at
-        `actions.<name>.invalidated_by[<i>]` for an action that is not declared,
-        also behind the prefixes `@descendants:` and `@dependencies:`, listing
-        the declared actions. A note at the same place for any other entry that
-        starts with `@`, saying that v0.2 reserves it.
+        on demand, saying so. The cycles come from `find_cycles` on a graph of
+        every declared action keyed by its `after` entries, where an entry that
+        is not declared ends the search and an edge to an on-demand action is
+        kept, so that action is also reported for it. One error for each
+        cycle, at `actions.<first>.after` where `<first>` is the least name
+        `find_cycles` gives, that lists every action of the cycle in its order.
+        An error at `actions.<name>.invalidated_by[<i>]` for an action that is
+        not declared, also behind the prefixes `@descendants:` and
+        `@dependencies:`, listing the declared actions; a prefix with no name
+        after it is such an error. A note at the same place for any other entry
+        that starts with `@`, a bare `@descendants` among them, saying that
+        v0.2 reserves it. A valid entry gets no diagnostic.
     """
     ...
 
@@ -92,9 +98,10 @@ def find_cycles(after: Mapping[str, Sequence[str]]) -> tuple[tuple[str, ...], ..
             that is not a key has no edges, and an edge to it ends the search.
 
     Returns:
-        One tuple of names for each cycle, each in the order of its edges and
-        starting at its least name, and the tuples sorted. Every action that
-        lies on a cycle is on exactly one tuple, so two actions that `after`
-        each other are one cycle.
+        One tuple for each strongly connected component that has a cycle, so a
+        self loop is one and two cycles that share an action are one. Its names
+        are sorted, and the tuples are sorted by their first name, so every
+        action that lies on a cycle is on exactly one tuple, and `a` and `b`
+        that come after each other are `("a", "b")`.
     """
     ...

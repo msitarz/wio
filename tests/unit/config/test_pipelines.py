@@ -23,11 +23,15 @@ def test_default_actions_name_a_stage_preset_or_stages_of_a_declared_action() ->
     pytest.skip("stub: the implementation stage writes this test")
 
 
-def test_a_shape_error_is_not_reported_again() -> None:
-    """AC-1: the checks skip what the shape already reported."""
-    # Given a best-effort config whose stage preset holds no stage names
-    # When the stage presets are checked
+@pytest.mark.parametrize(
+    "check", ["stage presets", "stage roots", "actions", "gate results"]
+)
+def test_a_shape_error_is_not_reported_again(check: str) -> None:
+    """AC-1 to AC-4: the checks skip what the shape already reported."""
+    # Given a best-effort config whose lists hold no names, for `check`
+    # When the check runs
     # Then no diagnostic is returned
+    del check
     pytest.skip("stub: the implementation stage writes this test")
 
 
@@ -45,15 +49,17 @@ def test_an_after_cycle_an_on_demand_action_and_an_unknown_action_are_errors() -
     # Given actions that form a cycle, come after an on-demand action, come
     # after an unknown action and are invalidated by unknown actions
     # When the actions are checked
-    # Then there is one error for the cycle and one at each bad entry
+    # Then there is one error for the cycle and one at each bad entry, and the
+    # valid entries, a declared action and `@dependencies:` of one, get none
     pytest.skip("stub: the implementation stage writes this test")
 
 
 def test_an_invalidated_by_entry_reserved_for_v02_is_a_note() -> None:
     """AC-3: an `@` form other than the two known prefixes is a note."""
-    # Given an `invalidated_by` entry `@children:a`
+    # Given `invalidated_by` entries `@children:a` and a bare `@descendants`,
+    # and an `@descendants:` with no name
     # When the actions are checked
-    # Then a note says it is reserved, and no error is returned
+    # Then a note says each of the first two is reserved, and the last is an error
     pytest.skip("stub: the implementation stage writes this test")
 
 
@@ -70,12 +76,14 @@ def test_an_empty_or_duplicated_gate_vocabulary_is_an_error(
 
 
 @pytest.mark.parametrize(
-    "graph", ["no edges", "one cycle", "two cycles", "self loop", "unknown name"]
+    "graph",
+    ["no edges", "one cycle", "two cycles", "shared name", "self loop", "unknown name"],
 )
 def test_find_cycles_gives_each_cycle_once_from_its_least_name(graph: str) -> None:
     """AC-3: a cycle is reported once, however many actions reach it."""
     # Given the graph of `after` edges called `graph`
     # When its cycles are found
-    # Then each cycle is a tuple that starts at its least name, in sorted order
+    # Then each strongly connected cycle is one tuple of sorted names, and the
+    # tuples are sorted
     del graph
     pytest.skip("stub: the implementation stage writes this test")
