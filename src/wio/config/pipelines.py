@@ -16,7 +16,7 @@ appended to `wio.config.CHECKS`.
 
 from typing import TYPE_CHECKING
 
-from wio.config.messages import and_list, item_path, join_path, quoted
+from wio.config.messages import and_list, declared, item_path, join_path, quoted
 from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:
@@ -159,9 +159,7 @@ def _known(kind: str, names: Sequence[str]) -> str:
     Returns:
         A sentence that lists the names, or says that none is declared.
     """
-    if not names:
-        return f"No {kind} are declared."
-    return f"Declared {kind}: {quoted(names)}."
+    return declared(f"Declared {kind}", f"No {kind} are declared.", names)
 
 
 def _pipeline(

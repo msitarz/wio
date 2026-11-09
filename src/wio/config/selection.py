@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The checks of the rule references that the config makes, and of the rulesets.
 
-Every function is a `Check` of `wio.config.checks`, and like those of
+Each check is a `Check` of `wio.config.checks`, and like those of
 `wio.config.pipelines` it judges the best-effort `Config` as it stands and never
 raises for a problem of the config. A reference is judged as text, and its
 ruleset part against the directories of `.agents/wio/rules` that the port
@@ -11,12 +11,10 @@ directory before `list_dir` of it, `is_dir` of each entry, and `exists` of its
 known by its directory name or by its alias (A-1). Whether the family, code or
 rule preset after the dot exists needs the rule files, which the rules Work
 reads. Every `where` is a key path built with `join_path` and `item_path`, except
-that a directory is at `.agents/wio/rules/<name>`, as written; a config that
-selects rules names rulesets that exist, so a fixture or a test whose config
-selects a ruleset holds its directory with a `ruleset.toml`; a message words
-its names and lists with `quoted` and `and_list` of `wio.config.messages`, and
-says that none is declared when a list would be empty. The checks are appended
-to `wio.config.CHECKS`.
+that a directory is at `.agents/wio/rules/<name>`, as written; a message words
+its names with `and_list` and its lists with `declared` of
+`wio.config.messages`, which says that none is declared when a list is empty.
+The checks are appended to `wio.config.CHECKS`.
 """
 
 import re
@@ -24,7 +22,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import TYPE_CHECKING
 
-from wio.config.messages import and_list, item_path, join_path, quoted
+from wio.config.messages import and_list, declared, item_path, join_path
 from wio.config.pipelines import find_cycles
 from wio.models.diagnostics import Diagnostic
 
@@ -206,17 +204,11 @@ def check_rule_references(config: Config, inputs: CheckInputs) -> Iterable[Diagn
     Returns:
         At most one error for each entry, from `judge_reference`, at its key path.
         A root takes `Takes.ROOT`, `rules_always_exclude` takes `Takes.VETO`, and
-        every other field takes `Takes.ANY`. The names known are every directory
-        name and the valid alias of each `[rulesets.<name>]` table whose name is a
-        directory.
+        every other field takes `Takes.ANY`. The names known are those of
+        `_known_names`: the directories whose names have the form of a ruleset
+        name and the valid aliases of their `[rulesets]` tables.
     """
-    rulesets = read_rulesets(inputs)
-    aliases = [
-        table.alias
-        for name, table in config.rulesets.items()
-        if name in rulesets.names and table.alias and _NAME.fullmatch(table.alias)
-    ]
-    known = sorted({*rulesets.names, *aliases})
+    known = _known_names(config, read_rulesets(inputs))
     presets = sorted(config.rule_presets)
     for where, text, takes in _references(config):
         problem = judge_reference(text, takes, known, presets)
@@ -299,6 +291,26 @@ def check_always_include_note(
         yield Diagnostic("note", "rules_always_include", message)
 
 
+def _known_names(config: Config, rulesets: Rulesets) -> list[str]:
+    """List the names and aliases that a reference may use for a ruleset.
+
+    Args:
+        config: The settings, whose `rulesets` table is read.
+        rulesets: The directories.
+
+    Returns:
+        The sorted directory names in the form of a ruleset name, and the valid
+        alias of each `[rulesets.<name>]` table whose name is a directory.
+    """
+    names = [name for name in rulesets.names if _NAME.fullmatch(name)]
+    aliases = [
+        table.alias
+        for name, table in config.rulesets.items()
+        if name in rulesets.names and table.alias and _NAME.fullmatch(table.alias)
+    ]
+    return sorted({*names, *aliases})
+
+
 def _cycle_message(group: Sequence[str]) -> str:
     """Word the error of a group of rule presets that include one another.
 
@@ -329,20 +341,6 @@ def _item_kind(item: str) -> str | None:
     return "rule preset" if _NAME.fullmatch(item) else None
 
 
-def _declared(label: str, none: str, names: Sequence[str]) -> str:
-    """List what is declared, or say that nothing is.
-
-    Args:
-        label: The sentence that starts the list, such as `Declared rulesets`.
-        none: The sentence for no name.
-        names: The names, in the order to list them.
-
-    Returns:
-        The sentence.
-    """
-    return f"{label}: {quoted(names)}." if names else none
-
-
 def _judge_bare(name: str, takes: Takes, presets: Sequence[str]) -> str | None:
     """Judge a bare name in a field.
 
@@ -358,9 +356,7 @@ def _judge_bare(name: str, takes: Takes, presets: Sequence[str]) -> str | None:
         return f"`{name}` is a rule preset; {_VETO}."
     if name in presets:
         return None
-    listed = _declared(
-        "Declared rule presets", "No rule presets are declared.", presets
-    )
+    listed = declared("Declared rule presets", "No rule presets are declared.", presets)
     return f"unknown rule preset `{name}`. {listed}"
 
 
@@ -386,7 +382,7 @@ def _judge_qualified(
         return f"`{text}` is a rule preset; {_VETO}."
     if ruleset in known:
         return None
-    listed = _declared(
+    listed = declared(
         "Declared rulesets and aliases", "No rulesets are declared.", known
     )
     return f"unknown ruleset `{ruleset}`. {listed}"

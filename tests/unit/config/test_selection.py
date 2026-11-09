@@ -445,6 +445,21 @@ def test_an_alias_that_is_not_a_ruleset_name_in_form_is_an_error() -> None:
     ]
 
 
+def test_a_directory_with_a_malformed_name_is_not_listed_as_a_ruleset() -> None:
+    """AC-1, AC-2: a name that no reference could use is not offered."""
+    # Given a ruleset `docs` and a directory `Weird` under `.agents/wio/rules`, and
+    # the entry `zz.DOC`
+    config = make_config(stages={"define": _stage("zz.DOC")})
+    inputs = _inputs(f"{_RULES}/docs/ruleset.toml", f"{_RULES}/Weird/ruleset.toml")
+
+    # When the rule references are checked
+    found = diagnostic_lines(selection.check_rule_references(config, inputs))
+
+    # Then the declared rulesets leave `Weird` out
+    message = "unknown ruleset `zz`. Declared rulesets and aliases: `docs`."
+    assert found == [f"error: stages.define.rules_include[0]: {message}"]
+
+
 def test_an_alias_is_not_known_for_a_table_without_a_directory() -> None:
     """AC-2, AC-5: only a ruleset that has a directory can be named by its alias."""
     # Given a table `ghost` with the alias `g`, which has no directory, and the

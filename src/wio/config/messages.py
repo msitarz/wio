@@ -90,6 +90,20 @@ def quoted(names: Sequence[str]) -> str:
     return ", ".join(f"`{name}`" for name in names)
 
 
+def declared(label: str, none: str, names: Sequence[str]) -> str:
+    """List what is declared, or say that nothing is.
+
+    Args:
+        label: The words that start the list, such as `Declared stages`.
+        none: The sentence for no name, such as `No stages are declared.`.
+        names: The names, in the order to list them.
+
+    Returns:
+        "<label>: `a`, `b`." for some names, and `none` for none.
+    """
+    return f"{label}: {quoted(names)}." if names else none
+
+
 def and_list(items: Sequence[str]) -> str:
     """Join items as English does.
 
