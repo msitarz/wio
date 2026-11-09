@@ -8,33 +8,37 @@ def test_a_fault_is_worded_with_its_rule_and_its_normalized_form() -> None:
     """AC-1: "`<path>` <rule>", and "; use `<normalized>`" only when there is one."""
     # Given the paths `src/` and `../x`
     # When their faults are worded in the root path check
-    # Then the first says it is not normalized and to use `src`, and the second
-    # says it leaves the repository and names no form
+    # Then the first says "`src/` is not normalized; use `src`", and the second
+    # says "`../x` leaves the repository" and names no form
     pytest.skip("not implemented")
 
 
 @pytest.mark.parametrize(
-    "path",
-    ["src", ".", "a/b", "src/", "a/./b", "a/../b", "../x", "/abs", ""],
-    ids=[
-        "normalized",
-        "whole repository",
-        "nested",
-        "trailing slash",
-        "dot segment",
-        "dot-dot segment inside",
-        "leaves the repository",
-        "absolute",
-        "empty",
+    ("path", "fault"),
+    [
+        ("src", None),
+        (".", None),
+        ("a/b", None),
+        ("src/", "not normalized: src"),
+        ("a/./b", "not normalized: a/b"),
+        ("a/../b", "not normalized: b"),
+        ("src//x", "not normalized: src/x"),
+        ("./", "not normalized: ."),
+        ("../x", "leaves the repository"),
+        ("a/../../x", "leaves the repository"),
+        ("/abs", "is absolute"),
+        ("", "is empty"),
     ],
 )
-def test_a_path_is_judged_as_text_and_gets_its_normalized_form(path: str) -> None:
+def test_a_path_is_judged_as_text_and_gets_its_normalized_form(
+    path: str, fault: str | None
+) -> None:
     """AC-1: the first fault that applies, and the form that names the same place."""
     # Given a path as the config writes it
     # When it is judged
     # Then a normalized path has no fault, and any other has the first fault of
-    # the order, with the normalized form where one exists
-    del path
+    # the order, with the normalized form only when it is not normalized
+    del path, fault
     pytest.skip("not implemented")
 
 
@@ -61,7 +65,8 @@ def test_a_repeated_root_path_is_judged_on_its_normalized_text() -> None:
 def test_a_missing_root_path_is_a_warning_and_a_faulty_one_is_not_asked_about() -> None:
     """AC-1: only a valid path is looked for below the repository root."""
     # Given a root path `docs/new` that does not exist, one that exists, a repeat
-    # of the first, and an absolute path
+    # of the first, and an absolute path; a directory exists when the fake file
+    # system holds a key for it
     # When the root paths are checked
     # Then the first is a warning, the second has none, the repeat only its
     # error, and the absolute path only its error
@@ -90,11 +95,11 @@ def test_a_skill_that_is_not_found_lists_where_wio_looked() -> None:
 
 def test_a_skill_path_outside_the_repository_is_an_error_and_not_searched() -> None:
     """AC-2: a skill path follows the rule of a root path."""
-    # Given `[skills] paths = ["../skills"]`
+    # Given `[skills] paths = ["../skills", "../skills"]`
     # When the skills are checked
-    # Then an error at `skills.paths[0]` says the path must stay inside the
-    # repository, a repeat of it is not reported, and the directories listed for a
-    # missing skill leave it out
+    # Then an error at `skills.paths[0]` and one at `skills.paths[1]` say "The path
+    # must stay inside the repository.", no repeat is reported, and the
+    # directories listed for a missing skill leave them out
     pytest.skip("not implemented")
 
 
@@ -102,7 +107,9 @@ def test_the_templates_table_needs_a_valid_dir_and_non_empty_template_names() ->
     """AC-3: each error names the key path and what a valid value is."""
     # Given `[templates] dir = "../t"` and a kind whose template name is empty
     # When the templates are checked
-    # Then each is an error that names the key path and what a valid value is
+    # Then the first ends with "A templates directory is a normalized path inside
+    # the repository." and the second at `templates.kinds.<kind>` says the
+    # template name is empty
     pytest.skip("not implemented")
 
 
@@ -118,5 +125,6 @@ def test_a_works_dir_outside_the_repository_is_an_error() -> None:
     """AC-4: the directory is a normalized path inside the repository."""
     # Given `[works] dir = "/abs"`
     # When the Works directory is checked
-    # Then an error at `works.dir` says the path must be inside the repository
+    # Then an error at `works.dir` ends with "The path must be inside the
+    # repository."
     pytest.skip("not implemented")
