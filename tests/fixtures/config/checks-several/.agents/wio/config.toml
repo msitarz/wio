@@ -1,0 +1,19 @@
+# A config with one problem in each group of checks: an unknown key, a stage
+# preset that names a missing stage, a rule reference to a missing ruleset, a
+# root path outside the repository and a stage whose skill exists nowhere.
+
+[works]
+nonsense = 1
+
+[stage_presets]
+p = ["define", "review"]
+
+[roots.out]
+paths = ["../x"]
+
+[stages.define]
+goal = "Define."
+rules_include = ["docz.DOC"]
+
+[stages.build]
+skill = "nowhere"

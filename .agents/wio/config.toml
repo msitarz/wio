@@ -1,9 +1,11 @@
 # wio's own configuration, the first consumer of the engine. docs/workflow.md
 # explains the workflow it declares.
 #
-# Nothing reads this file yet: it is the reference that the config, contract
-# and rule Works are built against. The schema is not final; see the open
-# points in docs/concepts.md.
+# `wio config` reads this file: `list` and `show` print its settings, and
+# `check` prints every problem in it, which a hook runs after each edit and
+# before each commit that changes it. Every other command refuses to run on a
+# file with an error. The schema is not final; see the open points in
+# docs/concepts.md.
 
 # What a gate can decide. Records and review events use these values.
 [gates]

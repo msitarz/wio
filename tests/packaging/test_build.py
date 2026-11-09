@@ -283,3 +283,61 @@ def test_the_installed_command_shows_the_version_of_its_wheel(
 
     # Then it prints wio and the wheel's version, and exits 0
     assert (result.returncode, result.stdout) == (0, f"wio {version}\n")
+
+
+def _check_in_project(wheel: Path, project: Path) -> subprocess.CompletedProcess[str]:
+    """Run `wio config check` from the installed wheel in a project.
+
+    Args:
+        wheel: The built wheel.
+        project: A directory that is not this repository.
+
+    Returns:
+        The finished process, whatever its exit code.
+    """
+    return subprocess.run(
+        [_uv(), "run", "--no-project", "--isolated", "--with", str(wheel)]
+        + ["wio", "config", "check"],
+        cwd=project,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _project(tmp_path: Path, name: str, config: str) -> Path:
+    """Make a git repository whose config has some text.
+
+    Args:
+        tmp_path: A directory of the test.
+        name: The name of the repository's directory.
+        config: The content of `.agents/wio/config.toml`.
+
+    Returns:
+        The repository's root.
+    """
+    root = tmp_path / name
+    (root / ".agents" / "wio").mkdir(parents=True)
+    (root / ".agents" / "wio" / "config.toml").write_text(config, encoding="utf-8")
+    subprocess.run(["git", "init", "--quiet"], cwd=root, check=True)
+    return root
+
+
+def test_the_installed_wheel_checks_the_config_of_a_project(
+    wheel_path: Path, tmp_path: Path
+) -> None:
+    """AC-4: the wheel gives a working `wio config check` outside this repository."""
+    # Given the built wheel, and two repositories that are not this one, one with
+    # a valid config and one with an unknown key
+    valid = _project(tmp_path, "valid", '[works]\nhierarchy = "nesting"\n')
+    invalid = _project(tmp_path, "invalid", "[works]\nnonsense = 1\n")
+
+    # When `wio config check` runs from the installed wheel in each
+    passed = _check_in_project(wheel_path, valid)
+    failed = _check_in_project(wheel_path, invalid)
+
+    # Then the first exits 0, and the second exits 1 with its errors on standard
+    # output
+    assert (passed.returncode, passed.stdout) == (0, "Config check passed!\n")
+    assert failed.returncode == 1
+    assert failed.stdout.startswith("error: works.nonsense: unknown key `nonsense`")

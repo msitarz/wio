@@ -228,6 +228,9 @@ def make_config(
 ) -> Config:
     """Build a `Config` from the plain mappings a test writes.
 
+    A test names only what it exercises, and everything else is valid, so one
+    scenario trips one check and its result is that check's.
+
     Args:
         stages: The stages by name.
         stage_presets: The stages of each stage preset.

@@ -9,6 +9,7 @@ import pytest
 from tests.unit.cli.fakes import Fake, FakeStdio, Spec, run_main, run_on_terminal
 from wio import cli
 from wio.errors import ConfigurationError
+from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:
     from wio.cli.table import Entry
@@ -31,6 +32,25 @@ def test_a_wio_error_exits_two_with_its_message(step: str) -> None:
     # Then each returns 2, standard error is "error: no config" and a newline,
     # and standard output is empty
     assert (code, out, err) == (2, "", "error: no config\n")
+
+
+def test_the_diagnostics_of_an_error_are_written_as_they_are() -> None:
+    """A configuration error with diagnostics is not prefixed a second time."""
+    # Given a command whose run raises a configuration error whose message is its
+    # two diagnostics, one to a line with their own severity
+    found = (
+        Diagnostic("error", "a.b", "wrong"),
+        Diagnostic("error", "c", "also wrong"),
+    )
+    message = "error: a.b: wrong\nerror: c: also wrong"
+    table = [Fake.failing("run", ConfigurationError(message, found)).entry()]
+
+    # When the command runs
+    code, out, err = run_main(["failing"], table)
+
+    # Then it returns 2, standard error is the two lines and a newline, and
+    # standard output is empty
+    assert (code, out, err) == (2, "", f"{message}\n")
 
 
 def test_the_message_of_a_wio_error_is_plain_on_a_terminal(

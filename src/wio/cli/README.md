@@ -56,6 +56,10 @@ user must fix, so the core never has to tell the two apart.
 
 - Every `WioError` means exit 2, whatever its class: there is no exit code per
   error class and none for configuration errors.
+- A `WioError` is written as `error: <message>`. A `ConfigurationError` that
+  carries diagnostics is written as they are, one `error: <where>: <message>`
+  line each, because the message already holds those lines, and a second prefix
+  would hide that the first is a finding.
 - The exceptions that other ports declare, such as `ValueError`, `OSError` and
   `UnicodeDecodeError`, are bugs and exit 70, until the Work of the component
   that owns the port maps them to a `WioError`.
