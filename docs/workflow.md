@@ -286,8 +286,9 @@ runs it. This repository does it twice:
 - **When an agent edits the config.** An entry in `.claude/settings.json` runs
   the check after `Edit`, `Write` and `MultiEdit`, and exits 2 with the
   diagnostics on standard error, which Claude Code gives back to the model. It
-  reads the edited path with `jq` and runs the check only for the config, so wio
-  holds no knowledge of the harness. The entry sits beside the formatter:
+  reads the edited path with `jq`, which must be on the `PATH` as it is for the
+  formatter hook beside it, and runs the check only for the config, so wio holds
+  no knowledge of the harness. The entry sits beside the formatter:
 
   ```json
   {
