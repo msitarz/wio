@@ -24,8 +24,8 @@ def test_a_valid_config_prints_nothing_and_an_invalid_one_fails(wio: Wio) -> Non
     wio.fixture("config/invalid")
     invalid = wio.run(["config", "check"])
 
-    # Then the first prints nothing and exits 0, the second prints the error, exits 1
-    assert (valid.stdout, valid.exit_code) == ("", 0)
+    # Then the first says it passed and exits 0, the second prints the error, exits 1
+    assert (valid.stdout, valid.exit_code) == ("Config check passed!\n", 0)
     assert invalid.stdout.startswith("error: works.nonsense: unknown key `nonsense`")
     assert invalid.exit_code == 1
 

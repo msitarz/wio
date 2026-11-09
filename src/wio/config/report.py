@@ -13,6 +13,10 @@ if TYPE_CHECKING:
     from wio.config.loader import Loaded
 
 
+PASSED = "Config check passed!"
+"""What a text run says when it found no diagnostic, in plain text."""
+
+
 def report(loaded: Loaded, *, as_json: bool) -> tuple[str, int]:
     """Say what `wio config check` writes and how it exits for one load.
 
@@ -25,13 +29,14 @@ def report(loaded: Loaded, *, as_json: bool) -> tuple[str, int]:
             and `message`, `[]` for none, instead of one line per diagnostic.
 
     Returns:
-        The text for standard output, each diagnostic ending in a newline, empty
-        for none in text, and the exit code: 0 when no diagnostic is an error, so
-        warnings and notes never fail a check, and 1 when any is.
+        The text for standard output, each diagnostic ending in a newline, and
+        the exit code: 0 when no diagnostic is an error, so warnings and notes
+        never fail a check, and 1 when any is. With no diagnostic at all, text
+        is `PASSED` and JSON is `[]`; a run with only warnings or notes prints
+        them and not `PASSED`.
     """
     found = loaded.diagnostics
     code = int(any(item.severity == "error" for item in found))
     if as_json:
         return f"{render_json(found)}\n", code
-    text = render_text(found)
-    return (f"{text}\n" if text else ""), code
+    return f"{render_text(found) or PASSED}\n", code

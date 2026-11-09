@@ -24,8 +24,8 @@ def _load(*found: Diagnostic) -> Loaded:
     return Loaded(None, found, frozendict())
 
 
-def test_no_diagnostic_prints_nothing_in_text_and_an_empty_array_in_json() -> None:
-    """AC-1: a valid config is silent as text and `[]` as JSON, both exit 0."""
+def test_no_diagnostic_says_it_passed_in_text_and_is_an_empty_array_in_json() -> None:
+    """AC-1: a valid config says so as text and is `[]` as JSON, both exit 0."""
     # Given a load without diagnostics
     loaded = _load()
 
@@ -33,8 +33,8 @@ def test_no_diagnostic_prints_nothing_in_text_and_an_empty_array_in_json() -> No
     text = report(loaded, as_json=False)
     as_json = report(loaded, as_json=True)
 
-    # Then the text is empty, the JSON is `[]` and both exit codes are 0
-    assert text == ("", 0)
+    # Then the text is the message, the JSON is `[]` and both exit codes are 0
+    assert text == ("Config check passed!\n", 0)
     assert as_json == ("[]\n", 0)
 
 
@@ -54,6 +54,16 @@ def test_an_error_exits_1_and_a_warning_or_note_exits_0() -> None:
     # Then the exit codes are 1, 0 and 0, and every diagnostic is printed
     assert codes == [1, 0, 0]
     assert report(with_error, as_json=False)[0].count("\n") == 2
+
+
+def test_a_warning_or_note_alone_does_not_say_the_check_passed() -> None:
+    """AC-1: only a run with no diagnostic at all prints the message."""
+    # Given loads with only a warning and with only a note
+    # When each is reported as text
+    texts = [report(_load(item), as_json=False)[0] for item in (WARNING, NOTE)]
+
+    # Then each prints its diagnostic and not the message
+    assert texts == ["warning: stages.a: unused\n", "note: stages.b: see also\n"]
 
 
 def test_each_text_diagnostic_is_a_line_in_the_order_given() -> None:
