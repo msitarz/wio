@@ -1,0 +1,9 @@
+# A family in a root's rule presets, and rule presets in the veto.
+
+rules_always_exclude = ["docs.recommended", "mine", "docs.DOC001"]
+
+[rule_presets.mine]
+
+[roots.wio]
+paths = ["."]
+rule_presets = ["docs.DOC", "docs.all"]

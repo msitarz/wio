@@ -34,6 +34,8 @@ class Repository:
 
 class Files:
     def read_text(self, path): return sys.argv[2]
+    def is_dir(self, path): return False
+    def exists(self, path): return False
 
 before = [name for name in {names} if name in sys.modules]
 load_config(Repository(), Files())

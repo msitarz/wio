@@ -1655,8 +1655,8 @@ rules_exclude = ["mp.DOC004"]
   includes, then its excludes. An exclude inside a nested rule preset therefore
   never reaches outside it.
 - A rule preset may include other rule presets. A cycle between rule presets is
-  an error that names the cycle, such as `backend → api → backend`, because a
-  cycle has no resolved set.
+  an error that names the rule presets on the cycle, such as `api` and
+  `backend`, because a cycle has no resolved set.
 - Every ruleset has a rule preset `all`, which holds all its rules, so a root or
   an always field can take a whole ruleset while taking rule presets only. A
   ruleset cannot define a rule preset of that name.
@@ -1824,7 +1824,8 @@ Errors:
 - a reference that does not resolve, with the reference and where it is: an
   unknown ruleset, alias, family, code or rule preset;
 - a name of the wrong form, a ruleset directory's name included;
-- a directory under `.agents/wio/rules/` without a `ruleset.toml`;
+- a directory under `.agents/wio/rules/` without a `ruleset.toml`, and a
+  `[rulesets.<name>]` table with no directory there;
 - a qualified reference inside a `ruleset.toml`;
 - a cycle between rule presets;
 - a rule preset in `rules_always_exclude`;

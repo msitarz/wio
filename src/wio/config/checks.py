@@ -16,6 +16,12 @@ from wio.config.pipelines import (
     check_stage_references,
     check_stage_roots,
 )
+from wio.config.selection import (
+    check_always_include_note,
+    check_rule_preset_cycles,
+    check_rule_references,
+    check_rulesets,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
@@ -60,6 +66,10 @@ CHECKS: tuple[Check, ...] = (
     check_skills,
     check_templates,
     check_works_dir,
+    check_rule_references,
+    check_rule_preset_cycles,
+    check_rulesets,
+    check_always_include_note,
 )
 """The checks that the loader runs after the shape, in order.
 

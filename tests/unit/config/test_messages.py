@@ -57,3 +57,16 @@ def test_what_a_key_takes_is_said_in_one_phrase(spec: Spec, phrase: str) -> None
 
     # Then it is the phrase for that kind
     assert text == phrase
+
+
+def test_what_is_declared_is_listed_or_said_to_be_none() -> None:
+    """A message lists the names that exist, or says that none is declared."""
+    # Given some names and no names
+
+    # When what is declared is worded for each
+    some = messages.declared("Declared stages", "No stages are declared.", ["a", "b"])
+    none = messages.declared("Declared stages", "No stages are declared.", [])
+
+    # Then the first lists them in code quotes and the second says none is declared
+    assert some == "Declared stages: `a`, `b`."
+    assert none == "No stages are declared."

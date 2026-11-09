@@ -54,8 +54,9 @@ def _run(text: str | None, *argv: str) -> _Ran:
     Returns:
         The streams and the exit code.
     """
-    skill = ROOT / ".claude" / "skills" / "review" / "SKILL.md"
-    files = MemoryFileSystem({} if text is None else {CONFIG: text, skill: ""})
+    present = [".claude/skills/review/SKILL.md", ".agents/wio/rules/py/ruleset.toml"]
+    held = {ROOT / name: "" for name in present}
+    files = MemoryFileSystem({} if text is None else {CONFIG: text, **held})
     entry = component_entry("config", lambda: ConfigCommand(FakeRepository(), files))
     out, err = io.StringIO(), io.StringIO()
     code = cli.main(["config", *argv], _Stdio(io.StringIO(), out, err), (entry,))

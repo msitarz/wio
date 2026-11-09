@@ -1,10 +1,11 @@
 # `wio.config`
 
 The component that reads the project's settings. The terms Source, Shape,
-Setting, Key path, Check, Check run, Action cycle and Normalized path are
-defined in the [glossary of this component](GLOSSARY.md), and Config, Diagnostic
-and Repository in the [repository glossary](../../../GLOSSARY.md). The keys the
-shape covers are listed in the [config](../../../docs/concepts.md#the-config).
+Setting, Key path, Check, Check run, Action cycle, Normalized path and Reference
+are defined in the [glossary of this component](GLOSSARY.md), and Config,
+Diagnostic and Repository in the [repository glossary](../../../GLOSSARY.md).
+The keys the shape covers are listed in the
+[config](../../../docs/concepts.md#the-config).
 
 ## The loader
 
@@ -97,6 +98,35 @@ docstrings say what each check reports and where.
 - **The user's home is not searched,** so a config means the same on every
   machine. Other harnesses' directories are added through `[skills] paths`
   ([the stage](../../../docs/concepts.md#7-stage)).
+
+### The rule selection checks
+
+[`selection.py`](selection.py) judges the references that the config makes to
+rulesets and rule presets, and the ruleset directories next to the `[rulesets]`
+table. Its docstrings say what each check reports and where, and
+[the rules](../../../docs/concepts.md#checking-rules) list the checks that
+belong to the rules Work.
+
+- **A reference gets one error, the first problem it has:** its form, then what
+  its field takes, then whether it resolves. A later problem would be noise or
+  would contradict the first, such as an unknown ruleset in a reference whose
+  ruleset part is not a name.
+- **Whether the item after the dot exists is not checked here.** It needs the
+  rule files, which the rules Work reads, so a reference to `docs.DOC999` passes
+  until then.
+- **A directory is a known ruleset, a name that no reference could use is not
+  offered, and a table without a directory is an error.** A directory without a
+  `ruleset.toml` is one error and not a cascade of unknown rulesets, while a
+  directory with a name of the wrong form is left out of what the messages
+  list. The alias of a table without a directory is not known, because the
+  ruleset is not.
+- **Only a bare `rules_include` of a config rule preset makes a cycle,** because
+  an exclude only removes rules, so a preset that excludes another resolves
+  whatever that one holds.
+- **A cycle is one error for the group of rule presets that include one
+  another,** as for actions, so an agent breaks the loop once.
+- **An alias equal to its own ruleset's name is not a clash,** since it names
+  the same ruleset and harms nothing.
 
 ## The command
 
