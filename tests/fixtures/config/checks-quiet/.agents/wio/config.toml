@@ -1,0 +1,9 @@
+# A config with a warning, a root path that does not exist yet, and a note, a
+# rule that every session receives, and no error.
+
+rules_always_include = ["p"]
+
+[rule_presets.p]
+
+[roots.docs]
+paths = ["docs/new"]

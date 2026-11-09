@@ -7,7 +7,7 @@ import importlib.metadata
 import traceback
 from typing import TYPE_CHECKING
 
-from wio.errors import WioError
+from wio.errors import ConfigurationError, WioError
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -128,11 +128,28 @@ def _run(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
     return _checked(getattr(args, _NAME), code, stdio)
 
 
+def _report(error: WioError) -> str:
+    """Word a `WioError` for standard error.
+
+    Args:
+        error: What a step raised.
+
+    Returns:
+        `error: <message>`, except for an error that carries diagnostics, whose
+        message is the diagnostics rendered one to a line with their own
+        severity, so it is written as it is.
+    """
+    if isinstance(error, ConfigurationError) and error.diagnostics:
+        return str(error)
+    return f"error: {error}"
+
+
 def run(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
     """Run the subcommand that `argv` chooses, or print the introduction.
 
     Everything is written to `stdio`. A `WioError` at any step is reported as
-    `error:` and its message and exits 2, and any other exception is reported
+    `error:` and its message, or as its diagnostics when it carries them, and
+    exits 2, and any other exception is reported
     with its traceback and exits 70.
 
     Args:
@@ -151,7 +168,7 @@ def run(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
         try:
             return _run(argv, stdio, commands)
         except WioError as error:
-            stdio.stderr.write(f"error: {error}\n")
+            stdio.stderr.write(f"{_report(error)}\n")
             return 2
         except Exception:  # noqa: BLE001 - a bug in any step must exit 70
             traceback.print_exc(file=stdio.stderr)
