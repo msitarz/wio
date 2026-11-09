@@ -69,15 +69,15 @@ class ConfigCommand:
             stdio: The streams to write to.
 
         Returns:
-            0. Bare `wio config` writes its help and reads no config file. `list`
-            and `show` write to `stdio.stdout` only, one line per setting. A
-            single setting shown by `show` is followed by a line that holds its
-            description.
+            The exit code: 0, or for `check` the code that `report` gives, 1 when
+            any diagnostic is an error. Bare `wio config` writes its help and
+            reads no config file. `list` and `show` write to `stdio.stdout` only,
+            one line per setting. A single setting shown by `show` is followed by
+            a line that holds its description.
 
             `check` writes every diagnostic that `report` renders, a warning as
             well as an error, to `stdio.stdout` after running the checks that
-            `wio.config.CHECKS` holds when `run` is called, and returns 1 when
-            any is an error, 0 otherwise.
+            `wio.config.CHECKS` holds when `run` is called.
 
         Raises:
             ConfigurationError: For `list` and `show`, the config has an error:
@@ -118,7 +118,6 @@ class ConfigCommand:
             The exit code that `report` gives.
         """
         # Read when it runs, so that a test can replace `wio.config.CHECKS`.
-
         loaded = load_config(self._repository, self._files, package.CHECKS)
         text, code = report(loaded, as_json=as_json)
         stdio.stdout.write(text)
