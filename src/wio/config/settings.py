@@ -4,9 +4,7 @@
 from typing import TYPE_CHECKING
 
 from wio.config.checks import CHECKS
-from wio.config.loader import load_config
-from wio.errors import ConfigurationError
-lazy from wio.formats import render_text
+from wio.config.loader import config_or_raise, load_config
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -48,8 +46,4 @@ class ConfigSettings:
                 found or read. It carries every error and its message renders
                 them.
         """
-        loaded = load_config(self._repository, self._files, self._checks)
-        if loaded.config is not None:
-            return loaded.config
-        errors = tuple(item for item in loaded.diagnostics if item.severity == "error")
-        raise ConfigurationError(render_text(errors), errors)
+        return config_or_raise(load_config(self._repository, self._files, self._checks))

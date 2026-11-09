@@ -42,7 +42,7 @@ records), it creates a real repository in `tmp_path`.
 | Layer | Role |
 |---|---|
 | Scenario (test function) | States what happens, in domain terms |
-| `Wio` facade | Domain verbs: `config`, `rules`, `work`, `context`, `trailers`, `check`, `contracts_new`. Applies defaults. |
+| `Wio` facade | `run(args)` runs any command and `fixture(name)` starts from a sample repository. The sketches in this document call builder verbs such as `config`, `rules` and `work`, which start from a minimal valid repo and apply defaults. |
 | Builders | Produce a minimal valid repo state; tests override only what they are about |
 | `WioDriver` (Protocol) | Narrow interface: run an operation against a prepared temp repo, return a result object |
 | Test drivers | In-process and CLI implementations of the Protocol |
@@ -74,6 +74,17 @@ def test_reviewer_only_rules_never_reach_the_author_stage(wio):
     # Then the review rule is not in it
     assert "ARC001" not in bundle
 ```
+
+A scenario can start from a fixture:
+`wio.fixture("config/rich")` copies the static sample repository
+`tests/fixtures/config/rich` into the sandbox. A command runs through the one
+generic verb, `wio.run(["config", "show"])`, so the facade has no method for
+each `wio` command and the test drivers dispatch in one place.
+
+A driver's `install` puts the fixture in its sandbox. The in-process driver only
+copies it, and the CLI driver also runs `git init`, so the command finds a
+repository as it does for a user. A scenario that needs no repository, such as
+running outside one, installs nothing and runs on the CLI channel.
 
 A test that needs more than three builder overrides is a sign the builder
 default is wrong or the scenario is testing two things.
@@ -133,8 +144,8 @@ files, for the bundle id) with a thin shell for file IO.
 
 | Channel | What it does | Used for |
 |---|---|---|
-| `IN_PROCESS` (default) | Builds a temp repo, calls the library | Most scenarios, fast |
-| `CLI` | Same temp repo, runs `wio` via `subprocess` | Exit codes (0 ok, 1 check failed, 2 usage mistake or `WioError`, 70 bug), `--json`, finding the config, `--output`, the `uvx` entry point, byte-stable output, environment-dependent behaviour such as session-id detection |
+| `IN_PROCESS` (default) | Copies a fixture into the sandbox and calls the library with the git adapter replaced by the sandbox directory, so no process starts | Scenarios that read files and print, fast |
+| `CLI` | Same temp repo, runs `wio` via `subprocess` | Error scenarios (exit 2 and the message on standard error), running outside a repository, exit codes (0 ok, 1 check failed, 2 usage mistake or `WioError`, 70 bug), `--json`, finding the config, `--output`, the `uvx` entry point, byte-stable output, environment-dependent behaviour such as session-id detection |
 
 The CLI channel is the reference for acceptance: it is the command users and
 skills run. The in-process channel is the fast copy of the same scenarios, so a

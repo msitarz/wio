@@ -9,7 +9,7 @@ from wio.config.checks import CHECKS, CheckInputs, run_checks
 from wio.config.shape import read_shape
 from wio.errors import ConfigurationError
 from wio.models.diagnostics import Diagnostic, sort_diagnostics
-lazy from wio.formats import TomlSyntaxError, decode_toml
+lazy from wio.formats import TomlSyntaxError, decode_toml, render_text
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -81,6 +81,25 @@ def load_config(
     found = sort_diagnostics((*shape.diagnostics, *checked))
     blocked = any(item.severity == "error" for item in found)
     return Loaded(None if blocked else shape.config, found, shape.sources)
+
+
+def config_or_raise(loaded: Loaded) -> Config:
+    """Hand over the `Config` of a load, or refuse with every error at once.
+
+    Args:
+        loaded: What `load_config` returned.
+
+    Returns:
+        The `Config`; warnings and notes never block.
+
+    Raises:
+        ConfigurationError: A diagnostic is an error. It carries every error and
+            its message renders them.
+    """
+    if loaded.config is not None:
+        return loaded.config
+    errors = tuple(item for item in loaded.diagnostics if item.severity == "error")
+    raise ConfigurationError(render_text(errors), errors)
 
 
 def _root(repository: Repository) -> Path:

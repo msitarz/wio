@@ -1,0 +1,5 @@
+# A valid config with a stage whose name makes the key path of its goal, with the
+# label that ends its line, reach 80 columns.
+
+[stages.nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn]
+goal = "g"

@@ -1,0 +1,17 @@
+# A valid config that sets some settings of several tables and leaves the rest
+# to their defaults.
+
+[works]
+hierarchy = "nesting"
+
+[actions.define]
+description = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+[stages.define]
+goal = """Turn an intent
+into a Work
+and stop"""
+rules_include = ["py.ARC001"]
+
+[stages.review]
+skill = "review"

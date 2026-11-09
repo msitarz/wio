@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from tests.acceptance.dsl.results import Output
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from tests.acceptance.drivers.base import WioDriver
 
 
@@ -30,6 +32,32 @@ class Wio:
             Both output streams and the exit code.
         """
         result = self.driver.run([])
+        return Output(
+            stdout=result.stdout,
+            stderr=result.stderr,
+            exit_code=result.exit_code,
+        )
+
+    def fixture(self, name: str) -> None:
+        """Start from a static sample repository.
+
+        Args:
+            name: The path of the fixture under `tests/fixtures`, such as
+                `config/rich`.
+        """
+        self.driver.install(name)
+
+    def run(self, args: Sequence[str]) -> Output:
+        """Run `wio` with some arguments.
+
+        Args:
+            args: The arguments after the program name, such as
+                `["config", "show", "works"]`.
+
+        Returns:
+            Both output streams and the exit code.
+        """
+        result = self.driver.run(args)
         return Output(
             stdout=result.stdout,
             stderr=result.stderr,

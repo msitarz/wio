@@ -1,0 +1,4 @@
+# A config with a key that the schema does not have.
+
+[works]
+nonsense = 1
