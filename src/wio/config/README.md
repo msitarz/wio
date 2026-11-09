@@ -79,18 +79,12 @@ for it.
 - **`list` and `show` call `load_config`,** because they read `Loaded.sources`,
   which `Settings` does not return. They raise the errors themselves through
   `config_or_raise`, the one place that `ConfigSettings.load` shares.
-- **`check` reports a config with errors and never refuses it.** It loads with
-  `load_config` too, but prints the diagnostics and exits 1 where `list` and
-  `show` refuse with exit 2, because a person or an agent that edits the config
-  needs the findings. Only a config that is missing, outside a repository or
-  unreadable is refused, since there is nothing to report on.
-- **A clean text run says so,** with [`report.py`](report.py)'s message, so that
-  success is told apart from a command that did nothing. `--json` prints `[]`
-  instead, because a consumer reads a document, and a run that has only
-  warnings or notes prints them and not the message.
-- **Hooks run the check after every change of the config.** A prek hook runs it
-  on commit and an entry in `.claude/settings.json` runs it after an agent's
-  edit. The recipe, and why wio holds no code that knows the harness, are in
+- **`check` prints the errors of a config instead of refusing it,** because
+  whoever edits the config needs the findings, while `list` and `show` need a
+  valid one.
+- **A clean text run says so,** so that success is told apart from a command
+  that did nothing, while `--json` stays a document.
+- **Hooks run the check after every change of the config.** The recipe is in
   [the workflow](../../../docs/workflow.md#7-checking-the-config-after-every-edit).
 - **`resolve` judges a key path by the fields of the `Config` alone,** so a
   table without entries is told from an unknown key.

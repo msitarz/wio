@@ -278,10 +278,10 @@ judged by an agent.
 
 ## 7. Checking the config after every edit
 
-A config with an error is refused by every command, so an agent that edits it
-needs to be told at once. `wio config check` prints the diagnostics and exits 1
-on an error, and each project decides how its harness runs it. This repository
-does it twice:
+A config with an error is refused by every command that needs its settings, so
+an agent that edits it needs to be told at once. `wio config check` prints the
+diagnostics and exits 1 on an error, and each project decides how its harness
+runs it. This repository does it twice:
 
 - **When an agent edits the config.** An entry in `.claude/settings.json` runs
   the check after `Edit`, `Write` and `MultiEdit`, and exits 2 with the
