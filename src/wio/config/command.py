@@ -13,6 +13,10 @@ from wio.config.keypath import resolve
 from wio.config.listing import as_object, full_line, settings_of, short_line
 from wio.config.loader import config_or_raise, load_config
 
+# `report` is a stub until the implementation stage writes it, so it is bound
+# lazily and a run that needs none, such as `list`, still works.
+lazy from wio.config.report import report
+
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Callable
@@ -89,6 +93,8 @@ class ConfigCommand:
         if arguments.config_view is None:
             stdio.stdout.write(arguments.config_help())
             return 0
+        if arguments.config_view == "check":
+            return self._check(stdio, as_json=arguments.json)
         loaded = load_config(self._repository, self._files)
         config = config_or_raise(loaded)
         every = settings_of(config, loaded.sources)
@@ -100,6 +106,24 @@ class ConfigCommand:
             text = _show(chosen, single=target.single, as_json=arguments.json)
             stdio.stdout.write(text)
         return 0
+
+    def _check(self, stdio: Stdio, *, as_json: bool) -> int:
+        """Run `check`: print every diagnostic and say whether one is an error.
+
+        Args:
+            stdio: The streams to write to.
+            as_json: Whether to write the diagnostics as a JSON array.
+
+        Returns:
+            The exit code that `report` gives.
+        """
+        # Read when it runs, so that a test can replace `wio.config.CHECKS`.
+        import wio.config as package
+
+        loaded = load_config(self._repository, self._files, package.CHECKS)
+        text, code = report(loaded, as_json=as_json)
+        stdio.stdout.write(text)
+        return code
 
 
 def _list(settings: tuple[Setting, ...], *, as_json: bool) -> str:
