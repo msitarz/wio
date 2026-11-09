@@ -6,23 +6,9 @@ The terms Component, Port and Adapter are defined in the
 ## Packages
 
 Every package directly under `src/wio` states its role in one sentence in its
-docstring.
-
-| Package | Role |
-| --- | --- |
-| `wio.errors` | The errors that several packages share, and their base |
-| `wio.models` | The shared types the ports name |
-| `wio.env` | Ports for what the process knows about its surroundings |
-| `wio.formats` | Pure codecs between text and the shared types |
-| `wio.io` | Ports for the filesystem, standard streams and the repository |
-| `wio.ports` | The stub of the ports two or more components share |
-| `wio.io.adapters` | The adapters of the ports of `wio.io` |
-| `wio.env.adapters` | The adapters of the ports of `wio.env` |
-| `wio.config`, `wio.contracts`, `wio.templates`, `wio.rules`, `wio.trailers`, `wio.log`, `wio.context` | The components, one per subcommand |
-| `wio.cli` | The composition root |
-
-These are the modules of `wio` in [`tach.toml`](../../tach.toml): every package
-directly under `src/wio`, the stub `wio.ports` and the two adapter modules.
+docstring, and the diagram below shows how they depend on one another. The
+modules of `wio` in [`tach.toml`](../../tach.toml) are those packages, the stub
+`wio.ports` and the two adapter modules.
 
 ## Dependency direction
 
@@ -80,45 +66,20 @@ flowchart LR
 
 ## Shared types
 
-`wio.models` holds the types the ports name, as plain immutable data: `Config`
-in `wio.models.config`, `Diagnostic` in `wio.models.diagnostics` and `freeze` in
-`wio.models.frozen`. They are defined once, before the
+`wio.models` holds the types the ports name, as plain immutable data, and
+declares each in its module docstring. They are defined once, before the
 [loader](config/README.md) that builds a `Config`, so every component receives
 the settings and reports problems in the same types, and none needs to know how
 the file was read.
 
-- `Config` is a tree of frozen dataclasses whose fields are named as the TOML
-  keys, so a key path is a chain of field names. `Config()` is the effective
-  settings of an empty config file: its defaults, and the fields that have none
-  (`Root.paths`, `Action.description`), are the fields of
-  `wio.models.config`, and the keys are listed in the
-  [config](../../docs/concepts.md#the-config). Every field carries a
-  one-sentence `description` in its metadata, which a message can quote. A
-  `Config` holds what it is given and judges nothing: the loader builds it.
-  The results a gate can record are `gates.results`, the table `[gates]` of the
-  file, which holds only them until `wio next` needs more.
-- A `Config` hashes, and equal configs hash equal, because every value in it is
-  a frozen dataclass, a tuple, a string, a number or a boolean, and its
-  `frozendict`s are hashable when their values are. So a `Config` can be a key
-  or a cache entry.
-- A `frozendict` of a `Config` that is built from a mapping goes through
-  `wio.models.frozen.freeze`, which holds the one pyrefly suppression that the
-  [known issues](../../docs/known-issues.md) explain. The empty defaults are
-  written `frozendict()`, which needs no suppression.
-- A `Diagnostic` is a severity, a place and a message, shared by every `check`
-  command. It has no code and cannot be suppressed, and its place is a plain
+- A `Config` hashes, so it can be a key or a cache entry. The results a gate can
+  record are `gates.results`, the table `[gates]` of the file, which holds only
+  them until `wio next` needs more.
+- A `Diagnostic` has no code and cannot be suppressed, and its place is a plain
   string, not a structure. Both are
   [open points](../../docs/concepts.md#15-open-points).
-- `sort_diagnostics` gives the one order: by place, compared as a plain string
-  (so `x[10]` sorts before `x[2]`), then error, warning and note, then message.
-  `wio.formats` renders diagnostics in that order, as one
-  `error|warning|note: <where>: <message>` line each or as a JSON array of
-  objects with `severity`, `where` and `message`. An empty list renders as
-  empty text and as `[]`, and `json` is imported only for JSON.
-- `ConfigurationError` carries the diagnostics that caused it, in the order
-  given, so a caller can render them its own way. `str` of it is the message it
-  was raised with, such as the rendered diagnostics. It has no diagnostics
-  when none are given.
+- The keys of the file are listed in the
+  [config](../../docs/concepts.md#the-config).
 
 ## Ports and adapters
 
@@ -126,22 +87,14 @@ wio uses the ports-and-adapters architecture. A port is an interface that says
 what a package needs from the outside, an adapter is the code that provides it,
 and the package depends only on the port. The adapters are plugged in at one
 place, the composition root `wio.cli`, so a test can give a package fakes
-instead and the package never learns which it got.
-
-The ports live in `.pyi` stubs:
-
-- `<package>/ports.pyi`: the ports that one package consumes.
-- `src/wio/io/ports.pyi` and `src/wio/env/ports.pyi`: the ports for the outside
-  world.
-- `src/wio/ports.pyi`: the ports that two or more components share.
-
-A package that needs no port beyond those of `wio.io`, `wio.env` and `wio.ports`
-has no `ports.pyi`.
+instead and the package never learns which it got. The
+[glossary](GLOSSARY.md) says who owns each port and where it is declared.
 
 ## Ports
 
-- A port is owned by its consumer and declared in `<package>/ports.pyi`, so a
-  package states what it needs without naming who provides it.
+- A port is declared in a `.pyi` stub, so a package states what it needs without
+  naming who provides it. A package that needs no port beyond those of `wio.io`,
+  `wio.env` and `wio.ports` has no `ports.pyi`.
 - A port is imported only under `TYPE_CHECKING`, because a `.pyi` has no
   runtime module, and it is satisfied structurally, so a provider never imports
   the stub of its consumer and no port names a neighbor.
@@ -151,9 +104,8 @@ has no `ports.pyi`.
   way.
 - A port that two or more components consume with the same members and
   signatures is declared once, in `src/wio/ports.pyi`, so the components do
-  not drift apart on a copy.
-- `src/wio/ports.pyi` imports only `wio.models` and the standard library, so the
-  shared ports sit below every component.
+  not drift apart on a copy. That stub imports only `wio.models` and the
+  standard library, so the shared ports sit below every component.
 - No package owns `wio.ports`, so a change to it is judged against every
   component that consumes the port.
 - A consumer that needs a different view declares its own port under its own
@@ -172,28 +124,21 @@ implementation of its own.
 
 ## Adapters
 
-- A port has one adapter, so the code a test fakes is the code that runs.
+- A port has one adapter, so the code a test fakes is the code that runs. Any
+  extra adapter needs a reason that the contract of the Work that adds it
+  states, so a second implementation is a decision, not an accident.
 - The real adapter of a port arrives with the Work of the first component that
   consumes the port, so no adapter is written before something needs it.
-- A port of `wio.env` whose behavior differs by platform, such as the one for
-  the temporary directory, has one adapter for each supported platform, Linux
-  and macOS.
-- Any other extra adapter needs a reason that the contract of the Work that adds
-  it states, so a second implementation is a decision, not an accident.
 - Fakes of ports live under `tests`, never in `src`, so the package ships only
-  what runs.
-- Only `wio.cli` and the unit and integration tests import an adapter, so a
-  component cannot bypass its ports.
+  what runs, and only `wio.cli` and the unit and integration tests import an
+  adapter, so a component cannot bypass its ports.
 - An adapter that needs another layer of the outside world is given it through
   that layer's port, imported under `TYPE_CHECKING`, and never imports the
-  adapter of it. `GitRepository` is given an `Environment`, so it runs git in
-  the directory the environment reports, and only `ProcessEnvironment` reads
-  the process's own working directory.
+  adapter of it.
 - An adapter implements the members its first consumer needs and has every
   member of its port, so that it can be wired where the port is expected: the
   others raise `NotImplementedError` naming the member and the Work that first
-  needs it. `ProcessEnvironment` implements only `working_directory`, and
-  `GitRepository` stubs `show_index` and `is_dirty` until the trailers Work.
+  needs it.
 
 ## The outside world
 
