@@ -19,7 +19,7 @@ def test_stage_presets_and_default_actions_name_known_stages(wio: Wio) -> None:
     # When `wio config check` runs
     # Then it prints an error at each key path and exits 1
     del wio
-    pytest.skip("stub: the implementation stage writes this test")
+    pytest.skip("not implemented")
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -29,18 +29,19 @@ def test_a_stage_with_an_unknown_root_fails(wio: Wio) -> None:
     # When `wio config check` runs
     # Then it prints an error at `stages.<name>.roots[<i>]` and exits 1
     del wio
-    pytest.skip("stub: the implementation stage writes this test")
+    pytest.skip("not implemented")
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_after_and_invalidated_by_name_declared_actions(wio: Wio) -> None:
     """AC-3: a cycle and undeclared actions are errors, a reserved entry a note."""
-    # Given a config with an `after` cycle, an on-demand `after`, undeclared
-    # actions and an `@children:` entry
-    # When `wio config check` runs
-    # Then it prints the errors and the note, and exits 1
+    # Given a config with an `after` cycle, an on-demand `after` and undeclared
+    # actions, and a config whose only finding is an `@children:` entry
+    # When `wio config check` runs on each
+    # Then the first prints the errors and exits 1, and the second prints the
+    # note and exits 0
     del wio
-    pytest.skip("stub: the implementation stage writes this test")
+    pytest.skip("not implemented")
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -51,4 +52,4 @@ def test_an_empty_or_duplicated_gate_vocabulary_fails(wio: Wio, results: str) ->
     # When `wio config check` runs
     # Then it prints an error at `gates.results` and exits 1
     del wio, results
-    pytest.skip("stub: the implementation stage writes this test")
+    pytest.skip("not implemented")
