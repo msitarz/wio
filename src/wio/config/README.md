@@ -1,9 +1,10 @@
 # `wio.config`
 
-The component that reads the project's settings. The terms Source, Shape,
-Setting, Key path, Check, Check run, Action cycle, Normalized path and Reference
-are defined in the [glossary of this component](GLOSSARY.md), and Config,
-Diagnostic and Repository in the [repository glossary](../../../GLOSSARY.md).
+The component that reads the project's settings. The terms Setting,
+Action cycle, Normalized path and Reference are defined in the
+[glossary of this component](GLOSSARY.md), and Config, Diagnostic, Source,
+Shape, Key path, Check, Check run and Repository in the
+[repository glossary](../../../GLOSSARY.md).
 The keys the shape covers are listed in the
 [config](../../../docs/concepts.md#the-config).
 

@@ -22,6 +22,11 @@ commit messages.
 | Action | A named kind of work done on a Work, such as `define` or `deliver`. Declared in the config with a description, the actions it comes after, what invalidates its work, and whether it is on demand; none are built in. Its pipeline is a stage preset or a list of stages. |
 | Config | The `.agents/wio/config.toml` file: kinds, actions, roots, stages, stage presets, rule presets, ruleset aliases, the always fields, gate results, skill directories, the trailer reader, and bundle settings. In memory it is the immutable `Config` that the loader builds from the file. |
 | Diagnostic | One finding of a check: a severity, a place and a message, in one order wherever it is printed, shared by every `check` command. |
+| Source | Whether a setting's value comes from the config file or is the default. `wio config list` and `show` print it beside each value. |
+| Shape | Whether the config file's keys, types and values fit the schema. Whether the names a value refers to exist is a check, not the shape. |
+| Key path | The dotted names that lead to a setting, such as `stages.define.session`. A list item adds its index, as in `stages.define.rules_include[0]`, and a key that contains a dot is quoted as in TOML, as `stages."a.b".goal`. |
+| Check | A function from the `Config` and what it may read to diagnostics, with one concern, such as the names that stages use for one another. |
+| Check run | The loader's run of the shape and then every check, which `wio config check` prints and `Settings.load` refuses on. |
 | Root | A named set of directories (its `paths`) with one toolchain, whose rule presets select the rules for its code. Works and stages refer to it by name. |
 | Ruleset | A reusable collection of rule files with a `ruleset.toml` manifest, which may declare rule presets, named by its directory under `.agents/wio/rules/`. Bound to a root when the root's presets name it, or marked root-independent; the config may give it one alias. |
 | Stage | A named step: a goal or a skill, optional roots, the rules it includes and excludes, and a session policy. |

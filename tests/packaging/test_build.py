@@ -341,3 +341,55 @@ def test_the_installed_wheel_checks_the_config_of_a_project(
     assert (passed.returncode, passed.stdout) == (0, "Config check passed!\n")
     assert failed.returncode == 1
     assert failed.stdout.startswith("error: works.nonsense: unknown key `nonsense`")
+
+
+def _run_in_project(
+    wheel: Path, project: Path, *args: str
+) -> subprocess.CompletedProcess[str]:
+    """Run `wio` with some arguments from the installed wheel in a project.
+
+    Args:
+        wheel: The built wheel.
+        project: A directory that is not this repository.
+        *args: The arguments after `wio`.
+
+    Returns:
+        The finished process, whatever its exit code.
+    """
+    return subprocess.run(
+        [_uv(), "run", "--no-project", "--isolated", "--with", str(wheel)]
+        + ["wio", *args],
+        cwd=project,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_the_installed_wheel_shows_the_settings_of_a_project(
+    wheel_path: Path, tmp_path: Path
+) -> None:
+    """AC-1: `wio config`, `list` and `show` work outside this repository."""
+    # Given the built wheel, and a repository that is not this one whose config
+    # sets one stage
+    project = _project(tmp_path, "project", '[stages.define]\ngoal = "Define."\n')
+
+    # When `wio config`, `wio config list` and `wio config show stages` run from
+    # the installed wheel there
+    bare = _run_in_project(wheel_path, project, "config")
+    listed = _run_in_project(wheel_path, project, "config", "list")
+    shown = _run_in_project(wheel_path, project, "config", "show", "stages")
+
+    # Then the first prints the help, the second lists the settings with the keys
+    # the stage sets marked `file` and the rest `default`, the third prints the
+    # stage in full, and each exits 0
+    assert [bare.returncode, listed.returncode, shown.returncode] == [0, 0, 0]
+    assert bare.stdout.startswith("usage: wio config")
+    lines = listed.stdout.splitlines()
+    assert 'stages.define.goal = "Define."  # file' in lines
+    assert 'gates.results = ["pass", "fail", "unknown"]  # default' in lines
+    assert all(line.endswith(("# file", "# default")) for line in lines)
+    stage = shown.stdout.splitlines()
+    assert 'stages.define.goal = "Define."  # file' in stage
+    assert 'stages.define.session = "any"  # default' in stage
+    assert all(line.startswith("stages.define.") for line in stage)
