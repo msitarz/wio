@@ -239,9 +239,9 @@ judge = "human"
 goal = """\
 Judge whether the docs lost any guarantee of the promoted contracts. Read a \
 contract from the working tree when it was kept, and from the commit before \
-its deletion when it was deleted. Check that every guarantee it states is in \
-the README.md and GLOSSARY.md files with its reason, then ask the driver to \
-confirm the review; their confirmation of the deletion does not stand for it. \
+its deletion when it was deleted. Check that every guarantee it states is kept: \
+in the README.md and GLOSSARY.md files with its reason, or in a stub, \
+docstring or test that they link to. Then ask the driver to confirm the review; their confirmation of the deletion does not stand for it. \
 Record the result with `wio trailers --result --judge human`, and `pass` only \
 once the driver has confirmed. On `fail`, the deletion is reverted and \
 promote-docs is done again."""
