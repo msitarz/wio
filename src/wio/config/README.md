@@ -8,6 +8,29 @@ Shape, Key path, Check, Check run and Repository in the
 The keys the shape covers are listed in the
 [config](../../../docs/concepts.md#the-config).
 
+## Where it sits
+
+Every other component reads the config through the `Settings` port of
+`wio.ports`, which `ConfigSettings` implements, so none of them knows the file
+or the loader. The component reaches the file and the repository only through
+the ports of `wio.io`, whose adapters `wio.cli` wires, so a test replaces them.
+
+```mermaid
+flowchart LR
+    cli["wio.cli"] --> config["wio.config"]
+    cli --> adapters["wio.io.adapters: LocalFileSystem, GitRepository"]
+    cli --> envadapters["wio.env.adapters: ProcessEnvironment"]
+    config --> models["wio.models: Config, Diagnostic"]
+    config --> formats["wio.formats: decode_toml, render"]
+    config -- "ports" --> io["wio.io: FileSystem, Repository, History"]
+    adapters --> io
+    adapters -- "ports" --> env["wio.env: Environment"]
+    envadapters --> env
+    other["other components"] -- "ports" --> settings["wio.ports: Settings"]
+    config -. "implements" .-> settings
+    config --> errors["wio.errors: ConfigurationError"]
+```
+
 ## The loader
 
 [`loader.py`](loader.py) turns one file into a `Loaded`: its docstrings say what

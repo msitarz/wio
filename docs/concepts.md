@@ -105,7 +105,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `roots` | *optional* | The roots the Work touches, which select its rules. | [Roots of a Work](#roots-of-a-work) |
 | `depends_on` | *optional* | The Works this one waits for. | [Dependencies](#dependencies) |
 | `[actions]` | *optional* | The actions whose pipelines the Work replaces. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
-| `[x]` | *optional* | The one table for the project's own data: wio skips its contents, while any other unknown key gets a warning. | [Anatomy](#anatomy) |
+| `[x]` | *optional* | The one table for the project's own data: wio skips its contents, while any other unknown key of a contract gets a warning. | [Anatomy](#anatomy) |
 | `tracks` | *reserved* | Planned: which items of other Works an item contributes to. | [Tracking items](#tracking-items-planned) |
 | First heading | *open* | The Work's title. | [Anatomy](#anatomy) |
 | `##` headings | — | The sections checked against their directives, from the template or, without one, from the contract's own headings, and the ones a descendant inherits. | [Checking a contract](#checking-a-contract-against-its-template) |
