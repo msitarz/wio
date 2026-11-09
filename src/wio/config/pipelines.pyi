@@ -6,9 +6,9 @@ returns diagnostics, and never raises for a problem of the config. A check
 judges the best-effort `Config` as it stands and only names, so an item that the
 shape dropped is gone and the indexes after it shift, and a list that held no
 string reads as empty. The shape's error comes first and its fix makes the key
-paths of these checks true. A name that does not resolve
-is an error whose message lists what exists, so an agent that edits the config
-corrects it in one turn. Every `where` is a key path built with `join_path`
+paths of these checks true. A name that does not resolve is an error whose
+message lists what exists, or says there is none, so an agent that edits the
+config corrects it in one turn. Every `where` is a key path built with `join_path`
 and `item_path`, so a name with a dot is quoted, and a message words its names
 and lists with `quoted` and `and_list` of `wio.config.messages`. The checks are
 appended to `wio.config.CHECKS`.
@@ -64,8 +64,9 @@ def check_actions(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
 
     Returns:
         An error at `actions.<name>.after[<i>]` for an action that is not
-        declared, naming it and listing the declared actions, and for one that is
-        on demand, saying so. The cycles come from `find_cycles` on a graph of
+        declared, an entry that starts with `@` among them since `after` has no
+        such form, naming it and listing the declared actions, and for one that
+        is on demand, saying so. The cycles come from `find_cycles` on a graph of
         every declared action keyed by its `after` entries, where an entry that
         is not declared ends the search and an edge to an on-demand action is
         kept, so that action is also reported for it. One error for each
@@ -76,10 +77,10 @@ def check_actions(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
         An error at `actions.<name>.invalidated_by[<i>]` for an action that is
         not declared, naming the action after any prefix `@descendants:` or
         `@dependencies:` rather than the whole entry, and listing the declared
-        actions; a prefix with no name
-        after it is such an error. A note at the same place for any other entry
-        that starts with `@`, a bare `@descendants` among them, saying that
-        v0.2 reserves it. A valid entry gets no diagnostic.
+        actions, or naming the whole entry when no name follows the prefix. A
+        note at the same place for any other entry that starts with `@`, a bare
+        `@descendants` among them, saying that v0.2 reserves it. A valid entry
+        gets no diagnostic.
     """
     ...
 

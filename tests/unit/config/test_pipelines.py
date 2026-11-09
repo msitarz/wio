@@ -31,6 +31,15 @@ def test_an_item_the_shape_dropped_shifts_the_indexes_after_it() -> None:
     pytest.skip("not implemented")
 
 
+def test_a_stage_without_roots_and_an_empty_list_are_not_errors() -> None:
+    """AC-1, AC-2: a stage may leave `roots` unset, and a list may be empty."""
+    # Given a stage without `roots`, a stage with `roots = []`, and an empty stage
+    # preset and an empty default action list
+    # When the stage references are checked
+    # Then no diagnostic is returned
+    pytest.skip("not implemented")
+
+
 def test_an_unknown_root_of_a_stage_is_an_error_and_work_is_not() -> None:
     """AC-2: the error lists the declared roots and `@work`."""
     # Given a stage with the roots `contract` and `src`, and `@work`, where `src`
@@ -47,6 +56,32 @@ def test_an_after_cycle_an_on_demand_action_and_an_unknown_action_are_errors() -
     # When the actions are checked
     # Then there is one error for the cycle and one at each bad entry, and the
     # valid entries, a declared action and `@dependencies:` of one, get none
+    pytest.skip("not implemented")
+
+
+def test_an_after_entry_that_starts_with_at_is_an_error() -> None:
+    """AC-3: `after` has no `@` form, so the entry is not a declared action."""
+    # Given an action that comes after `@descendants:deliver`
+    # When the actions are checked
+    # Then an error at `actions.<name>.after[0]` names it and lists the actions
+    pytest.skip("not implemented")
+
+
+def test_a_self_loop_and_a_cycle_through_an_on_demand_action_are_reported() -> None:
+    """AC-3: both are found, and the on-demand edge is also its own error."""
+    # Given an action that comes after itself, and a cycle through an on-demand
+    # action
+    # When the actions are checked
+    # Then each cycle is one error, and the on-demand entry is one more
+    pytest.skip("not implemented")
+
+
+def test_nothing_that_exists_is_said_instead_of_listed() -> None:
+    """AC-1, AC-2, AC-3: a message does not list an empty set."""
+    # Given a config that declares no stages, no roots and no actions, and names
+    # one of each
+    # When the checks run
+    # Then each message says there is none declared
     pytest.skip("not implemented")
 
 
