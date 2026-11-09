@@ -44,11 +44,10 @@ for the built package and for the scripts of the repository.
 A file that mixes the two is split: the unit tests stay in `tests/unit/...`, and
 the rest moves to the same path under `tests/integration/` or `tests/tooling/`.
 
-**Markers.** Every directory under `tests/` that holds tests is a group, and its
-marker is its name: `unit`, `integration`, `acceptance`, `tooling`, `packaging`
-and `scripts`. `tests/conftest.py` sets the marker from the path, so
-`pytest -m integration` runs that group whatever its tests are called. A new
-group is a directory, a registered marker and a module in `tach.toml`.
+**Markers.** Every directory under `tests/` that holds tests is a group, and
+its marker is its name, which `tests/conftest.py` sets from the path, so a test
+never carries another group's marker by hand. A new group is a directory, a
+registered marker and a module in `tach.toml`.
 
 `slow` is separate from the group. It says that a test spawns a subprocess or
 builds the package, and the default run leaves it out. An integration test with
@@ -61,21 +60,12 @@ skills, for example the command sequence a skill runs.
 
 ## 3. Directory layout
 
-```text
-tests/
-├── conftest.py
-├── fakes.py
-├── sandbox.py
-├── support.py
-├── unit/                   # mirrors src/wio/
-├── integration/            # mirrors src/wio/: the code with something real behind it
-├── tooling/                # tests of the repository's configuration and hygiene
-├── acceptance/             # the DSL, the test drivers and the scenarios
-├── golden/                 # expected bundle bytes
-├── packaging/              # build the wheel and sdist and inspect them (slow)
-├── scripts/                # tests of the scripts in the top-level scripts/
-└── fixtures/               # static sample repos, example templates, rulesets
-```
+`tests/` has one directory for each group of section 2, and `fixtures/` for the
+static sample repos, example templates and rulesets. `conftest.py` holds the
+fixtures that every test can ask for, `fakes.py` the fakes that unit and
+integration tests share, `sandbox.py` the sandbox of a test, and `support.py`
+what several groups need. The unit and integration directories mirror
+`src/wio/`.
 
 ## 4. Conventions
 
@@ -90,8 +80,7 @@ tests/
   (`# Given no setup`).
 - A test that spawns a subprocess (git, the CLI) or builds the package is
   marked `slow`. `make slow` runs those tests, and CI runs that target.
-- A test lives in the group its subject asks for (see section 2) and never
-  carries another group's marker by hand; the directory sets it.
+- A test lives in the group its subject asks for (see section 2).
 - Use `tmp_path` and the `sandbox` fixture for every repo, so a test never
   touches the developer's own state: the real Wio home or their git setup.
 - No sleeps. No timestamps in compared output.
