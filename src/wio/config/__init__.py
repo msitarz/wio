@@ -55,8 +55,9 @@ _SHOW = (
     "A single setting is followed by its description."
 )
 _CHECK = (
-    "Check the config and print every diagnostic, one per line. Exits 1 when any "
-    "is an error, 2 when there is no config to check."
+    "Check the config and print every diagnostic, one per line, or "
+    "`Config check passed!` when there is none. Exits 1 when any is an error, 2 "
+    "when there is no config to check."
 )
 _CHECK_JSON = "Write the diagnostics as a JSON array of severity, where and message."
 _KEY = "The key path of a setting or a table, such as stages.define; all by default."

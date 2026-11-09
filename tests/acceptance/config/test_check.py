@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 
 
-def test_a_valid_config_prints_nothing_and_an_invalid_one_fails(wio: Wio) -> None:
+def test_a_valid_config_passes_and_an_invalid_one_fails(wio: Wio) -> None:
     """AC-1: errors print as `error: <key path>: <message>` and exit 1."""
     # Given a valid config, and a config with an unknown key
     # When `wio config check` runs on each
