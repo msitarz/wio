@@ -25,7 +25,9 @@ class ConfigurationError(WioError):
 
     Raised, for example, by `Settings.load` when the settings cannot be read.
     It keeps the diagnostics it was raised with, in the order given, and
-    `str` of it is the message.
+    `str` of it is the message. An error that is given diagnostics has them
+    rendered, one `<severity>: <where>: <message>` line each, as its message, so
+    that the command line can write it as it is.
 
     Attributes:
         diagnostics: The findings that caused the error; empty when it has

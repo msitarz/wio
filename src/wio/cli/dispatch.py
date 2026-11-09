@@ -149,8 +149,8 @@ def run(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
 
     Everything is written to `stdio`. A `WioError` at any step is reported as
     `error:` and its message, or as its diagnostics when it carries them, and
-    exits 2, and any other exception is reported
-    with its traceback and exits 70.
+    exits 2, and any other exception is reported with its traceback and exits
+    70.
 
     Args:
         argv: The arguments after the program name.
