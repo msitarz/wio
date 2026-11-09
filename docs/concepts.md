@@ -1824,7 +1824,8 @@ Errors:
 - a reference that does not resolve, with the reference and where it is: an
   unknown ruleset, alias, family, code or rule preset;
 - a name of the wrong form, a ruleset directory's name included;
-- a directory under `.agents/wio/rules/` without a `ruleset.toml`;
+- a directory under `.agents/wio/rules/` without a `ruleset.toml`, and a
+  `[rulesets.<name>]` table with no directory there;
 - a qualified reference inside a `ruleset.toml`;
 - a cycle between rule presets;
 - a rule preset in `rules_always_exclude`;

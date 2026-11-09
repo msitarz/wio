@@ -8,7 +8,7 @@ ruleset part against the directories of `.agents/wio/rules` that the port
 `CheckInputs.files` shows below `CheckInputs.root`: `is_dir` of the rules
 directory before `list_dir` of it, `is_dir` of each entry, and `exists` of its
 `ruleset.toml`, and nothing else; no check reads a file's content. A ruleset is
-known by its directory name or by its alias (A-1). Whether the family, code or
+known by its directory name or by its alias. Whether the family, code or
 rule preset after the dot exists needs the rule files, which the rules Work
 reads. Every `where` is a key path built with `join_path` and `item_path`, except
 that a directory is at `.agents/wio/rules/<name>`, as written; a message words
