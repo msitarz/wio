@@ -1,0 +1,13 @@
+# A table without a directory, a directory without a manifest and aliases that
+# repeat or clash.
+
+[rulesets.ghost]
+
+[rulesets.docs]
+alias = "d"
+
+[rulesets.mine]
+alias = "d"
+
+[rulesets.other]
+alias = "docs"

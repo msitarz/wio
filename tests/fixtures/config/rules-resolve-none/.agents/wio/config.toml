@@ -1,0 +1,5 @@
+# A config without a qualified reference, in a repository without
+# `.agents/wio/rules`.
+
+[stages.define]
+goal = "Define."

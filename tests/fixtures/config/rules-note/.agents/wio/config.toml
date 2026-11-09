@@ -1,0 +1,3 @@
+# Every session receives a rule of the process ruleset.
+
+rules_always_include = ["process.fix-the-cause"]

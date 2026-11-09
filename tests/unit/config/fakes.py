@@ -10,10 +10,11 @@ from wio.models.config import Config, Gates, Skills, Templates, Works
 from wio.models.frozen import freeze
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Iterable, Mapping, Sequence
 
     from wio.config import Check, Loaded
-    from wio.models.config import Action, Root, Stage
+    from wio.models.config import Action, Root, RulePreset, Ruleset, Stage
+    from wio.models.diagnostics import Diagnostic
 
 ROOT = Path("/repo")
 CONFIG = ROOT / ".agents" / "wio" / "config.toml"
@@ -28,6 +29,7 @@ class MemoryFileSystem:
 
     files: dict[Path, str] = field(default_factory=dict)
     failure: Exception | None = None
+    calls: list[tuple[str, Path]] = field(default_factory=list)
 
     def read_text(self, path: Path) -> str:
         """Read a file of the dictionary.
@@ -78,29 +80,31 @@ class MemoryFileSystem:
         self.files[path] = self.files.get(path, "") + text
 
     def exists(self, path: Path) -> bool:
-        """Tell whether a file is stored.
+        """Tell whether a file or a directory that holds one is stored.
 
         Args:
             path: Any path.
 
         Returns:
-            True when the path is a key.
+            True when the path is a key or holds one.
         """
-        return path in self.files
+        return path in self.files or any(path in key.parents for key in self.files)
 
-    def is_dir(self, path: Path) -> bool:  # noqa: ARG002
-        """Tell that nothing is a directory.
+    def is_dir(self, path: Path) -> bool:
+        """Tell whether a stored file lies below a path.
 
         Args:
             path: Any path.
 
         Returns:
-            False.
+            True when the path is the parent, at any depth, of a key, so a
+            directory is one that holds a file. The call is recorded.
         """
-        return False
+        self.calls.append(("is_dir", path))
+        return any(path in key.parents for key in self.files)
 
     def is_file(self, path: Path) -> bool:
-        """Tell whether a file is stored.
+        """Tell whether a file or a directory that holds one is stored.
 
         Args:
             path: Any path.
@@ -111,15 +115,23 @@ class MemoryFileSystem:
         return self.exists(path)
 
     def list_dir(self, path: Path) -> Sequence[Path]:
-        """List the stored files directly under a path.
+        """List the stored files and the directories directly under a path.
 
         Args:
             path: The directory.
 
         Returns:
-            The stored files whose parent is the path, sorted.
+            The files whose parent is the path and the child of the path that
+            holds each deeper file, sorted and without repeats. The call is
+            recorded.
         """
-        return sorted(p for p in self.files if p.parent == path)
+        self.calls.append(("list_dir", path))
+        found = {
+            path / key.relative_to(path).parts[0]
+            for key in self.files
+            if path in key.parents
+        }
+        return sorted(found)
 
 
 @dataclass
@@ -209,6 +221,10 @@ def make_config(
     gates: Gates | None = None,
     skills: Skills | None = None,
     templates: Templates | None = None,
+    rule_presets: Mapping[str, RulePreset] | None = None,
+    rulesets: Mapping[str, Ruleset] | None = None,
+    always_include: Sequence[str] = (),
+    always_exclude: Sequence[str] = (),
 ) -> Config:
     """Build a `Config` from the plain mappings a test writes.
 
@@ -221,6 +237,10 @@ def make_config(
         gates: The `gates` table.
         skills: The `skills` table.
         templates: The `templates` table.
+        rule_presets: The rule presets of the config by name.
+        rulesets: The `[rulesets]` tables by name.
+        always_include: The config's `rules_always_include`.
+        always_exclude: The config's `rules_always_exclude`.
 
     Returns:
         The config, with the defaults for what is not given.
@@ -234,4 +254,20 @@ def make_config(
         gates=gates or Gates(),
         skills=skills or Skills(),
         templates=templates or Templates(),
+        rule_presets=freeze(rule_presets or {}),
+        rulesets=freeze(rulesets or {}),
+        rules_always_include=tuple(always_include),
+        rules_always_exclude=tuple(always_exclude),
     )
+
+
+def diagnostic_lines(diagnostics: Iterable[Diagnostic]) -> list[str]:
+    """Write diagnostics as `severity: where: message`, in the order returned.
+
+    Args:
+        diagnostics: What a check returned.
+
+    Returns:
+        One line for each diagnostic.
+    """
+    return [f"{d.severity}: {d.where}: {d.message}" for d in diagnostics]

@@ -1,0 +1,13 @@
+# A config with an unknown ruleset, an unknown rule preset and an alias that
+# resolves.
+
+[rulesets.docs]
+alias = "d"
+
+[roots.wio]
+paths = ["."]
+rule_presets = ["docz.all"]
+
+[stages.define]
+goal = "Define."
+rules_include = ["docz.DOC", "mine", "docs.DOC", "d.DOC"]

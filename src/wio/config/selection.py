@@ -19,16 +19,20 @@ says that none is declared when a list would be empty. The checks are appended
 to `wio.config.CHECKS`.
 """
 
+import re
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import TYPE_CHECKING
+
+from wio.config.messages import and_list, item_path, join_path, quoted
+from wio.config.pipelines import find_cycles
+from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
     from wio.config.checks import CheckInputs
     from wio.models.config import Config
-    from wio.models.diagnostics import Diagnostic
 
 
 @dataclass(frozen=True)
@@ -100,6 +104,14 @@ class Rulesets:
     without_manifest: tuple[str, ...]
 
 
+_RULES = ".agents/wio/rules"
+_NAME = re.compile(r"[a-z][a-z0-9_-]*")
+_FAMILY = re.compile(r"[A-Z]+")
+_CODE = re.compile(r"[A-Z]+[0-9]+")
+_NAME_FORM = "a lowercase letter, then lowercase letters, digits, `-` and `_`"
+_VETO = "only qualified codes and families are allowed in `rules_always_exclude`"
+
+
 def read_rulesets(inputs: CheckInputs) -> Rulesets:
     """Read which ruleset directories there are.
 
@@ -112,8 +124,13 @@ def read_rulesets(inputs: CheckInputs) -> Rulesets:
         `.agents/wio/rules` is a directory, so a repository without one gives
         none and no error.
     """
-    del inputs
-    return Rulesets((), ())
+    files = inputs.files
+    rules = inputs.root / _RULES
+    if not files.is_dir(rules):
+        return Rulesets((), ())
+    names = tuple(sorted(p.name for p in files.list_dir(rules) if files.is_dir(p)))
+    bare = tuple(n for n in names if not files.exists(rules / n / "ruleset.toml"))
+    return Rulesets(names, bare)
 
 
 def parse_reference(text: str) -> Reference:
@@ -125,19 +142,29 @@ def parse_reference(text: str) -> Reference:
     Returns:
         `Bare` for a name without a dot in the form of a rule preset name, and
         `Qualified` for `<ruleset>.<item>` whose parts have their forms. Any
-        other text is `Malformed`, with the first of these sentences that
-        applies: "`<text>` is not a rule preset name; a bare name is a rule
-        preset of the config, a lowercase letter, then lowercase letters, digits,
-        `-` and `_`."; "`<text>` has more than one dot; a reference is a bare
-        name or `<ruleset>.<item>`."; "the ruleset part `<part>` of `<text>` is
-        not a ruleset name; a ruleset name is a lowercase letter, then lowercase
-        letters, digits, `-` and `_`."; and "the item `<part>` of `<text>` is not
-        a family (upper-case letters), a code (a family and digits) or a rule
-        preset (a lowercase letter, then lowercase letters, digits, `-` and
-        `_`)."
+        other text is `Malformed`, with the sentence that says which part is wrong
+        and the form it should have: the whole text of a bare name, more than one
+        dot, the ruleset part, or the item.
     """
-    del text
-    return Malformed("")
+    if "." not in text:
+        if _NAME.fullmatch(text):
+            return Bare(text)
+        message = f"`{text}` is not a rule preset name; a bare name is a rule preset"
+        return Malformed(f"{message} of the config, {_NAME_FORM}.")
+    if text.count(".") > 1:
+        message = "has more than one dot; a reference is a bare name or"
+        return Malformed(f"`{text}` {message} `<ruleset>.<item>`.")
+    ruleset, item = text.split(".")
+    if not _NAME.fullmatch(ruleset):
+        message = f"the ruleset part `{ruleset}` of `{text}` is not a ruleset name; "
+        return Malformed(f"{message}a ruleset name is {_NAME_FORM}.")
+    if _item_kind(item) is None:
+        message = f"the item `{item}` of `{text}` is not a family (upper-case "
+        return Malformed(
+            f"{message}letters), a code (a family and digits) or a rule preset "
+            f"({_NAME_FORM})."
+        )
+    return Qualified(ruleset, item)
 
 
 def judge_reference(
@@ -153,23 +180,21 @@ def judge_reference(
 
     Returns:
         `None` when it is valid, otherwise the first problem of this order: the
-        message of a `Malformed` reference; for `Takes.ROOT` a qualified item that
-        is not a rule preset, saying "a root takes rule presets only"; for
-        `Takes.VETO` a bare name or a qualified rule preset, saying "only
-        qualified codes and families are allowed in `rules_always_exclude`"; a
-        ruleset part that is not in `known`, saying "unknown ruleset `<part>`"
-        and "Declared rulesets and aliases: `a`, `b`." or "No rulesets are
-        declared."; a bare name that is not in `presets`, saying "unknown rule
-        preset `<name>`" and "Declared rule presets: `a`, `b`." or "No rule
-        presets are declared." An item after the dot is never looked up.
+        message of a `Malformed` reference; a kind that the field does not take; a
+        ruleset part that is not in `known`; a bare name that is not in `presets`.
+        An item after the dot is never looked up.
     """
-    del text, takes, known, presets
-    return None
+    match parse_reference(text):
+        case Malformed(message):
+            return message
+        case Bare(name):
+            return _judge_bare(name, takes, presets)
+        case Qualified(ruleset, item):
+            return _judge_qualified(text, ruleset, item, takes, known)
+        case _:
+            return None
 
 
-# The leaves are stubs of one shape until the implementation stage, so the
-# duplicate detector skips them, and the markers go with the stubs.
-# jscpd:ignore-start  # noqa: ERA001
 def check_rule_references(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
     """Check every reference the config makes to a ruleset or a rule preset.
 
@@ -179,20 +204,24 @@ def check_rule_references(config: Config, inputs: CheckInputs) -> Iterable[Diagn
             directories.
 
     Returns:
-        At most one error for each entry, from `judge_reference`, at its key
-        path: `stages.<name>.rules_include[<i>]` and `rules_exclude[<i>]`,
-        `rule_presets.<name>.rules_include[<i>]` and `rules_exclude[<i>]`,
-        `roots.<name>.rule_presets[<i>]`, `rules_always_include[<i>]` and
-        `rules_always_exclude[<i>]`. A root takes `Takes.ROOT`,
-        `rules_always_exclude` takes `Takes.VETO`, and every other field takes
-        `Takes.ANY`. The names known are every directory name, one without a
-        `ruleset.toml` included, and the alias, in the form of a ruleset name, of
-        each `[rulesets.<name>]` table whose name is a directory; with no rules
-        directory a qualified reference is an unknown ruleset, and a config with
-        none gets no diagnostic.
+        At most one error for each entry, from `judge_reference`, at its key path.
+        A root takes `Takes.ROOT`, `rules_always_exclude` takes `Takes.VETO`, and
+        every other field takes `Takes.ANY`. The names known are every directory
+        name and the valid alias of each `[rulesets.<name>]` table whose name is a
+        directory.
     """
-    del config, inputs
-    return ()
+    rulesets = read_rulesets(inputs)
+    aliases = [
+        table.alias
+        for name, table in config.rulesets.items()
+        if name in rulesets.names and table.alias and _NAME.fullmatch(table.alias)
+    ]
+    known = sorted({*rulesets.names, *aliases})
+    presets = sorted(config.rule_presets)
+    for where, text, takes in _references(config):
+        problem = judge_reference(text, takes, known, presets)
+        if problem is not None:
+            yield Diagnostic("error", where, problem)
 
 
 def check_rule_preset_cycles(
@@ -208,13 +237,18 @@ def check_rule_preset_cycles(
         One error for each group of rule presets that include one another,
         directly or through others, a self loop included, at
         `rule_presets.<first>.rules_include` where `<first>` is the least name,
-        that names every preset of the group in sorted order, not as a path; the
-        groups come from `find_cycles` of `wio.config.pipelines`. Only a bare name in
-        a preset's `rules_include` that is a rule preset of the config is an edge;
-        `rules_exclude` and qualified references are not.
+        naming every preset of the group in sorted order, not as a path. Only a
+        bare name in `rules_include` that is a rule preset of the config is an
+        edge.
     """
-    del config, inputs
-    return ()
+    del inputs
+    graph = {
+        name: [ref for ref in preset.rules_include if ref in config.rule_presets]
+        for name, preset in config.rule_presets.items()
+    }
+    for group in find_cycles(graph):
+        where = join_path(join_path("rule_presets", group[0]), "rules_include")
+        yield Diagnostic("error", where, _cycle_message(group))
 
 
 def check_rulesets(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
@@ -226,19 +260,22 @@ def check_rulesets(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
             directories.
 
     Returns:
-        An error at `.agents/wio/rules/<name>`, as written, for a directory whose
-        name is not a ruleset name, naming the form of one, and one for a
-        directory without a `ruleset.toml`; both when both apply. An error at
-        `rulesets.<name>` for a table that has no directory. For an alias, an
-        error at `rulesets.<name>.alias` when it is not a ruleset name in form,
-        when an earlier ruleset in the table has it, naming that ruleset, and
-        when it is the name of another ruleset, a directory or a table, naming
-        it; the first that applies, so an alias gets one error, and an alias equal
-        to its own ruleset's name is not a clash. The name of a table is not
-        judged for its form. Each message names the ruleset and what is wrong.
+        An error at `.agents/wio/rules/<name>` for a directory whose name is not a
+        ruleset name and one for a directory without a `ruleset.toml`, both when
+        both apply; an error at `rulesets.<name>` for a table with no directory;
+        and, for an alias, one error at `rulesets.<name>.alias`: not a ruleset
+        name in form, the alias of an earlier table, or the name of another
+        ruleset, directory or table. The name of a table is not judged for form.
     """
-    del config, inputs
-    return ()
+    rulesets = read_rulesets(inputs)
+    for name in rulesets.names:
+        if not _NAME.fullmatch(name):
+            message = f"`{name}` is not a ruleset name; a ruleset name is {_NAME_FORM}."
+            yield Diagnostic("error", f"{_RULES}/{name}", message)
+    for name in rulesets.without_manifest:
+        message = f"`{name}` has no `ruleset.toml`; its rules would be skipped."
+        yield Diagnostic("error", f"{_RULES}/{name}", message)
+    yield from _table_faults(config, rulesets)
 
 
 def check_always_include_note(
@@ -255,8 +292,211 @@ def check_always_include_note(
         session receives the entries and lists them, in the order written; none
         otherwise.
     """
-    del config, inputs
-    return ()
+    del inputs
+    if config.rules_always_include:
+        listed = and_list([f"`{entry}`" for entry in config.rules_always_include])
+        message = f"every session receives the rules {listed}."
+        yield Diagnostic("note", "rules_always_include", message)
 
 
-# jscpd:ignore-end  # noqa: ERA001
+def _cycle_message(group: Sequence[str]) -> str:
+    """Word the error of a group of rule presets that include one another.
+
+    Args:
+        group: The names of the presets, sorted.
+
+    Returns:
+        The sentence, in the singular for a preset that includes itself.
+    """
+    names = and_list([f"`{name}`" for name in group])
+    verb = "include one another" if len(group) > 1 else "includes itself"
+    return f"{names} {verb}; a cycle has no resolved set."
+
+
+def _item_kind(item: str) -> str | None:
+    """Tell what kind of name the part after the dot is.
+
+    Args:
+        item: The part of a qualified reference after the dot.
+
+    Returns:
+        `family`, `code` or `rule preset`, or `None` when it has no such form.
+    """
+    if _FAMILY.fullmatch(item):
+        return "family"
+    if _CODE.fullmatch(item):
+        return "code"
+    return "rule preset" if _NAME.fullmatch(item) else None
+
+
+def _declared(label: str, none: str, names: Sequence[str]) -> str:
+    """List what is declared, or say that nothing is.
+
+    Args:
+        label: The sentence that starts the list, such as `Declared rulesets`.
+        none: The sentence for no name.
+        names: The names, in the order to list them.
+
+    Returns:
+        The sentence.
+    """
+    return f"{label}: {quoted(names)}." if names else none
+
+
+def _judge_bare(name: str, takes: Takes, presets: Sequence[str]) -> str | None:
+    """Judge a bare name in a field.
+
+    Args:
+        name: The rule preset's name.
+        takes: The kinds of reference the field takes.
+        presets: The names of the config's rule presets, sorted.
+
+    Returns:
+        The problem, or `None`.
+    """
+    if takes is Takes.VETO:
+        return f"`{name}` is a rule preset; {_VETO}."
+    if name in presets:
+        return None
+    listed = _declared(
+        "Declared rule presets", "No rule presets are declared.", presets
+    )
+    return f"unknown rule preset `{name}`. {listed}"
+
+
+def _judge_qualified(
+    text: str, ruleset: str, item: str, takes: Takes, known: Sequence[str]
+) -> str | None:
+    """Judge a qualified reference in a field.
+
+    Args:
+        text: The reference as written.
+        ruleset: Its ruleset part.
+        item: Its item part.
+        takes: The kinds of reference the field takes.
+        known: The names and aliases of the rulesets, sorted.
+
+    Returns:
+        The problem, or `None`.
+    """
+    kind = _item_kind(item)
+    if takes is Takes.ROOT and kind != "rule preset":
+        return f"a root takes rule presets only; `{text}` is a {kind}."
+    if takes is Takes.VETO and kind == "rule preset":
+        return f"`{text}` is a rule preset; {_VETO}."
+    if ruleset in known:
+        return None
+    listed = _declared(
+        "Declared rulesets and aliases", "No rulesets are declared.", known
+    )
+    return f"unknown ruleset `{ruleset}`. {listed}"
+
+
+def _entries(
+    where: str, entries: Sequence[str], takes: Takes
+) -> Iterable[tuple[str, str, Takes]]:
+    """Pair each entry of a list with its key path and what its field takes.
+
+    Args:
+        where: The key path of the list.
+        entries: The references.
+        takes: The kinds of reference the field takes.
+
+    Returns:
+        A key path, a reference and the kinds, for each entry.
+    """
+    for index, text in enumerate(entries):
+        yield item_path(where, index), text, takes
+
+
+def _selection(
+    where: str, include: Sequence[str], exclude: Sequence[str]
+) -> Iterable[tuple[str, str, Takes]]:
+    """Pair the entries of a table's `rules_include` and `rules_exclude`.
+
+    Args:
+        where: The key path of the table.
+        include: Its `rules_include`.
+        exclude: Its `rules_exclude`.
+
+    Returns:
+        A key path, a reference and `Takes.ANY`, for each entry.
+    """
+    yield from _entries(join_path(where, "rules_include"), include, Takes.ANY)
+    yield from _entries(join_path(where, "rules_exclude"), exclude, Takes.ANY)
+
+
+def _references(config: Config) -> Iterable[tuple[str, str, Takes]]:
+    """Find every reference of the config, with its key path and field.
+
+    Args:
+        config: The settings.
+
+    Returns:
+        A key path, a reference and the kinds its field takes, for each entry of
+        the stages, the config's rule presets, the roots and the two always
+        fields.
+    """
+    for name, stage in config.stages.items():
+        where = join_path("stages", name)
+        yield from _selection(where, stage.rules_include, stage.rules_exclude)
+    for name, preset in config.rule_presets.items():
+        where = join_path("rule_presets", name)
+        yield from _selection(where, preset.rules_include, preset.rules_exclude)
+    for name, root in config.roots.items():
+        where = join_path(join_path("roots", name), "rule_presets")
+        yield from _entries(where, root.rule_presets, Takes.ROOT)
+    yield from _entries("rules_always_include", config.rules_always_include, Takes.ANY)
+    yield from _entries("rules_always_exclude", config.rules_always_exclude, Takes.VETO)
+
+
+def _table_faults(config: Config, rulesets: Rulesets) -> Iterable[Diagnostic]:
+    """Judge the `[rulesets]` table against the directories.
+
+    Args:
+        config: The settings, whose `rulesets` table is read.
+        rulesets: The directories.
+
+    Returns:
+        An error for a table without a directory, and one for an alias that is
+        not valid.
+    """
+    names = {*rulesets.names, *config.rulesets}
+    taken: dict[str, str] = {}
+    for name, table in config.rulesets.items():
+        where = join_path("rulesets", name)
+        if name not in rulesets.names:
+            message = f"`{name}` has no directory under `{_RULES}`."
+            yield Diagnostic("error", where, message)
+        alias = table.alias
+        if alias is None:
+            continue
+        fault = _alias_fault(name, alias, taken, names)
+        taken.setdefault(alias, name)
+        if fault is not None:
+            yield Diagnostic("error", join_path(where, "alias"), fault)
+
+
+def _alias_fault(
+    name: str, alias: str, taken: dict[str, str], names: set[str]
+) -> str | None:
+    """Judge the alias of one ruleset.
+
+    Args:
+        name: The ruleset's name.
+        alias: Its alias.
+        taken: Each alias of an earlier table mapped to that table's name.
+        names: Every ruleset name, directory or table.
+
+    Returns:
+        The first problem: not a ruleset name in form, the alias of an earlier
+        table, or the name of another ruleset; `None` when there is none.
+    """
+    head = f"alias `{alias}` of `{name}`"
+    if not _NAME.fullmatch(alias):
+        return f"{head} is not a ruleset name; a ruleset name is {_NAME_FORM}."
+    if alias in taken:
+        return f"{head} is also the alias of `{taken[alias]}`."
+    if alias != name and alias in names:
+        return f"{head} is also the name of a ruleset."
+    return None

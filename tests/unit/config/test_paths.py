@@ -6,16 +6,20 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.unit.config.fakes import ROOT, MemoryFileSystem, make_config
+from tests.unit.config.fakes import (
+    ROOT,
+    MemoryFileSystem,
+    diagnostic_lines,
+    make_config,
+)
 from wio.config import CheckInputs, paths
 from wio.models.config import Root, Skills, Stage, Templates, Works
 from wio.models.frozen import freeze
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Sequence
 
     from wio.models.config import Config
-    from wio.models.diagnostics import Diagnostic
 
 
 _HOME_SKILL = Path("/home/user/.claude/skills/c/SKILL.md")
@@ -46,25 +50,13 @@ def _roots(**paths_of: Sequence[str]) -> Config:
     return make_config(roots=roots)
 
 
-def _lines(diagnostics: Iterable[Diagnostic]) -> list[str]:
-    """Write diagnostics as `severity: where: message`, in the order returned.
-
-    Args:
-        diagnostics: What a check returned.
-
-    Returns:
-        One line for each diagnostic.
-    """
-    return [f"{d.severity}: {d.where}: {d.message}" for d in diagnostics]
-
-
 def test_a_fault_is_worded_with_its_rule_and_its_normalized_form() -> None:
     """AC-1: "`<path>` <rule>", and "; use `<normalized>`" only when there is one."""
     # Given the paths `src/` and `../x`
     config = _roots(a=["src/", "../x"])
 
     # When their faults are worded in the root path check
-    found = _lines(paths.check_root_paths(config, _inputs()))
+    found = diagnostic_lines(paths.check_root_paths(config, _inputs()))
 
     # Then the first says "`src/` is not normalized; use `src`", and the second
     # says "`../x` leaves the repository" and names no form
@@ -112,7 +104,7 @@ def test_root_paths_not_normalized_or_outside_the_repository_are_errors() -> Non
     config = _roots(a=["src/", "../x", "/abs", "a/./b"])
 
     # When the root paths are checked
-    found = _lines(paths.check_root_paths(config, _inputs()))
+    found = diagnostic_lines(paths.check_root_paths(config, _inputs()))
 
     # Then each is an error at its path that names the rule and the normalized form
     assert found == [
@@ -130,7 +122,7 @@ def test_a_repeated_root_path_is_judged_on_its_normalized_text() -> None:
     config = _roots(b=["src", "src", "src/"], c=["src"])
 
     # When the root paths are checked
-    found = _lines(paths.check_root_paths(config, _inputs("src")))
+    found = diagnostic_lines(paths.check_root_paths(config, _inputs("src")))
 
     # Then each later path of `b` has one error that names the index of the first
     # and not its fault, and the root `c` has none
@@ -146,7 +138,7 @@ def test_a_path_repeats_one_that_has_a_fault_by_its_normalized_form() -> None:
     config = _roots(a=["src/", "src"])
 
     # When the root paths are checked
-    found = _lines(paths.check_root_paths(config, _inputs("src")))
+    found = diagnostic_lines(paths.check_root_paths(config, _inputs("src")))
 
     # Then the first is a fault and the second names it as the path it repeats
     assert found == [
@@ -163,7 +155,7 @@ def test_a_missing_root_path_is_a_warning_and_a_faulty_one_is_not_asked_about() 
     config = _roots(a=["docs/new", "src", "docs/new", "/abs"])
 
     # When the root paths are checked
-    found = _lines(paths.check_root_paths(config, _inputs("src")))
+    found = diagnostic_lines(paths.check_root_paths(config, _inputs("src")))
 
     # Then the first is a warning, the second has none, the repeat only its
     # error, and the absolute path only its error
@@ -223,7 +215,7 @@ def test_a_skill_that_is_not_found_lists_where_wio_looked() -> None:
     inputs = CheckInputs(ROOT, MemoryFileSystem({_HOME_SKILL: ""}))
 
     # When the skills are checked
-    found = _lines(paths.check_skills(config, inputs))
+    found = diagnostic_lines(paths.check_skills(config, inputs))
 
     # Then an error at `stages.<name>.skill` lists the directories, once each as
     # relative paths, and says the user's home is not searched; the odd names are
@@ -245,7 +237,7 @@ def test_a_skill_path_outside_the_repository_is_an_error_and_not_searched() -> N
     )
 
     # When the skills are checked
-    found = _lines(paths.check_skills(config, _inputs("skills/a/SKILL.md")))
+    found = diagnostic_lines(paths.check_skills(config, _inputs("skills/a/SKILL.md")))
 
     # Then an error at `skills.paths[0]` and one at `skills.paths[1]` say "The path
     # must stay inside the repository.", no repeat is reported, and the
@@ -271,7 +263,7 @@ def test_the_templates_table_needs_a_valid_dir_and_non_empty_template_names() ->
     config = make_config(templates=templates)
 
     # When the templates are checked
-    found = _lines(paths.check_templates(config, _inputs()))
+    found = diagnostic_lines(paths.check_templates(config, _inputs()))
 
     # Then the first ends with "A templates directory is a normalized path inside
     # the repository." and the second at `templates.kinds.<kind>` says the
@@ -316,7 +308,7 @@ def test_a_works_dir_outside_the_repository_is_an_error(path: str, words: str) -
     config = make_config(works=Works(dir=path))
 
     # When the Works directory is checked
-    found = _lines(paths.check_works_dir(config, _inputs()))
+    found = diagnostic_lines(paths.check_works_dir(config, _inputs()))
 
     # Then an error at `works.dir` ends with "The path must be inside the
     # repository."

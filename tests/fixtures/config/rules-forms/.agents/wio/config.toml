@@ -1,0 +1,6 @@
+# A config whose references have the wrong form, and a ruleset directory whose
+# name has the wrong form.
+
+[stages.define]
+goal = "Define."
+rules_include = ["Docs.DOC", "docs.Doc1", "docs.DOC001.x"]
