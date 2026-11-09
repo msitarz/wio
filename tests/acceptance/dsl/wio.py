@@ -63,3 +63,15 @@ class Wio:
             stderr=result.stderr,
             exit_code=result.exit_code,
         )
+
+    def check_config(self, fixture: str) -> Output:
+        """Run `wio config check` on a static sample repository.
+
+        Args:
+            fixture: The name of the fixture under `tests/fixtures/config`.
+
+        Returns:
+            Both output streams and the exit code.
+        """
+        self.fixture(f"config/{fixture}")
+        return self.run(["config", "check"])

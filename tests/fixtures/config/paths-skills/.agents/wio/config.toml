@@ -1,0 +1,14 @@
+# A config with skills found in the repository, a skill that is in no searched
+# directory, and a skill path outside the repository.
+
+[skills]
+paths = ["extra", "../skills"]
+
+[stages.a]
+skill = "a"
+
+[stages.b]
+skill = "b"
+
+[stages.c]
+skill = "c"

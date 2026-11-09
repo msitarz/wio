@@ -352,10 +352,11 @@ Work, so a document that quotes `<!-- wio` is not one. The file's name and the
 directories above it play no part.
 
 - The **Works directory** is `[works] dir`, a path relative to the repository
-  root whose default is `.agents/wio/works`. A path that leaves the repository
-  is an error, as for root paths. A Works directory that does not exist holds
-  no Works when it is the default, and is an error when `[works] dir` names it;
-  one that is not a directory, or is a symbolic link, is an error.
+  root whose default is `.agents/wio/works`. A path that is not a normalized
+  path inside the repository is an error, as for root paths. A Works directory
+  that does not exist holds no Works when it is the default, and is an error
+  when `[works] dir` names it; one that is not a directory, or is a symbolic
+  link, is an error.
 - wio walks the Works directory recursively and reads every `.md` file in it.
   Below the Works directory it skips directories whose names start with `.`,
   so that tool directories such as `.git` and hidden scratch directories are
@@ -616,10 +617,10 @@ The templates and their kinds live in one optional `[templates]` table, so a
 project without templates leaves it out:
 
 - `[templates] dir` is the templates directory, a path relative to the
-  repository root whose default is `.agents/wio/templates`; a path that leaves
-  the repository is an error. A missing default directory holds no templates;
-  a `[templates] dir` that is set and missing, that is not a directory or that
-  is a symbolic link is an error.
+  repository root whose default is `.agents/wio/templates`; a path that is not a
+  normalized path inside the repository is an error. A missing default directory
+  holds no templates; a `[templates] dir` that is set and missing, that is not a
+  directory or that is a symbolic link is an error.
 - wio walks that directory as it walks the Works directory
   ([Which files are Works](#which-files-are-works)): names end in `.md`,
   matched case-sensitively; directories below it whose names start with `.`
@@ -1186,6 +1187,9 @@ mechanically what wio relies on, and they do not judge how a workflow is built:
 - Every root a contract or a stage names is a root in the config. The config
   keys roots, stage presets and actions by name, so TOML itself rejects a
   duplicate name.
+- The paths the config names are normalized paths inside the repository: the
+  paths of a root, which are also unique within it, `[skills] paths`,
+  `[templates] dir` and `[works] dir`.
 - Every `depends_on` id exists, and there are no cycles in the graph of listed
   dependencies plus each parent's implicit dependency on its children.
 - No stage appears twice in one pipeline. Records key on the Work, the action

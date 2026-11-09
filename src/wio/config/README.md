@@ -1,10 +1,10 @@
 # `wio.config`
 
 The component that reads the project's settings. The terms Source, Shape,
-Setting, Key path, Check and Check run are defined in the [glossary of this
-component](GLOSSARY.md), and Config, Diagnostic and Repository in the
-[repository glossary](../../../GLOSSARY.md). The keys the shape covers are
-listed in the [config](../../../docs/concepts.md#the-config).
+Setting, Key path, Check, Check run, Action cycle and Normalized path are
+defined in the [glossary of this component](GLOSSARY.md), and Config, Diagnostic
+and Repository in the [repository glossary](../../../GLOSSARY.md). The keys the
+shape covers are listed in the [config](../../../docs/concepts.md#the-config).
 
 ## The loader
 
@@ -77,6 +77,27 @@ each check reports and where.
   a contract's pipeline resolves, and what nothing uses, belong to the Works
   that read templates and contracts.
 
+### The path checks
+
+[`paths.py`](paths.py) judges the paths, skills and templates that the config
+names, as text first, and asks the disk only whether a path exists. Its
+docstrings say what each check reports and where.
+
+- **An empty path is an error wherever the config names a path.** It would read
+  as no place at all, while `.` is the whole repository.
+- **A repeat is reported instead of its fault.** Deleting the entry fixes both,
+  and a path repeats an earlier one by its normalized form, so fixing the first
+  does not reveal a repeat on the next run.
+- **A skill path with a fault is left out of the search,** also when only its
+  form is wrong, so a skill is never found through a path that the config
+  refuses.
+- **Only `exists` is asked.** A root path may be a file or a directory, and a
+  `SKILL.md` that exists makes its parent a directory, so no criterion needs
+  `is_dir`.
+- **The user's home is not searched,** so a config means the same on every
+  machine. Other harnesses' directories are added through `[skills] paths`
+  ([the stage](../../../docs/concepts.md#7-stage)).
+
 ## The command
 
 `wio config` lets a person or an agent see the effective settings, where each
@@ -108,7 +129,6 @@ for it.
 
 ## What is not here
 
-- The checks of rule references, paths and skills, which join the check run
-  through `CHECKS`.
+- The checks of rule references, which join the check run through `CHECKS`.
 - Reading `continuable`: the field exists so that people and agents can read
   it, and no component acts on it.

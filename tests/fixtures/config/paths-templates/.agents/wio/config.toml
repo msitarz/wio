@@ -1,0 +1,8 @@
+# A config whose templates directory leaves the repository and whose kind names
+# an empty template.
+
+[templates]
+dir = "../t"
+
+[templates.kinds]
+feature = ""

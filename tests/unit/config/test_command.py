@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import TextIO
 
-from tests.unit.config.fakes import CONFIG, FakeRepository, MemoryFileSystem
+from tests.unit.config.fakes import CONFIG, ROOT, FakeRepository, MemoryFileSystem
 from wio import cli
 from wio.cli.table import component_entry
 from wio.config import ConfigCommand
@@ -54,7 +54,8 @@ def _run(text: str | None, *argv: str) -> _Ran:
     Returns:
         The streams and the exit code.
     """
-    files = MemoryFileSystem({} if text is None else {CONFIG: text})
+    skill = ROOT / ".claude" / "skills" / "review" / "SKILL.md"
+    files = MemoryFileSystem({} if text is None else {CONFIG: text, skill: ""})
     entry = component_entry("config", lambda: ConfigCommand(FakeRepository(), files))
     out, err = io.StringIO(), io.StringIO()
     code = cli.main(["config", *argv], _Stdio(io.StringIO(), out, err), (entry,))

@@ -17,3 +17,12 @@ class Output:
     stdout: str
     stderr: str
     exit_code: int
+
+    @property
+    def lines(self) -> list[str]:
+        """Split what `wio` wrote to standard output into lines.
+
+        Returns:
+            One string for each line, without its newline.
+        """
+        return self.stdout.splitlines()
