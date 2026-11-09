@@ -136,10 +136,13 @@ pay for it.
   that is not set says so, and an item of a list is refused because a list is
   shown whole, under its own key path.
 - **A config with an error is refused** like it is for every other command:
-  nothing reaches standard output and standard error lists the errors.
-  `list` and `show` read `Loaded.sources`, which `Settings` does not return, so
-  they call `load_config` and raise the errors themselves through
-  `config_or_raise`, the one place that `ConfigSettings.load` shares.
+  nothing reaches standard output and standard error lists the errors. The same
+  holds outside a repository: both exit 2, and standard error names the
+  directory and says to run wio from inside the repository, because the loader
+  finds no config to read. `list` and `show` read `Loaded.sources`, which
+  `Settings` does not return, so they call `load_config` and raise the errors
+  themselves through `config_or_raise`, the one place that `ConfigSettings.load`
+  shares.
 
 Three small modules hold the logic, so each can be tested without the others:
 

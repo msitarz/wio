@@ -81,6 +81,11 @@ Until the builders exist, a scenario starts from a fixture:
 generic verb, `wio.run(["config", "show"])`, so the facade has no method for
 each `wio` command and the test drivers dispatch in one place.
 
+A driver's `install` puts the fixture in its sandbox. The in-process driver only
+copies it, and the CLI driver also runs `git init`, so the command finds a
+repository as it does for a user. A scenario that needs no repository, such as
+running outside one, installs nothing and runs on the CLI channel.
+
 A test that needs more than three builder overrides is a sign the builder
 default is wrong or the scenario is testing two things.
 
