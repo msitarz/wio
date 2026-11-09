@@ -4,14 +4,19 @@
 import contextlib
 import io
 from dataclasses import dataclass
-from typing import TextIO
+from typing import TYPE_CHECKING, TextIO
 
 import pytest
 
+import wio.config
 from tests.unit.config.fakes import CONFIG, FakeRepository, MemoryFileSystem
 from wio import cli
 from wio.cli.table import component_entry
-from wio.config import ConfigCommand
+from wio.config import CheckInputs, ConfigCommand
+from wio.models.diagnostics import Diagnostic
+
+if TYPE_CHECKING:
+    from wio.models.config import Config
 
 
 @dataclass
@@ -23,20 +28,68 @@ class _Stdio:
     stderr: TextIO
 
 
-def test_check_runs_the_checks_that_are_put_in_checks() -> None:
+def _run(
+    files: MemoryFileSystem, repository: FakeRepository, *argv: str
+) -> tuple[int, str]:
+    """Run `wio config check ...` on fake ports, writing to a captured stdout.
+
+    Args:
+        files: The files the loader reads.
+        repository: The repository the loader finds.
+        *argv: The arguments after `wio config check`.
+
+    Returns:
+        The exit code and what was written to standard output.
+    """
+    entry = component_entry("config", lambda: ConfigCommand(repository, files))
+    out = io.StringIO()
+    stdio = _Stdio(io.StringIO(), out, io.StringIO())
+    code = cli.main(["config", "check", *argv], stdio, (entry,))
+    return code, out.getvalue()
+
+
+def test_check_runs_the_checks_that_are_put_in_checks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """AC-1: the command reads `wio.config.CHECKS` when it runs."""
+
     # Given a valid config and a check appended to `wio.config.CHECKS`
+    def warn(config: Config, inputs: CheckInputs) -> list[Diagnostic]:
+        del config, inputs
+        return [Diagnostic("warning", "works", "a warning")]
+
+    monkeypatch.setattr(wio.config, "CHECKS", (warn,))
+    files = MemoryFileSystem({CONFIG: ""})
+
     # When `wio config check` runs
-    # Then the check's diagnostic is printed
-    pytest.skip("stub: the implementation stage writes this test")
+    code, out = _run(files, FakeRepository())
+
+    # Then the check's diagnostic is printed and the run succeeds
+    assert out == "warning: works: a warning\n"
+    assert code == 0
 
 
-def test_check_refuses_when_there_is_no_config_to_check() -> None:
+@pytest.mark.parametrize(
+    ("files", "repository"),
+    [
+        (MemoryFileSystem({CONFIG: ""}), FakeRepository(top=None)),
+        (MemoryFileSystem(), FakeRepository()),
+        (MemoryFileSystem({CONFIG: ""}, failure=PermissionError()), FakeRepository()),
+    ],
+    ids=["no repository", "no file", "unreadable file"],
+)
+def test_check_refuses_when_there_is_no_config_to_check(
+    files: MemoryFileSystem, repository: FakeRepository
+) -> None:
     """AC-1: no repository, no file and an unreadable file are refused."""
-    # Given no repository, no config file and an unreadable config file
-    # When `wio config check` runs on each
-    # Then each raises `ConfigurationError` and nothing reaches standard output
-    pytest.skip("stub: the implementation stage writes this test")
+    # Given no repository, no config file or an unreadable config file
+
+    # When `wio config check` runs
+    code, out = _run(files, repository)
+
+    # Then the command line exits 2 and nothing reaches standard output
+    assert code == 2
+    assert out == ""
 
 
 def test_check_is_a_view_of_config_with_a_json_flag() -> None:

@@ -1,0 +1,4 @@
+# A config that is not valid TOML: a table header is not closed.
+
+[works
+hierarchy = "flat"

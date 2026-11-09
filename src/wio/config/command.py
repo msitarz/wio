@@ -13,8 +13,8 @@ from wio.config.keypath import resolve
 from wio.config.listing import as_object, full_line, settings_of, short_line
 from wio.config.loader import config_or_raise, load_config
 
-# `report` is a stub until the implementation stage writes it, so it is bound
-# lazily and a run that needs none, such as `list`, still works.
+# Bound lazily, so a run that does not check, such as `list`, loads neither.
+lazy import wio.config as package
 lazy from wio.config.report import report
 
 if TYPE_CHECKING:
@@ -118,7 +118,6 @@ class ConfigCommand:
             The exit code that `report` gives.
         """
         # Read when it runs, so that a test can replace `wio.config.CHECKS`.
-        import wio.config as package
 
         loaded = load_config(self._repository, self._files, package.CHECKS)
         text, code = report(loaded, as_json=as_json)

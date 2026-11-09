@@ -275,3 +275,41 @@ Work.
 The contract, amendment and docs gates are marked `judge = "human"`, because
 they ask whether something states what the driver meant. The delivery gates are
 judged by an agent.
+
+## 7. Checking the config after every edit
+
+A config with an error is refused by every command, so an agent that edits it
+needs to be told at once. `wio config check` prints the diagnostics and exits 1
+on an error, and each project decides how its harness runs it. This repository
+does it twice:
+
+- **When an agent edits the config.** An entry in `.claude/settings.json` runs
+  the check after `Edit`, `Write` and `MultiEdit`, and exits 2 with the
+  diagnostics on standard error, which Claude Code gives back to the model. It
+  reads the edited path with `jq` and runs the check only for the config, so wio
+  holds no knowledge of the harness. The entry sits beside the formatter:
+
+  ```json
+  {
+    "hooks": {
+      "PostToolUse": [
+        {
+          "matcher": "Edit|Write|MultiEdit",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "jq -r '.tool_input.file_path // empty' | { read -r f; case \"$f\" in */.agents/wio/config.toml) out=$(uv run wio config check 2>/dev/null); [ $? -ne 1 ] || { printf '%s\\n' \"$out\" >&2; exit 2; };; esac; }"
+            }
+          ]
+        }
+      ]
+    }
+  }
+  ```
+
+  A project that has `wio` on its `PATH` writes `wio config check` where this
+  says `uv run wio config check`, and another harness does the same with its own
+  hook.
+- **When a commit changes the config.** The `wio-config` hook of `prek.toml`
+  runs `uv run wio config check` when `.agents/wio/config.toml` is in the
+  commit, and passes it no file names.
