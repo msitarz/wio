@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from tests.acceptance.dsl.results import Output
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from tests.acceptance.drivers.base import WioDriver
 
 
@@ -36,24 +38,26 @@ class Wio:
             exit_code=result.exit_code,
         )
 
-    def with_config(self, text: str) -> None:
-        """Make the sandbox a repository whose config file holds a text.
+    def fixture(self, name: str) -> None:
+        """Start from a static sample repository.
 
         Args:
-            text: The content of `.agents/wio/config.toml`.
+            name: The path of the fixture under `tests/fixtures`, such as
+                `config/rich`.
         """
-        self.driver.prepare({".agents/wio/config.toml": text})
+        self.driver.install(name)
 
-    def run_config(self, *args: str) -> Output:
-        """Run `wio config` with some arguments.
+    def run(self, args: Sequence[str]) -> Output:
+        """Run `wio` with some arguments.
 
         Args:
-            *args: The arguments after `config`, such as `list` and `--json`.
+            args: The arguments after the program name, such as
+                `["config", "show", "works"]`.
 
         Returns:
             Both output streams and the exit code.
         """
-        result = self.driver.run(["config", *args])
+        result = self.driver.run(args)
         return Output(
             stdout=result.stdout,
             stderr=result.stderr,

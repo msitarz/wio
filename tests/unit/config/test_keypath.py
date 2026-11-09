@@ -145,6 +145,20 @@ def test_an_unknown_key_in_an_empty_table_says_it_has_no_entries() -> None:
     assert "`roots` has no entries" in str(caught.value)
 
 
+def test_a_table_with_one_key_calls_it_the_only_key() -> None:
+    """The message does not say `keys` for a single key."""
+    # Given a config whose stages table holds one stage
+    config = load_text('[stages.a]\ngoal = "g"\n').config
+    assert config is not None
+
+    # When a stage that is not there is resolved
+    with pytest.raises(ConfigurationError) as caught:
+        resolve(config, "stages.b")
+
+    # Then the message names the only key in the singular
+    assert "The only key of `stages` is `a`." in str(caught.value)
+
+
 def test_an_optional_setting_that_is_not_set_is_refused() -> None:
     """`judge` has no value."""
     # Given a stage without a judge

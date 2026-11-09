@@ -1,7 +1,7 @@
 # `wio.config`
 
-The component that reads the project's settings. The terms Source, Shape, Key
-path, Check and Check run are defined in the [glossary of this
+The component that reads the project's settings. The terms Source, Shape,
+Setting, Key path, Check and Check run are defined in the [glossary of this
 component](GLOSSARY.md), and Config, Diagnostic and Repository in the
 [repository glossary](../../../GLOSSARY.md). The keys the shape covers are
 listed in the [config](../../../docs/concepts.md#the-config).
@@ -106,10 +106,11 @@ way.
 `wio config` lets a person or an agent see the effective settings, where each
 value comes from and what each setting is for. The package's `describe()`
 returns the spec of the command, and `ConfigCommand` runs it. The spec is made
-in the `__init__` of the package, so describing the command loads no other
-module of `wio.config`, and `ConfigCommand` is bound with a `lazy` import for
-the same reason: every run of `wio` describes every command, and a run that does
-not choose `config` must not pay for it.
+in the `__init__` of the package, and everything else the package exports,
+`ConfigCommand` among it, is bound there with a `lazy from` import, so
+describing the command loads no other module of `wio.config`. Every run of
+`wio` describes every command, and a run that does not choose `config` must not
+pay for it.
 
 - **Bare `wio config`** prints its own usage and exits 0, without reading the
   config file, so it works in a project whose config is broken.
@@ -121,9 +122,10 @@ not choose `config` must not pay for it.
   key path and label reach 80 columns shows `…` as its value and is longer.
 - **`show`** prints the setting or the table at a key path in full, with its
   source. A single setting is followed by a line with its description, and a
-  table prints the setting lines only. With no key path it prints the whole
-  config. A string is written on one line, its newlines as `\n`, so every
-  setting stays one line.
+  table prints the setting lines only. A table is a key path whose value is its
+  entries, so `show stages` prints the settings of every stage, and with no key
+  path it prints the whole config. A string is written on one line, its newlines
+  as `\n`, so every setting stays one line.
 - **`--json`**, on both, writes one object that maps each key path to
   `{"value": ..., "source": ...}`, sorted by key path and never shortened. The
   `json` module is imported only for it.

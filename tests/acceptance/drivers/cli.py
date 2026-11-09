@@ -4,7 +4,7 @@
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from tests.acceptance.drivers.base import RunResult, SandboxedDriver
 
@@ -39,3 +39,18 @@ class CliDriver(SandboxedDriver):
             check=False,
         )
         return RunResult(done.stdout, done.stderr, done.returncode)
+
+    @override
+    def install(self, fixture: str) -> None:
+        """Copy a fixture and make the sandbox a git repository, as a user has.
+
+        Args:
+            fixture: The path of the fixture under `tests/fixtures`.
+        """
+        super().install(fixture)
+        subprocess.run(
+            ["git", "init", "--quiet"],
+            cwd=self._sandbox.root,
+            env=self._sandbox.env,
+            check=True,
+        )

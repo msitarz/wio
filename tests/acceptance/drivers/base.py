@@ -1,14 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 """The test driver Protocol: how a scenario's facade reaches `wio`."""
 
-import subprocess
+import shutil
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Sequence
 
     from tests.sandbox import Sandbox
+
+FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
+"""The static sample repositories a scenario can install, one directory each."""
 
 
 @dataclass(frozen=True)
@@ -44,12 +48,12 @@ class WioDriver(Protocol):
         """
         ...
 
-    def prepare(self, files: Mapping[str, str]) -> None:
-        """Make the driver's sandbox a git repository that holds some files.
+    def install(self, fixture: str) -> None:
+        """Put a static sample repository in the driver's sandbox.
 
         Args:
-            files: The text of each file by its path relative to the root of the
-                repository; its directories are created.
+            fixture: The path of the fixture under `tests/fixtures`, such as
+                `config/rich`; its files are copied to the root of the sandbox.
         """
         ...
 
@@ -69,20 +73,10 @@ class SandboxedDriver:
         """
         self._sandbox = sandbox
 
-    def prepare(self, files: Mapping[str, str]) -> None:
-        """Initialize a git repository in the sandbox and write the files.
+    def install(self, fixture: str) -> None:
+        """Copy a fixture to the root of the sandbox.
 
         Args:
-            files: The text of each file by its path relative to the root of the
-                repository; its directories are created.
+            fixture: The path of the fixture under `tests/fixtures`.
         """
-        subprocess.run(
-            ["git", "init", "--quiet"],
-            cwd=self._sandbox.root,
-            env=self._sandbox.env,
-            check=True,
-        )
-        for name, text in files.items():
-            path = self._sandbox.root / name
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text, encoding="utf-8")
+        shutil.copytree(FIXTURES / fixture, self._sandbox.root, dirs_exist_ok=True)

@@ -6,11 +6,12 @@ from typing import TYPE_CHECKING, Any
 
 from tests.acceptance.drivers.base import RunResult
 from tests.acceptance.drivers.cli import SCRIPT, CliDriver
+from tests.acceptance.drivers.in_process import InProcessDriver
 from tests.acceptance.dsl.results import Output
 from tests.acceptance.dsl.wio import Wio
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Sequence
 
     import pytest
 
@@ -32,13 +33,13 @@ class FakeDriver:
         del args
         return RunResult("usage\n", "warning\n", 3)
 
-    def prepare(self, files: Mapping[str, str]) -> None:
-        """Prepare nothing.
+    def install(self, fixture: str) -> None:
+        """Install nothing.
 
         Args:
-            files: Ignored.
+            fixture: Ignored.
         """
-        del files
+        del fixture
 
 
 def _spy_on_subprocess(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
@@ -106,7 +107,7 @@ class RecordingDriver:
     def __init__(self) -> None:
         """Start with nothing recorded."""
         self.arguments: list[Sequence[str]] = []
-        self.prepared: list[Mapping[str, str]] = []
+        self.installed: list[str] = []
 
     def run(self, args: Sequence[str]) -> RunResult:
         """Record the arguments.
@@ -120,53 +121,66 @@ class RecordingDriver:
         self.arguments.append(args)
         return RunResult("", "", 0)
 
-    def prepare(self, files: Mapping[str, str]) -> None:
-        """Record the files.
+    def install(self, fixture: str) -> None:
+        """Record the fixture.
 
         Args:
-            files: The files the facade asked for.
+            fixture: The fixture the facade asked for.
         """
-        self.prepared.append(files)
+        self.installed.append(fixture)
 
 
-def test_the_facade_runs_config_with_its_arguments() -> None:
-    """`run_config` puts `config` before the arguments."""
+def test_the_facade_runs_any_command_with_its_arguments() -> None:
+    """`run` hands the arguments to the driver as they are given."""
     # Given a facade over a recording driver
     driver = RecordingDriver()
     wio = Wio(driver)
 
-    # When wio config runs through the facade
-    output = wio.run_config("show", "works", "--json")
+    # When a command runs through the facade
+    output = wio.run(["config", "show", "works", "--json"])
 
-    # Then the driver ran `config show works --json` and the output is silent
+    # Then the driver ran those arguments and the output is the driver's result
     assert driver.arguments == [["config", "show", "works", "--json"]]
     assert output == Output(stdout="", stderr="", exit_code=0)
 
 
-def test_the_facade_prepares_the_config_file() -> None:
-    """`with_config` asks for the config file at its place."""
+def test_the_facade_installs_a_fixture_by_name() -> None:
+    """`fixture` asks the driver for the sample repository of that name."""
     # Given a facade over a recording driver
     driver = RecordingDriver()
     wio = Wio(driver)
 
-    # When a config is given to the facade
-    wio.with_config("[works]\n")
+    # When a scenario starts from a fixture
+    wio.fixture("config/rich")
 
-    # Then the driver was asked for that file in `.agents/wio`
-    assert driver.prepared == [{".agents/wio/config.toml": "[works]\n"}]
+    # Then the driver was asked to install it
+    assert driver.installed == ["config/rich"]
 
 
-def test_the_driver_prepares_a_git_repository_with_the_files(
+def test_a_driver_copies_the_fixture_into_its_sandbox(sandbox: Sandbox) -> None:
+    """The files of the fixture are in the sandbox, nested directories included."""
+    # Given the in-process driver, whose install starts no process
+    driver = InProcessDriver(sandbox)
+
+    # When it installs the rich config fixture
+    driver.install("config/rich")
+
+    # Then the config file is at its place in the sandbox's root
+    config = sandbox.root / ".agents" / "wio" / "config.toml"
+    assert "[works]" in config.read_text(encoding="utf-8")
+
+
+def test_the_cli_driver_makes_the_installed_fixture_a_git_repository(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The sandbox gets `git init` and each file, with its directories."""
+    """The CLI channel runs `git init` after copying, as a user has a repository."""
     # Given the CLI driver and a spy in place of starting git
     calls = _spy_on_subprocess(monkeypatch)
 
-    # When it prepares a file in a directory
-    CliDriver(sandbox).prepare({"a/b.txt": "text"})
+    # When it installs a fixture
+    CliDriver(sandbox).install("config/rich")
 
-    # Then git was initialized in the sandbox and the file was written
+    # Then git was initialized in the sandbox and the files are there
     assert calls[0]["command"] == ["git", "init", "--quiet"]
     assert calls[0]["cwd"] == sandbox.root
-    assert (sandbox.root / "a" / "b.txt").read_text(encoding="utf-8") == "text"
+    assert (sandbox.root / ".agents" / "wio" / "config.toml").is_file()

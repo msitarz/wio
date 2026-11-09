@@ -202,11 +202,10 @@ def _unknown(path: str, name: str, names: Sequence[str]) -> ConfigurationError:
     close = difflib.get_close_matches(name, names, n=1)
     if close:
         message += f" Did you mean `{join_path(path, close[0])}`?"
-    if names:
-        verb = "is" if len(names) == 1 else "are"
-        message += (
-            f" The keys of {where} {verb} {and_list([quoted([n]) for n in names])}."
-        )
+    if len(names) == 1:
+        message += f" The only key of {where} is {quoted(names)}."
+    elif names:
+        message += f" The keys of {where} are {and_list([quoted([n]) for n in names])}."
     else:
         message += f" {where.capitalize()} has no entries."
     return ConfigurationError(message)
