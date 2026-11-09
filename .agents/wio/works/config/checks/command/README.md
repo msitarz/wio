@@ -35,6 +35,8 @@ after every edit of it, so that an agent is told what to fix before it goes on.
   when the hook exits 2.
 - **A-2**: `uv run wio` runs wio in this repository, as the other hooks run
   their tools through `uv run`, so the hooks need no `wio` on `PATH`.
+- **A-3**: `jq` is on the `PATH` of the hook, as the formatter hook already
+  assumes.
 
 ## Mechanisms
 
@@ -42,10 +44,11 @@ after every edit of it, so that an agent is told what to fix before it goes on.
   loader's diagnostics and the shared renderer, not `Settings.load`.
 - A local hook in `prek.toml` whose entry is `uv run wio config check`, with
   `files` set to the config's path and `pass_filenames = false`.
-- `scripts/config_check_hook.py`, which reads the hook's JSON with the standard
-  library and runs `uv run wio config check`.
-- `.claude/settings.json`, which installs it as a second `PostToolUse` hook.
-- `docs/workflow.md`, which shows the script as an example.
+- `.claude/settings.json`, which installs a second `PostToolUse` hook beside the
+  formatter: a shell command that reads the edited path with `jq`, runs
+  `uv run wio config check` for the config only and exits 2 with the output on
+  standard error when the check fails.
+- `docs/workflow.md`, which shows that entry as an example.
 
 ## Acceptance criteria
 
@@ -107,37 +110,36 @@ changes and passes it no file names.
 
 ### **AC-3** An agent's edit of the config is checked at once
 
-`scripts/config_check_hook.py` runs the check after a Claude Code edit of the
-config and returns the errors to the agent, and `.claude/settings.json`
-installs it.
-
-#### An edit of the config with an error
-
-- **Given** the hook's JSON for an edit whose `tool_input.file_path` is the
-  absolute path of `.agents/wio/config.toml`, and a config with an error.
-- **When** the script reads it on standard input.
-- **Then** it runs `uv run wio config check`, prints the diagnostics to standard
-  error and exits 2.
-
-#### Other edits and a config without errors
-
-- **Given** the hook's JSON for an edit of a Python file, an edit of the config
-  while it has no error, and a document that is not JSON.
-- **When** the script reads each.
-- **Then** it exits 0 and prints nothing.
+`.claude/settings.json` has a `PostToolUse` hook that runs `wio config check`
+after an edit of the config and returns its diagnostics to the agent. It holds
+no knowledge of the harness in wio itself.
 
 #### Installed
 
 - **Given** `.claude/settings.json`.
 - **When** its `PostToolUse` hooks are read.
-- **Then** one runs the script after `Edit`, `Write` and `MultiEdit`, beside the
-  existing formatter.
+- **Then** one runs after `Edit`, `Write` and `MultiEdit`, beside the existing
+  formatter, and its command runs `uv run wio config check`.
+
+#### An edit of the config with an error
+
+- **Given** the hook's JSON for an edit whose `tool_input.file_path` is the
+  absolute path of `.agents/wio/config.toml`, and a config with an error.
+- **When** the command of the hook runs with that JSON on standard input.
+- **Then** it prints the diagnostics to standard error and exits 2.
+
+#### Other edits and a config without errors
+
+- **Given** the hook's JSON for an edit of another TOML file, and for an edit
+  of the config while it has no error.
+- **When** the command of the hook runs with each on standard input.
+- **Then** it exits 0 and prints nothing.
 
 ### **AC-4** The recipe is documented
 
-`docs/workflow.md` shows the script and the `PostToolUse` entry as an example
-for any project, says that each project chooses its own, and says when the
-prek hook runs.
+`docs/workflow.md` shows the `PostToolUse` entry as an example for any project,
+says that each project chooses its own and writes `wio config check` where wio
+is installed on the `PATH`, and says when the prek hook runs.
 
 ## Additional context
 
