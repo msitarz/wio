@@ -27,12 +27,11 @@ def test_the_repository_config_passes_its_own_check() -> None:
         check=False,
     )
 
-    # Then it exits 0 and prints no diagnostic
-    assert (done.returncode, done.stdout, done.stderr) == (
-        0,
-        "Config check passed!\n",
-        "",
-    )
+    # Then it exits 0, prints nothing on standard error, and no line of standard
+    # output is an error; a warning, such as a root whose directory does not hold
+    # a Work yet, does not fail it
+    assert (done.returncode, done.stderr) == (0, "")
+    assert not [line for line in done.stdout.splitlines() if line.startswith("error")]
 
 
 def test_the_header_of_the_config_says_what_reads_it() -> None:
