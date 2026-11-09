@@ -15,3 +15,4 @@ Config and Diagnostic among them, in the
 | Check | A function from the `Config` and what it may read (`CheckInputs`) to diagnostics, with one concern, such as the references among stages. The checks are kept in `CHECKS`. |
 | Check run | The loader's run of the shape and then every check, on a best-effort `Config` when the shape has errors. `wio config check` prints its diagnostics and `Settings.load` refuses on its errors. |
 | Action cycle | Actions that come after one another, directly or through others, or one that comes after itself. The check reports one error for each such group. |
+| Normalized path | A path relative to the repository root, with `/` as the separator and without a `.` or `..` segment, an empty segment, a trailing slash or a leading `/`; `.` alone is the whole repository. Every path the config names is one. |

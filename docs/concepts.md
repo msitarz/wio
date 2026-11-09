@@ -1186,6 +1186,9 @@ mechanically what wio relies on, and they do not judge how a workflow is built:
 - Every root a contract or a stage names is a root in the config. The config
   keys roots, stage presets and actions by name, so TOML itself rejects a
   duplicate name.
+- The paths the config names are normalized paths inside the repository: the
+  paths of a root, which are also unique within it, `[skills] paths`,
+  `[templates] dir` and `[works] dir`.
 - Every `depends_on` id exists, and there are no cycles in the graph of listed
   dependencies plus each parent's implicit dependency on its children.
 - No stage appears twice in one pipeline. Records key on the Work, the action
