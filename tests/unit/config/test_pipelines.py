@@ -5,8 +5,13 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.unit.config.fakes import CONFIG, ROOT, FakeRepository, MemoryFileSystem
-from wio.config import CHECKS, CheckInputs, load_config, pipelines
+from tests.unit.config.fakes import (
+    CONFIG,
+    ROOT,
+    FakeRepository,
+    MemoryFileSystem,
+)
+from wio.config import CheckInputs, load_config, pipelines
 from wio.models.config import (
     Action,
     Config,
@@ -99,22 +104,6 @@ def _found(diagnostics: Iterable[Diagnostic]) -> dict[str, str]:
     places = [d.where for d in found]
     assert len(places) == len(set(places)), f"reported twice: {places}"
     return {d.where: f"{d.severity}: {d.message}" for d in found}
-
-
-def test_the_check_run_includes_the_pipeline_checks_in_order() -> None:
-    """AC-1 to AC-4: the loader runs them after the shape, so `check` prints them."""
-    # Given the checks that the loader runs by default
-
-    # When they are listed
-    names = [check.__name__ for check in CHECKS]
-
-    # Then the pipeline checks are among them, in the order of the contract
-    assert names == [
-        pipelines.check_stage_references.__name__,
-        pipelines.check_stage_roots.__name__,
-        pipelines.check_actions.__name__,
-        pipelines.check_gate_results.__name__,
-    ]
 
 
 def test_a_missing_stage_and_a_repeated_stage_in_a_stage_preset_are_errors() -> None:

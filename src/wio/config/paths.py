@@ -16,13 +16,16 @@ form, "; use `<normalized>`", followed by a sentence of the check that judges
 it; each check below gives its sentence.
 """
 
-from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from wio.config.checks import CheckInputs
-from wio.models.config import Config
-from wio.models.diagnostics import Diagnostic
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from wio.config.checks import CheckInputs
+    from wio.models.config import Config
+    from wio.models.diagnostics import Diagnostic
+
 
 @dataclass(frozen=True)
 class Unusable:
@@ -35,6 +38,7 @@ class Unusable:
     """
 
     rule: Literal["is empty", "is absolute", "leaves the repository"]
+
 
 @dataclass(frozen=True)
 class NotNormalized:
@@ -49,8 +53,10 @@ class NotNormalized:
 
     normalized: str
 
+
 type PathFault = Unusable | NotNormalized
 """Why a path is not a normalized path inside the repository."""
+
 
 def judge_path(path: str) -> PathFault | None:
     """Judge a path from the config as text, without reading the disk.
@@ -65,8 +71,13 @@ def judge_path(path: str) -> PathFault | None:
         (`src/` is `src`, `a/./b` is `a/b`, `a/../b` is `b`, `src//x` is
         `src/x` and `./` is `.`).
     """
-    ...
+    del path
+    return None
 
+
+# The leaves are stubs of one shape until the implementation stage, so the
+# duplicate detector skips them, and the markers go with the stubs.
+# jscpd:ignore-start  # noqa: ERA001
 def check_root_paths(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
     """Check the paths of every root.
 
@@ -88,7 +99,9 @@ def check_root_paths(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic
         yet. An empty path is a fault of this check, which the contract leaves to
         it.
     """
-    ...
+    del config, inputs
+    return ()
+
 
 def check_skills(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
     """Check that every skill a stage names is found, and where skills are sought.
@@ -111,7 +124,9 @@ def check_skills(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
         `..` or has a `/`, is not found without a lookup. A stage with a `goal`
         is not judged, and a stage that has both is left to the shape.
     """
-    ...
+    del config, inputs
+    return ()
+
 
 def check_templates(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
     """Check the shape of the `[templates]` table.
@@ -129,7 +144,9 @@ def check_templates(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]
         not repeat the key path. The defaults are valid, so a config without the
         table gets no diagnostic.
     """
-    ...
+    del config, inputs
+    return ()
+
 
 def check_works_dir(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
     """Check that the Works directory is inside the repository.
@@ -142,4 +159,8 @@ def check_works_dir(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]
         An error at `works.dir` for a path with a fault, worded as the module
         says and followed by "The path must be inside the repository.".
     """
-    ...
+    del config, inputs
+    return ()
+
+
+# jscpd:ignore-end  # noqa: ERA001

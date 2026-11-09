@@ -4,6 +4,12 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.config.paths import (
+    check_root_paths,
+    check_skills,
+    check_templates,
+    check_works_dir,
+)
 from wio.config.pipelines import (
     check_actions,
     check_gate_results,
@@ -50,6 +56,10 @@ CHECKS: tuple[Check, ...] = (
     check_stage_roots,
     check_actions,
     check_gate_results,
+    check_root_paths,
+    check_skills,
+    check_templates,
+    check_works_dir,
 )
 """The checks that the loader runs after the shape, in order.
 

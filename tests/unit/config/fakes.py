@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from wio.config import load_config
+from wio.config import CHECKS, load_config
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -180,3 +180,17 @@ def load_text(text: str, checks: Sequence[Check] = ()) -> Loaded:
     return load_config(
         FakeRepository(), MemoryFileSystem({CONFIG: text}), checks=checks
     )
+
+
+def run_order(ours: Sequence[Check]) -> list[Check]:
+    """List some checks in the order the check run runs them.
+
+    Args:
+        ours: The checks of one Work.
+
+    Returns:
+        Those of `ours` that `wio.config.CHECKS` holds, in the order it holds
+        them, so a test says that its Work's checks run in a stated order whatever
+        the other Works append.
+    """
+    return [check for check in CHECKS if check in ours]
