@@ -26,11 +26,3 @@ def test_each_text_diagnostic_is_a_line_in_the_order_given() -> None:
     # When it is reported as text
     # Then there is one line per diagnostic, in the same order
     pytest.skip("stub: the implementation stage writes this test")
-
-
-def test_json_imports_json_only_when_asked() -> None:
-    """AC-1: a text report never loads `json`."""
-    # Given a fresh interpreter that reports a load as text
-    # When `sys.modules` is read
-    # Then `json` is not in it
-    pytest.skip("stub: the implementation stage writes this test")

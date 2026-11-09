@@ -10,11 +10,8 @@ from tests.acceptance.channels import Channel
 if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
 
-# Git runs in every scenario, so none of them is fast.
-pytestmark = [
-    pytest.mark.slow,
-    pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI),
-]
+# The CLI channel is slow by itself, so the in-process run stays in the fast tests.
+pytestmark = pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 
 
 def test_a_valid_config_prints_nothing_and_an_invalid_one_fails(wio: Wio) -> None:
@@ -26,9 +23,11 @@ def test_a_valid_config_prints_nothing_and_an_invalid_one_fails(wio: Wio) -> Non
     pytest.skip("stub: the implementation stage writes this test")
 
 
+@pytest.mark.channels(Channel.IN_PROCESS)
 def test_a_warning_is_printed_and_does_not_fail(wio: Wio) -> None:
     """AC-1: a warning of a check in `wio.config.CHECKS` exits 0."""
-    # Given a valid config and a check put in CHECKS that returns a warning
+    # Given a valid config and a check put in CHECKS that returns a warning,
+    # which only the in-process channel can do: the stage adds that to the DSL
     # When `wio config check` runs
     # Then it prints `warning: <where>: <message>` and exits 0
     del wio

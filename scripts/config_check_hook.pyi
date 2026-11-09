@@ -15,7 +15,11 @@ from subprocess import CompletedProcess
 from typing import TextIO
 
 CONFIG_PATH: str
-"""The config file relative to the repository root: `.agents/wio/config.toml`."""
+"""The config file relative to the repository root: `.agents/wio/config.toml`.
+
+It repeats `wio.config.loader.CONFIG_PATH` on purpose, because the script uses
+the standard library alone and `scripts` may not import `wio`.
+"""
 
 def is_config_edit(document: object) -> bool:
     """Say whether a hook document is an edit of the config file.

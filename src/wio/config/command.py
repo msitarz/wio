@@ -65,24 +65,25 @@ class ConfigCommand:
             stdio: The streams to write to.
 
         Returns:
-            0, or 1 for `check` when a diagnostic is an error. Bare `wio config`
-            writes its help and reads no config file. `check` loads with
-            `wio.config.CHECKS`, read when it runs so that a test can replace
-            it, and writes every diagnostic that `report` renders to
-            `stdio.stdout`, an error as well as a warning. `list`
+            0. Bare `wio config` writes its help and reads no config file. `list`
             and `show` write to `stdio.stdout` only, one line per setting. A
             single setting shown by `show` is followed by a line that holds its
             description.
 
+            `check` writes every diagnostic that `report` renders, a warning as
+            well as an error, to `stdio.stdout` after running the checks that
+            `wio.config.CHECKS` holds when `run` is called, and returns 1 when
+            any is an error, 0 otherwise.
+
         Raises:
-            ConfigurationError: The config has an error: it carries every error
-                and renders them as its message, as `ConfigSettings.load` does,
-                and nothing is written to `stdio.stdout`. Or the key path, which
-                `show` judges after the config is loaded, names nothing that can
-                be shown. The command line exits 2. `check` raises only when
+            ConfigurationError: For `list` and `show`, the config has an error:
+                it carries every error and renders them as its message, as
+                `ConfigSettings.load` does, and nothing is written to
+                `stdio.stdout`. Or the key path, which `show` judges after the
+                config is loaded, names nothing that can be shown. For `check`,
                 there is no config to check: no repository, no file or an
-                unreadable one. Every error inside a config it reports as an
-                exit code of 1.
+                unreadable one; an error inside a config is reported, not
+                raised. The command line exits 2.
         """
         arguments = cast("Arguments", args)
         if arguments.config_view is None:
