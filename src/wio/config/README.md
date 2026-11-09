@@ -63,13 +63,13 @@ runs and passes it.
 ## The command
 
 `wio config` lets a person or an agent see the effective settings, where each
-value comes from and what each setting is for. The package's `describe()`
-returns the spec of the command, and `ConfigCommand` runs it. The spec is made
-in the `__init__` of the package, and everything else the package exports,
-`ConfigCommand` among it, is bound there with a `lazy from` import, so
-describing the command loads no other module of `wio.config`. Every run of
-`wio` describes every command, and a run that does not choose `config` must not
-pay for it.
+value comes from and what each setting is for, and check them. The package's
+`describe()` returns the spec of the command, and `ConfigCommand` runs it. The
+spec is made in the `__init__` of the package, and everything else the package
+exports, `ConfigCommand` among it, is bound there with a `lazy from` import, so
+describing the command loads no other module of `wio.config`. Every run of `wio`
+describes every command, and a run that does not choose `config` must not pay
+for it.
 
 - **Bare `wio config` reads no config file,** so it works in a project whose
   config is broken.
@@ -79,12 +79,19 @@ pay for it.
 - **`list` and `show` call `load_config`,** because they read `Loaded.sources`,
   which `Settings` does not return. They raise the errors themselves through
   `config_or_raise`, the one place that `ConfigSettings.load` shares.
+- **`check` prints the errors of a config instead of refusing it,** because
+  whoever edits the config needs the findings, while `list` and `show` need a
+  valid one.
+- **A clean text run says so,** so that success is told apart from a command
+  that did nothing, while `--json` stays a document.
+- **Hooks run the check after every change of the config.** The recipe is in
+  [the workflow](../../../docs/workflow.md#7-checking-the-config-after-every-edit).
 - **`resolve` judges a key path by the fields of the `Config` alone,** so a
   table without entries is told from an unknown key.
 
 ## What is not here
 
-- The cross-reference, path and skill checks, and the `wio config check`
-  command, which join the check run through `CHECKS`.
+- The cross-reference, path and skill checks, which join the check run through
+  `CHECKS`.
 - Reading `continuable`: the field exists so that people and agents can read
   it, and no component acts on it.

@@ -37,6 +37,13 @@ class ConfigSpec:
         shown.add_argument("key", nargs="?", default="", metavar="key.path", help=_KEY)
         shown.add_argument("--json", action="store_true", help=_JSON)
         shown.set_defaults(config_view="show")
+        checked = views.add_parser(
+            "check",
+            help="Check the settings and print every diagnostic.",
+            description=_CHECK,
+        )
+        checked.add_argument("--json", action="store_true", help=_CHECK_JSON)
+        checked.set_defaults(config_view="check")
 
 
 _LIST = (
@@ -47,6 +54,12 @@ _SHOW = (
     "Show the setting or the table at a key path in full, each with its source. "
     "A single setting is followed by its description."
 )
+_CHECK = (
+    "Check the config and print every diagnostic, one per line, or "
+    "`Config check passed!` when there is none. Exits 1 when any is an error, 2 "
+    "when there is no config to check."
+)
+_CHECK_JSON = "Write the diagnostics as a JSON array of severity, where and message."
 _KEY = "The key path of a setting or a table, such as stages.define; all by default."
 _JSON = "Write one JSON object that maps each key path to its value and source."
 
