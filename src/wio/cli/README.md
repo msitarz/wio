@@ -24,9 +24,8 @@ subcommand joins the command line by adding an entry made with
   `describe()` that the package of every component provides.
 
 A component's `wire` binds its command with a `lazy` import and builds the
-adapters it needs there, so only the chosen command imports them. `config` is
-the first entry; it reads the config file through the local disk and the git
-repository.
+adapters it needs there, so only the chosen command imports them. The `config`
+entry reads the config file through the local disk and the git repository.
 
 The reason for the split is speed: a command that runs often must not load the
 implementation of the commands it does not run.

@@ -42,7 +42,7 @@ records), it creates a real repository in `tmp_path`.
 | Layer | Role |
 |---|---|
 | Scenario (test function) | States what happens, in domain terms |
-| `Wio` facade | Domain verbs: `config`, `rules`, `work`, `context`, `trailers`, `check`, `contracts_new`. Applies defaults. |
+| `Wio` facade | `run(args)` runs any command and `fixture(name)` starts from a sample repository. The sketches in this document call builder verbs such as `config`, `rules` and `work`, which start from a minimal valid repo and apply defaults. |
 | Builders | Produce a minimal valid repo state; tests override only what they are about |
 | `WioDriver` (Protocol) | Narrow interface: run an operation against a prepared temp repo, return a result object |
 | Test drivers | In-process and CLI implementations of the Protocol |
@@ -75,7 +75,7 @@ def test_reviewer_only_rules_never_reach_the_author_stage(wio):
     assert "ARC001" not in bundle
 ```
 
-Until the builders exist, a scenario starts from a fixture:
+A scenario can start from a fixture:
 `wio.fixture("config/rich")` copies the static sample repository
 `tests/fixtures/config/rich` into the sandbox. A command runs through the one
 generic verb, `wio.run(["config", "show"])`, so the facade has no method for

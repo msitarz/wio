@@ -115,11 +115,13 @@ pay for it.
 - **Bare `wio config`** prints its own usage and exits 0, without reading the
   config file, so it works in a project whose config is broken.
 - **`list`** prints one line for each setting that has a value, as
-  `key.path = value  # file` or `# default`, in key-path order. A line is at
-  most 80 columns where it can be. A string of several lines shows its first
-  line, then `…` before the closing quote, a string or an array that is too long
-  is cut with `…`, and the key path and the label are never cut, so a line whose
-  key path and label reach 80 columns shows `…` as its value and is longer.
+  `key.path = value  # file` or `# default`, in key-path order. The value is
+  written in TOML syntax, strings quoted and lists as arrays, so that a line
+  reads as the config file would hold it. A line is at most 80 columns where it
+  can be. A string of several lines shows its first line, then `…` before the
+  closing quote, a string or an array that is too long is cut with `…`, and the
+  key path and the label are never cut, so a line whose key path and label reach
+  80 columns shows `…` as its value and is longer.
 - **`show`** prints the setting or the table at a key path in full, with its
   source. A single setting is followed by a line with its description, and a
   table prints the setting lines only. A table is a key path whose value is its
