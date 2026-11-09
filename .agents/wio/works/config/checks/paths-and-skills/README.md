@@ -46,10 +46,14 @@ must be usable and stay inside the repository before a command relies on them.
 - **A-2**: The driver decided that a kind's template name that is an empty
   string is an error.
 
+- **A-3**: The driver decided that an empty path is an error wherever the config
+  names a path: a root path, a skill path, `[templates] dir` and `[works] dir`.
+
 ## Mechanisms
 
-- `FileSystem.exists` and `is_dir`, through the port, for paths and
-  `<dir>/<skill>/SKILL.md`.
+- `FileSystem.exists` alone, through the port, for paths and
+  `<dir>/<skill>/SKILL.md`; whether a path is a file or a directory is not
+  asked, because a `SKILL.md` that exists makes its parent a directory.
 - `pathlib.PurePosixPath` to normalize a path and tell whether it leaves the
   repository.
 - Checks appended to `CHECKS` in `wio.config`.
