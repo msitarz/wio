@@ -29,7 +29,7 @@ class Arguments:
     them.
     """
 
-    config_view: Literal["list", "show"] | None
+    config_view: Literal["list", "show", "check"] | None
     """The subcommand chosen, `None` for bare `wio config`."""
 
     config_help: Callable[[], str]
@@ -37,14 +37,15 @@ class Arguments:
     `wio config` prints it without loading the config file."""
 
     json: bool
-    """Whether to write one JSON object; present for `list` and `show`."""
+    """Whether to write JSON; one object for `list` and `show`, an array of
+    diagnostics for `check`."""
 
     key: str
     """The key path of `show`, empty for the whole config; present for `show`."""
 
 
 class ConfigCommand:
-    """Runs `wio config`: bare for its help, `list` and `show` for the settings."""
+    """Runs `wio config`: help, `list` and `show` for settings, `check` for errors."""
 
     def __init__(self, repository: Repository, files: FileSystem) -> None:
         """Keep the ports the loader reads through.
@@ -64,7 +65,11 @@ class ConfigCommand:
             stdio: The streams to write to.
 
         Returns:
-            0. Bare `wio config` writes its help and reads no config file. `list`
+            0, or 1 for `check` when a diagnostic is an error. Bare `wio config`
+            writes its help and reads no config file. `check` loads with
+            `wio.config.CHECKS`, read when it runs so that a test can replace
+            it, and writes every diagnostic that `report` renders to
+            `stdio.stdout`, an error as well as a warning. `list`
             and `show` write to `stdio.stdout` only, one line per setting. A
             single setting shown by `show` is followed by a line that holds its
             description.
@@ -74,7 +79,10 @@ class ConfigCommand:
                 and renders them as its message, as `ConfigSettings.load` does,
                 and nothing is written to `stdio.stdout`. Or the key path, which
                 `show` judges after the config is loaded, names nothing that can
-                be shown. The command line exits 2.
+                be shown. The command line exits 2. `check` raises only when
+                there is no config to check: no repository, no file or an
+                unreadable one. Every error inside a config it reports as an
+                exit code of 1.
         """
         arguments = cast("Arguments", args)
         if arguments.config_view is None:
