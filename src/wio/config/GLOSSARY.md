@@ -14,3 +14,4 @@ Config and Diagnostic among them, in the
 | Key path | The dotted names that lead to a setting, such as `stages.define.session`. A list item adds its index, as in `stages.define.rules_include[0]`, and a key that contains a dot is quoted as in TOML, as `stages."a.b".goal`. |
 | Check | A function from the `Config` and what it may read (`CheckInputs`) to diagnostics, with one concern, such as the references among stages. The checks are kept in `CHECKS`. |
 | Check run | The loader's run of the shape and then every check, on a best-effort `Config` when the shape has errors. `wio config check` prints its diagnostics and `Settings.load` refuses on its errors. |
+| Action cycle | Actions that come after one another, directly or through others, or one that comes after itself. The check reports one error for each such group. |

@@ -1184,7 +1184,8 @@ mechanically what wio relies on, and they do not judge how a workflow is built:
   action, the names in `invalidated_by` are declared actions with a known
   prefix, and every stage's skill can be found.
 - Every root a contract or a stage names is a root in the config. The config
-  keys roots by name, so TOML itself rejects a duplicate name.
+  keys roots, stage presets and actions by name, so TOML itself rejects a
+  duplicate name.
 - Every `depends_on` id exists, and there are no cycles in the graph of listed
   dependencies plus each parent's implicit dependency on its children.
 - No stage appears twice in one pipeline. Records key on the Work, the action
@@ -2248,7 +2249,8 @@ it records two events:
   does. An event shows what a session recorded, not that a commit exists.
 
 Results come from a vocabulary that the config declares, so a misspelled
-result is an error:
+result is an error. The vocabulary has at least one result and no duplicate, so
+a gate can decide and a result means one thing:
 
 ```toml
 [gates]
