@@ -1101,10 +1101,11 @@ something else. Every proposal says so in one fixed line.
   the actions it lists, and actions with no relation between them are ordered by
   name, so the order never depends on how the config file is laid out. `after`
   means order and nothing else. A cycle in `after` is an error in
-  `wio config check`. An entry that starts with `@` is reserved for v0.2 (for
-  example `@descendants:deliver`, to order a Work after its descendants'
-  delivery): v0.1 accepts it with a note and does not read it, and the same goes
-  for any `@` prefix in `invalidated_by` other than the ones defined. On-demand
+  `wio config check`, and so is an entry that starts with `@`, because `after`
+  has no such form yet; one is added when a Work needs it, such as
+  `@descendants:deliver` to order a Work after its descendants' delivery. An
+  `@` prefix in `invalidated_by` other than the ones defined is reserved for
+  v0.2: v0.1 accepts it with a note and does not read it. On-demand
   actions are never proposed. The proposal is the first stage, in the first
   action, that is not current.
 - A stage is **current** when it has a record, and its latest record is newer
@@ -1183,7 +1184,8 @@ mechanically what wio relies on, and they do not judge how a workflow is built:
   action, the names in `invalidated_by` are declared actions with a known
   prefix, and every stage's skill can be found.
 - Every root a contract or a stage names is a root in the config. The config
-  keys roots by name, so TOML itself rejects a duplicate name.
+  keys roots, stage presets and actions by name, so TOML itself rejects a
+  duplicate name.
 - Every `depends_on` id exists, and there are no cycles in the graph of listed
   dependencies plus each parent's implicit dependency on its children.
 - No stage appears twice in one pipeline. Records key on the Work, the action
@@ -2247,7 +2249,8 @@ it records two events:
   does. An event shows what a session recorded, not that a commit exists.
 
 Results come from a vocabulary that the config declares, so a misspelled
-result is an error:
+result is an error. The vocabulary has at least one result and no duplicate, so
+a gate can decide and a result means one thing:
 
 ```toml
 [gates]

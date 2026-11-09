@@ -60,6 +60,23 @@ Its docstrings say which names are required and which are provisional.
 tuple, as a test of `wio config check` does, reads `wio.config.CHECKS` when it
 runs and passes it.
 
+### The pipeline checks
+
+[`pipelines.py`](pipelines.py) judges the names that stages, stage presets,
+actions, roots and `gates.results` use for one another. Its docstrings say what
+each check reports and where.
+
+- **A cycle is one error for the group of actions that reach one another,** at
+  the least name, so an agent breaks the loop once and is not told about each
+  action on it.
+- **`after` has no `@` form,** so such an entry is an undeclared action. A form
+  is added with the Work that needs it, while `invalidated_by` keeps a note for
+  the forms that v0.2 reserves
+  ([the actions](../../../docs/concepts.md#6-actions)).
+- **An unused stage, preset or action is not reported.** Whether a template's or
+  a contract's pipeline resolves, and what nothing uses, belong to the Works
+  that read templates and contracts.
+
 ## The command
 
 `wio config` lets a person or an agent see the effective settings, where each
@@ -91,7 +108,7 @@ for it.
 
 ## What is not here
 
-- The cross-reference, path and skill checks, which join the check run through
-  `CHECKS`.
+- The checks of rule references, paths and skills, which join the check run
+  through `CHECKS`.
 - Reading `continuable`: the field exists so that people and agents can read
   it, and no component acts on it.

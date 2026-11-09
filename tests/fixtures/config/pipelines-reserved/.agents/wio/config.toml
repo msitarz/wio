@@ -1,0 +1,5 @@
+# A config whose only finding is an `invalidated_by` entry that v0.2 reserves.
+
+[actions.a]
+description = "A."
+invalidated_by = ["@children:a"]

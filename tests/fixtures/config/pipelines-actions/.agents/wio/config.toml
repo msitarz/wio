@@ -1,0 +1,30 @@
+# A config whose actions form a cycle, come after an on-demand action or an
+# undeclared one, and name undeclared actions in `invalidated_by`.
+
+[actions.a]
+description = "A."
+after = ["b"]
+
+[actions.b]
+description = "B."
+after = ["a"]
+
+[actions.c]
+description = "C."
+after = ["d"]
+
+[actions.d]
+description = "D."
+on_demand = true
+
+[actions.h]
+description = "H."
+after = ["zzz"]
+
+[actions.e]
+description = "E."
+invalidated_by = ["f", "@descendants:g"]
+
+[actions.i]
+description = "I."
+after = ["@descendants:deliver"]

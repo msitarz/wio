@@ -88,10 +88,11 @@ Every entry of a stage's `roots` is a declared root or `@work`.
 
 ### **AC-3** `after` and `invalidated_by` name declared actions
 
-`after` names declared actions that are not on demand and has no cycle, and
+`after` names declared actions that are not on demand and has no cycle, and an
+entry that starts with `@` is not one, because `after` has no such form yet.
 `invalidated_by` names declared actions, also behind the prefixes
-`@descendants:` and `@dependencies:`; any other `@` entry is reserved for v0.2
-and gets a note.
+`@descendants:` and `@dependencies:`; any other `@` entry of `invalidated_by` is
+reserved for v0.2 and gets a note.
 
 #### The errors
 
@@ -106,6 +107,14 @@ and gets a note.
   that names `zzz` and lists the declared actions, and one each at
   `actions.e.invalidated_by[0]` and `actions.e.invalidated_by[1]` that name the
   undeclared action and list the declared ones.
+
+#### An `@` entry in `after`
+
+- **Given** an action `i` with `after = ["@descendants:deliver"]`, an `@` form
+  that `after` does not have.
+- **When** the checks run.
+- **Then** an error at `actions.i.after[0]` names the entry and lists the
+  declared actions.
 
 #### The reserved entries
 

@@ -1,0 +1,4 @@
+# A config whose gate vocabulary repeats a result.
+
+[gates]
+results = ["pass", "pass"]

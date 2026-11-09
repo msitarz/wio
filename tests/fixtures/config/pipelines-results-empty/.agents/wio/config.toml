@@ -1,0 +1,4 @@
+# A config with no result a gate can decide.
+
+[gates]
+results = []
