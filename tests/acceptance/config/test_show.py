@@ -4,14 +4,16 @@
 import json
 from typing import TYPE_CHECKING
 
-from tests.acceptance.channels import CLI_ONLY, IN_BOTH
+import pytest
+
+from tests.acceptance.channels import Channel
 
 if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
     from tests.sandbox import Sandbox
 
 
-@IN_BOTH
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_show_a_setting_adds_its_description(wio: Wio) -> None:
     """AC-3: a setting prints its line, the description below, and JSON."""
     # Given a config that sets the hierarchy to nesting
@@ -29,7 +31,7 @@ def test_show_a_setting_adds_its_description(wio: Wio) -> None:
     }
 
 
-@IN_BOTH
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_show_a_table_and_the_whole_config(wio: Wio) -> None:
     """AC-3: a table and the whole config print their settings in full."""
     # Given a config with two stages, one with a three-line goal
@@ -51,7 +53,7 @@ def test_show_a_table_and_the_whole_config(wio: Wio) -> None:
     assert "works.hierarchy" in json.loads(whole_json.stdout)
 
 
-@IN_BOTH
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_show_a_table_without_settings_prints_nothing(wio: Wio) -> None:
     """AC-3: a table that holds no setting is not an error."""
     # Given a config without roots
@@ -66,7 +68,7 @@ def test_show_a_table_without_settings_prints_nothing(wio: Wio) -> None:
     assert (json.loads(as_json.stdout), as_json.exit_code) == ({}, 0)
 
 
-@CLI_ONLY
+@pytest.mark.channels(Channel.CLI)
 def test_show_an_unset_setting_and_a_list_item_exit_2(wio: Wio) -> None:
     """AC-3: an unset optional setting and an item of a list are refused."""
     # Given a stage without a judge, and a rules_include list
@@ -83,7 +85,7 @@ def test_show_an_unset_setting_and_a_list_item_exit_2(wio: Wio) -> None:
     assert "stages.define.rules_include" in item.stderr
 
 
-@CLI_ONLY
+@pytest.mark.channels(Channel.CLI)
 def test_show_an_unknown_key_path_suggests_the_closest(wio: Wio) -> None:
     """AC-3: a typo names the closest match and the valid keys."""
     # Given a config with a stage `define`
@@ -101,7 +103,7 @@ def test_show_an_unknown_key_path_suggests_the_closest(wio: Wio) -> None:
     assert "`review`" in entry.stderr
 
 
-@CLI_ONLY
+@pytest.mark.channels(Channel.CLI)
 def test_show_refuses_a_config_with_an_error(wio: Wio) -> None:
     """AC-4: `show` prints nothing and lists the error on standard error."""
     # Given a config with an unknown key
@@ -116,7 +118,7 @@ def test_show_refuses_a_config_with_an_error(wio: Wio) -> None:
     assert "unknown key `nonsense`" in output.stderr
 
 
-@CLI_ONLY
+@pytest.mark.channels(Channel.CLI)
 def test_show_outside_a_repository_names_the_directory(
     wio: Wio, sandbox: Sandbox
 ) -> None:

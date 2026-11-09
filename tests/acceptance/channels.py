@@ -3,8 +3,6 @@
 
 from enum import Enum
 
-import pytest
-
 
 class Channel(Enum):
     """A way a scenario reaches `wio`.
@@ -14,10 +12,3 @@ class Channel(Enum):
 
     IN_PROCESS = "in_process"
     CLI = "cli"
-
-
-IN_BOTH = pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-"""A scenario that runs on both channels: the fast copy and the reference."""
-
-CLI_ONLY = pytest.mark.channels(Channel.CLI)
-"""A scenario that needs the command a user runs, such as an error scenario."""

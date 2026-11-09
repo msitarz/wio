@@ -4,14 +4,16 @@
 from json import loads
 from typing import TYPE_CHECKING
 
-from tests.acceptance.channels import CLI_ONLY, IN_BOTH
+import pytest
+
+from tests.acceptance.channels import Channel
 
 if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
     from tests.sandbox import Sandbox
 
 
-@IN_BOTH
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_list_shortens_the_lines_and_labels_the_sources(wio: Wio) -> None:
     """AC-2: each setting is a line of at most 80 columns, in key-path order."""
     # Given a config with a three-line goal and a ninety-character description
@@ -29,7 +31,7 @@ def test_list_shortens_the_lines_and_labels_the_sources(wio: Wio) -> None:
     assert output.exit_code == 0
 
 
-@IN_BOTH
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_list_keeps_a_long_key_whole(wio: Wio) -> None:
     """AC-2: a key path and a label that reach 80 columns leave `…` for the value."""
     # Given a stage whose name makes the key path and the label reach 80 columns
@@ -43,7 +45,7 @@ def test_list_keeps_a_long_key_whole(wio: Wio) -> None:
     assert f"stages.{name}.goal = …  # file" in output.stdout.splitlines()
 
 
-@IN_BOTH
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_list_json_keeps_every_value(wio: Wio) -> None:
     """AC-2: the JSON object maps each key path to its value and source."""
     # Given the config with the three-line goal and the long description
@@ -60,7 +62,7 @@ def test_list_json_keeps_every_value(wio: Wio) -> None:
     assert list(found) == sorted(found)
 
 
-@CLI_ONLY
+@pytest.mark.channels(Channel.CLI)
 def test_list_refuses_a_config_with_an_error(wio: Wio) -> None:
     """AC-4: `list` prints nothing and lists the error on standard error."""
     # Given a config with an unknown key
@@ -75,7 +77,7 @@ def test_list_refuses_a_config_with_an_error(wio: Wio) -> None:
     assert "unknown key `nonsense`" in output.stderr
 
 
-@CLI_ONLY
+@pytest.mark.channels(Channel.CLI)
 def test_list_outside_a_repository_names_the_directory(
     wio: Wio, sandbox: Sandbox
 ) -> None:
