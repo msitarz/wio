@@ -389,6 +389,9 @@ def test_the_installed_wheel_shows_the_settings_of_a_project(
     assert 'stages.define.goal = "Define."  # file' in lines
     assert 'gates.results = ["pass", "fail", "unknown"]  # default' in lines
     assert all(line.endswith(("# file", "# default")) for line in lines)
+    assert [line for line in lines if line.endswith("# file")] == [
+        'stages.define.goal = "Define."  # file'
+    ]
     stage = shown.stdout.splitlines()
     assert 'stages.define.goal = "Define."  # file' in stage
     assert 'stages.define.session = "any"  # default' in stage
