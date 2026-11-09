@@ -12,10 +12,16 @@ appended to `wio.config.CHECKS`.
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Literal
 
 from wio.config.checks import CheckInputs
 from wio.models.config import Config
 from wio.models.diagnostics import Diagnostic
+
+type Rule = Literal[
+    "is empty", "is absolute", "leaves the repository", "is not normalized"
+]
+"""What is wrong with a path, as the phrase that follows it in a message."""
 
 @dataclass(frozen=True)
 class PathFault:
@@ -23,18 +29,18 @@ class PathFault:
 
     A normalized path is relative to the repository root, with `/` as the
     separator and without a `.` or `..` segment, an empty segment, a trailing
-    slash or a leading `/`; `.` alone is the whole repository.
+    slash or a leading `/`; `.` alone is the whole repository. A message words a
+    fault as "`<path>` <rule>", followed by "; use `<normalized>`" when there is
+    a normalized form.
 
     Attributes:
-        rule: What is wrong, as a phrase that follows the path in a message,
-            such as `is absolute`, `leaves the repository` or `ends with a
-            slash`.
+        rule: What is wrong, one phrase for each kind of fault.
         normalized: The normalized form that names the same place inside the
-            repository, or `None` when there is none, as for an absolute path
-            or one that leaves the repository.
+            repository. Only `is not normalized` has one; an empty path, an
+            absolute path and a path that leaves the repository have none.
     """
 
-    rule: str
+    rule: Rule
     normalized: str | None
 
 def judge_path(path: str) -> PathFault | None:
@@ -45,12 +51,10 @@ def judge_path(path: str) -> PathFault | None:
 
     Returns:
         `None` for a normalized path inside the repository. Otherwise the first
-        fault that applies, in this order: an empty string, an absolute path, a
-        path that leaves the repository once its `.` and `..` segments are
-        resolved, and a path that is not normalized, whose `normalized` is the
-        resolved form (`src/` is `src`, `a/./b` is `a/b`, `a/../b` is `b`, and
-        `./` is `.`). An empty string and a path that leaves the repository
-        have no normalized form.
+        fault that applies, in this order: `is empty`, `is absolute`, `leaves
+        the repository` once the `.` and `..` segments are resolved, and `is not
+        normalized`, whose `normalized` is the resolved form (`src/` is `src`,
+        `a/./b` is `a/b`, `a/../b` is `b`, `src//x` is `src/x` and `./` is `.`).
     """
     ...
 
@@ -59,17 +63,19 @@ def check_root_paths(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic
 
     Args:
         config: The settings, whose roots are read.
-        inputs: The repository root and the port that tells whether a path
-            exists.
+        inputs: The repository root and the port whose `exists` tells whether a
+            path exists below it.
 
     Returns:
-        An error at `roots.<name>.paths[<i>]` for a path with a `PathFault`,
-        naming the rule and the normalized form where there is one. An error at
-        the later path of two that are equal once normalized, within one root,
-        naming the index of the first; a path that has a fault is judged by its
-        normalized form when it has one, and the same path in two roots is
-        allowed. A warning at the path, and no error, for a valid path that does
-        not exist below the repository root yet, saying so.
+        At most one diagnostic for each path, at `roots.<name>.paths[<i>]`. A
+        path whose normalized form, or itself when it has no fault, repeats an
+        earlier one of the same root is an error that names the index of the
+        first, instead of its fault; the same path in two roots is allowed. Any
+        other path with a `PathFault` is an error that names the rule and the
+        normalized form. A valid path that does not exist below the repository
+        root and is the first of its kind is a warning, not an error, that says
+        it does not exist yet. An empty path is a fault of this check, which the
+        contract leaves to it.
     """
     ...
 
@@ -78,17 +84,20 @@ def check_skills(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
 
     Args:
         config: The settings, whose stages and `skills.paths` are read.
-        inputs: The repository root and the port that tells whether a file
-            exists.
+        inputs: The repository root and the port whose `exists` tells whether
+            `<root>/<dir>/<skill>/SKILL.md` exists; no other method is called.
 
     Returns:
         An error at `skills.paths[<i>]` for a path with a `PathFault`, saying
-        that a skill path is normalized and stays inside the repository. An
-        error at `stages.<name>.skill` for a skill that has no
-        `<dir>/<skill>/SKILL.md` in `skills.paths`, `.agents/skills` or
-        `.claude/skills`, searched in that order, which lists those directories
-        in that order, the paths that have a fault left out, and says that the
-        user's home is not searched. A stage with a `goal` is not judged.
+        that a skill path is normalized and stays inside the repository; paths
+        are not checked for repeats here. An error at `stages.<name>.skill` for
+        a skill that has no `SKILL.md` below `skills.paths`, `.agents/skills`
+        or `.claude/skills`, searched in that order, with the paths that have a
+        fault left out. It lists those directories, each once, as normalized
+        paths relative to the repository in the order searched, and says the
+        user's home is not searched. A skill name that is empty, or is `.` or
+        `..` or has a `/`, is not found without a lookup. A stage with a `goal`
+        is not judged.
     """
     ...
 

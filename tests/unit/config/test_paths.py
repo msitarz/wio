@@ -4,6 +4,15 @@
 import pytest
 
 
+def test_a_fault_is_worded_with_its_rule_and_its_normalized_form() -> None:
+    """AC-1: "`<path>` <rule>", and "; use `<normalized>`" only when there is one."""
+    # Given the paths `src/` and `../x`
+    # When their faults are worded in the root path check
+    # Then the first says it is not normalized and to use `src`, and the second
+    # says it leaves the repository and names no form
+    pytest.skip("not implemented")
+
+
 @pytest.mark.parametrize(
     "path",
     ["src", ".", "a/b", "src/", "a/./b", "a/../b", "../x", "/abs", ""],
@@ -44,18 +53,18 @@ def test_a_repeated_root_path_is_judged_on_its_normalized_text() -> None:
     # Given a root `b` with `src` twice and `src/` a third time, and a root `c`
     # with `src`
     # When the root paths are checked
-    # Then each later path is an error that names the index of the first, and the
-    # root `c` has none
+    # Then each later path of `b` has one error that names the index of the first
+    # and not its fault, and the root `c` has none
     pytest.skip("not implemented")
 
 
 def test_a_missing_root_path_is_a_warning_and_a_faulty_one_is_not_asked_about() -> None:
     """AC-1: only a valid path is looked for below the repository root."""
-    # Given a root path `docs/new` that does not exist, one that exists, and an
-    # absolute path
+    # Given a root path `docs/new` that does not exist, one that exists, a repeat
+    # of the first, and an absolute path
     # When the root paths are checked
-    # Then the first is a warning, the second has no diagnostic, and the third
-    # only its error
+    # Then the first is a warning, the second has none, the repeat only its
+    # error, and the absolute path only its error
     pytest.skip("not implemented")
 
 
@@ -70,10 +79,12 @@ def test_a_skill_is_found_in_the_searched_directories_in_order() -> None:
 
 def test_a_skill_that_is_not_found_lists_where_wio_looked() -> None:
     """AC-2: the directories in order, and that the user's home is not searched."""
-    # Given a stage naming `c`, which exists only in the user's home
+    # Given a stage naming `c`, which exists only in the user's home, and stages
+    # whose skill names are empty, `..` and `a/b`
     # When the skills are checked
-    # Then an error at `stages.<name>.skill` lists the directories and says the
-    # user's home is not searched
+    # Then an error at `stages.<name>.skill` lists the directories, once each as
+    # relative paths, and says the user's home is not searched; the odd names are
+    # not found without a lookup
     pytest.skip("not implemented")
 
 
@@ -82,7 +93,8 @@ def test_a_skill_path_outside_the_repository_is_an_error_and_not_searched() -> N
     # Given `[skills] paths = ["../skills"]`
     # When the skills are checked
     # Then an error at `skills.paths[0]` says the path must stay inside the
-    # repository, and the directories listed for a missing skill leave it out
+    # repository, a repeat of it is not reported, and the directories listed for a
+    # missing skill leave it out
     pytest.skip("not implemented")
 
 
