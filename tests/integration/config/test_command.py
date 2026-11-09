@@ -54,3 +54,35 @@ def test_listing_the_settings_does_not_load_json(sandbox: Sandbox) -> None:
     # Then json was never imported
     assert done.stderr == "False"
     assert "trailers.reader" in done.stdout
+
+
+@pytest.mark.slow
+def test_checking_a_valid_config_loads_no_rarely_used_module(sandbox: Sandbox) -> None:
+    """AC-2: a run with no problem imports neither `tomlkit`, `json` nor `difflib`."""
+    # Given a repository with a valid config and a fresh interpreter
+    git(sandbox, "init", "--quiet", check=True)
+    config = sandbox.root / ".agents" / "wio" / "config.toml"
+    config.parent.mkdir(parents=True)
+    config.write_text('[works]\nhierarchy = "nesting"\n', encoding="utf-8")
+    code = (
+        "import sys\n"
+        "from wio import cli\n"
+        "from wio.io.adapters import SystemStdio\n"
+        "code = cli.main(['config', 'check'], SystemStdio())\n"
+        "names = ['tomlkit', 'json', 'difflib']\n"
+        "sys.stderr.write(repr((code, [n for n in names if n in sys.modules])))\n"
+    )
+
+    # When `wio config check` runs through `main` in it
+    done = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=sandbox.root,
+        env=sandbox.env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    # Then it passed, and none of the three modules is in `sys.modules`
+    assert done.stdout == "Config check passed!\n"
+    assert done.stderr == "(0, [])"

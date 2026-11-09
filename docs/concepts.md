@@ -105,7 +105,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `roots` | *optional* | The roots the Work touches, which select its rules. | [Roots of a Work](#roots-of-a-work) |
 | `depends_on` | *optional* | The Works this one waits for. | [Dependencies](#dependencies) |
 | `[actions]` | *optional* | The actions whose pipelines the Work replaces. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
-| `[x]` | *optional* | The one table for the project's own data: wio skips its contents, while any other unknown key gets a warning. | [Anatomy](#anatomy) |
+| `[x]` | *optional* | The one table for the project's own data: wio skips its contents, while any other unknown key of a contract gets a warning. | [Anatomy](#anatomy) |
 | `tracks` | *reserved* | Planned: which items of other Works an item contributes to. | [Tracking items](#tracking-items-planned) |
 | First heading | *open* | The Work's title. | [Anatomy](#anatomy) |
 | `##` headings | — | The sections checked against their directives, from the template or, without one, from the contract's own headings, and the ones a descendant inherits. | [Checking a contract](#checking-a-contract-against-its-template) |
@@ -154,7 +154,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `[templates.kinds]` | *optional* | The valid kinds, each with its entry template. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `[actions.<name>]` | *open* | An action, with its `description`, `after`, `invalidated_by` and `on_demand`. | [What an action is](#what-an-action-is), [What `wio next` proposes](#what-wio-next-proposes) |
 | `[roots.<name>]` | *open* | A root: its `paths`, and its `rule_presets` (*optional*), which select its rules. | [Roots and rulesets](#9-roots-and-rulesets) |
-| `[stages.<name>]` | *open* | A stage: exactly one of `goal` and `skill` is required, and `rules_include`, `rules_exclude`, `roots`, `gate`, `judge` and `session` are optional. | [Stage](#7-stage) |
+| `[stages.<name>]` | *open* | A stage: exactly one of `goal` and `skill` is required, and `rules_include`, `rules_exclude`, `roots`, `gate`, `judge`, `session` and `continuable` are optional. | [Stage](#7-stage) |
 | `[stage_presets]` | *open* | Named, ordered lists of stages. | [Stage presets](#13-stage-presets-process-built-on-the-engine) |
 | `[rule_presets.<name>]` | *optional* | Named selections of rules, with `rules_include` and `rules_exclude`. | [Rule presets](#rule-presets) |
 | `[rulesets.<name>]` | *optional* | A ruleset's `alias` (*optional*, at most one) and `root_independent` (*optional*, `false` by default). | [Rulesets on disk](#rulesets-on-disk) |
@@ -163,6 +163,12 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `[skills] paths` | *open* | Where wio looks for skills first. | [Stage](#7-stage) |
 | `[trailers] reader` | *optional* | How records are read from messages: `scan` or `git`. | [Reading records](#reading-records) |
 | Bundle settings | *optional* | A size threshold and the separator between rules; their keys are *open*. | [The context compiler](#11-the-context-compiler) |
+
+`wio config` shows these settings with their source (`list` and `show`), and
+`wio config check` prints every diagnostic of the file, one
+`<severity>: <where>: <message>` line each, which every `check` command shares,
+including a `[gates] results` that is empty or repeats a result. An error makes
+every other command refuse the config. Bare `wio config` prints the help.
 
 ### Special values
 
@@ -284,11 +290,13 @@ Contract metadata carries no comments. Explanations belong to the template.
 wio knows these keys, and an unknown key is a **warning**, in contracts,
 templates and rules alike, naming the key and the known key it is close to, if
 any ("unknown key `depend_on`; did you mean `depends_on`?"). A typo is visible
-and nothing is blocked. A known key with a wrong type, such as a string where a
-list belongs, is an error. Keys planned for later, such as `tracks` for tracking
-items, are reserved and do not warn. Data of a project's own goes in a table
-named exactly `[x]`. wio skips whatever it holds and never warns about it, while
-a table of any other unknown name warns like any unknown key:
+and nothing is blocked. The config is different: a key it does not know is an
+error, because every command reads it. A known key with a wrong type, such as a
+string where a list belongs, is an error. Keys planned for later, such as
+`tracks` for tracking items, are reserved and do not warn. Data of a project's
+own goes in a table named exactly `[x]`. wio skips whatever it holds and never
+warns about it, while a table of any other unknown name warns like any unknown
+key:
 
 ```toml
 [x]
@@ -639,8 +647,9 @@ bugfix = "bugfix"
 ```
 
 A template keeps a required `kind`, and its `shape` stays in its metadata. A
-`[kinds]` table at the top level of the config is an unknown key, with the
-warning every unknown key gets.
+`[kinds]` table at the top level of the config is an unknown key, which
+`wio config check` reports as an error, as it does for any key the schema does
+not know, in any table.
 
 A kind groups templates that serve one sort of Work. A kind can have any
 number of templates (a draft, a leaf, a parent, or seven others), each with its
@@ -1217,7 +1226,8 @@ A stage definition has these parts:
 | `roots` | Optional. Which roots the stage selects rules from ([Which roots a stage selects](#which-roots-a-stage-selects)). Without it, the stage uses the Work's roots. |
 | `gate` | Optional. `true` when the stage judges an artifact, so each of its records carries a result ([Gate](#8-gate)). |
 | `judge` | Optional, for a gate. `"human"` when a person must judge it ([Gate](#8-gate)). |
-| `session` | Optional. `"fresh"` when the stage needs a new session (see "Sessions" below). |
+| `session` | Optional. `"fresh"` when the stage needs a new session, `"any"` by default (see "Sessions" below). |
+| `continuable` | Optional. `false` when a later stage should not continue this stage's session, `true` by default (see "Sessions" below). |
 
 ```toml
 [stages.define]
@@ -1231,8 +1241,8 @@ gate = true
 session = "fresh"
 ```
 
-The key that marks a stage as not continuable is open
-([Open points](#15-open-points)).
+A stage that a later stage should not continue from sets `continuable = false`
+([Sessions](#sessions)).
 
 A stage has exactly one of a goal and a skill: with both or with neither,
 `wio config check` reports an error, so moving a stage from a goal to a skill
@@ -1295,10 +1305,12 @@ record, and `wio next` proposes from that
 
 A stage may require a **fresh session**. Reviews need one, because a reviewer
 who shares the author's context shares the author's blind spots. A stage may
-also mark itself as **not continuable**, so a later stage will not reuse it.
-Otherwise a session may be continued from the previous stage, which saves tokens
-because the contract and rules are already loaded. In v0.1 `wio context` only
-prints this advice. The driver follows it.
+also mark itself as **not continuable** with `continuable = false`, so a later
+stage will not reuse it. Otherwise a session may be continued from the previous
+stage, which saves tokens because the contract and rules are already loaded. In
+v0.1 `wio context` only prints this advice. The driver follows it, and no
+component acts on `continuable` yet: `wio config` shows it, so people and
+agents can read it.
 
 ## 8. Gate
 
@@ -1817,26 +1829,43 @@ does:
 
 ### Checking rules
 
-`wio config check` and `wio rules check` report these about rule selection.
+Two commands report problems of rule selection, and what each reports follows
+from what it reads. `wio config check` reads the config and the names of the
+directories under `.agents/wio/rules/` and whether each has a `ruleset.toml`,
+and nothing of a rule file. `wio rules check` reads the rule files and the
+manifests, so it owns every check that needs them. A `rules_*` key on a template
+or a contract is the templates and contracts Works' to report.
+
+`wio config check` reports these errors:
+
+- a reference to a ruleset or an alias that does not exist, or to a rule preset
+  that the config does not declare, with the reference and where it is, and what
+  exists;
+- a name of the wrong form, a ruleset directory's name included, and an alias
+  that is not in the form of a ruleset name;
+- a directory under `.agents/wio/rules/` without a `ruleset.toml`, and a
+  `[rulesets.<name>]` table with no directory there;
+- a cycle between rule presets of the config;
+- a family or a code in a root's `rule_presets`, and a rule preset in
+  `rules_always_exclude`, because a field takes only the kinds of name it needs;
+- a duplicate or clashing alias;
+- a `rules_*` key a layer does not have, such as `rules_exclude` on a root or an
+  always field below the top level of the config: it is a key the schema does
+  not know, and a key there would be read by nobody.
+
+It also reports a note that lists `rules_always_include`, because every session
+receives those rules and a driver should see them. `wio rules check` reports
+the rest, which needs the rule files:
 
 Errors:
 
-- a reference that does not resolve, with the reference and where it is: an
-  unknown ruleset, alias, family, code or rule preset;
-- a name of the wrong form, a ruleset directory's name included;
-- a directory under `.agents/wio/rules/` without a `ruleset.toml`, and a
-  `[rulesets.<name>]` table with no directory there;
+- a reference whose family, code or rule preset after the dot does not exist in
+  the ruleset;
 - a qualified reference inside a `ruleset.toml`;
-- a cycle between rule presets;
-- a rule preset in `rules_always_exclude`;
 - a ruleset that defines a rule preset named `all`, which is reserved for the
   whole ruleset;
-- a duplicate or clashing alias;
 - a root-independent ruleset that a root reaches, because a ruleset is about
-  code or about how to work, not both;
-- a `rules_*` key on a template, a contract or an action, `rules_exclude` on a
-  root, or an always field anywhere but the config's top level: those layers do
-  not exist, and a key there would be read by nobody.
+  code or about how to work, not both.
 
 Warnings:
 
@@ -1852,10 +1881,8 @@ Warnings:
   usually stale;
 - a Markdown heading in a rule body.
 
-A note lists `rules_always_include`, because every session receives those rules
-and a driver should see them. An exclude of a rule its layer never included is
-not reported: excluding ahead of a ruleset update is common, and a warning would
-be noise.
+An exclude of a rule its layer never included is not reported: excluding ahead
+of a ruleset update is common, and a warning would be noise.
 
 ## 11. The context compiler
 
@@ -2332,9 +2359,6 @@ and its own selection give it.
 - Whether the harness session id is visible to the `wio context` process, or
   only to hooks. If not, events join to transcripts by time window and working
   directory.
-- The config schema: the exact field names for stage session policy, and the
-  names of the config tables (`[templates.kinds]`, `[actions]`, `[stages]`,
-  `[stage_presets]`, `[rule_presets]`, `[rulesets]`, `[trailers]`).
 - Whether rule files accept `+++` front matter as well. The rule example above
   uses the `<!-- wio -->` block, as contracts do.
 - Stage-level ordering across the tree. A parent waits for its children,

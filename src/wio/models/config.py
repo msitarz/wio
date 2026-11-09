@@ -5,7 +5,8 @@ Every field is named as its TOML key, so a key path such as
 `works.defaults.actions` is a chain of field names. A `Config` built with no
 arguments is the effective settings of an empty config file, and every field
 carries a one-sentence description in its metadata, which a message can quote.
-A `Config` holds what it is given: it judges nothing.
+A `Config` holds what it is given: it judges nothing. The field names are part of
+the contract of the type, and the names of the nested types are provisional.
 """
 
 from dataclasses import dataclass, field

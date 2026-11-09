@@ -1,11 +1,35 @@
 # `wio.config`
 
-The component that reads the project's settings. The terms Source, Shape,
-Setting, Key path, Check, Check run, Action cycle, Normalized path and Reference
-are defined in the [glossary of this component](GLOSSARY.md), and Config,
-Diagnostic and Repository in the [repository glossary](../../../GLOSSARY.md).
+The component that reads the project's settings. The terms Setting,
+Action cycle, Normalized path and Reference are defined in the
+[glossary of this component](GLOSSARY.md), and Config, Diagnostic, Source,
+Shape, Key path, Check, Check run and Repository in the
+[repository glossary](../../../GLOSSARY.md).
 The keys the shape covers are listed in the
 [config](../../../docs/concepts.md#the-config).
+
+## Where it sits
+
+Every other component reads the config through the `Settings` port of
+`wio.ports`, which `ConfigSettings` implements, so none of them knows the file
+or the loader. The component reaches the file and the repository only through
+the ports of `wio.io`, whose adapters `wio.cli` wires, so a test replaces them.
+
+```mermaid
+flowchart LR
+    cli["wio.cli"] --> config["wio.config"]
+    cli --> adapters["wio.io.adapters: LocalFileSystem, GitRepository"]
+    cli --> envadapters["wio.env.adapters: ProcessEnvironment"]
+    config --> models["wio.models: Config, Diagnostic"]
+    config --> formats["wio.formats: decode_toml, render"]
+    config -- "ports" --> io["wio.io: FileSystem, Repository, History"]
+    adapters --> io
+    adapters -- "ports" --> env["wio.env: Environment"]
+    envadapters --> env
+    other["other components"] -- "ports" --> settings["wio.ports: Settings"]
+    config -. "implements" .-> settings
+    config --> errors["wio.errors: ConfigurationError"]
+```
 
 ## The loader
 
@@ -14,6 +38,15 @@ it returns and what it raises. It exists so that a command receives the settings
 read from one file, checked for shape and handed over complete, or is refused
 with every problem at once. [`settings.py`](settings.py) adapts it to the
 `Settings` port.
+
+```mermaid
+flowchart LR
+    file["config.toml"] --> decode["decode_toml"]
+    decode --> walk["walk of the schema"]
+    walk --> loaded["(config or None, diagnostics, sources)"]
+    loaded --> load["Settings.load: Config, or ConfigurationError"]
+    loaded --> check["config check, list, show"]
+```
 
 - **One file.** The config is `<root>/.agents/wio/config.toml`, where the root
   is the one `Repository.root` finds for the working directory, so a command run
@@ -103,9 +136,10 @@ each check reports and where.
   is added with the Work that needs it, while `invalidated_by` keeps a note for
   the forms that v0.2 reserves
   ([the actions](../../../docs/concepts.md#6-actions)).
-- **An unused stage, preset or action is not reported.** Whether a template's or
-  a contract's pipeline resolves, and what nothing uses, belong to the Works
-  that read templates and contracts.
+- **An unused stage, preset or action, and an empty stage preset, are not
+  reported.** Whether a template's or a contract's pipeline resolves, and what
+  nothing uses, belong to the Works that read templates and contracts, with the
+  pipelines they resolve.
 
 ### The path checks
 
@@ -124,6 +158,8 @@ docstrings say what each check reports and where.
 - **Only `exists` is asked.** A root path may be a file or a directory, and a
   `SKILL.md` that exists makes its parent a directory, so no criterion needs
   `is_dir`.
+- **Only a root path is asked whether it exists.** Whether the Works, templates
+  or skills directories exist is for the commands that read them.
 - **The user's home is not searched,** so a config means the same on every
   machine. Other harnesses' directories are added through `[skills] paths`
   ([the stage](../../../docs/concepts.md#7-stage)).
@@ -183,6 +219,9 @@ for it.
   that did nothing, while `--json` stays a document.
 - **Hooks run the check after every change of the config.** The recipe is in
   [the workflow](../../../docs/workflow.md#7-checking-the-config-after-every-edit).
+- **`list` and `show` do not list the names of a table or the templates.** The
+  keys of a table are in `wio config show <table> --json`, and templates belong
+  to `wio templates`.
 - **`resolve` judges a key path by the fields of the `Config` alone,** so a
   table without entries is told from an unknown key.
 

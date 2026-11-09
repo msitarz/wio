@@ -206,14 +206,17 @@ stage can exclude `docs.DOC` whether or not the Work names the `repo` root.
 
 A contract is spent once its guarantees live elsewhere. `promote-docs` carries
 the lasting rules, reasons and diagrams into the `README.md` and `GLOSSARY.md`
-files of the directories the Work touched, linking instead of copying.
-A guarantee that a stub, docstring or test already states is kept by a link to
-it. `docs-review`, judged by a human, checks that no guarantee was lost and that
-the docs restate nothing the source declares. A Work
-without a parent then deletes its contract and those of its descendants in the
-last commit of the stage, once the driver confirms. A Work with a parent only
-promotes, because the tree is kept until its top Work has promoted. Git keeps
-the deleted contracts, and the records keep the progress.
+files of the directories the Work touched, linking instead of copying. A
+guarantee that a stub, docstring or test already states is kept by a link to it.
+`docs-review`, judged by a human, checks that no guarantee was lost and that the
+docs restate nothing the source declares. A Work without a parent then deletes
+its contract and those of its descendants in the last commit of the stage, once
+the driver confirms. A Work with a parent only promotes, because the tree is
+kept until its top Work has promoted. Git keeps the deleted contracts, and the
+records keep the progress. An empty `.gitkeep` keeps the Works directory in git
+once every contract is gone, so a root that points at it needs no directory to
+appear first, and the directory holds no document that a reader could take for a
+contract.
 
 ## 5. Changing a contract
 
@@ -286,8 +289,9 @@ runs it. This repository does it twice:
 - **When an agent edits the config.** An entry in `.claude/settings.json` runs
   the check after `Edit`, `Write` and `MultiEdit`, and exits 2 with the
   diagnostics on standard error, which Claude Code gives back to the model. It
-  reads the edited path with `jq` and runs the check only for the config, so wio
-  holds no knowledge of the harness. The entry sits beside the formatter:
+  reads the edited path with `jq`, which must be on the `PATH` as it is for the
+  formatter hook beside it, and runs the check only for the config, so wio holds
+  no knowledge of the harness. The entry sits beside the formatter:
 
   ```json
   {
