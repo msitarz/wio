@@ -19,13 +19,17 @@ says that none is declared when a list would be empty. The checks are appended
 to `wio.config.CHECKS`.
 """
 
-from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, auto
+from typing import TYPE_CHECKING
 
-from wio.config.checks import CheckInputs
-from wio.models.config import Config
-from wio.models.diagnostics import Diagnostic
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
+    from wio.config.checks import CheckInputs
+    from wio.models.config import Config
+    from wio.models.diagnostics import Diagnostic
+
 
 @dataclass(frozen=True)
 class Bare:
@@ -37,6 +41,7 @@ class Bare:
     """
 
     name: str
+
 
 @dataclass(frozen=True)
 class Qualified:
@@ -51,6 +56,7 @@ class Qualified:
     ruleset: str
     item: str
 
+
 @dataclass(frozen=True)
 class Malformed:
     """A reference of the wrong form.
@@ -62,20 +68,23 @@ class Malformed:
 
     message: str
 
+
 type Reference = Bare | Qualified | Malformed
 """What a reference is, judged from its text alone."""
+
 
 class Takes(Enum):
     """The kinds of reference that a field takes."""
 
-    ROOT = "rule presets"
+    ROOT = auto()
     """A root's `rule_presets`: rule presets of a ruleset and of the config."""
 
-    VETO = "codes and families"
+    VETO = auto()
     """`rules_always_exclude`: qualified codes and families only."""
 
-    ANY = "every kind"
+    ANY = auto()
     """The other fields: families, codes and rule presets, qualified or bare."""
+
 
 @dataclass(frozen=True)
 class Rulesets:
@@ -90,6 +99,7 @@ class Rulesets:
     names: tuple[str, ...]
     without_manifest: tuple[str, ...]
 
+
 def read_rulesets(inputs: CheckInputs) -> Rulesets:
     """Read which ruleset directories there are.
 
@@ -102,7 +112,9 @@ def read_rulesets(inputs: CheckInputs) -> Rulesets:
         `.agents/wio/rules` is a directory, so a repository without one gives
         none and no error.
     """
-    ...
+    del inputs
+    return Rulesets((), ())
+
 
 def parse_reference(text: str) -> Reference:
     """Judge the form of a reference from its text.
@@ -124,7 +136,9 @@ def parse_reference(text: str) -> Reference:
         preset (a lowercase letter, then lowercase letters, digits, `-` and
         `_`)."
     """
-    ...
+    del text
+    return Malformed("")
+
 
 def judge_reference(
     text: str, takes: Takes, known: Sequence[str], presets: Sequence[str]
@@ -149,8 +163,13 @@ def judge_reference(
         preset `<name>`" and "Declared rule presets: `a`, `b`." or "No rule
         presets are declared." An item after the dot is never looked up.
     """
-    ...
+    del text, takes, known, presets
+    return None
 
+
+# The leaves are stubs of one shape until the implementation stage, so the
+# duplicate detector skips them, and the markers go with the stubs.
+# jscpd:ignore-start  # noqa: ERA001
 def check_rule_references(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
     """Check every reference the config makes to a ruleset or a rule preset.
 
@@ -172,7 +191,9 @@ def check_rule_references(config: Config, inputs: CheckInputs) -> Iterable[Diagn
         directory a qualified reference is an unknown ruleset, and a config with
         none gets no diagnostic.
     """
-    ...
+    del config, inputs
+    return ()
+
 
 def check_rule_preset_cycles(
     config: Config, inputs: CheckInputs
@@ -192,7 +213,9 @@ def check_rule_preset_cycles(
         a preset's `rules_include` that is a rule preset of the config is an edge;
         `rules_exclude` and qualified references are not.
     """
-    ...
+    del config, inputs
+    return ()
+
 
 def check_rulesets(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
     """Check the ruleset directories and the `[rulesets]` table together.
@@ -214,7 +237,9 @@ def check_rulesets(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
         to its own ruleset's name is not a clash. The name of a table is not
         judged for its form. Each message names the ruleset and what is wrong.
     """
-    ...
+    del config, inputs
+    return ()
+
 
 def check_always_include_note(
     config: Config, inputs: CheckInputs
@@ -230,4 +255,8 @@ def check_always_include_note(
         session receives the entries and lists them, in the order written; none
         otherwise.
     """
-    ...
+    del config, inputs
+    return ()
+
+
+# jscpd:ignore-end  # noqa: ERA001

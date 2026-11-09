@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tests.unit.config.fakes import run_order
-from wio.config import paths, pipelines
+from wio.config import paths, pipelines, selection
 
 if TYPE_CHECKING:
     from wio.config.checks import Check
@@ -23,6 +23,12 @@ _WORKS: dict[str, list[Check]] = {
         paths.check_skills,
         paths.check_templates,
         paths.check_works_dir,
+    ],
+    "selection": [
+        selection.check_rule_references,
+        selection.check_rule_preset_cycles,
+        selection.check_rulesets,
+        selection.check_always_include_note,
     ],
 }
 
