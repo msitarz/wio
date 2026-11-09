@@ -77,6 +77,8 @@ flowchart LR
     out --> load["Settings.load: errors only"]
 ```
 
+- **A check never stops the others,** so one run reports every problem and an
+  agent corrects all of them in one edit.
 - **A check is cheap and local,** because `Settings.load` runs the whole check
   run for every command. A check reads the config, paths, names, directory
   listings and whether a file exists, and parses neither a template nor a rule:
@@ -84,9 +86,9 @@ flowchart LR
 - **Warnings and notes appear only in `wio config check`.** Every other command
   refuses a config on an error alone, and a warning that each command printed
   would be noise on every run.
-- **An error stops every command with the lines that `check` prints,** because
-  the message of the refusal is those diagnostics rendered, and the command line
-  writes such a refusal as it is.
+- **An error stops every command with the error lines that `check` prints,**
+  because the message of the refusal is those diagnostics rendered, and the
+  command line writes such a refusal as it is.
 
 ### The pipeline checks
 
@@ -191,6 +193,8 @@ for it.
   qualified reference resolves to a rule, and whether a root reaches a
   root-independent ruleset. The Works that read them join the check run through
   `CHECKS`.
+- Suppressing a diagnostic and giving one a stable code: a diagnostic is found
+  by its key path and its message, and nothing silences it.
 - Reporting a stage, root or preset that nothing uses, because templates and
   contracts name them too, which the config cannot see.
 - Reading `continuable`: the field exists so that people and agents can read

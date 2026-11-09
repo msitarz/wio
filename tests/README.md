@@ -84,3 +84,6 @@ what several groups need. The unit and integration directories mirror
 - Use `tmp_path` and the `sandbox` fixture for every repo, so a test never
   touches the developer's own state: the real Wio home or their git setup.
 - No sleeps. No timestamps in compared output.
+- A scenario of a check names only what it exercises, and everything else in the
+  config is valid, so one scenario trips one check and does not depend on
+  another.
