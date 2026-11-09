@@ -6,11 +6,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from wio.config import CHECKS, load_config
+from wio.models.config import Config, Gates, Skills, Templates, Works
+from wio.models.frozen import freeze
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
     from wio.config import Check, Loaded
+    from wio.models.config import Action, Root, Stage
 
 ROOT = Path("/repo")
 CONFIG = ROOT / ".agents" / "wio" / "config.toml"
@@ -194,3 +197,41 @@ def run_order(ours: Sequence[Check]) -> list[Check]:
         the other Works append.
     """
     return [check for check in CHECKS if check in ours]
+
+
+def make_config(
+    *,
+    stages: Mapping[str, Stage] | None = None,
+    stage_presets: Mapping[str, tuple[str, ...]] | None = None,
+    actions: Mapping[str, Action] | None = None,
+    roots: Mapping[str, Root] | None = None,
+    works: Works | None = None,
+    gates: Gates | None = None,
+    skills: Skills | None = None,
+    templates: Templates | None = None,
+) -> Config:
+    """Build a `Config` from the plain mappings a test writes.
+
+    Args:
+        stages: The stages by name.
+        stage_presets: The stages of each stage preset.
+        actions: The actions by name.
+        roots: The roots by name.
+        works: The `works` table.
+        gates: The `gates` table.
+        skills: The `skills` table.
+        templates: The `templates` table.
+
+    Returns:
+        The config, with the defaults for what is not given.
+    """
+    return Config(
+        stages=freeze(stages or {}),
+        stage_presets=freeze(stage_presets or {}),
+        actions=freeze(actions or {}),
+        roots=freeze(roots or {}),
+        works=works or Works(),
+        gates=gates or Gates(),
+        skills=skills or Skills(),
+        templates=templates or Templates(),
+    )

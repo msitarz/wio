@@ -10,11 +10,11 @@ from tests.unit.config.fakes import (
     ROOT,
     FakeRepository,
     MemoryFileSystem,
+    make_config,
 )
 from wio.config import CheckInputs, load_config, pipelines
 from wio.models.config import (
     Action,
-    Config,
     Defaults,
     Gates,
     Root,
@@ -24,43 +24,11 @@ from wio.models.config import (
 from wio.models.frozen import freeze
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Iterable
 
     from wio.models.diagnostics import Diagnostic
 
 _INPUTS = CheckInputs(ROOT, MemoryFileSystem())
-
-
-def _config(
-    *,
-    stages: Mapping[str, Stage] | None = None,
-    stage_presets: Mapping[str, tuple[str, ...]] | None = None,
-    actions: Mapping[str, Action] | None = None,
-    roots: Mapping[str, Root] | None = None,
-    works: Works | None = None,
-    gates: Gates | None = None,
-) -> Config:
-    """Build a `Config` from the plain mappings a test writes.
-
-    Args:
-        stages: The stages by name.
-        stage_presets: The stages of each stage preset.
-        actions: The actions by name.
-        roots: The roots by name.
-        works: The `works` table.
-        gates: The `gates` table.
-
-    Returns:
-        The config, with defaults for what is not given.
-    """
-    return Config(
-        stages=freeze(stages or {}),
-        stage_presets=freeze(stage_presets or {}),
-        actions=freeze(actions or {}),
-        roots=freeze(roots or {}),
-        works=works or Works(),
-        gates=gates or Gates(),
-    )
 
 
 def _action(
@@ -109,7 +77,7 @@ def _found(diagnostics: Iterable[Diagnostic]) -> dict[str, str]:
 def test_a_missing_stage_and_a_repeated_stage_in_a_stage_preset_are_errors() -> None:
     """AC-1: the error names the stage and lists the declared ones."""
     # Given a stage preset with an undeclared stage and one that repeats a stage
-    config = _config(
+    config = make_config(
         stages={"define": _stage()},
         stage_presets={"p": ("define", "review"), "q": ("define", "define")},
     )
@@ -141,7 +109,7 @@ def test_default_actions_name_a_stage_preset_or_stages_of_a_declared_action() ->
         "ship": ("define",),
     }
     declared = ("define", "deliver", "review", "build", "twice")
-    config = _config(
+    config = make_config(
         stages={"define": _stage()},
         stage_presets={"solo": ("define",)},
         works=Works(defaults=Defaults(actions=freeze(defaults))),
@@ -168,7 +136,7 @@ def test_default_actions_name_a_stage_preset_or_stages_of_a_declared_action() ->
 def test_an_undeclared_stage_that_repeats_gets_one_error_for_each_mention() -> None:
     """AC-1: the undeclared stage takes precedence over the repetition."""
     # Given a stage preset that lists an undeclared stage twice
-    config = _config(stage_presets={"p": ("ghost", "ghost")})
+    config = make_config(stage_presets={"p": ("ghost", "ghost")})
 
     # When the stage references are checked
     found = _found(pipelines.check_stage_references(config, _INPUTS))
@@ -196,7 +164,7 @@ def test_a_stage_without_roots_and_an_empty_list_are_not_errors() -> None:
     """AC-1, AC-2: a stage may leave `roots` unset, and a list may be empty."""
     # Given a stage without `roots`, a stage with `roots = []`, and an empty stage
     # preset and an empty default action list
-    config = _config(
+    config = make_config(
         stages={"a": _stage(), "b": Stage(goal="g", roots=())},
         stage_presets={"empty": ()},
         works=Works(defaults=Defaults(actions=freeze({"define": ()}))),
@@ -217,7 +185,7 @@ def test_an_unknown_root_of_a_stage_is_an_error_and_work_is_not() -> None:
     """AC-2: the error lists the declared roots and `@work`."""
     # Given a stage with the roots `contract` and `src`, and `@work`, where `src`
     # is not a root
-    config = _config(
+    config = make_config(
         roots={"contract": Root(paths=("a",))},
         stages={"define": Stage(goal="g", roots=("contract", "src", "@work"))},
     )
@@ -237,7 +205,7 @@ def test_an_after_cycle_an_on_demand_action_and_an_unknown_action_are_errors() -
     # Given actions that form a cycle, come after an on-demand action, come
     # after an unknown action and are invalidated by unknown actions
     invalidated = ("f", "@descendants:g", "a", "@dependencies:b")
-    config = _config(
+    config = make_config(
         actions={
             "a": _action(after=("b",)),
             "b": _action(after=("a",)),
@@ -269,7 +237,7 @@ def test_an_after_cycle_an_on_demand_action_and_an_unknown_action_are_errors() -
 def test_an_after_entry_that_starts_with_at_is_an_error() -> None:
     """AC-3: `after` has no `@` form, so the entry is not a declared action."""
     # Given an action that comes after `@descendants:deliver`
-    config = _config(actions={"i": _action(after=("@descendants:deliver",))})
+    config = make_config(actions={"i": _action(after=("@descendants:deliver",))})
 
     # When the actions are checked
     found = _found(pipelines.check_actions(config, _INPUTS))
@@ -285,7 +253,7 @@ def test_a_self_loop_and_a_cycle_through_an_on_demand_action_are_reported() -> N
     """AC-3: both are found, and the on-demand edge is also its own error."""
     # Given an action that comes after itself, and a cycle through an on-demand
     # action
-    config = _config(
+    config = make_config(
         actions={
             "s": _action(after=("s",)),
             "x": _action(after=("y",)),
@@ -307,9 +275,11 @@ def test_nothing_that_exists_is_said_instead_of_listed() -> None:
     """AC-1, AC-2, AC-3: a message does not list an empty set."""
     # Given configs that declare nothing and name a stage, a stage preset, an
     # action and a root
-    presets = _config(stage_presets={"p": ("ghost",)})
-    defaults = _config(works=Works(defaults=Defaults(actions=freeze({"x": "missing"}))))
-    stage = _config(stages={"s": Stage(goal="g", roots=("src",))})
+    presets = make_config(stage_presets={"p": ("ghost",)})
+    defaults = make_config(
+        works=Works(defaults=Defaults(actions=freeze({"x": "missing"})))
+    )
+    stage = make_config(stages={"s": Stage(goal="g", roots=("src",))})
 
     # When the checks run
     found = [
@@ -331,7 +301,7 @@ def test_an_invalidated_by_entry_reserved_for_v02_is_a_note() -> None:
     # Given `invalidated_by` entries `@children:a` and a bare `@descendants`,
     # and an `@descendants:` with no name
     entries = ("@children:a", "@descendants", "@descendants:")
-    config = _config(actions={"a": _action(invalidated_by=entries)})
+    config = make_config(actions={"a": _action(invalidated_by=entries)})
 
     # When the actions are checked
     found = _found(pipelines.check_actions(config, _INPUTS))
@@ -353,7 +323,7 @@ def test_an_empty_or_duplicated_gate_vocabulary_is_an_error(
 ) -> None:
     """AC-4: `gates.results` needs a result and no duplicate."""
     # Given `gates.results` set to `results`
-    config = _config(gates=Gates(results=results))
+    config = make_config(gates=Gates(results=results))
 
     # When the gate results are checked
     found = _found(pipelines.check_gate_results(config, _INPUTS))
@@ -367,7 +337,7 @@ def test_an_empty_or_duplicated_gate_vocabulary_is_an_error(
 def test_several_repeated_results_are_named_together() -> None:
     """AC-4: the message says which results repeat, in the plural."""
     # Given `gates.results` that repeats two results
-    config = _config(gates=Gates(results=("pass", "fail", "pass", "fail")))
+    config = make_config(gates=Gates(results=("pass", "fail", "pass", "fail")))
 
     # When the gate results are checked
     found = _found(pipelines.check_gate_results(config, _INPUTS))
@@ -381,7 +351,7 @@ def test_a_usable_gate_vocabulary_passes() -> None:
     # Given the default settings
 
     # When the gate results are checked
-    found = list(pipelines.check_gate_results(_config(), _INPUTS))
+    found = list(pipelines.check_gate_results(make_config(), _INPUTS))
 
     # Then no diagnostic is returned
     assert found == []

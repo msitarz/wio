@@ -1,0 +1,4 @@
+# A config whose Works directory is outside the repository.
+
+[works]
+dir = "/abs"

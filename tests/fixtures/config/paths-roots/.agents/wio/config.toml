@@ -1,0 +1,7 @@
+# A config whose roots have faulty and repeated paths.
+
+[roots.a]
+paths = ["src/", "../x", "/abs", "a/./b"]
+
+[roots.b]
+paths = ["src", "src"]

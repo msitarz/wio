@@ -1,0 +1,4 @@
+# A config whose only finding is a root path that does not exist yet.
+
+[roots.docs]
+paths = ["docs/new"]
