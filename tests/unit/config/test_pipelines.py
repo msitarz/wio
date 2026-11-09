@@ -90,8 +90,15 @@ def _found(diagnostics: Iterable[Diagnostic]) -> dict[str, str]:
 
     Returns:
         Each `where` mapped to its severity and message, joined by a colon.
+
+    Raises:
+        AssertionError: Two diagnostics have one place, so a check reported a
+            problem twice.
     """
-    return {d.where: f"{d.severity}: {d.message}" for d in diagnostics}
+    found = list(diagnostics)
+    places = [d.where for d in found]
+    assert len(places) == len(set(places)), f"reported twice: {places}"
+    return {d.where: f"{d.severity}: {d.message}" for d in found}
 
 
 def test_the_check_run_includes_the_pipeline_checks_in_order() -> None:
@@ -302,6 +309,7 @@ def test_a_self_loop_and_a_cycle_through_an_on_demand_action_are_reported() -> N
 
     # Then each cycle is one error, and the on-demand entry is one more
     assert set(found) == {"actions.s.after", "actions.x.after", "actions.x.after[0]"}
+    assert "`s` comes after itself" in found["actions.s.after"]
     assert "`x` and `y` come after one another" in found["actions.x.after"]
     assert "`y` is on demand" in found["actions.x.after[0]"]
 
@@ -365,6 +373,18 @@ def test_an_empty_or_duplicated_gate_vocabulary_is_an_error(
     assert set(found) == {"gates.results"}
     assert "needs at least one result and no duplicate" in found["gates.results"]
     assert reason in found["gates.results"]
+
+
+def test_several_repeated_results_are_named_together() -> None:
+    """AC-4: the message says which results repeat, in the plural."""
+    # Given `gates.results` that repeats two results
+    config = _config(gates=Gates(results=("pass", "fail", "pass", "fail")))
+
+    # When the gate results are checked
+    found = _found(pipelines.check_gate_results(config, _INPUTS))
+
+    # Then one error names both and uses the plural
+    assert found["gates.results"].endswith("`fail`, `pass` repeat.")
 
 
 def test_a_usable_gate_vocabulary_passes() -> None:

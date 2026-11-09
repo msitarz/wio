@@ -112,7 +112,8 @@ def check_gate_results(config: Config, inputs: CheckInputs) -> Iterable[Diagnost
     if not results:
         yield _error("gates.results", f"{_NEEDS} this list is empty.")
     elif repeated:
-        yield _error("gates.results", f"{_NEEDS} {quoted(repeated)} repeats.")
+        verb = "repeat" if len(repeated) > 1 else "repeats"
+        yield _error("gates.results", f"{_NEEDS} {quoted(repeated)} {verb}.")
 
 
 def find_cycles(after: Mapping[str, Sequence[str]]) -> tuple[tuple[str, ...], ...]:
@@ -294,7 +295,8 @@ def _cycles(config: Config) -> Iterable[Diagnostic]:
     for cycle in find_cycles(graph):
         where = join_path(join_path("actions", cycle[0]), "after")
         names = and_list([f"`{name}`" for name in cycle])
-        yield _error(where, f"{names} come after one another; `after` has no cycle.")
+        phrase = "come after one another" if len(cycle) > 1 else "comes after itself"
+        yield _error(where, f"{names} {phrase}; `after` has no cycle.")
 
 
 def _reachable(graph: Mapping[str, Sequence[str]], start: str) -> set[str]:
