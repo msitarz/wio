@@ -3,6 +3,24 @@
 
 import pytest
 
+from wio.config import CHECKS, pipelines
+
+
+def test_the_check_run_includes_the_pipeline_checks_in_order() -> None:
+    """AC-1 to AC-4: the loader runs them after the shape, so `check` prints them."""
+    # Given the checks that the loader runs by default
+
+    # When they are listed
+    names = [check.__name__ for check in CHECKS]
+
+    # Then the pipeline checks are among them, in the order of the contract
+    assert names == [
+        pipelines.check_stage_references.__name__,
+        pipelines.check_stage_roots.__name__,
+        pipelines.check_actions.__name__,
+        pipelines.check_gate_results.__name__,
+    ]
+
 
 def test_a_missing_stage_and_a_repeated_stage_in_a_stage_preset_are_errors() -> None:
     """AC-1: the error names the stage and lists the declared ones."""

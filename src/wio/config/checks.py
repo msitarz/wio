@@ -4,6 +4,13 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.config.pipelines import (
+    check_actions,
+    check_gate_results,
+    check_stage_references,
+    check_stage_roots,
+)
+
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
     from pathlib import Path
@@ -38,7 +45,12 @@ may be given a best-effort `Config` that has errors of its own shape, so it must
 not report again what the shape already reported.
 """
 
-CHECKS: tuple[Check, ...] = ()
+CHECKS: tuple[Check, ...] = (
+    check_stage_references,
+    check_stage_roots,
+    check_actions,
+    check_gate_results,
+)
 """The checks that the loader runs after the shape, in order.
 
 A leaf that adds a check appends it here, which changes neither `load_config`'s
