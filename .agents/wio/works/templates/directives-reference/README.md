@@ -30,8 +30,9 @@ directives exist and how to write them without leaving the command line.
 
 ## Assumptions
 
-- **A-1**: The directives leaf is delivered, so the table has an entry for each
-  directive with its name, syntax, meaning and examples, in a fixed order.
+- **A-1**: The directives leaf is delivered, so the table has, in the order
+  `required`, `items`, `pattern`, `inherit`, an entry for each directive with
+  its name, its syntax, its meaning and its examples.
 - **A-2**: `wio.cli` can run a command without finding the repository or loading
   the config, as bare `wio config` does.
 
@@ -43,45 +44,55 @@ directives exist and how to write them without leaving the command line.
 
 ## Constraints
 
-- **The table is the only source.** The command prints the table and adds no
-  text about a directive of its own.
-- **The order is the table's.** It is `required`, `items`, `pattern`, `inherit`,
-  and the output has no timestamps.
+- **The table is the only source.** The command prints the table's fields as
+  they are and adds no text about a directive of its own.
+- **The order is the table's.** The command does not sort or filter.
 - **The command reads nothing.** It reads no file, no config and no repository.
-- **Nothing is imported before it is needed.** Without `--json` it imports no
-  `json`, `tomllib`, `tomlkit` or Markdown parser.
-- **Verification.** The human form is verified by AC-1, the JSON by AC-2, the
-  independence of the repository by AC-3, the imports by AC-4, the command line
-  by AC-5 and the documents by AC-6.
+- **It loads no parser or writer.** Without `--json` it imports none of `json`,
+  `tomllib`, `tomlkit` or a Markdown parser, so that it starts fast.
+- **Verification.** The human form and its fidelity to the table are verified by
+  AC-1, the JSON by AC-2, the independence of the repository by AC-3, the
+  imports by AC-4, the command line by AC-5 and the documents by AC-6.
 
 ## Acceptance criteria
 
-### **AC-1** The human form lists every directive with its details
+### **AC-1** The human form prints the table's entries as they are
 
-`wio templates directives` prints each directive in the table's order as a name,
-with its syntax, its meaning and each example indented under it, and exits 0.
+`wio templates directives` prints each entry of the table in the table's order,
+the name on a line and under it, indented by two spaces, a `Syntax:` line, the
+meaning and an `Example:` line for each example, with one empty line between
+entries, and every field is the table's, character for character.
 
 #### The listing
 
-- **Given** any working directory.
+- **Given** any working directory and the table.
 - **When** `wio templates directives` runs.
-- **Then** it prints `required`, `items`, `pattern` and `inherit` in that order,
-  each followed by an indented `Syntax:` line, an indented meaning and an
-  indented `Example:` line for each of its examples, two for `pattern`, writes
-  nothing to standard error and exits 0.
+- **Then** it prints exactly one block for each entry of the table in its
+  order, each as in this shape, writes nothing to standard error and exits 0:
+
+  ```text
+  required
+    Syntax: <the entry's syntax>
+    <the entry's meaning>
+    Example: <the entry's example>
+  ```
+
+  with one `Example:` line for each example of the entry, and an empty line
+  between blocks.
 
 ### **AC-2** `--json` prints the table as one array
 
 `wio templates directives --json` prints one JSON array in the table's order,
-each object with `name`, `syntax`, `description` and `examples`, where
-`examples` is an array.
+each object with `name`, `syntax`, `meaning` and `examples`, where `examples` is
+an array, and every value is the table's.
 
 #### The array
 
-- **Given** any working directory.
+- **Given** any working directory and the table.
 - **When** `wio templates directives --json` runs.
-- **Then** the output parses as one array of four objects whose fields equal the
-  table's, with two examples for `pattern`, and the exit code is 0.
+- **Then** the output parses as one array with one object for each entry of the
+  table, in its order, whose four fields equal the entry's, and the exit code is
+  0.
 
 ### **AC-3** The command works outside a repository and with a broken config
 

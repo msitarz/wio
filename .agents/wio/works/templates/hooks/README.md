@@ -24,7 +24,6 @@ problem in the project's templates without anyone running the check.
 
 ## Non-Goals
 
-- Limiting the check to the edited file.
 - Reporting warnings to the agent.
 - A hook for a harness other than Claude Code, which a project writes with its
   own hook.
@@ -34,15 +33,16 @@ problem in the project's templates without anyone running the check.
 
 - **A-1**: The check leaf is delivered, so `wio templates check` exits 1 on an
   error and prints the diagnostics.
-- **A-2**: Claude Code gives a `PostToolUse` hook the edited file's path as
-  `tool_input.file_path` on standard input, and returns standard error to the
-  model when the hook exits 2, as the config's hook already relies on.
+- **A-2**: Claude Code returns a hook's standard error to the model when the
+  hook exits 2, as the config's hook already relies on; the payload is as the
+  parent's A-5 says.
 
 ## Mechanisms
 
 - The `PostToolUse` entries of `.claude/settings.json`, which already hold the
   formatter and the config check, and gain a command that runs
-  `uv run wio templates check`.
+  `uv run wio templates check`; the command's shape is provisional, and its exit
+  codes and its silence are required.
 - `jq`, which reads the edited path from the hook's input.
 - A hook of `prek.toml`, `wio-templates`, set beside `wio-config`, which runs
   `uv run wio templates check` when a file of the templates directory is in the
@@ -88,7 +88,8 @@ the check finds, and when the edited file is not a template.
 - **Given** the hook's command and a repository whose templates have an error.
 - **When** the command receives the input for an edit of `src/wio/cli/x.py`, of
   `.agents/wio/config.toml` and of `.agents/wio/templates/notes.txt`; and then,
-  with valid templates and a repeated heading, for an edit of a template.
+  with templates whose only finding is the repeated-heading warning of the check
+  leaf's AC-7, for an edit of a template.
 - **Then** each exits 0 with no output.
 
 ### **AC-3** A check that cannot run does not block the edit
@@ -127,6 +128,6 @@ that each project decides how its harness runs the checks.
 
 ## Additional context
 
-- [Checking the config after every edit](../../../../../docs/workflow.md) is the
-  section this Work extends to the templates.
+- [Checking the config after every edit](../../../../../docs/workflow.md#7-checking-the-config-after-every-edit)
+  is the section this Work extends to the templates.
 - The [check](../check/README.md) leaf is the command the hooks run.

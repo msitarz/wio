@@ -27,8 +27,8 @@ a block starts and ends.
 ## Glossary
 
 - **Body start line**: the line of the text, counted from 1, on which the body
-  begins, which is the line after the closing delimiter when nothing follows the
-  delimiter on its own line.
+  begins, which is the line after the one that holds the closing delimiter, or
+  that same line when text follows a closing `-->`.
 
 ## Non-Goals
 
@@ -67,7 +67,9 @@ a block starts and ends.
   the reader was given, and the caller names the file.
 - **Verification.** The returned parts are verified by AC-1 and AC-2, the
   silence for an unmarked text by AC-3, the errors and their lines by AC-4, the
-  line endings by AC-5 and the imports by AC-6.
+  line endings by AC-5, the imports by AC-6 and that the reader touches no file
+  by its signature, which takes text, fixed at the architecture stage and judged
+  in its review.
 
 ## Acceptance criteria
 
@@ -86,6 +88,13 @@ start line.
   `{"id": "k3m9xq"}`, and the body is the empty line and `# Title`, starting on
   line 4.
 
+#### Text after the closing `-->`
+
+- **Given** the text `<!-- wio`, `id = "k3m9xq"` and `--> # Title`, each on its
+  own line.
+- **When** the reader reads it.
+- **Then** the body is `# Title`, starting on line 3.
+
 #### The `+++` form
 
 - **Given** the text `+++`, `wio = 1`, `id = "k3m9xq"`, `+++`, an empty line and
@@ -93,13 +102,6 @@ start line.
 - **When** the reader reads it.
 - **Then** the form is the `+++` form, the version is 1, the data is
   `{"id": "k3m9xq"}` with no `wio` key, and the body starts on line 5.
-
-#### A comment that closes at the first `-->`
-
-- **Given** the text `<!-- wio`, `s = "a-->b"`, `-->`, each on its own line.
-- **When** the reader reads it.
-- **Then** the block ends at the first `-->`, so its TOML is `s = "a`, and the
-  reader raises an error that names line 2.
 
 ### **AC-2** The marker is optional in the comment form and checked everywhere
 
@@ -118,7 +120,8 @@ value is accepted.
 - **Given** a comment block and a `+++` block whose `wio` is `2`, `true`, `"1"`
   or `1.0`, in turn.
 - **When** the reader reads each.
-- **Then** it raises an error that says the marker must be the integer 1.
+- **Then** it raises an error that says the marker must be the integer 1, the
+  only version wio knows.
 
 ### **AC-3** A text that is not marked gives nothing
 
@@ -147,6 +150,13 @@ that names the line.
 - **When** the reader reads each.
 - **Then** the first raises an error that says the block does not close and
   names line 1, and the second raises an error that names line 3.
+
+#### A comment that closes at the first `-->`
+
+- **Given** the text `<!-- wio`, `s = "a-->b"`, `-->`, each on its own line.
+- **When** the reader reads it.
+- **Then** the block ends at the first `-->`, so its TOML is `s = "a`, and the
+  reader raises an error that names line 2.
 
 #### `+++` front matter that is wrong
 

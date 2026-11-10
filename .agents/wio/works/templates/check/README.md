@@ -51,7 +51,7 @@ agent that broke it must be told what is wrong and where, all at once.
 ## Constraints
 
 - **Every problem is reported at once.** A check never stops at the first
-  problem, and the diagnostics are printed in one sorted order.
+  problem.
 - **Only an error fails.** An error exits 1, and a warning is printed and exits
   0.
 - **Unknown keys are errors.** The keys a template's metadata may have are
@@ -60,7 +60,9 @@ agent that broke it must be told what is wrong and where, all at once.
 - **Directives are read on level-2 headings only.** A directive list on any
   other level is an error.
 - **A diagnostic names its place.** It is the file and, where there is one, the
-  line of the heading or the key path of the config entry.
+  line of the heading, with the column that the directive parser gives for a
+  directive error; the key of an unknown template key is named in the message,
+  and the place of a problem in the config's kinds is its key path.
 - **Verification.** The output is verified by AC-1, discovery's problems by
   AC-2, the keys by AC-3, the directives by AC-4, the actions by AC-5, the kinds
   by AC-6, the warning by AC-7 and the documents by AC-8.
@@ -90,9 +92,9 @@ error, and otherwise prints every diagnostic sorted and exits 1, as text or with
 
 ### **AC-2** The problems that discovery finds are errors of the check
 
-A file that cannot be read, a block that cannot be read, a missing or mistyped
-`kind`, `shape` or `description`, two templates with one name and a bad
-templates directory are printed as errors.
+Every error diagnostic that discovery returns, which
+[discovery's AC-3](../discovery/README.md) lists, is printed by the check as an
+error with its place.
 
 #### Discovery's problems
 
@@ -135,18 +137,21 @@ the line and, where the parser gives one, the column.
 ### **AC-5** A name in `[actions]` that the config does not declare is an error
 
 An action that the config does not declare, a stage preset that it does not
-declare and a stage that it does not declare are errors, and an empty list is
-not.
+declare, a stage that it does not declare and a value that is neither a string
+nor a list of strings are errors, and an empty list is not.
 
 #### The names
 
 - **Given** a config declaring the action `define`, the stage preset
   `define-feature` and the stage `implementation`, and templates whose
   `[actions]` hold `define = "nosuch"`, `nosuch = "define-feature"`,
-  `define = ["nosuch"]`, `define = []` and `define = ["implementation"]`.
+  `define = ["nosuch"]`, `define = 1`, `define = [1]`, `define = []` and
+  `define = ["implementation"]`.
 - **When** `wio templates check` runs.
 - **Then** the first three each give an error that names the file and the
-  undeclared name, and the last two give none.
+  undeclared name, the next two give an error that names the file and the key
+  `define` and says its value must be a name or a list of names, and the last
+  two give none.
 
 ### **AC-6** A kind that does not agree with the config is an error
 
@@ -166,14 +171,16 @@ template that does not exist and an entry template of another kind are errors.
 
 ### **AC-7** A repeated `##` heading is a warning
 
-Two `##` headings of one template with the same text, ignoring case, spaces and
-a trailing directive list, are a warning, and the check still exits 0.
+Two `##` headings of one template with the same text, ignoring case, the
+whitespace around it and a trailing directive list, are a warning, and the check
+still exits 0.
 
 #### A repeated heading
 
 - **Given** a template with `## Goals <!-- wio: required -->` and `## goals`.
 - **When** `wio templates check` runs.
-- **Then** it prints a warning that names the file and both lines, and exits 0.
+- **Then** it prints a warning whose place is the file and the line of the
+  second heading and whose message names the line of the first, and exits 0.
 
 ### **AC-8** The documents describe the check
 

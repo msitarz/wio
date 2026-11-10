@@ -26,7 +26,8 @@ that it can rewrite a contract in that shape.
 - `--work` and `--keep`, which need to find and read a Work and belong to the
   contracts Work.
 - `--json`, because the skeleton is text that is consumed as it is.
-- A header, a summary or anything on standard error, which `list` already gives.
+- A header, a summary or anything on standard error on success, which `list`
+  already gives.
 - Choosing a template by its kind.
 
 ## Assumptions
@@ -39,7 +40,8 @@ that it can rewrite a contract in that shape.
 - The component of `wio.templates`, which finds the template by its name and
   reads its text through the `FileSystem` port.
 - The skeleton function of `wio.formats`, which prepares the text.
-- `wio.cli`'s table of commands, which gains `show` under `templates`.
+- The command spec of `wio.templates`, which gains the `show` subparser; the
+  table of commands of `wio.cli` already names `templates`.
 - `Stdio` of `wio.io`, through which the skeleton is written.
 
 ## Constraints
@@ -48,7 +50,8 @@ that it can rewrite a contract in that shape.
   text, and nothing is written to standard error.
 - **The name is matched exactly.** It is the template's name with its case, and
   a kind is not a template's name.
-- **Exit codes follow the command line's contract.** A template error or an
+- **Exit codes follow the command line's contract.** A template error, which
+  includes one that the skeleton function finds in the shown template, or an
   unknown name is an error the user must fix and exits 2, and a wrong command
   line is a usage mistake that exits 2.
 - **Verification.** The output is verified by AC-1, the unknown name by AC-2,
@@ -68,7 +71,7 @@ error is empty and the exit code is 0.
 - **When** `wio templates show feature.leaf` runs.
 - **Then** standard output is the skeleton that the skeleton function gives for
   that file's text under the name `feature.leaf`, standard error is empty and
-  the exit code is 0.
+  the exit code is 0; run again, the output is the same.
 
 ### **AC-2** A name that no template has is refused with the names that exist
 
@@ -97,6 +100,14 @@ shows every problem and exits 2, even for a valid template.
 - **Then** it prints an error that names the broken file and mentions
   `wio templates check`, prints nothing to standard output and exits 2.
 
+#### A bad directive list in the shown template
+
+- **Given** a project whose template `feature.leaf` has
+  `## A <!-- wio: mandatory -->` on line 12.
+- **When** `wio templates show feature.leaf` runs.
+- **Then** it prints an error that names the file, line 12 and the column,
+  prints nothing to standard output and exits 2.
+
 ### **AC-4** `show` takes one name and no `--json`
 
 A command line without a name, with two names or with `--json` is a usage
@@ -112,11 +123,10 @@ mistake, and the help of `wio templates` names `show`.
 
 ### **AC-5** The documents describe `show`
 
-`docs/concepts.md` and `docs/v0.1-scope.md` say that `wio templates show <name>`
-prints the bare skeleton with nothing around it, that an unknown name lists the
-names that exist, that it is refused when a template has an error, and that
-`--work` and `--keep` belong to `wio contracts` and no longer to
-`wio templates`.
+`docs/concepts.md`, `docs/v0.1-scope.md` and `docs/workflow.md` say that
+`wio templates show <name>` prints the bare skeleton with nothing around it,
+that an unknown name lists the names that exist, and that `--work` and `--keep`
+belong to `wio contracts` and are no longer options of `wio templates show`.
 
 ## Additional context
 

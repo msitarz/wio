@@ -23,7 +23,7 @@ on which lines of a Markdown body are headings, so one codec finds them.
 ## Glossary
 
 - **Real heading**: an ATX heading at the top level of the body, outside code
-  and comments, which wio treats as the heading of a section.
+  and comments, which the check and `wio contracts` treat as a section heading.
 
 ## Non-Goals
 
@@ -35,8 +35,8 @@ on which lines of a Markdown body are headings, so one codec finds them.
 
 ## Assumptions
 
-- **A-1**: `markdown-it-py` and its dependency `mdurl` can be added as runtime
-  dependencies under the project's `exclude-newer` guard.
+- **A-1**: `markdown-it-py`'s one dependency, `mdurl`, comes with it under the
+  parent's assumption that it can be added.
 - **A-2**: The CommonMark rules as `markdown-it-py` applies them are the
   definition of a heading, a fence, a code block and a comment block, apart from
   the exclusions this Work makes.
@@ -51,6 +51,8 @@ on which lines of a Markdown body are headings, so one codec finds them.
   carry the level, the nesting and the lines of each heading.
 - A plain immutable type in `wio.models` for a heading, provisional for the
   architecture stage to fix.
+- Ruff's `banned-api` table, which gains `markdown_it` so that only
+  `wio.formats` may import it.
 
 ## Constraints
 
@@ -107,12 +109,14 @@ heading after it is still found on its own line.
 
 #### Lines that only look like headings
 
-- **Given** a body with, in turn, a heading inside a block fenced by ` ``` `,
-  one inside a block fenced by `~~~`, one inside a comment that spans several
-  lines, one indented by four spaces, `> ## Quoted`, `- ## Listed`, and a
-  paragraph underlined with `====`, each followed later by `## Real`.
-- **When** the outline reads it.
-- **Then** each body returns the one heading `Real`, with its own line.
+- **Given** seven bodies, each of which starts on line 1 and holds, in turn, a
+  heading inside a block fenced by ` ``` `, one inside a block fenced by `~~~`,
+  one inside a comment that spans several lines, one indented by four spaces,
+  `> ## Quoted`, `- ## Listed`, and a paragraph underlined with `====`, and
+  after it a blank line and `## Real`.
+- **When** the outline reads each.
+- **Then** each returns the one heading `Real`, whose line is the line it is on
+  in that body.
 
 ### **AC-4** Line endings do not change the headings
 
@@ -123,7 +127,8 @@ with LF, and a raw line never ends in a carriage return.
 
 - **Given** one body written with LF and with CRLF.
 - **When** the outline reads both.
-- **Then** the two results are equal.
+- **Then** the two results are equal, and no raw line ends in a carriage
+  return.
 
 ### **AC-5** Only `wio.formats` imports the parser
 
@@ -160,3 +165,5 @@ imports it.
   the outline is documented.
 - The [skeleton](../skeleton/README.md) and [check](../check/README.md) leaves
   read headings through it, and `wio contracts` will.
+- The dependency on the [block reader](../block-reader/README.md) is one of data
+  flow: the outline reads the body and start line it returns.

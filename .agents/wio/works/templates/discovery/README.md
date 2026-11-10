@@ -63,12 +63,12 @@ same way of finding and building them.
   file is ignored.
 - **A template is named by its file.** The name is the file's name without
   `.md`, and two files with one name are an error that names both.
-- **A missing default directory holds no templates.** A `[templates] dir` that
-  is set and missing, is not a directory or is a symbolic link is an error.
-- **Output is deterministic.** Kinds and templates are sorted by name, and the
-  output has no timestamps.
-- **Nothing is imported before it is needed.** `list` without `--json` imports
-  neither `json`, `tomlkit` nor a Markdown parser.
+- **A missing default directory holds no templates.** The component compares
+  `dir` with the default `.agents/wio/templates`; that path missing holds no
+  templates, any other path that is missing is an error, and a `dir` that is
+  not a directory or is a symbolic link is an error.
+- **Kinds and templates are sorted by name.** The rest of the output's
+  determinism is the parent's constraint.
 - **Verification.** The walk is verified by AC-1, the fields by AC-2, the
   problems by AC-3, the help by AC-4, the output by AC-5, the refusal by AC-6,
   the repository's templates by AC-7 and the imports of `list` by the parent's
@@ -118,9 +118,9 @@ names its place.
   close, a block with no `kind`, a block with `shape = 1`, two files named
   `a.md` in different directories, and a `[templates] dir` that does not exist.
 - **When** the templates are found.
-- **Then** each gives an error diagnostic whose place is the file, or for the
-  two files both of them, or the directory, and the other templates are still
-  returned.
+- **Then** each gives an error diagnostic whose place is the file, the two files
+  for the duplicate, or the directory; after a file problem the other templates
+  are still returned, and after a directory problem there are none.
 
 ### **AC-4** Bare `wio templates` shows the component's help
 
@@ -141,22 +141,32 @@ its shape and its entry mark on one line and its description indented under it,
 
 #### The grouped layout
 
-- **Given** the kinds `feature = "feature.draft"`, templates `feature.draft`
-  with shape `draft`, `feature.leaf` with shape `leaf` and a description, and
+- **Given** the kinds `feature = "feature.draft"`, `bugfix = "bugfix.fix"` and
+  `spec = "spec.draft"`, and the templates `feature.draft` with shape `draft`
+  and a description, `feature.leaf` with shape `leaf` and a description, and
   `bugfix.fix` with no shape and no description.
 - **When** `wio templates list` runs.
-- **Then** it prints `bugfix`, then `bugfix.fix`, then `feature`, then
-  `feature.draft  draft, entry`, `feature.leaf  leaf` and the description of
-  each indented by four spaces under its line, with no description line for one
-  that has none.
+- **Then** it prints exactly these lines, with the names indented by two spaces
+  and each description by four, and no line for `spec`, which has no templates:
+
+  ```text
+  bugfix
+    bugfix.fix  entry
+  feature
+    feature.draft  draft, entry
+      <the description of feature.draft>
+    feature.leaf  leaf
+      <the description of feature.leaf>
+  ```
 
 #### One kind
 
 - **Given** the same project.
-- **When** `wio templates list --kind feature` and
-  `wio templates list --kind nosuch` run.
-- **Then** the first prints the `feature` group alone, and the second prints an
-  error that names `nosuch` and the declared kinds and exits 2.
+- **When** `wio templates list --kind feature`,
+  `wio templates list --kind spec` and `wio templates list --kind nosuch` run.
+- **Then** the first prints the `feature` group alone, the second prints the
+  line `spec` alone, and the third prints an error that names `nosuch` and the
+  declared kinds and exits 2.
 
 #### JSON
 
@@ -164,9 +174,9 @@ its shape and its entry mark on one line and its description indented under it,
 - **When** `wio templates list --json` and
   `wio templates list --kind feature --json` run.
 - **Then** the first prints one array sorted by kind and then name, each object
-  with `name`, `kind`, `shape`, `entry`, `description` and `path`, and `null`
-  for a missing shape or description, and the second prints the objects of that
-  kind only.
+  with `name`, `kind`, `shape`, `entry` as a boolean, `description` and `path`
+  relative to the repository root, and `null` for a missing shape or
+  description, and the second prints the objects of that kind only.
 
 #### No templates
 
@@ -183,7 +193,8 @@ shows every problem, and exits 2 without listing anything.
 
 - **Given** a project with one valid template and one whose comment block does
   not close.
-- **When** `wio templates list` and `wio templates list --json` run.
+- **When** `wio templates list`, `wio templates list --json` and
+  `wio templates list --kind feature` run.
 - **Then** each prints an error that names the broken file, mentions
   `wio templates check`, lists no template, and exits 2.
 

@@ -20,8 +20,8 @@ reads a template must be one that the contracts command can reuse.
 - An agent can print any template as the contract skeleton to rewrite a
   contract in, with nothing around it.
 - A person or an agent can learn from the command line which directives a
-  template may use, with their syntax and an example, even outside a
-  repository.
+  template may use, with their syntax, meaning and examples, even
+  outside a repository.
 - A person or an agent that edits a template is told what is wrong with it.
 - An agent that edits a template, and a commit that changes one, is told of a
   problem in the project's templates at once.
@@ -119,17 +119,21 @@ reads a template must be one that the contracts command can reuse.
   - What `list` and `check` import: AC-2; that the writer is imported only to
     prepare a skeleton: the skeleton leaf; that only the outline imports a
     Markdown parser: the outline leaf.
-  - One writer: AC-5.
+  - One writer: AC-4.
   - The grammar that `directives` prints: the directives and directives
     reference leaves.
   - The problems that `check` reports: the check leaf.
-  - The hooks: AC-4 and the hooks leaf.
+  - A broken template reported at once to an agent and in a commit: the hooks
+    leaf.
+  - Where the codecs live: the block reader, outline, directives and skeleton
+    leaves and AC-4.
   - The dependency direction: the review of each child and `tach check`.
 
 ## Visuals
 
 Before (`main` at commit `b1b4477`), `wio.templates` holds only its docstring
-and `wio.formats` only the TOML decoder and the diagnostic renderers. After, the
+and `wio.formats` only the TOML decoder, its error and the diagnostic
+renderers. After, the
 component and the three codecs exist, and `wio.contracts`, built later, reads
 templates and contracts through the same codecs. Bold boxes are added and bold
 dashed boxes change.
@@ -138,7 +142,7 @@ dashed boxes change.
 flowchart LR
     cli["wio.cli: templates list, show, check, directives"]:::changed
     templates["wio.templates: discovery, Template, check"]:::new
-    formats["wio.formats: block reader, directives, skeleton, TOML writer"]:::changed
+    formats["wio.formats: block reader, outline, directives, skeleton, TOML writer"]:::changed
     models["wio.models: Template, Directive, block"]:::changed
     io["wio.io: FileSystem"]
     settings["wio.ports: Settings"]
@@ -167,7 +171,8 @@ any repository.
 - **Given** the wheel built from the tree, run with
   `uv run --no-project --isolated --with <wheel>`, and a git repository whose
   config declares the kind `feature` with the entry template `feature.draft`
-  and whose templates directory holds `feature.draft` and `feature.leaf`.
+  declares the actions that the two templates name, and whose templates
+  directory holds `feature.draft` and `feature.leaf`.
 - **When** `wio templates list`, `wio templates show feature.leaf` and
   `wio templates check` run there.
 - **Then** the first prints the kind `feature` with its two templates and marks
@@ -247,31 +252,10 @@ check, each of which has criteria of its own in its leaf.
 - **Given** a copy of this repository's templates in which the heading of one
   section carries the directive `mandatory`, which the grammar does not have.
 - **When** `wio templates check` runs.
-- **Then** it prints an error that names that template's file and heading and
-  exits 1.
+- **Then** it prints an error that names that template's file and the line of
+  that heading, and exits 1.
 
-### **AC-4** An edit that breaks a template is reported at once
-
-An agent that edits a template gets the diagnostics of `wio templates check`
-back in the same turn, and a commit that changes a template is refused while the
-templates have an error.
-
-#### An agent's edit
-
-- **Given** this repository's hook command for `PostToolUse` and a template that
-  has an error.
-- **When** the hook receives the edit of a file in `.agents/wio/templates/`, and
-  again the edit of a file elsewhere.
-- **Then** the first exits 2 with the diagnostics on standard error, and the
-  second exits 0 and prints nothing.
-
-#### A commit
-
-- **Given** this repository's `prek.toml` and a staged template with an error.
-- **When** the `wio-templates` hook runs.
-- **Then** it fails and prints the diagnostics.
-
-### **AC-5** Only `wio.formats` reads or writes TOML
+### **AC-4** Only `wio.formats` reads or writes TOML
 
 No module of `wio` other than `wio.formats` imports `tomllib` or `tomlkit`.
 
@@ -282,7 +266,7 @@ No module of `wio` other than `wio.formats` imports `tomllib` or `tomlkit`.
 - **When** `ruff check` runs on `src/wio`.
 - **Then** it reports `TID251` for each import.
 
-### **AC-6** The documents describe the command and the grammar
+### **AC-5** The documents describe the command and the grammar
 
 `docs/concepts.md`, `docs/v0.1-scope.md`, `docs/workflow.md`,
 `src/wio/formats/README.md` and `GLOSSARY.md` state what the command, the hooks
@@ -302,12 +286,9 @@ glossary defines Template name and Skeleton.
   moves `--work` and `--keep` to the contracts Work.
 - [Templates in the concepts](../../../../docs/concepts.md) say what a template
   is, how a skeleton is prepared and which directives exist.
-- Each child updates the sentences of the documents about its own part: the
-  block reader, the outline, the directives and the skeleton leaves
-  `src/wio/formats/README.md` and the concepts; discovery, show, check and the
-  directives reference the scope and the concepts, and discovery and skeleton
-  the glossary; the hooks leaf `docs/workflow.md`. The parent's promote stage
-  checks that the documents agree.
+- Each leaf updates the documents that its own criteria name, and no other.
+  The parent's integration stage owns any sentence of a document that no leaf
+  names, and checks that the documents agree.
 - The children are [block reader](block-reader/README.md),
   [outline](outline/README.md), [directives](directives/README.md),
   [skeleton](skeleton/README.md),

@@ -20,14 +20,15 @@ grammar is.
 - A directive list that is wrong is an error that says what is wrong and where,
   so a misspelled directive cannot drop a requirement.
 - A pattern can hold a comma, written without escapes of wio's own.
-- Every directive, with its syntax, its meaning and an example, is in one table
-  that the parser and `wio templates directives` share.
+- Every directive, with its syntax, its meaning and its examples, is in one
+  table that the parser and `wio templates directives` share.
 - The grammar is documented where the codecs are.
 
 ## Glossary
 
 - **Directive list**: the comment `<!-- wio: ... -->` at the end of a heading,
-  holding directives separated by commas.
+  as [Directives](../../../../../docs/concepts.md#directives) says; this parser
+  reads it on a heading of any level, and the checks restrict it to level 2.
 
 ## Non-Goals
 
@@ -51,24 +52,35 @@ grammar is.
 - A function in `wio.formats` that takes one line of text, with a name and a
   signature that the architecture stage fixes.
 - A `Directive` type in `wio.models` with one variant for each of `required`,
-  `items`, `pattern` and `inherit`, and a type for what the function returns,
-  both provisional for the architecture stage.
-- A table of the directives in `wio.formats`, each with its name, its syntax,
-  its meaning and an example.
+  `items`, `pattern` and `inherit`, and a result `Heading` with the text, the
+  level and the directives, or `None` for a line that is not a heading, both
+  provisional for the architecture stage.
+- A table of the directives in `wio.formats`, in the order `required`, `items`,
+  `pattern`, `inherit`, each entry with its name, its syntax, its meaning and
+  its examples.
 - The `re` module, which compiles a pattern to check it.
 - An error in `wio.formats.errors` that extends `WioError` and carries the
-  column of the first problem.
+  column of the first problem, counted from 1 on the heading's line.
 
 ## Constraints
 
-- **Names are exact.** A directive name is lowercase, and spaces around the
-  `:` and the commas are allowed.
-- **A list is on one line.** It opens and closes on its heading's line, so a
+- **Names are exact.** A directive name is lowercase, and spaces around the `:`,
+  the commas, the `>=` and the `=` are allowed.
+- **A name takes what its syntax says.** `required` and `inherit` take no value,
+  `items` takes `>=` and a count, and `pattern` takes `=` and a pattern; a
+  recognized name with another operator or with none is a wrong value, and a
+  name that is not one of the four is an unknown name.
+- **A list is on one line and ends the heading.** It opens and closes on its
+  heading's line with nothing after it and there is one to a heading, so a
   heading too long for the Markdown line limit is shortened or has the limit
   suppressed on the line above it, and a list split over two lines is an error.
-- **A pattern has two forms.** Written plainly, it runs to the next comma;
-  written between double quotes, it runs to the closing quote and may hold
-  commas, and neither form has an escape of wio's own.
+- **A pattern has two forms.** Written plainly, it runs from after the `=` to
+  the next comma or the end of the list, trimmed of surrounding spaces and with
+  inner spaces kept; written between double quotes, it runs to the closing
+  quote, may hold commas, and only spaces and a comma or the end of the list may
+  follow it.
+- **A literal `"` or `>` in a pattern is written `\x22` or `\x3e`.** wio has no
+  escape of its own, so `-->` cannot occur inside a list.
 - **The parser touches no file.** It takes a line and returns data or raises.
 - **Verification.** What is read is verified by AC-1, AC-2 and AC-3, the errors
   by AC-4 and AC-5, the level by AC-6, the table by AC-7 and the documents by
@@ -92,66 +104,84 @@ its directives in the order written.
 
 #### Spaces
 
-- **Given** the lines `## Glossary <!-- wio:inherit -->` and
-  `## Goals <!--  wio: required ,items>=2 -->`.
+- **Given** the lines `## Glossary <!-- wio:inherit -->`,
+  `## Goals <!--  wio: required ,items>=2 -->` and
+  `## C <!-- wio: items >= 2, pattern = AC-\d+ -->`.
 - **When** the parser reads each.
-- **Then** the first gives `inherit`, and the second gives `required` and at
-  least 2 items.
+- **Then** the first gives `inherit`, the second gives `required` and at least 2
+  items, and the third gives at least 2 items and the pattern `AC-\d+`.
 
 ### **AC-2** A pattern can be written plainly or between quotes
 
-A plain pattern runs to the next comma, and a quoted pattern runs to the closing
-quote.
+A plain pattern runs to the next comma, trimmed, and a quoted pattern runs to
+the closing quote.
 
 #### Plain and quoted
 
-- **Given** the lines `## A <!-- wio: pattern=AC-\d+, inherit -->` and
-  `## B <!-- wio: pattern="AC-\d{1,3}", required -->`.
+- **Given** the lines `## A <!-- wio: pattern=AC-\d+, inherit -->`,
+  `## B <!-- wio: pattern="AC-\d{1,3}", required -->` and
+  `## D <!-- wio: pattern=a b -->`.
 - **When** the parser reads each.
-- **Then** the first gives the pattern `AC-\d+` and `inherit`, and the second
-  gives the pattern `AC-\d{1,3}` and `required`.
+- **Then** the first gives the pattern `AC-\d+` and `inherit`, the second gives
+  the pattern `AC-\d{1,3}` and `required`, and the third gives the pattern
+  `a b`.
+
+#### A literal quote and angle bracket
+
+- **Given** the line `## E <!-- wio: pattern=a\x22b\x3ec -->`.
+- **When** the parser reads it.
+- **Then** the pattern is `a\x22b\x3ec`, which `re` reads as `a"b>c`.
 
 ### **AC-3** A line with no directive list gives no directives and no error
 
 A heading without a directive list gives its text and no directives, and a line
-that is not a heading gives nothing.
+that is not a heading gives `None`.
 
 #### Lines that carry none
 
-- **Given** the lines `## Purpose`, `## Purpose <!-- a note -->`, and the
-  non-heading line `Some text <!-- wio: required -->`.
+- **Given** the lines `## Purpose`, `## Purpose <!-- a note -->`,
+  `## T <!-- wio -->`, `## T <!-- WIO: required -->`, and the non-heading line
+  `Some text <!-- wio: required -->`.
 - **When** the parser reads each.
-- **Then** the first gives the text `Purpose` and no directives, the second
-  gives its text with the note kept and no directives, and the third gives
-  nothing; none raises an error.
+- **Then** the first gives the text `Purpose` and no directives, the second to
+  fourth give their text with the comment kept and no directives, and the fifth
+  gives `None`; none raises an error.
 
 ### **AC-4** A list with a wrong name or shape is an error with its column
 
-An unknown name, a name in the wrong case, a name written twice, an empty list
-and a list that does not close on its line are errors.
+An unknown name, a name in the wrong case, a name written twice, an empty list,
+a list that does not close on its line, text after a list and two lists on one
+heading are errors.
 
 #### The wrong lists
 
-- **Given** the lists `mandatory`, `Required`, `required, required`, an empty
-  list `<!-- wio: -->`, and the heading line `## Split <!-- wio: required,`
-  whose list does not close, each on a level-2 heading.
+- **Given** the lists `mandatory`, `Required`, `required, required` and an empty
+  list `<!-- wio: -->`, the heading line `## Split <!-- wio: required,` whose
+  list does not close, the heading `## T <!-- wio: required --> tail`, and the
+  heading `## U <!-- wio: required --> <!-- wio: inherit -->`, each on a level-2
+  heading.
 - **When** the parser reads each.
-- **Then** each raises an error that says what is wrong and names the column
-  where it starts, and the one for the unclosed list says that a list must close
-  on the line of its heading.
+- **Then** each raises an error that says what is wrong and names the column,
+  counted from 1, where it starts; the one for the unclosed list says that a
+  list must close on the line of its heading, the one for text after the list
+  that a list must end its heading, and the one for two lists that there is one
+  list to a heading.
 
 ### **AC-5** A directive with a wrong value is an error with its column
 
-An `items` without a count of 1 or more, and a `pattern` that is empty, does not
-compile or is quoted without its closing quote, are errors.
+An `items` without a count of 1 or more, a name with an operator it does not
+take, and a `pattern` that is empty, does not compile, has text after its
+closing quote or is quoted without its closing quote, are errors.
 
 #### The wrong values
 
-- **Given** the directives `items>=`, `items>=0`, `items>=-1`, `items>=1.5`,
-  `pattern=`, `pattern=(`, and `pattern="AC-`, each on a level-2 heading.
+- **Given** the directives `items`, `items>=`, `items>=0`, `items>=-1`,
+  `items>=1.5`, `items=2`, `items>2`, `required=1`, `pattern=`, `pattern=(`,
+  `pattern="a"b` and `pattern="AC-`, each on a level-2 heading.
 - **When** the parser reads each.
 - **Then** each raises an error that says what is wrong and names the column of
-  the value, and the one for `pattern=(` carries the message of `re`.
+  the value, counted from 1, and the one for `pattern=(` carries the message of
+  `re`.
 
 ### **AC-6** The level is returned and not restricted
 
@@ -163,29 +193,40 @@ A directive list on a heading of any level is read, and its level is returned.
 - **When** the parser reads it.
 - **Then** the text is `Notes`, the level is 3 and the directive is `required`.
 
-### **AC-7** The table lists every directive and its examples parse
+### **AC-7** The table lists every directive in order and its examples parse
 
-The table has an entry for each of `required`, `items>=N`, `pattern=<regex>`
-in its plain and quoted forms, and `inherit`, each with its syntax, its meaning
-and an example heading, and the parser reads every example into the directive
-it documents.
+The table has, in the order `required`, `items`, `pattern`, `inherit`, an entry
+for each directive with its name, its syntax, its meaning and its examples, one
+for each form it can be written in, so two for `pattern`, and the parser reads
+every example into the directive it documents.
+
+#### The entries
+
+- **Given** the table.
+- **When** its entries are read in order.
+- **Then** the names are `required`, `items`, `pattern` and `inherit`, `pattern`
+  has a plain and a quoted example and the others have one, and each entry has a
+  syntax and a meaning.
 
 #### Each example
 
 - **Given** the table.
-- **When** the parser reads the example of each entry.
+- **When** the parser reads the example heading of each entry.
 - **Then** it gives the directives that the entry documents and raises no error.
 
-### **AC-8** The README of `wio.formats` describes the grammar
+### **AC-8** The documents describe the grammar
 
 `src/wio/formats/README.md` states where a directive list sits, the four
-directives with their syntax, that names are lowercase and exact, the plain and
-quoted forms of `pattern`, with the way to write a literal `"` or `>` as `\x22`
-or `\x3e`, which wrong lists are errors, that the parser returns the level and
-the checks that use it allow directives on level-2 headings only, that a list
-closes on its heading's line and how a long heading is kept within the line
-limit with `<!-- rumdl-disable-next-line MD013 -->`, and that finding items is
-left to the contracts Work.
+directives with their syntax, that names are lowercase and exact, what a name
+takes, the plain and quoted forms of `pattern`, with the way to write a literal
+`"` or `>` as `\x22` or `\x3e`, which wrong lists are errors, that the parser
+returns the level and the checks that use it allow directives on level-2
+headings only, that a list closes on its heading's line and ends it, and how a
+long heading is kept within the line limit with
+`<!-- rumdl-disable-next-line MD013 -->`. `docs/concepts.md` describes the two
+forms of `pattern` in its Directives section, no longer says in the open points
+that writing a `pattern` that holds a comma or `-->` is open, and says that
+finding items is left to the contracts Work.
 
 ## Additional context
 

@@ -10,7 +10,8 @@ depends_on = ["p8vtzx", "1n1p8j", "vyjmpc"]
 ## Purpose
 
 A template must become a contract skeleton the same way wherever one is needed,
-so that what `wio templates show` prints is what `wio contracts new` will write.
+so that what `wio templates show` prints is what `wio contracts new` will write,
+apart from the id it adds.
 
 ## Goals
 
@@ -25,8 +26,10 @@ so that what `wio templates show` prints is what `wio contracts new` will write.
 ## Glossary
 
 - **Template's own keys**: every key of a template's metadata outside its
-  `[contract]` table, such as `kind`, `shape`, `description` and `[actions]`,
-  which describe the template and are not copied to a contract.
+  `[contract]` table, which describe the template and are not copied to a
+  contract, as
+  [from template to contract](../../../../../docs/concepts.md#from-template-to-contract)
+  says, without the `name` key that a template no longer has.
 
 ## Non-Goals
 
@@ -40,7 +43,6 @@ so that what `wio templates show` prints is what `wio contracts new` will write.
 
 - **A-1**: The caller passes the template's name, which is its file's name
   without `.md`, and its text.
-- **A-2**: A template that discovery hands to the skeleton has a metadata block.
 
 ## Mechanisms
 
@@ -52,7 +54,7 @@ so that what `wio templates show` prints is what `wio contracts new` will write.
 - `tomlkit`, as a new runtime dependency, wrapped in one writer of `wio.formats`
   and imported by that writer when it is first called.
 - Ruff's `banned-api` table, which gains `tomlkit` so that only `wio.formats`
-  may import it.
+  may import it, a requirement that the parent's AC-4 verifies.
 
 ## Constraints
 
@@ -63,13 +65,18 @@ so that what `wio templates show` prints is what `wio contracts new` will write.
   and `+++` front matter gives `+++` front matter with the marker `wio = 1` as
   its first key.
 - **Only the template's authoring is kept.** The body is the template's own,
-  except that each directive list is removed from its heading.
-- **The function adds one error of its own.** A text with no metadata block is
-  refused, and every other error is the block reader's or the directive
-  parser's, passed on unchanged.
+  except that the trailing `<!-- wio: ... -->` comment of a real heading's raw
+  line, which is what the directive parser calls a list, is removed with the
+  spaces before it.
+- **The block and the body join plainly.** The block is written with the line
+  ending of the template's first line, LF or CRLF, the body follows it as it
+  was, and an empty body gives the block alone.
+- **The function adds two things of its own.** It refuses a text with no
+  metadata block, and it adds the line of the heading to a directive error,
+  taken from the outline; every other error is the block reader's, unchanged.
 - **Verification.** The two forms are verified by AC-1 and AC-2, the metadata by
   AC-3, the body by AC-4, the errors by AC-5, the lazy writer by AC-6 and the
-  ban on `tomlkit` elsewhere by the parent's AC-5.
+  ban on `tomlkit` elsewhere by the parent's AC-4.
 
 ## Acceptance criteria
 
@@ -135,11 +142,20 @@ every other character of the body is kept as it was.
 
 - **Given** a body with `## Purpose <!-- wio: required -->`, an authoring
   comment that spans several lines and quotes `## X <!-- wio: required -->`, a
-  fenced block holding the same heading, `## Note <!-- a note -->`, and CRLF
-  line endings.
+  fenced block holding the same heading, `## Note <!-- a note -->`,
+  `## Both <!-- a note --> <!-- wio: required -->`, and CRLF line endings.
 - **When** the skeleton is prepared.
-- **Then** the first heading reads `## Purpose`, and the comment, the fenced
-  block, the note and the line endings are as they were.
+- **Then** the first heading reads `## Purpose`, the last reads
+  `## Both <!-- a note -->`, and the comment, the fenced block, the note and the
+  line endings are as they were.
+
+#### The join
+
+- **Given** a CRLF template, a template whose body is empty, and an LF
+  template.
+- **When** the skeleton is prepared from each.
+- **Then** the first has CRLF line endings in its block as well as its body, the
+  second is the block alone, and the third has LF endings throughout.
 
 ### **AC-5** A template that cannot be prepared is an error
 
@@ -153,7 +169,7 @@ directive list raises the error of the block reader or of the directive parser.
 - **When** the skeleton is prepared from each.
 - **Then** the first raises an error that says it is not a template, the second
   raises the block reader's error naming line 1, and the third raises the
-  directive parser's error naming the column.
+  directive parser's error naming the column and the line of the heading.
 
 ### **AC-6** The writer loads when a skeleton is first prepared
 
@@ -167,13 +183,14 @@ preparing a skeleton does.
   read, then a skeleton is prepared and it is read again.
 - **Then** `tomlkit` is not there the first time and is there the second.
 
-### **AC-7** The README of `wio.formats` and the concepts describe the skeleton
+### **AC-7** The documents describe the skeleton
 
-`src/wio/formats/README.md` states what the skeleton keeps and drops, its order,
-that it has the template's block form and the marker for `+++`, that no `id` is
-written, and that `tomlkit` is the one writer, loaded on first use and banned
-elsewhere. `docs/concepts.md` says the same of preparing a template, without the
-`name` key among the template's own keys.
+`GLOSSARY.md` defines Skeleton. `src/wio/formats/README.md` states what the
+skeleton keeps and drops, its order, that it has the template's block form and
+the marker for `+++`, that no `id` is written, and that `tomlkit` is the one
+writer, loaded on first use and banned elsewhere. `docs/concepts.md` says the
+same of preparing a template, without the `name` key among the template's own
+keys.
 
 ## Additional context
 
