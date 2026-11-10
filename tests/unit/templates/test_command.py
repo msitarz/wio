@@ -3,6 +3,7 @@
 
 from argparse import Namespace
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 lazy from pathlib import Path
 
 import pytest
@@ -11,9 +12,14 @@ from tests.unit.fakes import ROOT, FakeRepository, FakeStdio, MemoryFileSystem
 from wio.errors import ConfigurationError
 from wio.formats.directives import COMBINING, DIRECTIVES
 from wio.models.config import Config, Templates
+from wio.models.diagnostics import Diagnostic
 from wio.models.frozen import freeze
 from wio.templates import TemplatesCommand, TemplatesError, render_reference
+from wio.templates import command as command_module
 from wio.templates.errors import CHECK_HINT
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 DIR = ROOT / ".agents" / "wio" / "templates"
 BLOCK = '<!-- wio\nkind = "{}"\n-->\n\n# Title\n'
@@ -252,3 +258,161 @@ def test_directives_reads_nothing_of_the_project(*, as_json: bool) -> None:
         DIRECTIVES, COMBINING, as_json=as_json
     )
     assert code == 0
+
+
+def _stderr(streams: FakeStdio) -> str:
+    """Read what a run wrote to standard error.
+
+    Args:
+        streams: The streams of the run.
+
+    Returns:
+        The text.
+    """
+    streams.stderr.seek(0)
+    return streams.stderr.read()
+
+
+@dataclass
+class _Seen:
+    """What the replaced check and rendering were given."""
+
+    expected_args: tuple[object, ...] = ()
+    check_args: tuple[object, ...] = ()
+    rendered: tuple[Diagnostic, ...] = ()
+
+
+def _check_run(
+    monkeypatch: pytest.MonkeyPatch,
+    found: list[Diagnostic],
+    *,
+    as_json: bool = False,
+    seen: _Seen | None = None,
+) -> tuple[FakeStdio, int]:
+    """Run `wio templates check` with the check and its rendering replaced.
+
+    Args:
+        monkeypatch: The fixture that restores the replacements.
+        found: What the replaced `check_templates` finds.
+        as_json: The value of `--json`.
+        seen: Where to record what the check and the rendering were given.
+
+    Returns:
+        The streams and the exit code.
+    """
+    record = seen if seen is not None else _Seen()
+
+    def finds(*args: object) -> tuple[Diagnostic, ...]:
+        """Record what the check is asked, and give the canned findings.
+
+        Args:
+            *args: What `check_templates` was given.
+
+        Returns:
+            The findings.
+        """
+        record.check_args = args
+        return tuple(found)
+
+    def renders(diagnostics: Iterable[Diagnostic], *, as_json: bool) -> str:
+        """Say how many findings were rendered, and in which form.
+
+        Args:
+            diagnostics: The findings.
+            as_json: Whether JSON was asked for.
+
+        Returns:
+            A line that tells both.
+        """
+        record.rendered = tuple(diagnostics)
+        return f"{len(record.rendered)} json={as_json}\n"
+
+    monkeypatch.setattr(command_module, "check_templates", finds)
+    monkeypatch.setattr(command_module, "render_check", renders)
+
+    def refuses(*_: object) -> None:
+        """Fail the test: `check` must not walk the templates to refuse them.
+
+        Args:
+            *_: What `discover` was given.
+
+        Raises:
+            AssertionError: Always.
+        """
+        message = "`check` must not refuse around a template error"
+        raise AssertionError(message)
+
+    monkeypatch.setattr(command_module, "discover", refuses)
+    settings = _Settings(Config(templates=Templates()))
+    files = MemoryFileSystem({})
+    record.expected_args = (settings.config, ROOT, files)
+    command = TemplatesCommand(settings, FakeRepository(), files)
+    streams = FakeStdio()
+    args = Namespace(
+        templates_view="check", templates_help=lambda: "usage", json=as_json
+    )
+    return streams, command.run(args, streams)
+
+
+def test_check_exits_1_for_an_error_and_writes_what_it_rendered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-1: an error fails the check, and the output is the rendering."""
+    # Given a check that finds an error and a warning
+    found = [Diagnostic("error", "a.md", "x"), Diagnostic("warning", "a.md:2", "y")]
+
+    # When `check --json` runs
+    seen = _Seen()
+    streams, code = _check_run(monkeypatch, found, as_json=True, seen=seen)
+
+    # Then the check got the root, the loaded config and the file port, the
+    # rendering got its findings in order and was asked for JSON, it is the only
+    # output, the templates were not walked to refuse them, and the exit code is 1
+    assert seen.check_args == (
+        seen.expected_args[1],
+        seen.expected_args[0],
+        seen.expected_args[2],
+    )
+    assert seen.rendered == tuple(found)
+    assert (_text(streams), _stderr(streams), code) == ("2 json=True\n", "", 1)
+
+
+def test_check_exits_0_for_a_warning_alone_and_for_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-7: a warning does not fail the check, and nothing found passes."""
+    # Given a check that finds only a warning, and one that finds nothing
+    # When each runs
+    _, warned = _check_run(monkeypatch, [Diagnostic("warning", "a.md:2", "y")])
+    _, clean = _check_run(monkeypatch, [])
+
+    # Then both exit 0
+    assert (warned, clean) == (0, 0)
+
+
+def test_check_with_a_config_that_is_refused_raises_before_any_check() -> None:
+    """AC-1: the config's error is raised, so the command line exits 2."""
+
+    # Given a settings port whose config has an error
+    @dataclass
+    class Refusing:
+        """A `Settings` that refuses."""
+
+        def load(self) -> Config:
+            """Refuse.
+
+            Raises:
+                ConfigurationError: Always.
+            """
+            message = "bad config"
+            raise ConfigurationError(message)
+
+    command = TemplatesCommand(Refusing(), FakeRepository(), MemoryFileSystem({}))
+    args = Namespace(templates_view="check", templates_help=lambda: "usage", json=False)
+
+    # When `check` runs
+    with pytest.raises(ConfigurationError) as caught:
+        command.run(args, FakeStdio())
+
+    # Then the error is the config's
+    assert "bad config" in str(caught.value)

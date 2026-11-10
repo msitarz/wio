@@ -41,3 +41,21 @@ def test_no_diagnostics_render_empty() -> None:
     # Then the text is empty and the JSON is `[]`
     assert text == ""
     assert rendered == "[]"
+
+
+def test_keep_order_prints_the_diagnostics_as_given() -> None:
+    """A caller that sorts by a rule of its own keeps its order in both renderers."""
+    # Given a place on line 4 given before one on line 12, which plain strings
+    # would sort the other way round
+    given = [
+        Diagnostic("error", "t.md:4", "first"),
+        Diagnostic("error", "t.md:12", "second"),
+    ]
+
+    # When both renderers run with `keep_order`
+    text = render_text(given, keep_order=True)
+    data = json.loads(render_json(given, keep_order=True))
+
+    # Then the text and the JSON are in the order given
+    assert text == "error: t.md:4: first\nerror: t.md:12: second"
+    assert [item["message"] for item in data] == ["first", "second"]

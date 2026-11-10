@@ -1,0 +1,4 @@
+# A repeated level-2 heading, which is a warning.
+
+[templates.kinds]
+feature = "feature.draft"

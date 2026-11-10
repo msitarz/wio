@@ -1,0 +1,4 @@
+# Keys that a template may not have.
+
+[templates.kinds]
+feature = "feature.draft"

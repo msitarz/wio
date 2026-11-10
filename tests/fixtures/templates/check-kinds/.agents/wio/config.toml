@@ -1,0 +1,5 @@
+# An undeclared kind, a missing entry template and an entry of another kind.
+
+[templates.kinds]
+feature = "feature.draft"
+bugfix = "missing"

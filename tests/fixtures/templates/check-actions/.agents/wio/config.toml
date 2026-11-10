@@ -1,0 +1,13 @@
+# One action, one stage preset and one stage, and seven `[actions]` to judge.
+
+[templates.kinds]
+feature = "feature.draft"
+
+[actions.define]
+description = "Define."
+
+[stages.implementation]
+goal = "Implement."
+
+[stage_presets]
+define-feature = ["implementation"]

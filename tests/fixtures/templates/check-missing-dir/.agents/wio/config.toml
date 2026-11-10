@@ -1,0 +1,7 @@
+# The templates directory is configured and missing.
+
+[templates]
+dir = "t"
+
+[templates.kinds]
+feature = "feature.draft"

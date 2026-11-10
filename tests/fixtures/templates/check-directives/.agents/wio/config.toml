@@ -1,0 +1,4 @@
+# Three wrong directive lists, on lines 12, 14 and 16.
+
+[templates.kinds]
+feature = "feature.draft"

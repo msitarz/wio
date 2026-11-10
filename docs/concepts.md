@@ -691,10 +691,33 @@ its description under it as written. `--kind` limits it to one declared kind,
 and `--json` prints one array of objects with `name`, `kind`, `shape`, `entry`,
 `description` and `path`.
 
-`wio templates check` fails when a kind's entry template does not exist or has
-another kind, and when a template names a kind that is not declared.
-`wio config check` checks only the shape of the `[templates]` table and reads
-no template, so a project without templates passes it.
+`wio templates check` checks the whole project's templates at once and prints
+every problem with its place, or says that the templates pass; `--json` prints
+the diagnostics as one array. An error exits 1, and a warning is printed and
+exits 0. It judges:
+
+- what finding the templates reports, as errors: a file that cannot be read, a
+  block that does not close, a `kind`, `shape` or `description` of the wrong
+  type, two files with one name and a templates directory that is missing or
+  invalid, which is then the one error;
+- the keys of the metadata: only `kind`, `shape`, `description`, `[actions]` and
+  `[contract]` are known, a `[contract]` or an `[actions]` that is not a table
+  is an error, and the keys under `[contract]` are free;
+- the directive lists on the headings, with the file, the line and the column of
+  each wrong one, and a list on a heading that is not level 2;
+- the names in `[actions]`: an action, a stage preset or a stage that the config
+  does not declare, and a value that is neither a name nor a list of names;
+- the kinds: a template whose kind is not declared, an entry template that does
+  not exist and an entry template of another kind than the one it starts;
+- a `##` heading that a template repeats, ignoring case, which is a warning and
+  the only one.
+
+A template that finding the templates could not build, such as one with no
+`kind`, is reported by that error and judged no further, so its other problems
+show once it is fixed. Diagnostics are ordered by file, line and column, with
+numbers compared as numbers. `wio config check` checks only the shape of the
+`[templates]` table and reads no template, so a project without templates passes
+it, and a contract is judged against its template by `wio contracts check`.
 
 Anyone can add a template, and with it a kind, and that is the main extension
 point for projects.
