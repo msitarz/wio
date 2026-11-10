@@ -1,8 +1,24 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of the checks of the templates in `wio.templates`."""
 
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
 import pytest
 
+from tests.unit.fakes import ROOT, MemoryFileSystem
+from wio.models.config import Config, Templates
+from wio.models.diagnostics import Diagnostic
+from wio.models.frozen import freeze
+from wio.templates import check
+from wio.templates.check import Reading, check_templates
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+    from pathlib import Path
+
+DIR = ROOT / ".agents" / "wio" / "templates"
+BLOCK = '<!-- wio\nkind = "feature"\n-->\n\n# Title\n\n## Goals\n'
 SKIP = "Pending the implementation stage."
 
 
@@ -107,3 +123,148 @@ def test_the_text_says_that_the_templates_pass_and_the_json_is_empty() -> None:
     # When it is rendered as text and as JSON
     # Then the text is `The templates pass.` and a newline, and the JSON is `[]`
     # and a newline
+
+
+@dataclass
+class _Leaves:
+    """The checks of the module, replaced by recorders that say what they got."""
+
+    calls: list[tuple[str, tuple[object, ...]]] = field(default_factory=list)
+
+
+def _record(
+    leaves: _Leaves, name: str, found: Callable[[], list[Diagnostic]]
+) -> Callable[..., list[Diagnostic]]:
+    """Make a replacement for a check that records its call.
+
+    Args:
+        leaves: Where the call is recorded.
+        name: The check's name.
+        found: Makes what the check returns.
+
+    Returns:
+        The replacement, which gives what `found` makes.
+    """
+
+    def leaf(*args: object) -> list[Diagnostic]:
+        """Record the call and give the canned result.
+
+        Args:
+            *args: What the check was given.
+
+        Returns:
+            The canned diagnostics.
+        """
+        leaves.calls.append((name, args))
+        return found()
+
+    return leaf
+
+
+def _stub_leaves(monkeypatch: pytest.MonkeyPatch) -> _Leaves:
+    """Replace every check of `wio.templates.check` by a recorder.
+
+    Args:
+        monkeypatch: The fixture that restores them.
+
+    Returns:
+        The record of the calls. Each check gives one error named after it, and
+        the ordering keeps the order it is given.
+    """
+    leaves = _Leaves()
+    for name in ("check_keys", "check_headings", "check_actions", "check_kinds"):
+        canned = Diagnostic("error", name, name)
+        monkeypatch.setattr(check, name, _record(leaves, name, lambda c=canned: [c]))
+    monkeypatch.setattr(check, "order_diagnostics", tuple, raising=True)
+    return leaves
+
+
+def _config(*, directory: str | None = None) -> Config:
+    """Make a config that declares the kind `feature`.
+
+    Args:
+        directory: The templates directory, or `None` for the default.
+
+    Returns:
+        The config.
+    """
+    kinds = freeze({"feature": "feature.draft"})
+    if directory is None:
+        return Config(templates=Templates(kinds=kinds))
+    return Config(templates=Templates(dir=directory, kinds=kinds))
+
+
+def _names(diagnostics: Iterable[Diagnostic]) -> list[str]:
+    """List what the recorders reported, which is the name of each.
+
+    Args:
+        diagnostics: The findings.
+
+    Returns:
+        Their messages.
+    """
+    return [diagnostic.message for diagnostic in diagnostics]
+
+
+def test_wiring_runs_every_check_on_the_templates_that_discovery_built(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The checks get each template's place, data and headings, and the config."""
+    # Given a project with one template and recorders in place of the checks
+    leaves = _stub_leaves(monkeypatch)
+    files: dict[Path, str] = {DIR / "feature.draft.md": BLOCK}
+
+    # When the templates are checked
+    found = check_templates(ROOT, _config(), MemoryFileSystem(files))
+
+    # Then every check ran once, and its diagnostic is in the result
+    assert sorted(_names(found)) == [
+        "check_actions",
+        "check_headings",
+        "check_keys",
+        "check_kinds",
+    ]
+    calls = dict(leaves.calls)
+    assert calls["check_keys"] == (
+        ".agents/wio/templates/feature.draft.md",
+        {"kind": "feature"},
+    )
+    (reading,) = calls["check_headings"]
+    assert isinstance(reading, Reading)
+    assert [heading.text for heading in reading.headings] == ["Title", "Goals"]
+    assert calls["check_actions"][1] == {}
+
+
+def test_wiring_keeps_the_problems_of_discovery_and_excuses_the_unbuilt_entry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A broken entry template is an error of discovery and is not reported missing."""
+    # Given a project whose entry template `feature.draft` has an unclosed block
+    leaves = _stub_leaves(monkeypatch)
+    files: dict[Path, str] = {DIR / "feature.draft.md": "<!-- wio\nkind = 'x'\n"}
+
+    # When the templates are checked
+    found = check_templates(ROOT, _config(), MemoryFileSystem(files))
+
+    # Then the error of discovery is in the result, and `check_kinds` was told
+    # that the entry template could not be built
+    assert any(
+        d.where.startswith(".agents/wio/templates/feature.draft.md") for d in found
+    )
+    kinds_call = dict(leaves.calls)["check_kinds"]
+    assert kinds_call[2] == frozenset({"feature.draft"})
+
+
+def test_wiring_returns_a_refused_directory_alone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A missing directory is one error, and no check runs after it."""
+    # Given a config whose templates directory `t` does not exist
+    leaves = _stub_leaves(monkeypatch)
+
+    # When the templates are checked
+    found = check_templates(ROOT, _config(directory="t"), MemoryFileSystem({}))
+
+    # Then the result is the one error of discovery, and no check ran
+    assert [(d.severity, d.where) for d in found] == [("error", "t")]
+    assert leaves.calls == []

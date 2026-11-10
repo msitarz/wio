@@ -4,6 +4,7 @@
 from typing import TYPE_CHECKING, Literal, cast
 
 lazy from wio.formats import COMBINING, DIRECTIVES
+lazy from wio.templates.check import check_templates, render_check
 lazy from wio.templates.discovery import discover
 lazy from wio.templates.errors import TemplatesError, refusal
 lazy from wio.templates.listing import render_list
@@ -16,9 +17,11 @@ lazy from wio.templates.show import show_skeleton
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Callable, Iterable
+    from pathlib import Path
 
     from wio.io.ports import FileSystem, Repository, Stdio
-    from wio.models.config import Templates
+    from wio.models.config import Config, Templates
+    from wio.models.diagnostics import Diagnostic
     from wio.models.template import Template
     from wio.ports import Settings
     from wio.templates.discovery import Discovery
@@ -115,6 +118,8 @@ class TemplatesCommand:
             return 0
         config = self._settings.load()
         root = self._repository.root()
+        if arguments.templates_view == "check":
+            return self._check(config, root, stdio, as_json=arguments.json)
         found = discover(root, config.templates, self._files)
         _refuse_problems(found)
         if arguments.templates_view == "show":
@@ -124,6 +129,34 @@ class TemplatesCommand:
         shown = _of_kind(found.templates, arguments.kind, config.templates)
         stdio.stdout.write(render_list(shown, as_json=arguments.json))
         return 0
+
+    def _check(self, config: Config, root: Path, stdio: Stdio, *, as_json: bool) -> int:
+        """Run `check`: write what the templates' check found, and judge it.
+
+        Args:
+            config: The settings, already loaded.
+            root: The repository root.
+            stdio: Where the output goes.
+            as_json: Whether to write the JSON array instead of the text.
+
+        Returns:
+            1 when a diagnostic is an error, otherwise 0.
+        """
+        found = check_templates(root, config, self._files)
+        stdio.stdout.write(render_check(found, as_json=as_json))
+        return 1 if _has_error(found) else 0
+
+
+def _has_error(diagnostics: Iterable[Diagnostic]) -> bool:
+    """Tell whether a diagnostic is an error, which is what fails the check.
+
+    Args:
+        diagnostics: The findings of the check.
+
+    Returns:
+        Whether any of them is an error; a warning or a note is not.
+    """
+    return any(diagnostic.severity == "error" for diagnostic in diagnostics)
 
 
 def _refuse_problems(found: Discovery) -> None:

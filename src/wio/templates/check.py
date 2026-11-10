@@ -1,18 +1,31 @@
 # SPDX-License-Identifier: Apache-2.0
 """Checking every template of a project: what is wrong with them, all at once."""
 
+import re
 from dataclasses import dataclass
+from functools import partial
+from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
+from wio.formats.errors import MetadataBlockError
+from wio.models.diagnostics import Diagnostic
+from wio.templates.discovery import discover
+lazy from wio.formats import read_metadata_block, read_outline
+
 if TYPE_CHECKING:
-    from collections.abc import Collection, Iterable, Mapping
+    from collections.abc import Collection, Iterable, Iterator, Mapping
     from pathlib import Path
 
     from wio.io.ports import FileSystem
-    from wio.models.config import Config
-    from wio.models.diagnostics import Diagnostic
+    from wio.models.config import Config, Templates
     from wio.models.heading import Heading, HeadingLevel
     from wio.models.template import Template
+    from wio.templates.discovery import Discovery
+
+_error = partial(Diagnostic, "error")
+"""Make an error diagnostic from a place and a message."""
+_POSITION = re.compile(r"(:\d+)+$")
+"""The `:<line>` and `:<column>` that end a place."""
 
 DIRECTIVE_LEVEL: HeadingLevel = 2
 """The only heading level on which a directive list is read."""
@@ -71,7 +84,108 @@ def check_templates(
         templates pass. A file that cannot be read a second time is one error
         for the file, worded as discovery words it.
     """
-    raise NotImplementedError
+    found = discover(root, config.templates, files)
+    if _directory_refused(found, config.templates):
+        return order_diagnostics(found.diagnostics)
+    readings: list[Reading] = []
+    problems: list[Diagnostic] = []
+    for template in found.templates:
+        read = _read(root, template, files)
+        if isinstance(read, Diagnostic):
+            problems.append(read)
+        else:
+            readings.append(read)
+    unbuilt = _unbuilt_names(found.diagnostics)
+    judged = _judge(readings, config, unbuilt)
+    return order_diagnostics([*found.diagnostics, *problems, *judged])
+
+
+def _directory_refused(found: Discovery, settings: Templates) -> bool:
+    """Tell whether discovery refused the templates directory itself.
+
+    Args:
+        found: What the walk found.
+        settings: The `[templates]` table of the config.
+
+    Returns:
+        Whether the walk built nothing and reported an error whose place is the
+        directory, which is how it reports a directory that it cannot walk.
+    """
+    return not found.templates and any(
+        diagnostic.where == settings.dir for diagnostic in found.diagnostics
+    )
+
+
+def _unbuilt_names(diagnostics: Iterable[Diagnostic]) -> frozenset[str]:
+    """Name the templates whose files discovery reported an error for.
+
+    Args:
+        diagnostics: The diagnostics of discovery.
+
+    Returns:
+        The file names without `.md` of the places that end in `.md`, once the
+        `:<line>` of a place and the `, ` that joins the files of a duplicate are
+        taken off.
+    """
+    places = (
+        _POSITION.sub("", part)
+        for diagnostic in diagnostics
+        for part in diagnostic.where.split(", ")
+    )
+    return frozenset(
+        PurePosixPath(place).name.removesuffix(".md")
+        for place in places
+        if place.endswith(".md")
+    )
+
+
+def _read(root: Path, template: Template, files: FileSystem) -> Reading | Diagnostic:
+    """Read a template that discovery built, a second time, for its headings.
+
+    Args:
+        root: The repository root.
+        template: The template.
+        files: The port that reads the file.
+
+    Returns:
+        The reading, or the one error for the file, worded as discovery words
+        it, when it cannot be read now.
+    """
+    place = PurePosixPath(template.path).as_posix()
+    try:
+        block = read_metadata_block(files.read_text(root / template.path))
+    except UnicodeDecodeError:
+        return _error(place, "The file is not valid UTF-8")
+    except OSError as error:
+        return _error(place, f"The file cannot be read: {error.strerror}")
+    except MetadataBlockError as error:
+        return _error(f"{place}:{error.line}", error.message)
+    if block is None:
+        return _error(place, "The file is not a template")
+    headings = read_outline(block.body, block.body_start_line)
+    return Reading(template, place, block.data, headings)
+
+
+def _judge(
+    readings: list[Reading], config: Config, unbuilt: Collection[str]
+) -> Iterator[Diagnostic]:
+    """Run every check on the templates that were read.
+
+    Args:
+        readings: The templates, read.
+        config: The settings the templates are judged against.
+        unbuilt: The names of the files that discovery could not build.
+
+    Yields:
+        The diagnostics of the checks, in no particular order.
+    """
+    templates = [reading.template for reading in readings]
+    yield from check_kinds(templates, config.templates.kinds, unbuilt)
+    for reading in readings:
+        yield from check_keys(reading.place, reading.data)
+        yield from check_headings(reading)
+        actions = reading.data.get("actions", {})
+        yield from check_actions(reading.place, actions, config)
 
 
 def check_keys(place: str, data: Mapping[str, object]) -> list[Diagnostic]:
