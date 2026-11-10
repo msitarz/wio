@@ -27,8 +27,8 @@ reads a template must be one that the contracts command can reuse.
   problem in the project's templates at once.
 - A template is named by its file, so its name cannot differ from where it
   lives.
-- The metadata block, the directive grammar and the skeleton are read and
-  written by one implementation that `wio contracts` reuses.
+- Only `wio.formats` reads or writes TOML, so the metadata block, the directive
+  grammar and the skeleton have one implementation that `wio contracts` reuses.
 - The documents describe the command and the grammar as they are.
 
 ## Glossary
@@ -36,10 +36,10 @@ reads a template must be one that the contracts command can reuse.
 - **Template name**: the name of the template's file without `.md`, which
   `[templates.kinds]`, a contract's `template` key and `wio templates show`
   refer to; there is no `name` key.
-- **Skeleton**: a template prepared as a contract, as `wio contracts new` would
-  write it but without an `id`: the metadata of `[contract]` promoted to the top
-  level, the template's own keys, the directives and the comments of the
-  metadata removed, and the body's authoring comments kept.
+- **Skeleton**: the template prepared as a contract, as
+  [from template to contract](../../../../docs/concepts.md#from-template-to-contract)
+  says, and as `wio templates show` prints it: it has the `template` key and no
+  `id`.
 
 ## Non-Goals
 
@@ -60,6 +60,15 @@ reads a template must be one that the contracts command can reuse.
   `exclude-newer` guard.
 - **A-3**: The contracts Work, delivered after this one, takes the block reader,
   the directive parser and the skeleton from `wio.formats` as they are.
+- **A-4**: Nothing wio imports at start-up, and nothing in the standard library
+  that `list` and `check` use, imports `json` or `tomlkit`.
+- **A-5**: `jq` is on the `PATH` where the hook runs, and the `PostToolUse`
+  payload of an edit carries `tool_input.file_path`, as the config's hook
+  already relies on.
+- **A-6**: This repository's three `feature` templates pass
+  `wio templates check` once their `name` key is dropped.
+- **A-7**: Ruff's `banned-api` table can ban `tomlkit` outside `wio.formats` as
+  it bans `tomllib`.
 
 ## Mechanisms
 
@@ -95,24 +104,31 @@ reads a template must be one that the contracts command can reuse.
   and ports, never another component, and the review of each child checks the
   imports of its files, because `tach check` alone can pass a forbidden one
   ([known issues](../../../../docs/known-issues.md)).
-- **Verification.** What a run imports is verified by AC-2, the output of
-  `list` and `show` by the criteria of the discovery and show leaves, the
-  grammar that `directives` prints by the criteria of the directives and
-  directives reference leaves, the
-  problems that `check` reports by the criteria of the check leaf, the hooks
-  by AC-4 and the criteria of the hooks leaf, and the
-  dependency direction by the review of each child and by `tach check`.
+- **Verification.** The constraints and goals are established as follows.
+  - Read, never written: AC-3.
+  - Unknown keys are errors: AC-3 and the check leaf.
+  - Output sorted and without timestamps: the discovery, show and directives
+    reference leaves.
+  - What `list` and `check` import: AC-2; that the writer is imported only to
+    prepare a skeleton: the skeleton leaf.
+  - One writer: AC-5.
+  - The grammar that `directives` prints: the directives and directives
+    reference leaves.
+  - The problems that `check` reports: the check leaf.
+  - The hooks: AC-4 and the hooks leaf.
+  - The dependency direction: the review of each child and `tach check`.
 
 ## Visuals
 
-Before, `wio.templates` holds only its docstring and `wio.formats` only the TOML
-decoder and the diagnostic renderers. After, the component and the three codecs
-exist, and `wio.contracts`, built later, reads templates and contracts through
-the same codecs. Bold boxes are added and bold dashed boxes change.
+Before (`main` at commit `b1b4477`), `wio.templates` holds only its docstring
+and `wio.formats` only the TOML decoder and the diagnostic renderers. After, the
+component and the three codecs exist, and `wio.contracts`, built later, reads
+templates and contracts through the same codecs. Bold boxes are added and bold
+dashed boxes change.
 
 ```mermaid
 flowchart LR
-    cli["wio.cli: templates list, show, check"]:::changed
+    cli["wio.cli: templates list, show, check, directives"]:::changed
     templates["wio.templates: discovery, Template, check"]:::new
     formats["wio.formats: block reader, directives, skeleton, TOML writer"]:::changed
     models["wio.models: Template, Directive, block"]:::changed
@@ -150,6 +166,12 @@ any repository.
   `feature.draft` as the entry, the second prints the skeleton of
   `feature.leaf`, and the third passes; each exits 0.
 
+#### A name that no template has
+
+- **Given** the same wheel and repository.
+- **When** `wio templates show nosuch` runs.
+- **Then** it prints an error that names `nosuch` and exits 2.
+
 #### Outside a repository
 
 - **Given** the same wheel and a directory that is not in a git repository.
@@ -175,7 +197,9 @@ any repository.
 ### **AC-3** This repository's templates agree across the three commands
 
 The three `feature` templates of this repository are found, shown and judged
-without a `name` key, and a broken copy of one is reported by place.
+without a `name` key, and a broken copy of one is reported by place. It is an
+integration criterion across the reader, the grammar, the discovery and the
+check, each of which has criteria of its own in its leaf.
 
 #### The repository's own templates
 
@@ -184,8 +208,22 @@ without a `name` key, and a broken copy of one is reported by place.
   `wio templates show feature.parent` and `wio templates check` run.
 - **Then** the first lists `feature.draft` as the entry, `feature.leaf` and
   `feature.parent`, the second prints a skeleton with no `name`, `kind`,
-  `shape`, `description` or `[actions]` and no directive comment, and the third
-  passes.
+  `shape`, `description` or `[actions]` and no directive comment, with nothing
+  else on standard output and nothing on standard error, and the third passes.
+
+#### Nothing is written
+
+- **Given** this repository's templates and a hash of each file.
+- **When** `wio templates list`, `show` and `check` run on them.
+- **Then** the hash of every template is unchanged.
+
+#### A `name` key
+
+- **Given** a copy of this repository's templates in which one template has the
+  key `name = "x"` in its metadata.
+- **When** `wio templates check` runs.
+- **Then** it prints an error that names that template's file and the key
+  `name`, and exits 1.
 
 #### A broken copy
 
@@ -216,7 +254,18 @@ templates have an error.
 - **When** the `wio-templates` hook runs.
 - **Then** it fails and prints the diagnostics.
 
-### **AC-5** The documents describe the command and the grammar
+### **AC-5** Only `wio.formats` reads or writes TOML
+
+No module of `wio` other than `wio.formats` imports `tomllib` or `tomlkit`.
+
+#### A module that imports one
+
+- **Given** a module of `wio.templates` that imports `tomlkit`, and another that
+  imports `tomllib`.
+- **When** `ruff check` runs on `src/wio`.
+- **Then** it reports `TID251` for each import.
+
+### **AC-6** The documents describe the command and the grammar
 
 `docs/concepts.md`, `docs/v0.1-scope.md`, `docs/workflow.md`,
 `src/wio/formats/README.md` and `GLOSSARY.md` state what the command, the hooks
