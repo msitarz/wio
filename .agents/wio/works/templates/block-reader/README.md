@@ -77,7 +77,7 @@ a block starts and ends.
 
 A text that opens with a comment block or with `+++` front matter on its first
 line is read into its form, its version, its data and its body with the body's
-start line.
+start line, and the body is the text from that line on, byte for byte.
 
 #### The comment form
 
@@ -93,7 +93,16 @@ start line.
 - **Given** the text `<!-- wio`, `id = "k3m9xq"` and `--> # Title`, each on its
   own line.
 - **When** the reader reads it.
-- **Then** the body is `# Title`, starting on line 3.
+- **Then** the body is a space and `# Title`, starting on line 3.
+
+#### The body as it was
+
+- **Given** the comment block `<!-- wio`, `id = "k3m9xq"` and `-->` followed by
+  `# Title`, each line ended by CRLF, and the same block with nothing after the
+  closing `-->` line.
+- **When** the reader reads each.
+- **Then** the first body is `# Title` with its CRLF, starting on line 4, and
+  the second body is empty.
 
 #### The `+++` form
 
@@ -132,8 +141,8 @@ wio's, gives nothing and no error.
 
 - **Given** a text with no block, a text whose first line is blank and whose
   second line opens a comment block, a text that quotes `<!-- wio` after its
-  first line, a text that starts `<!-- wiox`, and `+++` front matter with no
-  `wio =` in it.
+  first line, a text that starts `<!-- wiox`, `+++` front matter with no `wio =`
+  in it, and the same front matter that never closes.
 - **When** the reader reads each.
 - **Then** each gives nothing and raises no error.
 
@@ -146,7 +155,7 @@ that names the line.
 #### A comment block that is wrong
 
 - **Given** a comment block that never closes, and a comment block whose third
-  line is not valid TOML.
+  line of the text is not valid TOML.
 - **When** the reader reads each.
 - **Then** the first raises an error that says the block does not close and
   names line 1, and the second raises an error that names line 3.
@@ -161,10 +170,10 @@ that names the line.
 #### `+++` front matter that is wrong
 
 - **Given** `+++` front matter that contains `wio = 1` and never closes, and
-  `+++` front matter with no `wio =` that never closes.
+  `+++` front matter whose lines are `+++`, `wio = 1`, `id =` and `+++`.
 - **When** the reader reads each.
-- **Then** the first raises an error that names line 1, and the second gives
-  nothing.
+- **Then** the first raises an error that names line 1, and the second raises an
+  error that names line 3.
 
 ### **AC-5** Line endings and the byte-order mark do not change the result
 
@@ -186,15 +195,17 @@ Reading a text that has no block does not import `tomllib`.
 #### A fresh interpreter
 
 - **Given** a new Python process.
-- **When** the reader reads a text with no block and `sys.modules` is read.
+- **When** the reader reads a text with no block and one whose `+++` front
+  matter has no `wio =`, and `sys.modules` is read.
 - **Then** `tomllib` is not there.
 
 ### **AC-7** The README of `wio.formats` describes the reader
 
 `src/wio/formats/README.md` states that the reader of the metadata block lives
-in `wio.formats`, and no longer says that reading the block belongs to the
-contracts Work. It states the closing delimiters, the marker rules, what the
-reader returns and which cases give nothing and which raise.
+in `wio.formats`, and no longer says that reading the block, or placing an error
+inside it at its line, belongs to the contracts Work. It states the closing
+delimiters, the marker rules, what the reader returns and which cases give
+nothing and which raise.
 
 ## Additional context
 

@@ -24,7 +24,6 @@ agent that broke it must be told what is wrong and where, all at once.
 
 ## Non-Goals
 
-- Limiting the check to one file.
 - Judging a contract against its template, which `wio contracts check` does.
 - Finding the items of a section, which the contracts Work decides.
 - Checking the config's own shape or references, which `wio config check` does.
@@ -59,10 +58,17 @@ agent that broke it must be told what is wrong and where, all at once.
   under `[contract]` are free.
 - **Directives are read on level-2 headings only.** A directive list on any
   other level is an error.
-- **A diagnostic names its place.** It is the file and, where there is one, the
-  line of the heading, with the column that the directive parser gives for a
-  directive error; the key of an unknown template key is named in the message,
-  and the place of a problem in the config's kinds is its key path.
+- **A diagnostic names its place as `<path>:<line>[:<column>]`.** The line is
+  the outline's line in the file and the column is the directive parser's,
+  counted on the heading's line; the key of an unknown template key is named in
+  the message, and the place of a problem in the config's kinds is its key path,
+  such as `templates.kinds.bugfix`.
+- **The diagnostics are ordered by file, line and column.** The numbers are
+  compared as numbers, so line 4 comes before line 12.
+- **A config that is refused stops the check.** A config that `Settings.load`
+  rejects makes the check print that error and exit 2, as discovery's refusal
+  does for `list`; a missing or invalid templates directory is reported as that
+  one error, and no entry template is reported missing because of it.
 - **Verification.** The output is verified by AC-1, discovery's problems by
   AC-2, the keys by AC-3, the directives by AC-4, the actions by AC-5, the kinds
   by AC-6, the warning by AC-7 and the documents by AC-8.
@@ -73,22 +79,29 @@ agent that broke it must be told what is wrong and where, all at once.
 
 `wio templates check` says that the templates pass and exits 0 when there is no
 error, and otherwise prints every diagnostic sorted and exits 1, as text or with
-`--json` as an array.
+`--json` as an array of objects with `severity`, `where` and `message`.
 
 #### A passing project
 
 - **Given** a project whose templates have no problem.
 - **When** `wio templates check` and `wio templates check --json` run.
 - **Then** the first says that the templates pass and the second prints `[]`,
-  each exiting 0.
+  each exiting 0; so does a project with no templates.
 
 #### Two problems at once
 
 - **Given** a project with an unknown key in one template and a wrong directive
   in another.
+- **When** `wio templates check` and `wio templates check --json` run.
+- **Then** the first prints both as `<severity>: <where>: <message>` lines in
+  the order of the constraint and the second prints one array of two objects
+  with `severity`, `where` and `message`, in that order, each exiting 1.
+
+#### A refused config
+
+- **Given** a project whose config has an error.
 - **When** `wio templates check` runs.
-- **Then** it prints both as `<severity>: <where>: <message>` lines in sorted
-  order and exits 1.
+- **Then** it prints that error and exits 2.
 
 ### **AC-2** The problems that discovery finds are errors of the check
 
@@ -104,6 +117,14 @@ error with its place.
 - **Then** it prints an error for the block that names its file and one for the
   duplicate that names both files, and exits 1.
 
+#### A missing directory
+
+- **Given** a config with `[templates] dir = "t"` and the kind
+  `feature = "feature.draft"`, and no directory `t`.
+- **When** `wio templates check` runs.
+- **Then** it prints one error that names the directory, none for the missing
+  entry template, and exits 1.
+
 ### **AC-3** An unknown key is an error and the contract's keys are free
 
 A key outside `kind`, `shape`, `description`, `[actions]` and `[contract]` is an
@@ -112,17 +133,18 @@ error, and so is a `[contract]` or an `[actions]` that is not a table.
 #### The keys
 
 - **Given** a template with `name = "x"`, one with `descriptions = "y"`, one
-  with `contract = 1`, and one whose `[contract]` holds `ticket = ""`.
+  with `contract = 1`, one with `actions = 1`, and one whose `[contract]` holds
+  `ticket = ""`.
 - **When** `wio templates check` runs.
-- **Then** the first three each give an error that names the file and the key,
-  the first one saying that a template is named by its file, and the fourth
-  gives none.
+- **Then** the first four each give an error that names the file and the key,
+  the first one saying that a template is named by its file, and the last gives
+  none.
 
 ### **AC-4** A wrong directive list is an error with its file, line and column
 
-A directive list that the parser refuses, a list that does not close on its
-line, and a list on a heading that is not level 2 are errors that name the file,
-the line and, where the parser gives one, the column.
+A directive list that the parser refuses, which includes one that does not close
+on its line, and a list on a heading that is not level 2 are errors that name
+the file, the line and the column.
 
 #### The directive errors
 
@@ -130,9 +152,10 @@ the line and, where the parser gives one, the column.
   `## B <!-- wio: required,` on line 14 and `### C <!-- wio: required -->` on
   line 16.
 - **When** `wio templates check` runs.
-- **Then** it prints an error for each that names the file and its line, the
-  first and the second with their columns, and the third saying that directives
-  are read on level-2 headings only.
+- **Then** it prints an error for each, whose places are
+  `<file>:12:16`, `<file>:14:6` and `<file>:16:7`, the third saying that
+  directives are read on level-2 headings only and naming the column of the
+  list's opener.
 
 ### **AC-5** A name in `[actions]` that the config does not declare is an error
 
@@ -165,9 +188,9 @@ template that does not exist and an entry template of another kind are errors.
   `nokind`.
 - **When** `wio templates check` runs.
 - **Then** it prints an error for `other` that names its file and the kind, an
-  error for the entry of `bugfix` that names the config entry and `missing`, and
-  an error for `feature.draft` that names its file and says its kind differs
-  from the one it starts.
+  error for the entry of `bugfix` whose place is `templates.kinds.bugfix` and
+  that names `missing`, and an error for `feature.draft` that names its file and
+  says its kind differs from the one it starts.
 
 ### **AC-7** A repeated `##` heading is a warning
 

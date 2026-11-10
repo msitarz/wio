@@ -18,8 +18,8 @@ same way of finding and building them.
 - The templates of a project are found in its templates directory, each named by
   its file, with its kind, shape and description.
 - The entry template of each kind is marked.
-- A problem in finding or reading a template is reported as a diagnostic, and
-  the commands that only read templates refuse to run on one.
+- A problem in finding or reading a template is reported as a diagnostic, which
+  other commands can use, and `wio templates list` refuses to run on one.
 - `wio templates list` shows the templates grouped by kind for a person and as
   plain data for a program, and can be limited to one kind.
 - A template is named by its file, and its `name` key is gone.
@@ -56,11 +56,11 @@ same way of finding and building them.
 
 ## Constraints
 
-- **The walk is the Works directory's.** It reads the files whose names end in
-  `.md`, matched with their case, skips directories below the templates
-  directory whose names start with `.`, follows no symbolic link, and takes a
-  file as a template when its metadata block starts on its first line; any other
-  file is ignored.
+- **The walk is the Works directory's.** The templates directory is walked as
+  [Which files are Works](../../../../../docs/concepts.md#which-files-are-works)
+  says the Works directory is: files ending in `.md` with their case, no
+  directory whose name starts with `.`, no symbolic link, and a file is a
+  template when its metadata block starts on its first line.
 - **A template is named by its file.** The name is the file's name without
   `.md`, and two files with one name are an error that names both.
 - **A missing default directory holds no templates.** The component compares
@@ -71,8 +71,8 @@ same way of finding and building them.
   determinism is the parent's constraint.
 - **Verification.** The walk is verified by AC-1, the fields by AC-2, the
   problems by AC-3, the help by AC-4, the output by AC-5, the refusal by AC-6,
-  the repository's templates by AC-7 and the imports of `list` by the parent's
-  AC-2.
+  the repository's templates by AC-7, the documents by AC-8 and the imports of
+  `list` by the parent's AC-2.
 
 ## Acceptance criteria
 
@@ -108,19 +108,28 @@ its path in the repository, and whether it is the entry template of its kind.
 
 A file that cannot be read or decoded, a metadata block that cannot be read, a
 `kind` that is missing or not a string, a `shape` or `description` that is not a
-string, two templates with one name, and a templates directory that is set and
-missing, not a directory or a symbolic link are each an error diagnostic that
-names its place.
+string, two templates with one name, and a `dir` that is missing and not the
+default, not a directory or a symbolic link are each an error diagnostic that
+names its place, and a missing default directory is no problem and holds no
+templates.
 
 #### The problems
 
 - **Given** in turn a file that is not UTF-8, a comment block that does not
   close, a block with no `kind`, a block with `shape = 1`, two files named
-  `a.md` in different directories, and a `[templates] dir` that does not exist.
+  `a.md` in different directories, a `[templates] dir = "t"` that does not
+  exist, one that is a file, and one that is a symbolic link.
 - **When** the templates are found.
 - **Then** each gives an error diagnostic whose place is the file, the two files
   for the duplicate, or the directory; after a file problem the other templates
   are still returned, and after a directory problem there are none.
+
+#### The default directory
+
+- **Given** a repository with no `.agents/wio/templates` and no `[templates]
+  dir`.
+- **When** the templates are found.
+- **Then** there are none and no diagnostic.
 
 ### **AC-4** Bare `wio templates` shows the component's help
 
@@ -143,20 +152,27 @@ its shape and its entry mark on one line and its description indented under it,
 
 - **Given** the kinds `feature = "feature.draft"`, `bugfix = "bugfix.fix"` and
   `spec = "spec.draft"`, and the templates `feature.draft` with shape `draft`
-  and a description, `feature.leaf` with shape `leaf` and a description, and
-  `bugfix.fix` with no shape and no description.
+  and the description `The working space of a new Work.`, `feature.leaf` with
+  shape `leaf` and a two-line description `A capability` and
+  `delivered as one outcome.`, `bugfix.fix` with no shape and no description,
+  and `old.note` of the undeclared kind `old` with no shape.
 - **When** `wio templates list` runs.
 - **Then** it prints exactly these lines, with the names indented by two spaces
-  and each description by four, and no line for `spec`, which has no templates:
+  and each line of a description by four, a kind in sorted order, an entry mark
+  only where `[templates.kinds]` names the template for its own kind, and no
+  line for `spec`, which has no templates:
 
   ```text
   bugfix
     bugfix.fix  entry
   feature
     feature.draft  draft, entry
-      <the description of feature.draft>
+      The working space of a new Work.
     feature.leaf  leaf
-      <the description of feature.leaf>
+      A capability
+      delivered as one outcome.
+  old
+    old.note
   ```
 
 #### One kind
@@ -164,9 +180,9 @@ its shape and its entry mark on one line and its description indented under it,
 - **Given** the same project.
 - **When** `wio templates list --kind feature`,
   `wio templates list --kind spec` and `wio templates list --kind nosuch` run.
-- **Then** the first prints the `feature` group alone, the second prints the
-  line `spec` alone, and the third prints an error that names `nosuch` and the
-  declared kinds and exits 2.
+- **Then** the first prints the `feature` group alone, the second prints nothing
+  and exits 0, because `spec` is declared and has no templates, and the third
+  prints an error that names `nosuch` and the declared kinds and exits 2.
 
 #### JSON
 
@@ -215,8 +231,8 @@ The three `feature` templates of this repository have no `name` key, and
 
 `docs/concepts.md`, `docs/v0.1-scope.md` and `GLOSSARY.md` say that a template
 is named by its file, that it has no `name` key, how the walk finds templates,
-that discovery reports problems as diagnostics and `list` and `show` refuse on
-an error, what `list` prints in its human and its JSON form, `--kind` and the
+that discovery reports problems as diagnostics and `list` refuses on an error,
+what `list` prints in its human and its JSON form, `--kind` and the
 entry mark, and the glossary defines Template name and no longer gives a
 template a `name` in its metadata.
 

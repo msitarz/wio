@@ -37,8 +37,9 @@ that it can rewrite a contract in that shape.
 
 ## Mechanisms
 
-- The component of `wio.templates`, which finds the template by its name and
-  reads its text through the `FileSystem` port.
+- The component of `wio.templates`, which finds the template by its name, reads
+  its text through the `FileSystem` port and adds the template's file to an
+  error that the skeleton function raises, because the function knows no file.
 - The skeleton function of `wio.formats`, which prepares the text.
 - The command spec of `wio.templates`, which gains the `show` subparser; the
   table of commands of `wio.cli` already names `templates`.
@@ -54,8 +55,9 @@ that it can rewrite a contract in that shape.
   includes one that the skeleton function finds in the shown template, or an
   unknown name is an error the user must fix and exits 2, and a wrong command
   line is a usage mistake that exits 2.
-- **Verification.** The output is verified by AC-1, the unknown name by AC-2,
-  the refusal by AC-3, the command line by AC-4 and the documents by AC-5.
+- **Verification.** The output is verified by AC-1, the unknown name and the
+  exact match by AC-2, the exit codes by AC-2, AC-3 and AC-4, the refusal by
+  AC-3, the command line by AC-4 and the documents by AC-5.
 
 ## Acceptance criteria
 
@@ -89,8 +91,9 @@ was asked and list the templates that exist.
 
 ### **AC-3** A project with a template error is refused
 
-`show` prints the errors that discovery found, says that `wio templates check`
-shows every problem and exits 2, even for a valid template.
+`show` prints a template error, whether discovery found it or preparing the
+skeleton did, says that `wio templates check` shows every problem and exits 2,
+and a template error that discovery found refuses even a valid template.
 
 #### A broken neighbour
 
@@ -105,8 +108,8 @@ shows every problem and exits 2, even for a valid template.
 - **Given** a project whose template `feature.leaf` has
   `## A <!-- wio: mandatory -->` on line 12.
 - **When** `wio templates show feature.leaf` runs.
-- **Then** it prints an error that names the file, line 12 and the column,
-  prints nothing to standard output and exits 2.
+- **Then** it prints an error that names the file, line 12 and column 16, prints
+  nothing to standard output and exits 2.
 
 ### **AC-4** `show` takes one name and no `--json`
 

@@ -14,8 +14,7 @@ on which lines of a Markdown body are headings, so one codec finds them.
 
 ## Goals
 
-- The real headings of a Markdown body are found the same way wherever one is
-  needed.
+- The real headings of a Markdown body are returned by one function.
 - A heading gives its level, its text, its raw line and its line in the file.
 - A line that only looks like a heading is not one.
 - Only `wio.formats` knows which parser finds the headings.
@@ -63,8 +62,10 @@ on which lines of a Markdown body are headings, so one codec finds them.
 - **The outline touches no file.** It takes text and returns headings, as every
   codec of `wio.formats` does.
 - **Verification.** The fields are verified by AC-1 and AC-2, what is not a
-  heading by AC-3, the line endings by AC-4, the one parser by AC-5 and the
-  lazy import by AC-6.
+  heading by AC-3, the line endings by AC-4, the one parser by AC-5, the lazy
+  import by AC-6, the documents by AC-7, and that the outline touches no file by
+  its signature, which takes text, fixed at the architecture stage and judged in
+  its review.
 
 ## Acceptance criteria
 
@@ -80,8 +81,9 @@ body's start line.
   empty line and `###### F`, each on its own line, starting on line 10.
 - **When** the outline reads it.
 - **Then** it returns three headings: level 1, text `A`, raw line `# A`, line
-  10; level 2, text `B <!-- wio: required -->`, the same raw line, line 12; and
-  level 6, text `F`, raw line `###### F`, line 14.
+  10; level 2, text `B <!-- wio: required -->`, raw line
+  `## B <!-- wio: required -->`, line 12; and level 6, text `F`, raw line
+  `###### F`, line 14.
 
 #### No heading
 
@@ -96,10 +98,11 @@ of `#` marks, nor the spaces around it, and the raw line keeps all of them.
 
 #### A closed heading
 
-- **Given** the line `## Title ##` in a body.
+- **Given** the lines `## Title ##` and `##   Spaced  ##` in a body, the second
+  followed by two spaces.
 - **When** the outline reads it.
-- **Then** the text is `Title` and the raw line is `## Title ##`, without its
-  line ending.
+- **Then** the texts are `Title` and `Spaced`, and each raw line is the whole
+  line without its line ending, the trailing spaces included.
 
 ### **AC-3** A line that only looks like a heading is not one
 

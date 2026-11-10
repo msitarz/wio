@@ -72,7 +72,8 @@ error.
 #### A broken template
 
 - **Given** the hook's command and a repository whose template
-  `.agents/wio/templates/feature.leaf.md` has an unknown key.
+  `.agents/wio/templates/feature.leaf.md` has an unknown key and which also has
+  the file `.agents/wio/templates/sub/other.md`.
 - **When** the command receives the `PostToolUse` input for an edit of that
   file, and again for an edit of `.agents/wio/templates/sub/other.md`.
 - **Then** each exits 2 with the diagnostics on standard error and nothing on
@@ -88,9 +89,11 @@ the check finds, and when the edited file is not a template.
 - **Given** the hook's command and a repository whose templates have an error.
 - **When** the command receives the input for an edit of `src/wio/cli/x.py`, of
   `.agents/wio/config.toml` and of `.agents/wio/templates/notes.txt`; and then,
-  with templates whose only finding is the repeated-heading warning of the check
-  leaf's AC-7, for an edit of a template.
-- **Then** each exits 0 with no output.
+  once with templates that have no problem and once with templates whose only
+  finding is the repeated-heading warning of the check leaf's AC-7, for an edit
+  of a template.
+- **Then** each exits 0 with no output, so a passing check's message is not
+  printed.
 
 ### **AC-3** A check that cannot run does not block the edit
 
@@ -128,6 +131,6 @@ that each project decides how its harness runs the checks.
 
 ## Additional context
 
-- [Checking the config after every edit](../../../../../docs/workflow.md#7-checking-the-config-after-every-edit)
-  is the section this Work extends to the templates.
+- Section 7 of [the workflow](../../../../../docs/workflow.md), on checking the
+  config after every edit, is the section this Work extends to the templates.
 - The [check](../check/README.md) leaf is the command the hooks run.

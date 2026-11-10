@@ -21,15 +21,15 @@ apart from the id it adds.
 - The skeleton keeps what the template's author wrote for the agent and drops
   what is only for wio.
 - The same template always gives the same skeleton.
-- `tomlkit` is the one writer of TOML, loaded only when a skeleton is prepared.
+- The TOML writer is loaded only when a skeleton is prepared.
 
 ## Glossary
 
 - **Template's own keys**: every key of a template's metadata outside its
-  `[contract]` table, which describe the template and are not copied to a
-  contract, as
+  `[contract]` table, such as `kind`, `shape`, `description` and `[actions]`,
+  which describe the template and are not copied to a contract, as
   [from template to contract](../../../../../docs/concepts.md#from-template-to-contract)
-  says, without the `name` key that a template no longer has.
+  says.
 
 ## Non-Goals
 
@@ -52,15 +52,15 @@ apart from the id it adds.
 - The block reader, the outline and the directive parser of `wio.formats`, which
   split the template, find its headings and read their directive lists.
 - `tomlkit`, as a new runtime dependency, wrapped in one writer of `wio.formats`
-  and imported by that writer when it is first called.
-- Ruff's `banned-api` table, which gains `tomlkit` so that only `wio.formats`
-  may import it, a requirement that the parent's AC-4 verifies.
+  and imported by that writer when it is first called; the ban on importing it
+  elsewhere is the parent's AC-4.
 
 ## Constraints
 
 - **The skeleton is the `[contract]` table and `template`.** It holds `template`
   first, then the keys of `[contract]` in the order the template wrote them,
-  then its sub-tables, and never an `id`.
+  then its sub-tables, and never an `id`; an `id` or a `template` inside
+  `[contract]` is dropped, and a comment block never gets the marker.
 - **The block form is the template's.** A comment block gives a comment block,
   and `+++` front matter gives `+++` front matter with the marker `wio = 1` as
   its first key.
@@ -69,8 +69,9 @@ apart from the id it adds.
   line, which is what the directive parser calls a list, is removed with the
   spaces before it.
 - **The block and the body join plainly.** The block is written with the line
-  ending of the template's first line, LF or CRLF, the body follows it as it
-  was, and an empty body gives the block alone.
+  ending of the template's first line, LF or CRLF, and ends with that line
+  ending, the body follows it as it was, and an empty body gives the block
+  alone, which ends with that line ending.
 - **The function adds two things of its own.** It refuses a text with no
   metadata block, and it adds the line of the heading to a directive error,
   taken from the outline; every other error is the block reader's, unchanged.
@@ -151,11 +152,12 @@ every other character of the body is kept as it was.
 
 #### The join
 
-- **Given** a CRLF template, a template whose body is empty, and an LF
-  template.
-- **When** the skeleton is prepared from each.
+- **Given** a CRLF template, an LF template whose body is empty after
+  `<!-- wio`, `kind = "k"` and `-->`, and an LF template with a body.
+- **When** the skeleton is prepared from each, under the name `x`.
 - **Then** the first has CRLF line endings in its block as well as its body, the
-  second is the block alone, and the third has LF endings throughout.
+  second is exactly `<!-- wio`, `template = "x"` and `-->`, each ended by LF,
+  and the third has LF endings throughout.
 
 ### **AC-5** A template that cannot be prepared is an error
 
@@ -187,10 +189,11 @@ preparing a skeleton does.
 
 `GLOSSARY.md` defines Skeleton. `src/wio/formats/README.md` states what the
 skeleton keeps and drops, its order, that it has the template's block form and
-the marker for `+++`, that no `id` is written, and that `tomlkit` is the one
-writer, loaded on first use and banned elsewhere. `docs/concepts.md` says the
-same of preparing a template, without the `name` key among the template's own
-keys.
+the marker for `+++`, that no `id` is written, and that the writer is loaded on
+first use. `docs/concepts.md` says in its section on preparing a template that
+the skeleton `wio templates show` prints has the `template` key and no `id`,
+whereas `wio contracts new` adds the `id`, and has no `name` among the
+template's own keys.
 
 ## Additional context
 

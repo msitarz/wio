@@ -50,8 +50,9 @@ directives exist and how to write them without leaving the command line.
 - **It loads no parser or writer.** Without `--json` it imports none of `json`,
   `tomllib`, `tomlkit` or a Markdown parser, so that it starts fast.
 - **Verification.** The human form and its fidelity to the table are verified by
-  AC-1, the JSON by AC-2, the independence of the repository by AC-3, the
-  imports by AC-4, the command line by AC-5 and the documents by AC-6.
+  AC-1, the JSON by AC-2, the independence of the project by AC-3, the imports
+  by AC-4, the command line by AC-5, the documents by AC-6 and the same output
+  on every run by AC-7.
 
 ## Acceptance criteria
 
@@ -60,7 +61,8 @@ directives exist and how to write them without leaving the command line.
 `wio templates directives` prints each entry of the table in the table's order,
 the name on a line and under it, indented by two spaces, a `Syntax:` line, the
 meaning and an `Example:` line for each example, with one empty line between
-entries, and every field is the table's, character for character.
+entries, and every field is the table's, character for character, a meaning of
+several lines having each of its lines indented by two spaces.
 
 #### The listing
 
@@ -73,18 +75,12 @@ entries, and every field is the table's, character for character.
   required
     Syntax: <the entry's syntax>
     <the entry's meaning>
-    Example: <the entry's example>
+    Example: <the entry's example heading>
   ```
 
-  with one `Example:` line for each example of the entry, a meaning of one line,
-  an empty line between blocks and none after the last.
-
-#### The same output twice
-
-- **Given** any working directory.
-- **When** `wio templates directives` and `wio templates directives --json` each
-  run twice.
-- **Then** the two outputs of each command are identical.
+  with one `Example:` line for each example heading of the entry, each line of
+  the meaning printed as it is, an empty line between blocks and none after the
+  last.
 
 ### **AC-2** `--json` prints the table as one array
 
@@ -103,14 +99,16 @@ an array, and every value is the table's.
 ### **AC-3** The command works outside a repository and with a broken config
 
 The command prints the same output whether or not the working directory is in a
-repository and whatever its config holds.
+repository and whatever its config holds, which shows that its output does not
+depend on the project.
 
 #### No repository and a bad config
 
-- **Given** a directory that is not in a git repository, and a repository whose
-  config has an error.
+- **Given** a directory that is not in a git repository, a repository whose
+  config has an error, a repository with no config file and a repository whose
+  templates directory is unreadable.
 - **When** `wio templates directives` runs in each.
-- **Then** both print the same output as in any other directory and exit 0.
+- **Then** all four print the same output as in any other directory and exit 0.
 
 ### **AC-4** Without `--json` the command loads no parser or writer
 
@@ -142,6 +140,17 @@ An argument other than `--json` is a usage mistake, and the help of
 prints every directive with its syntax, meaning and examples, as an indented
 list or as an array with `--json`, that it reads no file or config and so works
 outside a repository, and that what it prints is the parser's own table.
+
+### **AC-7** The output is the same on every run
+
+Each form of the command prints the same text every time.
+
+#### The same output twice
+
+- **Given** any working directory.
+- **When** `wio templates directives` and `wio templates directives --json` each
+  run twice.
+- **Then** the two outputs of each command are identical.
 
 ## Additional context
 
