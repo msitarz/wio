@@ -244,3 +244,64 @@ def test_a_wrong_directive_list_names_the_column_and_the_line_of_its_heading() -
     assert isinstance(error, DirectiveSyntaxError)
     assert (error.line, error.column) == (6, 18)
     assert str(error).endswith("(line 6, column 18)")
+
+
+def test_an_id_or_template_table_inside_the_contract_is_dropped_as_a_key() -> None:
+    """AC-3: the filter is on the name, so a sub-table of that name goes too."""
+    # Given a template whose `[contract]` holds sub-tables named `id` and
+    # `template` beside one named `x`
+    template = (
+        '<!-- wio\nkind = "k"\n[contract]\nroots = []\n'
+        "[contract.id]\nn = 1\n[contract.template]\nn = 2\n[contract.x]\nn = 3\n-->\n"
+    )
+
+    # When the skeleton is prepared
+    skeleton = prepare_skeleton("t", template)
+
+    # Then only `[x]` is left beside `template` and `roots`
+    assert skeleton == '<!-- wio\ntemplate = "t"\nroots = []\n\n[x]\nn = 3\n-->\n'
+
+
+def test_text_after_the_closing_delimiter_moves_to_the_line_after_the_block() -> None:
+    """AC-4: the block ends with a line ending, and the body follows as it was."""
+    # Given a template whose closing line carries a title after the `-->`
+    template = '<!-- wio\nkind = "k"\n--> # Title\ntext\n'
+
+    # When the skeleton is prepared
+    skeleton = prepare_skeleton("x", template)
+
+    # Then the body, which begins with the space before the title, follows the
+    # block's line ending
+    assert skeleton == '<!-- wio\ntemplate = "x"\n-->\n # Title\ntext\n'
+
+
+def test_a_front_matter_template_with_crlf_is_written_with_crlf_throughout() -> None:
+    """AC-2: the marker and the delimiters take the line ending of the template."""
+    # Given a `+++` template written with CRLF
+    template = '+++\r\nwio = 1\r\nkind = "k"\r\n+++\r\n# T\r\n'
+
+    # When the skeleton is prepared
+    skeleton = prepare_skeleton("x", template)
+
+    # Then every line of the block and the body ends with CRLF
+    assert skeleton == '+++\r\nwio = 1\r\ntemplate = "x"\r\n+++\r\n# T\r\n'
+
+
+def test_nested_tables_and_every_kind_of_value_of_the_contract_are_kept() -> None:
+    """AC-3: nested tables, dates, arrays and arrays of tables are written whole."""
+    # Given a `[contract]` with a nested table, a date, an array and an array of
+    # tables
+    template = (
+        '<!-- wio\nkind = "k"\n[contract]\nopened = 2020-01-02\nroots = ["a", "b"]\n'
+        "[contract.x.z]\nn = 1\n[[contract.rows]]\nk = 1\n[[contract.rows]]\nk = 2\n"
+        "-->\n"
+    )
+
+    # When the skeleton is prepared
+    skeleton = prepare_skeleton("t", template)
+
+    # Then the keys come first and the tables follow with their own keys
+    assert skeleton == (
+        '<!-- wio\ntemplate = "t"\nopened = 2020-01-02\nroots = ["a", "b"]\n\n'
+        "[x.z]\nn = 1\n\n[[rows]]\nk = 1\n\n[[rows]]\nk = 2\n-->\n"
+    )
