@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The errors of `wio.formats`."""
 
-from typing import ClassVar
+from typing import ClassVar, override
 
 from wio.errors import WioError
 
@@ -57,9 +57,20 @@ class _PlacedError(WioError):
             position: Where the problem is, counted from 1, in the unit of the
                 subclass.
         """
-        super().__init__(f"{message} ({self.unit} {position})")
+        super().__init__(f"{message} ({self._where(position)})")
         self.message = message
         setattr(self, self.unit, position)
+
+    def _where(self, position: int) -> str:
+        """Word where the problem is, for the text of `str`.
+
+        Args:
+            position: The position in the unit of the subclass.
+
+        Returns:
+            The unit and the position, such as `line 3`.
+        """
+        return f"{self.unit} {position}"
 
 
 class MetadataBlockError(_PlacedError):
@@ -92,3 +103,49 @@ class DirectiveSyntaxError(_PlacedError):
 
     unit = "column"
     column: int
+
+
+class NotATemplateError(WioError):
+    """A text that has no wio metadata block, so it is not a template.
+
+    It names no file: the caller knows which file it read and adds that.
+    """
+
+
+class TemplateDirectiveError(DirectiveSyntaxError):
+    """A directive list that is wrong, with the line of its heading in the text.
+
+    It is the error that preparing a skeleton raises for a wrong directive list.
+    It names no file: the caller knows which file it read. `str` of it is
+    `<message> (line <line>, column <column>)`.
+
+    Attributes:
+        line: The line of the heading in the text that the reader was given,
+            counted from 1.
+    """
+
+    line: int
+
+    def __init__(self, message: str, column: int, line: int) -> None:
+        """Keep the line, and the message and the column as the parent does.
+
+        Args:
+            message: What is wrong, without the position.
+            column: The column of the problem on the heading's line, counted
+                from 1.
+            line: The line of the heading in the text, counted from 1.
+        """
+        self.line = line
+        super().__init__(message, column)
+
+    @override
+    def _where(self, position: int) -> str:
+        """Word where the problem is: the line of the heading and the column.
+
+        Args:
+            position: The column.
+
+        Returns:
+            The line and the column, such as `line 7, column 5`.
+        """
+        return f"line {self.line}, column {position}"
