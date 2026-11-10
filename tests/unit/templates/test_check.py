@@ -2,7 +2,7 @@
 """Tests of the checks of the templates in `wio.templates`."""
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, cast, override
 
 import pytest
 
@@ -14,8 +14,10 @@ from wio.templates import check
 from wio.templates.check import Reading, check_templates
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
     from pathlib import Path
+
+    from wio.models.template import Template
 
 DIR = ROOT / ".agents" / "wio" / "templates"
 BLOCK = '<!-- wio\nkind = "feature"\n-->\n\n# Title\n\n## Goals\n'
@@ -208,6 +210,23 @@ def _config(*, directory: str | None = None) -> Config:
     return Config(templates=Templates(dir=directory, kinds=kinds))
 
 
+def _kinds_call(
+    leaves: _Leaves,
+) -> tuple[Sequence[Template], Mapping[str, str], Collection[str]]:
+    """Read the arguments that `check_kinds` was called with.
+
+    Args:
+        leaves: The record of the calls.
+
+    Returns:
+        The templates, the kinds and the unbuilt names it was given.
+    """
+    arguments = dict(leaves.calls)["check_kinds"]
+    return cast(
+        "tuple[Sequence[Template], Mapping[str, str], Collection[str]]", arguments
+    )
+
+
 def _names(diagnostics: Iterable[Diagnostic]) -> list[str]:
     """List what the recorders reported, which is the name of each.
 
@@ -252,8 +271,8 @@ def test_wiring_runs_every_check_on_the_templates_that_discovery_built(
         {},
         config,
     )
-    (templates, kinds, unbuilt) = calls["check_kinds"]
-    assert [template.name for template in templates] == ["feature.draft"]  # type: ignore[attr-defined]
+    templates, kinds, unbuilt = _kinds_call(leaves)
+    assert [template.name for template in templates] == ["feature.draft"]
     assert (kinds, unbuilt) == (config.templates.kinds, frozenset())
     assert leaves.ordered == [list(found)]
 
@@ -339,8 +358,8 @@ def test_wiring_judges_a_template_that_cannot_be_read_again_as_a_template(
     ]
     names = [name for name, _ in leaves.calls]
     assert names == ["check_kinds"]
-    (templates, _, unbuilt) = dict(leaves.calls)["check_kinds"]
-    assert [template.name for template in templates] == ["feature.draft"]  # type: ignore[attr-defined]
+    templates, _, unbuilt = _kinds_call(leaves)
+    assert [template.name for template in templates] == ["feature.draft"]
     assert unbuilt == frozenset()
 
 

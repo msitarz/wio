@@ -259,6 +259,9 @@ def check_actions(place: str, actions: object, config: Config) -> list[Diagnosti
         stage that the config does not declare, and an error naming the file and
         the key for a value that is neither a string nor a list of strings. An
         empty list is no error.
+
+        An `actions` that is not a table is the error of `check_keys`, so this
+        returns nothing for it, and the one mistake is reported once.
     """
     raise NotImplementedError
 

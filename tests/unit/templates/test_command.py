@@ -273,8 +273,21 @@ def _stderr(streams: FakeStdio) -> str:
     return streams.stderr.read()
 
 
+@dataclass
+class _Seen:
+    """What the replaced check and rendering were given."""
+
+    expected_args: tuple[object, ...] = ()
+    check_args: tuple[object, ...] = ()
+    rendered: tuple[Diagnostic, ...] = ()
+
+
 def _check_run(
-    monkeypatch: pytest.MonkeyPatch, found: list[Diagnostic], *, as_json: bool = False
+    monkeypatch: pytest.MonkeyPatch,
+    found: list[Diagnostic],
+    *,
+    as_json: bool = False,
+    seen: _Seen | None = None,
 ) -> tuple[FakeStdio, int]:
     """Run `wio templates check` with the check and its rendering replaced.
 
@@ -282,20 +295,23 @@ def _check_run(
         monkeypatch: The fixture that restores the replacements.
         found: What the replaced `check_templates` finds.
         as_json: The value of `--json`.
+        seen: Where to record what the check and the rendering were given.
 
     Returns:
         The streams and the exit code.
     """
+    record = seen if seen is not None else _Seen()
 
-    def finds(*_: object) -> tuple[Diagnostic, ...]:
-        """Give the canned findings, whatever the check is asked.
+    def finds(*args: object) -> tuple[Diagnostic, ...]:
+        """Record what the check is asked, and give the canned findings.
 
         Args:
-            *_: What `check_templates` was given.
+            *args: What `check_templates` was given.
 
         Returns:
             The findings.
         """
+        record.check_args = args
         return tuple(found)
 
     def renders(diagnostics: Iterable[Diagnostic], *, as_json: bool) -> str:
@@ -308,12 +324,29 @@ def _check_run(
         Returns:
             A line that tells both.
         """
-        return f"{len(tuple(diagnostics))} json={as_json}\n"
+        record.rendered = tuple(diagnostics)
+        return f"{len(record.rendered)} json={as_json}\n"
 
     monkeypatch.setattr(command_module, "check_templates", finds)
     monkeypatch.setattr(command_module, "render_check", renders)
+
+    def refuses(*_: object) -> None:
+        """Fail the test: `check` must not walk the templates to refuse them.
+
+        Args:
+            *_: What `discover` was given.
+
+        Raises:
+            AssertionError: Always.
+        """
+        message = "`check` must not refuse around a template error"
+        raise AssertionError(message)
+
+    monkeypatch.setattr(command_module, "discover", refuses)
     settings = _Settings(Config(templates=Templates()))
-    command = TemplatesCommand(settings, FakeRepository(), MemoryFileSystem({}))
+    files = MemoryFileSystem({})
+    record.expected_args = (settings.config, ROOT, files)
+    command = TemplatesCommand(settings, FakeRepository(), files)
     streams = FakeStdio()
     args = Namespace(
         templates_view="check", templates_help=lambda: "usage", json=as_json
@@ -329,10 +362,18 @@ def test_check_exits_1_for_an_error_and_writes_what_it_rendered(
     found = [Diagnostic("error", "a.md", "x"), Diagnostic("warning", "a.md:2", "y")]
 
     # When `check --json` runs
-    streams, code = _check_run(monkeypatch, found, as_json=True)
+    seen = _Seen()
+    streams, code = _check_run(monkeypatch, found, as_json=True, seen=seen)
 
-    # Then the rendering was asked for JSON, it is the only output, and the exit
-    # code is 1
+    # Then the check got the root, the loaded config and the file port, the
+    # rendering got its findings in order and was asked for JSON, it is the only
+    # output, the templates were not walked to refuse them, and the exit code is 1
+    assert seen.check_args == (
+        seen.expected_args[1],
+        seen.expected_args[0],
+        seen.expected_args[2],
+    )
+    assert seen.rendered == tuple(found)
     assert (_text(streams), _stderr(streams), code) == ("2 json=True\n", "", 1)
 
 
