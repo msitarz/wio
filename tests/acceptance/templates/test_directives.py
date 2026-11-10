@@ -41,8 +41,8 @@ def test_directives_works_outside_a_repository_and_with_a_broken_project(
     # error, one with no config file and one whose templates directory is
     # unreadable
     # When `wio templates directives` runs in each
-    # Then all four print the same text, in both forms, as anywhere else and
-    # exit 0
+    # Then all four print the same text, in both forms, as anywhere else, with
+    # empty standard error, and exit 0
 
 
 @pytest.mark.skip(reason="Pending the implementation stage.")

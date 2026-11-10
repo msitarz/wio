@@ -22,15 +22,16 @@ def render_reference(directives: Sequence[DirectiveSpec], *, as_json: bool) -> s
 
     Returns:
         The text for standard output. The human form has one block for each
-        entry, with the name on a line and under it, indented by two spaces, a
-        `Syntax:` line, the meaning, each of its lines indented by two spaces,
-        and an `Example:` line for each example, with one empty line between
-        blocks and none after the last; the text ends in exactly one line
-        ending, and is empty for an empty table. The JSON form is one compact
-        array, as `list --json` writes it, ending in a line ending, with an
-        object for each entry holding `name`, `syntax`, `meaning` and `examples`
-        in that order, the last an array that is empty for an entry with no
-        example, and `[]` for an empty table. The same table always gives the
-        same text.
+        entry. A block has the name on a line and, indented by two spaces, a
+        `Syntax:` line, the meaning with each of its lines indented by two
+        spaces, an empty line of it left empty without trailing spaces, and an
+        `Example:` line for each example, `Example: ` followed by the example
+        heading as the table has it. One empty line separates blocks and none
+        follows the last, so the text ends in exactly one line ending, and it is
+        empty for an empty table. The JSON form is one compact array, as
+        `list --json` writes it, ending in a line ending, with an object for
+        each entry holding `name`, `syntax`, `meaning` and `examples` in that
+        order, the last an array that is empty for an entry with no example, and
+        `[]` for an empty table. The same table always gives the same text.
     """
     raise NotImplementedError
