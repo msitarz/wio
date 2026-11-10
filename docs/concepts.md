@@ -725,11 +725,14 @@ parseable by a markdown parser. The grammar is small:
 | `inherit` | The section is inheritable: a descendant's resolved view includes it ([Inheritance, computed](#inheritance-computed)). |
 
 `wio templates directives` prints this grammar: every directive with its syntax,
-its meaning and its examples, as an indented list, or as one array of objects
-with `--json`. It prints what the directive parser's own table holds, in the
-table's order, so it cannot say anything else than the parser accepts. It reads
-no file of the project and no config, so it works outside a repository and with
-a project whose config has an error, and it prints the same text on every run.
+its meaning and its examples, and then how several directives are combined in
+one comment on a heading, separated by commas, as two indented sections, or as
+one object with `--json` that holds the same two sections as the arrays
+`directives` and `combining`. It prints what the directive parser's own table
+and its entry for combining hold, in their order, so it cannot say anything
+else than the parser accepts. It reads no file of the project and no config, so
+it works outside a repository and with a project whose config has an error, and
+it prints the same text on every run.
 
 Sections are **optional until marked required**, so the agent can choose
 sections based on what the Work needs. Authoring comments do not count as

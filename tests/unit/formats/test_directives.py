@@ -4,7 +4,7 @@
 import pytest
 
 from wio.errors import WioError
-from wio.formats.directives import DIRECTIVES, remove_directive_list
+from wio.formats.directives import COMBINING, DIRECTIVES, remove_directive_list
 from wio.models.directives import (
     Directive,
     DirectiveHeading,
@@ -318,3 +318,23 @@ def test_the_list_and_the_spaces_before_it_are_taken_off_a_heading(
 
     # Then only the list and the spaces before it are gone
     assert found == expected
+
+
+def test_the_example_of_combining_reads_into_the_three_directives_it_combines() -> None:
+    """Directive reference AC-1: the entry for combining shows a list that parses."""
+    # Given the entry that says how directives combine in one comment
+    [entry] = COMBINING
+
+    # When the parser reads its example
+    heading = read_directive_heading(entry.examples[0])
+
+    # Then it gives the three directives that the example combines, in order
+    assert heading is not None
+    assert [type(directive) for directive in heading.directives] == [
+        Required,
+        Items,
+        Pattern,
+    ]
+    assert entry.name == "several directives"
+    assert "comma" in entry.meaning
+    assert "All of them apply" in entry.meaning

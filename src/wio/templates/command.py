@@ -3,7 +3,7 @@
 
 from typing import TYPE_CHECKING, Literal, cast
 
-lazy from wio.formats import DIRECTIVES
+lazy from wio.formats import COMBINING, DIRECTIVES
 lazy from wio.templates.discovery import discover
 lazy from wio.templates.errors import TemplatesError, refusal
 lazy from wio.templates.listing import render_list
@@ -103,7 +103,8 @@ class TemplatesCommand:
         if arguments.templates_view == "directives":
             # Before the config is loaded: the table is the parser's, and the
             # command reads nothing of the project, so it works anywhere.
-            stdio.stdout.write(render_directives(DIRECTIVES, as_json=arguments.json))
+            text = render_directives(DIRECTIVES, COMBINING, as_json=arguments.json)
+            stdio.stdout.write(text)
             return 0
         config = self._settings.load()
         root = self._repository.root()

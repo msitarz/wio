@@ -70,10 +70,11 @@ _SHOW = (
 _DIRECTIVES_HELP = "Print the directives that a template may use."
 _DIRECTIVES = (
     "Print every directive of the grammar with its syntax, its meaning and its "
-    "examples. It reads no file of the project and no config, so it works "
-    "anywhere."
+    "examples, and how directives combine: several of them go in one comment on "
+    "the heading, separated by commas. It reads no file of the project and no "
+    "config, so it works anywhere."
 )
-_DIRECTIVES_JSON = "Write one JSON array of the directives instead of the list."
+_DIRECTIVES_JSON = "Write one JSON object of the directives instead of the list."
 _NAME = "The template's name, which is its file's name without `.md`."
 _KIND = "Show only the templates of this declared kind."
 _JSON = "Write one JSON array of the templates instead of the grouped text."

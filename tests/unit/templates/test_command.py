@@ -9,7 +9,7 @@ import pytest
 
 from tests.unit.fakes import ROOT, FakeRepository, FakeStdio, MemoryFileSystem
 from wio.errors import ConfigurationError
-from wio.formats.directives import DIRECTIVES
+from wio.formats.directives import COMBINING, DIRECTIVES
 from wio.models.config import Config, Templates
 from wio.models.frozen import freeze
 from wio.templates import TemplatesCommand, TemplatesError, render_reference
@@ -248,5 +248,7 @@ def test_directives_reads_nothing_of_the_project(*, as_json: bool) -> None:
     # Then the table of the parser is written, the exit code is 0, and neither
     # the config nor the repository was touched, or the run would have failed
     streams.stdout.seek(0)
-    assert streams.stdout.read() == render_reference(DIRECTIVES, as_json=as_json)
+    assert streams.stdout.read() == render_reference(
+        DIRECTIVES, COMBINING, as_json=as_json
+    )
     assert code == 0
