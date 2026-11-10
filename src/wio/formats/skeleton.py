@@ -14,8 +14,12 @@ def prepare_skeleton(name: str, text: str) -> str:
     `[contract]` are dropped. A comment block never gets the marker, and `+++`
     front matter has `wio = 1` as its first key. The block is written with the
     line ending of the template's first line and ends with it, and the body
-    follows as it was. The same template always gives the same skeleton. It
-    reads no file, and `tomlkit` is imported on the first call, not when
+    follows as it was. A leading byte-order mark is kept at the start of the
+    skeleton, and the line ending is that of the first line after it. The raw
+    line of a heading never ends in a carriage return, so the list and the spaces
+    before it are removed from the raw line and the line ending of a CRLF
+    template stays. The same template always gives the same skeleton. It reads
+    no file, and `tomlkit` is imported on the first call, not when
     `wio.formats` is imported.
 
     Args:

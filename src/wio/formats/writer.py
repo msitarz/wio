@@ -15,6 +15,10 @@ def encode_toml(data: Mapping[str, object]) -> str:
     its parent. It writes no file and no comment. It loads `tomlkit` on the
     first call, not on import.
 
+    Whatever `decode_toml` returns is written so that decoding it again gives
+    the same data: strings, integers, floats, booleans, dates and times, arrays,
+    tables and arrays of tables.
+
     Args:
         data: The document as nested mappings, lists and scalars, the shape
             that `decode_toml` returns.

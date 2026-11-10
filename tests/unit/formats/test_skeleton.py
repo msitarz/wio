@@ -47,28 +47,48 @@ def test_a_template_without_a_contract_table_gives_only_template() -> None:
 @pytest.mark.skip(reason="Pending the implementation stage.")
 def test_the_body_keeps_everything_but_the_directive_lists() -> None:
     """AC-4: lists on real headings go, with the spaces before them."""
-    # Given a body with real headings that have lists, an authoring comment and a
-    # fenced block that quote a list, notes, and CRLF line endings
+    # Given, one case at a time and parametrized: a heading with a list, a
+    # multi-line authoring comment that quotes a list, a fenced block that holds
+    # the same heading, a heading with a note, a heading with a note and then a
+    # list, and the same body with CRLF line endings
     # When the skeleton is prepared
-    # Then only the lists of real headings are gone, the notes stay, and the
-    # comment, the fenced block and the line endings are as they were
+    # Then only the lists of real headings are gone, and the comment, the fenced
+    # block, the note and the line endings are as they were
 
 
 @pytest.mark.skip(reason="Pending the implementation stage.")
 def test_the_block_and_the_body_join_with_the_line_ending_of_the_template() -> None:
     """AC-4: the block uses the first line's ending, and an empty body is the block."""
-    # Given a CRLF template, an LF template with an empty body and an LF template
-    # with a body
+    # Given, parametrized: a CRLF template, an LF template whose body is empty
+    # and an LF template with a body, and a template that starts with a
+    # byte-order mark
     # When the skeleton is prepared from each
     # Then the first has CRLF in its block and body, the second is the block
-    # alone ended by LF, and the third has LF throughout
+    # alone ended by LF, the third has LF throughout, and the last keeps its mark
+    # at the start
 
 
 @pytest.mark.skip(reason="Pending the implementation stage.")
-def test_a_template_that_cannot_be_prepared_is_an_error() -> None:
-    """AC-5: no block, an unreadable block and a wrong list raise their errors."""
-    # Given a text with no block, a block that does not close and a heading whose
-    # list names an unknown directive
-    # When the skeleton is prepared from each
-    # Then the first says it is not a template, the second is the block reader's
-    # error at line 1, and the third names the column and the line of the heading
+def test_a_text_with_no_block_is_not_a_template() -> None:
+    """AC-5: a text without a metadata block is refused as not a template."""
+    # Given a text that has no metadata block
+    # When the skeleton is prepared
+    # Then it raises an error that says it is not a template
+
+
+@pytest.mark.skip(reason="Pending the implementation stage.")
+def test_a_block_that_does_not_close_raises_the_error_of_the_block_reader() -> None:
+    """AC-5: the block reader's error is not changed, and names line 1."""
+    # Given a comment block that does not close
+    # When the skeleton is prepared
+    # Then it raises the block reader's error naming line 1
+
+
+@pytest.mark.skip(reason="Pending the implementation stage.")
+def test_a_wrong_directive_list_names_the_column_and_the_line_of_its_heading() -> None:
+    """AC-5: the heading's line comes from the outline, so it is not line 1."""
+    # Given a template whose heading on a later line has the list
+    # `<!-- wio: mandatory -->`
+    # When the skeleton is prepared
+    # Then it raises the directive parser's error with the column of the problem
+    # and the line of the heading in the text
