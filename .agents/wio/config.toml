@@ -97,7 +97,8 @@ Interview the driver until the intent is clear, using the draft's Purpose and \
 Intent as working space. Decide whether the Work is a leaf or a parent, print \
 that template with `wio templates show <name>`, and rewrite the contract in \
 its shape, keeping the Work's id and its dependencies and not its roots or \
-actions, so the new template's apply; the Intent section does not carry over. Ask the driver for anything still missing. For a parent, \
+actions, so that the new template's roots and actions apply; the Intent \
+section does not carry over. Ask the driver for anything still missing. For a parent, \
 create its children with `wio contracts new feature --parent <id> --title \
 <title>`. Check the result with `wio contracts check`."""
 roots = ["contract"]

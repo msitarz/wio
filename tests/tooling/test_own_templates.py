@@ -2,6 +2,7 @@
 """Tests that this repository's templates are named by their files."""
 
 import hashlib
+import re
 import subprocess
 import sys
 import tomllib
@@ -104,7 +105,7 @@ def test_the_skeleton_of_the_parent_template_has_no_template_only_keys() -> None
     keys = set(tomllib.loads(block))
     assert keys.isdisjoint({"name", "kind", "shape", "description", "actions"})
     assert "template" in keys
-    assert "<!-- wio:" not in out
+    assert re.search(r"<!--\s*wio:", out) is None
     assert (err, code) == ("", 0)
 
 
