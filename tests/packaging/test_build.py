@@ -2,6 +2,7 @@
 """Packaging tests: build the wheel and sdist, then inspect them."""
 
 import email
+import json
 import re
 import shutil
 import subprocess
@@ -396,3 +397,111 @@ def test_the_installed_wheel_shows_the_settings_of_a_project(
     assert 'stages.define.goal = "Define."  # file' in stage
     assert 'stages.define.session = "any"  # default' in stage
     assert all(line.startswith("stages.define.") for line in stage)
+
+
+_TEMPLATES_CONFIG = """\
+[templates.kinds]
+feature = "feature.draft"
+
+[actions.define]
+description = "Define."
+
+[stages.implementation]
+goal = "Implement."
+
+[stage_presets]
+define-feature = ["implementation"]
+"""
+_DRAFT = (
+    '<!-- wio\nkind = "feature"\nshape = "draft"\n[actions]\n'
+    'define = "define-feature"\n-->\n\n# Draft\n'
+)
+_LEAF = (
+    '<!-- wio\nkind = "feature"\nshape = "leaf"\n[actions]\n'
+    'define = ["implementation"]\n[contract]\nroots = []\n-->\n\n'
+    "# Title\n\n## Goals <!-- wio: required -->\n"
+)
+
+
+def _templates_project(tmp_path: Path) -> Path:
+    """Make a git repository with the kind `feature` and two templates.
+
+    Args:
+        tmp_path: A directory of the test.
+
+    Returns:
+        The repository's root.
+    """
+    root = _project(tmp_path, "templates", _TEMPLATES_CONFIG)
+    directory = root / ".agents" / "wio" / "templates"
+    directory.mkdir()
+    (directory / "feature.draft.md").write_text(_DRAFT, encoding="utf-8")
+    (directory / "feature.leaf.md").write_text(_LEAF, encoding="utf-8")
+    return root
+
+
+def test_the_installed_wheel_lists_shows_and_checks_templates(
+    wheel_path: Path, tmp_path: Path
+) -> None:
+    """Parent AC-1: the wheel gives a working `templates` outside this repository."""
+    # Given the built wheel and a repository that is not this one, whose config
+    # declares the kind `feature` with the entry template `feature.draft` and the
+    # actions of the two templates, and whose templates directory holds both
+    project = _templates_project(tmp_path)
+
+    # When `wio templates list`, `show feature.leaf` and `check` run there
+    listed = _run_in_project(wheel_path, project, "templates", "list")
+    shown = _run_in_project(wheel_path, project, "templates", "show", "feature.leaf")
+    checked = _run_in_project(wheel_path, project, "templates", "check")
+
+    # Then the first prints the kind with its two templates and marks the draft as
+    # the entry, the second the skeleton of the leaf, and the third passes, each
+    # exiting 0
+    lines = listed.stdout.splitlines()
+    assert lines[0] == "feature"
+    assert lines[1].split()[:2] == ["feature.draft", "[entry]"]
+    assert any(line.split()[:1] == ["feature.leaf"] for line in lines[2:])
+    assert shown.stdout.startswith('<!-- wio\ntemplate = "feature.leaf"\n')
+    assert checked.stdout == "The templates pass.\n"
+    assert [r.returncode for r in (listed, shown, checked)] == [0, 0, 0]
+
+
+def test_the_installed_wheel_refuses_a_name_that_no_template_has(
+    wheel_path: Path, tmp_path: Path
+) -> None:
+    """Parent AC-1: `show nosuch` names it on standard error and exits 2."""
+    # Given the built wheel and the same kind of repository
+    project = _templates_project(tmp_path)
+
+    # When `wio templates show nosuch` runs there
+    result = _run_in_project(wheel_path, project, "templates", "show", "nosuch")
+
+    # Then it names `nosuch` on standard error, prints nothing else and exits 2
+    assert "`nosuch`" in result.stderr
+    assert (result.stdout, result.returncode) == ("", 2)
+
+
+def test_the_installed_wheel_explains_the_directives_outside_a_repository(
+    wheel_path: Path, tmp_path: Path
+) -> None:
+    """Parent AC-1: `directives` works in a directory that is no repository."""
+    # Given the built wheel and a directory that is not in a git repository
+    # (the pytest directory is outside this one)
+
+    # When `wio templates directives` and `directives --json` run there
+    text = _run_in_project(wheel_path, tmp_path, "templates", "directives")
+    machine = _run_in_project(wheel_path, tmp_path, "templates", "directives", "--json")
+
+    # Then the first prints every directive with how they combine, and the second
+    # the same as one JSON object, each exiting 0
+    for name in ("required", "items", "pattern", "inherit", "several directives"):
+        assert name in text.stdout
+    data = json.loads(machine.stdout)
+    assert [entry["name"] for entry in data["directives"]] == [
+        "required",
+        "items",
+        "pattern",
+        "inherit",
+    ]
+    assert data["combining"][0]["name"] == "several directives"
+    assert (text.returncode, machine.returncode) == (0, 0)
