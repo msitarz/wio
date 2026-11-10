@@ -67,3 +67,25 @@ and [`DirectiveSyntaxError`](errors.py) say what it reads and raises, and the
 - A heading too long for the line limit of Markdown is shortened, or has the
   limit suppressed by `<!-- rumdl-disable-next-line MD013 -->` on the line above
   it, because a list closes on its heading's line.
+
+## The outline
+
+`read_outline` in [`outline.py`](outline.py) finds the real headings of a
+Markdown body, so the skeleton, the check of a template and `wio contracts`
+agree on which lines are section headings. Its docstring and
+[`Heading`](../models/heading.py) say what it takes and returns, and its
+[tests](../../../tests/unit/formats/test_outline.py) say how each case reads.
+
+- **A real heading is an ATX heading at the top level of the body.** A heading
+  inside code, an HTML comment, a blockquote or a list item, and a setext
+  heading, only looks like one, because the check and `wio contracts` treat a
+  section heading as a heading of the body itself.
+- **A heading carries four fields:** its level from 1 to 6, its text without the
+  marks and spaces around it, its raw line as written, and its line in the file,
+  counted from the start line of the body that the caller passes.
+- **Headings are the only structure it returns.** What lies between them, the
+  extent of a section and its items, is for the contracts Work to decide.
+- **The parser is `markdown-it-py`,** whose CommonMark rules are the definition
+  of a heading, a fence and a comment block, so wio has no grammar of its own to
+  keep in step with Markdown. Only `wio.formats` imports it, and it loads on the
+  first reading, so a command that reads no body never pays for it.

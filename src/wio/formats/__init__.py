@@ -9,6 +9,7 @@ lazy from wio.formats.errors import (
     MetadataBlockError,
     TomlSyntaxError,
 )
+lazy from wio.formats.outline import read_outline
 lazy from wio.formats.toml import decode_toml
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "decode_toml",
     "read_directive_heading",
     "read_metadata_block",
+    "read_outline",
     "render_json",
     "render_text",
 ]

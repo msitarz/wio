@@ -18,7 +18,9 @@ classifiers = [
     "Typing :: Typed",
 ]
 requires-python = ">=3.15"
-dependencies = []
+dependencies = [
+    "markdown-it-py>=4.2.0",
+]
 
 [project.scripts]
 wio = "wio.cli:console_main"
@@ -151,6 +153,7 @@ extend-select = [
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "tomllib".msg = "Decode TOML with `wio.formats.decode_toml`, which reports where a syntax error is."
+"markdown_it".msg = "Find headings with `wio.formats.read_outline`, the one place that knows the Markdown parser."
 "pathlib.Path.cwd".msg = "Read the working directory through the `Environment` port of `wio.env`, so a test can fix it."
 "os.getcwd".msg = "Read the working directory through the `Environment` port of `wio.env`, so a test can fix it."
 "os.getcwdb".msg = "Read the working directory through the `Environment` port of `wio.env`, so a test can fix it."
@@ -175,7 +178,7 @@ known-first-party = ["wio"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "D", "PLR2004", "TID251"]
 "scripts/**" = ["TID251"]
-"src/wio/formats/**" = ["TID251"]  # the one place that may import tomllib
+"src/wio/formats/**" = ["TID251"]  # the one place that may import tomllib and markdown_it
 "src/wio/env/adapters.py" = ["TID251"]  # the one place that may read the working directory
 "*.pyi" = ["PYI048", "PIE790"]  # stubs carry a docstring plus `...`
 
