@@ -181,7 +181,7 @@ any repository.
 - **When** `wio templates list`, `wio templates show feature.leaf` and
   `wio templates check` run there.
 - **Then** the first prints the kind `feature` with its two templates and marks
-  `feature.draft` as the entry, the second prints the skeleton of
+  `feature.draft` with `[entry]`, the second prints the skeleton of
   `feature.leaf`, and the third passes; each exits 0.
 
 #### A name that no template has
@@ -226,7 +226,7 @@ check, each of which has criteria of its own in its leaf.
 - **Given** this repository.
 - **When** `wio templates list --kind feature`,
   `wio templates show feature.parent` and `wio templates check` run.
-- **Then** the first lists `feature.draft` as the entry, `feature.leaf` and
+- **Then** the first lists `feature.draft` marked `[entry]`, `feature.leaf` and
   `feature.parent`, the second prints a skeleton with no `name`, `kind`,
   `shape`, `description` or `[actions]` and no directive comment, with nothing
   else on standard output and nothing on standard error, and the third passes.

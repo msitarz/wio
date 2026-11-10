@@ -69,6 +69,8 @@ same way of finding and building them.
   not a directory or is a symbolic link is an error.
 - **Kinds and templates are sorted by name.** The rest of the output's
   determinism is the parent's constraint.
+- **A description is shown as written.** Its lines are printed one under another
+  and not wrapped or joined, so that an author lays out a long one as wished.
 - **Verification.** The walk is verified by AC-1, the fields by AC-2, the
   problems by AC-3, the help by AC-4, the output by AC-5, the refusal by AC-6,
   the repository's templates by AC-7, the documents by AC-8 and the imports of
@@ -144,9 +146,10 @@ and exits 0.
 
 ### **AC-5** `wio templates list` shows the templates for a person and a program
 
-The human form groups the templates by kind in sorted order, each with its name,
-its shape and its entry mark on one line and its description indented under it,
-`--kind` limits it to one declared kind, and `--json` prints one array.
+The human form groups the templates by kind in sorted order, with an empty line
+between kinds, each template on one line with its name, its `[entry]` mark and
+its `shape:` and its description under it as written, `--kind` limits it to one
+declared kind, and `--json` prints one array.
 
 #### The grouped layout
 
@@ -157,23 +160,32 @@ its shape and its entry mark on one line and its description indented under it,
   `delivered as one outcome.`, `bugfix.fix` with no shape and no description,
   and `old.note` of the undeclared kind `old` with no shape.
 - **When** `wio templates list` runs.
-- **Then** it prints exactly these lines, with the names indented by two spaces
-  and each line of a description by four, a kind in sorted order, an entry mark
-  only where `[templates.kinds]` names the template for its own kind, and no
-  line for `spec`, which has no templates:
+- **Then** it prints exactly these lines, with kinds in sorted order and one
+  empty line between them and none before the first or after the last, the names
+  indented by two spaces and each line of a description by four, an `[entry]`
+  mark only where `[templates.kinds]` names the template for its own kind, and
+  no line for `spec`, which has no templates:
 
   ```text
   bugfix
-    bugfix.fix  entry
+    bugfix.fix [entry]
+
   feature
-    feature.draft  draft, entry
+    feature.draft [entry] shape: draft
       The working space of a new Work.
-    feature.leaf  leaf
+    feature.leaf          shape: leaf
       A capability
       delivered as one outcome.
+
   old
     old.note
   ```
+
+  In a group, the names are padded to the longest name, the mark column is 7
+  characters wide, `[entry]` or blanks, and is present only when a template of
+  the group is an entry, one space separates the columns, trailing spaces are
+  trimmed, and each line of a description is printed as it is written, so that
+  an author can lay it out, with the empty lines around it dropped.
 
 #### One kind
 
@@ -223,7 +235,7 @@ The three `feature` templates of this repository have no `name` key, and
 
 - **Given** this repository.
 - **When** `wio templates list` runs.
-- **Then** it lists `feature.draft` as the entry, `feature.leaf` and
+- **Then** it lists `feature.draft` marked `[entry]`, `feature.leaf` and
   `feature.parent` under `feature`, and none of the three files has a `name`
   key.
 
