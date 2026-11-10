@@ -29,7 +29,7 @@ class Arguments:
     them.
     """
 
-    templates_view: Literal["list"] | None
+    templates_view: Literal["list", "show"] | None
     """The subcommand chosen, `None` for bare `wio templates`."""
 
     templates_help: Callable[[], str]
@@ -42,9 +42,12 @@ class Arguments:
     json: bool
     """Whether `list` writes JSON; present for `list`."""
 
+    name: str
+    """The name of the template that `show` prints; present for `show`."""
+
 
 class TemplatesCommand:
-    """Runs `wio templates`: its help, and `list` for the templates."""
+    """Runs `wio templates`: its help, `list` and `show` for the templates."""
 
     def __init__(
         self, settings: Settings, repository: Repository, files: FileSystem
@@ -72,20 +75,28 @@ class TemplatesCommand:
             The exit code, 0. Bare `wio templates` writes its help and loads no
             config. `list` writes the templates to `stdio.stdout`, limited to
             `--kind` when it is given, as one JSON array with `--json`, and
-            nothing for a declared kind with no templates.
+            nothing for a declared kind with no templates. `show` writes the
+            skeleton of the template with the name, exactly as it is prepared,
+            to `stdio.stdout` and nothing to `stdio.stderr`.
 
         Raises:
             ConfigurationError: The config has an error.
             TemplatesError: A template or the templates directory has an error,
-                which `list` refuses to list around: it carries the errors and
-                says that `wio templates check` shows every problem. Or `--kind`
-                names a kind that the config does not declare, and the message
-                names it and the declared kinds. The command line exits 2.
+                which `list` and `show` refuse to work around: it carries the
+                errors and says that `wio templates check` shows every problem.
+                Or `--kind` names a kind that the config does not declare, and
+                the message names it and the declared kinds. Or `show` names a
+                template that does not exist, and the message names it and lists
+                the names that exist; or preparing the skeleton failed, which
+                `show_skeleton` words. The command line exits 2.
         """
         arguments = cast("Arguments", args)
         if arguments.templates_view is None:
             stdio.stdout.write(arguments.templates_help())
             return 0
+        if arguments.templates_view == "show":
+            # The wiring stage composes `show`, as it composed `list`.
+            raise NotImplementedError
         config = self._settings.load()
         found = discover(self._repository.root(), config.templates, self._files)
         _refuse_problems(found)
