@@ -27,7 +27,7 @@ class Arguments:
     them.
     """
 
-    templates_view: Literal["list", "show"] | None
+    templates_view: Literal["list", "show", "directives"] | None
     """The subcommand chosen, `None` for bare `wio templates`."""
 
     templates_help: Callable[[], str]
@@ -38,14 +38,14 @@ class Arguments:
     """The kind that `list` is limited to; present for `list`."""
 
     json: bool
-    """Whether `list` writes JSON; present for `list`."""
+    """Whether `list` or `directives` writes JSON; present for both."""
 
     name: str
     """The name of the template that `show` prints; present for `show`."""
 
 
 class TemplatesCommand:
-    """Runs `wio templates`: its help, `list` and `show` for the templates."""
+    """Runs `wio templates`: its help, `list`, `show` and `directives`."""
 
     def __init__(
         self, settings: Settings, repository: Repository, files: FileSystem
@@ -75,7 +75,10 @@ class TemplatesCommand:
             `--kind` when it is given, as one JSON array with `--json`, and
             nothing for a declared kind with no templates. `show` writes the
             skeleton of the template with the name, exactly as it is prepared,
-            to `stdio.stdout` and nothing to `stdio.stderr`.
+            to `stdio.stdout` and nothing to `stdio.stderr`. `directives` writes
+            the table of the directive grammar, as an indented list or as one
+            JSON array with `--json`, and reads no config, no repository and no
+            file of the project, so it works anywhere.
 
         Raises:
             ConfigurationError: The config has an error.
@@ -92,6 +95,10 @@ class TemplatesCommand:
         if arguments.templates_view is None:
             stdio.stdout.write(arguments.templates_help())
             return 0
+        if arguments.templates_view == "directives":
+            # The wiring stage replaces this guard: `directives` runs before the
+            # config is loaded, so that it reads nothing of the project.
+            raise NotImplementedError
         config = self._settings.load()
         root = self._repository.root()
         found = discover(root, config.templates, self._files)

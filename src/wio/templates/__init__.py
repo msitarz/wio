@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 lazy from wio.templates.command import TemplatesCommand
 lazy from wio.templates.discovery import Discovery, discover
 lazy from wio.templates.errors import TemplatesError
+lazy from wio.templates.reference import render_reference
 lazy from wio.templates.show import show_skeleton
 
 if TYPE_CHECKING:
@@ -18,7 +19,7 @@ class TemplatesSpec:
     """What the usage needs to know about `wio templates`, and nothing more."""
 
     name = "templates"
-    help = "List and show the project's templates."
+    help = "List, show and explain the project's templates."
 
     def configure(self, parser: ArgumentParser) -> None:
         """Add the views of `wio templates` to its subparser.
@@ -33,6 +34,8 @@ class TemplatesSpec:
         listing.add_argument("--json", action="store_true", help=_JSON)
         shown = _subcommand(views, "show", _SHOW_HELP, _SHOW)
         shown.add_argument("name", metavar="name", help=_NAME)
+        grammar = _subcommand(views, "directives", _DIRECTIVES_HELP, _DIRECTIVES)
+        grammar.add_argument("--json", action="store_true", help=_DIRECTIVES_JSON)
 
 
 def _subcommand(views: _SubParsers, view: str, short: str, long: str) -> ArgumentParser:
@@ -64,6 +67,13 @@ _SHOW = (
     "new` would write it but without an id, and nothing else. Refuses while a "
     "template has an error: `wio templates check` shows every problem."
 )
+_DIRECTIVES_HELP = "Print the directives that a template may use."
+_DIRECTIVES = (
+    "Print every directive of the grammar with its syntax, its meaning and its "
+    "examples. It reads no file of the project and no config, so it works "
+    "anywhere."
+)
+_DIRECTIVES_JSON = "Write one JSON array of the directives instead of the list."
 _NAME = "The template's name, which is its file's name without `.md`."
 _KIND = "Show only the templates of this declared kind."
 _JSON = "Write one JSON array of the templates instead of the grouped text."
@@ -84,5 +94,6 @@ __all__ = [
     "TemplatesError",
     "describe",
     "discover",
+    "render_reference",
     "show_skeleton",
 ]
