@@ -52,6 +52,6 @@ def _block(spec: DirectiveSpec) -> str:
         line ending.
     """
     lines = [spec.name, f"  Syntax: {spec.syntax}"]
-    lines.extend(f"  {line}".rstrip() for line in spec.meaning.splitlines())
+    lines.extend(f"  {line}" if line else "" for line in spec.meaning.splitlines())
     lines.extend(f"  Example: {example}" for example in spec.examples)
     return "\n".join(lines) + "\n"

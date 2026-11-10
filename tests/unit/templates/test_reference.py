@@ -126,3 +126,16 @@ def test_the_same_table_always_gives_the_same_text() -> None:
 
     # Then the two results of each form are identical
     assert first == second
+
+
+def test_a_meaning_is_printed_character_for_character_but_for_its_indent() -> None:
+    """AC-1: spaces inside a line of a meaning stay, and an empty line stays empty."""
+    # Given an entry whose meaning has a line with leading and trailing spaces and
+    # an empty line
+    entry = (DirectiveSpec("x", "x", "  kept  \n\nlast", ()),)
+
+    # When it is rendered for a person
+    text = render_reference(entry, as_json=False)
+
+    # Then the line keeps its spaces after the indent, and the empty line is empty
+    assert text == "x\n  Syntax: x\n    kept  \n\n  last\n"
