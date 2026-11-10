@@ -34,13 +34,19 @@ def test_check_prints_two_problems_at_once(wio: Wio) -> None:
     # the second one array of two objects, in that order, each exiting 1
 
 
-@pytest.mark.skip(reason=SKIP)
 @pytest.mark.channels(Channel.CLI)
 def test_check_refuses_a_config_with_an_error(wio: Wio) -> None:
     """AC-1: the config's error is printed and the exit code is 2."""
     # Given a project whose config has an error
+    wio.fixture("config/invalid")
+
     # When `wio templates check` runs
+    output = wio.run(["templates", "check"])
+
     # Then it prints that error and exits 2
+    assert output.exit_code == 2
+    assert output.stdout == ""
+    assert "error" in output.stderr
 
 
 @pytest.mark.skip(reason=SKIP)

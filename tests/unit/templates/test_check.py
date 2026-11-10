@@ -2,7 +2,7 @@
 """Tests of the checks of the templates in `wio.templates`."""
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 import pytest
 
@@ -130,6 +130,7 @@ class _Leaves:
     """The checks of the module, replaced by recorders that say what they got."""
 
     calls: list[tuple[str, tuple[object, ...]]] = field(default_factory=list)
+    ordered: list[list[Diagnostic]] = field(default_factory=list)
 
 
 def _record(
@@ -175,7 +176,20 @@ def _stub_leaves(monkeypatch: pytest.MonkeyPatch) -> _Leaves:
     for name in ("check_keys", "check_headings", "check_actions", "check_kinds"):
         canned = Diagnostic("error", name, name)
         monkeypatch.setattr(check, name, _record(leaves, name, lambda c=canned: [c]))
-    monkeypatch.setattr(check, "order_diagnostics", tuple, raising=True)
+
+    def order(found: Iterable[Diagnostic]) -> tuple[Diagnostic, ...]:
+        """Record what the check hands to the ordering, and keep its order.
+
+        Args:
+            found: Every diagnostic that the check gathered.
+
+        Returns:
+            The same diagnostics, as they were given.
+        """
+        leaves.ordered.append(list(found))
+        return tuple(leaves.ordered[-1])
+
+    monkeypatch.setattr(check, "order_diagnostics", order)
     return leaves
 
 
@@ -232,7 +246,16 @@ def test_wiring_runs_every_check_on_the_templates_that_discovery_built(
     (reading,) = calls["check_headings"]
     assert isinstance(reading, Reading)
     assert [heading.text for heading in reading.headings] == ["Title", "Goals"]
-    assert calls["check_actions"][1] == {}
+    config = _config()
+    assert calls["check_actions"] == (
+        ".agents/wio/templates/feature.draft.md",
+        {},
+        config,
+    )
+    (templates, kinds, unbuilt) = calls["check_kinds"]
+    assert [template.name for template in templates] == ["feature.draft"]  # type: ignore[attr-defined]
+    assert (kinds, unbuilt) == (config.templates.kinds, frozenset())
+    assert leaves.ordered == [list(found)]
 
 
 def test_wiring_keeps_the_problems_of_discovery_and_excuses_the_unbuilt_entry(
@@ -268,3 +291,90 @@ def test_wiring_returns_a_refused_directory_alone(
     # Then the result is the one error of discovery, and no check ran
     assert [(d.severity, d.where) for d in found] == [("error", "t")]
     assert leaves.calls == []
+
+
+@dataclass
+class _ReadsTwice(MemoryFileSystem):
+    """A file system whose file can be read once and fails the second time."""
+
+    fragile: Path | None = None
+    reads: int = 0
+
+    @override
+    def read_text(self, path: Path) -> str:
+        """Read a file, failing the second time the fragile one is read.
+
+        Args:
+            path: The file.
+
+        Returns:
+            Its text.
+
+        Raises:
+            PermissionError: The fragile file is read a second time.
+        """
+        if path == self.fragile:
+            self.reads += 1
+            if self.reads > 1:
+                raise PermissionError(13, "Permission denied")
+        return super().read_text(path)
+
+
+def test_wiring_judges_a_template_that_cannot_be_read_again_as_a_template(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A second read that fails is one error, and not a missing entry template."""
+    # Given an entry template that can be read once and not twice
+    leaves = _stub_leaves(monkeypatch)
+    path = DIR / "feature.draft.md"
+    files = _ReadsTwice({path: BLOCK}, fragile=path)
+
+    # When the templates are checked
+    found = check_templates(ROOT, _config(), files)
+
+    # Then its read error is in the result, no check of its content ran, and the
+    # kinds check still got the template and no unbuilt name
+    assert [d.where for d in found if d.message != "check_kinds"] == [
+        ".agents/wio/templates/feature.draft.md"
+    ]
+    names = [name for name, _ in leaves.calls]
+    assert names == ["check_kinds"]
+    (templates, _, unbuilt) = dict(leaves.calls)["check_kinds"]
+    assert [template.name for template in templates] == ["feature.draft"]  # type: ignore[attr-defined]
+    assert unbuilt == frozenset()
+
+
+def test_wiring_excuses_an_entry_template_that_two_files_claim(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A duplicate name is an error of discovery, and its entry is not missing."""
+    # Given two files named `feature.draft.md`, the entry template of the kind
+    leaves = _stub_leaves(monkeypatch)
+    files: dict[Path, str] = {
+        DIR / "feature.draft.md": BLOCK,
+        DIR / "more" / "feature.draft.md": BLOCK,
+    }
+
+    # When the templates are checked
+    found = check_templates(ROOT, _config(), MemoryFileSystem(files))
+
+    # Then discovery's error is in the result, and the kinds check was told that
+    # the entry template could not be built
+    assert any("Two templates are named" in d.message for d in found)
+    assert dict(leaves.calls)["check_kinds"][2] == frozenset({"feature.draft"})
+
+
+def test_wiring_runs_the_kinds_check_when_the_default_directory_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A missing default directory holds no templates, so the entries are missing."""
+    # Given a project with no templates directory and the default configured
+    leaves = _stub_leaves(monkeypatch)
+
+    # When the templates are checked
+    found = check_templates(ROOT, _config(), MemoryFileSystem({}))
+
+    # Then only the kinds check ran, on no templates
+    assert [name for name, _ in leaves.calls] == ["check_kinds"]
+    assert dict(leaves.calls)["check_kinds"][0] == ()
+    assert _names(found) == ["check_kinds"]

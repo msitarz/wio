@@ -70,7 +70,11 @@ def check_templates(
     returns it alone and runs nothing else, so no entry template is reported
     missing because of it. An entry template whose file discovery reported an
     error is not reported missing either: the check passes `check_kinds` the
-    names of those files, taken from the places of discovery's errors.
+    names of those files, taken from the places of discovery's errors, and one
+    whose second read failed is still in `check_kinds`' input, so it is judged
+    as a template and not reported missing. A default templates directory that
+    does not exist holds no templates, so each entry template is reported
+    missing.
 
     Args:
         root: The repository root, which `config.templates.dir` and the
@@ -96,7 +100,7 @@ def check_templates(
         else:
             readings.append(read)
     unbuilt = _unbuilt_names(found.diagnostics)
-    judged = _judge(readings, config, unbuilt)
+    judged = _judge(readings, found.templates, config, unbuilt)
     return order_diagnostics([*found.diagnostics, *problems, *judged])
 
 
@@ -167,19 +171,23 @@ def _read(root: Path, template: Template, files: FileSystem) -> Reading | Diagno
 
 
 def _judge(
-    readings: list[Reading], config: Config, unbuilt: Collection[str]
+    readings: list[Reading],
+    templates: Iterable[Template],
+    config: Config,
+    unbuilt: Collection[str],
 ) -> Iterator[Diagnostic]:
     """Run every check on the templates that were read.
 
     Args:
-        readings: The templates, read.
+        readings: The templates that could be read a second time.
+        templates: Every template that discovery built, whether or not it could
+            be read again, since the kinds check reads no file.
         config: The settings the templates are judged against.
         unbuilt: The names of the files that discovery could not build.
 
     Yields:
         The diagnostics of the checks, in no particular order.
     """
-    templates = [reading.template for reading in readings]
     yield from check_kinds(templates, config.templates.kinds, unbuilt)
     for reading in readings:
         yield from check_keys(reading.place, reading.data)
