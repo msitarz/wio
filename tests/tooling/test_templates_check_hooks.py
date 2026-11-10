@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests of the hooks that run `wio templates check` and the recipe that shows them."""
+"""Tests of the hooks that run `wio templates check` and of the workflow's account."""
 
 import re
 import tomllib
@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.tooling.hooks import NEEDS_JQ, ROOT, find_hook, run_hook
+from tests.tooling.hooks import NEEDS_JQ, ROOT, check_was_called, find_hook, run_hook
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -85,8 +85,9 @@ def test_the_hook_is_silent_when_the_edit_is_not_a_template(
     # When the command receives the input for an edit of that file
     code, out, err = _run_hook(tmp_path, file_path, check_exit=1)
 
-    # Then it exits 0 with no output
+    # Then it exits 0 with no output, and never ran the check
     assert (code, out, err) == (0, "", "")
+    assert not check_was_called(tmp_path)
 
 
 @NEEDS_JQ
@@ -108,7 +109,9 @@ def test_the_hook_is_silent_for_a_check_that_passes(
         tmp_path, f"{TEMPLATES}/feature.leaf.md", check_exit=0, output=output
     )
 
-    # Then it exits 0 with no output, so the message of a pass is not printed
+    # Then it ran the check and exits 0 with no output, so the message of a pass
+    # is not printed
+    assert check_was_called(tmp_path)
     assert (code, out, err) == (0, "", "")
 
 
@@ -127,7 +130,8 @@ def test_the_hook_does_not_block_an_edit_when_the_check_cannot_run(
         tmp_path, f"{TEMPLATES}/feature.leaf.md", check_exit=check_exit
     )
 
-    # Then it exits 0 with no output
+    # Then it ran the check and exits 0 with no output
+    assert check_was_called(tmp_path)
     assert (code, out, err) == (0, "", "")
 
 

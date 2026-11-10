@@ -3,7 +3,9 @@
 
 A hook is run as the harness runs it, with the edited file's JSON on standard
 input, and a fake `uv` stands for the check: it prints what it is told and exits
-as it is told, and refuses any other command line.
+as it is told, and refuses any other command line. It leaves a marker when it
+is run with the right one, so a hook that is silent can be told from one that
+never called the check.
 """
 
 import json
@@ -18,11 +20,26 @@ ROOT = Path(__file__).resolve().parents[2]
 FAKE_UV = """#!/bin/sh
 # A stand-in for `uv run wio <check>`: prints a message, exits as told.
 [ "$*" = "run wio $FAKE_CHECK" ] || exit 70
+: > "$FAKE_CHECK_CALLED"
 printf '%s\\n' "$FAKE_CHECK_OUTPUT"
 exit "$FAKE_CHECK_EXIT"
 """
+CALLED = "check-called"
+"""The name of the marker that the fake `uv` leaves in the directory it is in."""
 NEEDS_JQ = pytest.mark.skipif(shutil.which("jq") is None, reason="needs jq")
 """Skips a test that runs the hook's command, which reads its input with `jq`."""
+
+
+def check_was_called(tmp_path: Path) -> bool:
+    """Tell whether the fake `uv` was run with the check's command line.
+
+    Args:
+        tmp_path: The directory that was given to `run_hook`.
+
+    Returns:
+        Whether the hook called the check, whatever it did with the result.
+    """
+    return (tmp_path / CALLED).exists()
 
 
 def find_hook(check: str) -> dict[str, object]:
@@ -78,6 +95,7 @@ def run_hook(
         "FAKE_CHECK": check,
         "FAKE_CHECK_EXIT": str(exit_code),
         "FAKE_CHECK_OUTPUT": output,
+        "FAKE_CHECK_CALLED": str(tmp_path / CALLED),
     }
     done = subprocess.run(
         ["/bin/sh", "-c", str(hook["command"])],
