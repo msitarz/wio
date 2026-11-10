@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """What `wio templates directives` prints: the table of the directive grammar."""
 
+from dataclasses import asdict
 from typing import TYPE_CHECKING
+lazy import json
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -34,4 +36,22 @@ def render_reference(directives: Sequence[DirectiveSpec], *, as_json: bool) -> s
         order, the last an array that is empty for an entry with no example, and
         `[]` for an empty table. The same table always gives the same text.
     """
-    raise NotImplementedError
+    if as_json:
+        return json.dumps([asdict(spec) for spec in directives]) + "\n"
+    return "\n".join(_block(spec) for spec in directives)
+
+
+def _block(spec: DirectiveSpec) -> str:
+    """Render one entry as a block of lines.
+
+    Args:
+        spec: The entry of the table.
+
+    Returns:
+        The name, its syntax, its meaning and its examples, each line ending in a
+        line ending.
+    """
+    lines = [spec.name, f"  Syntax: {spec.syntax}"]
+    lines.extend(f"  {line}".rstrip() for line in spec.meaning.splitlines())
+    lines.extend(f"  Example: {example}" for example in spec.examples)
+    return "\n".join(lines) + "\n"

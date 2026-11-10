@@ -7,6 +7,9 @@ lazy from wio.formats import DIRECTIVES
 lazy from wio.templates.discovery import discover
 lazy from wio.templates.errors import TemplatesError, refusal
 lazy from wio.templates.listing import render_list
+
+# Named for what `run` prints, which also keeps this block of imports from
+# repeating the package's own, line for line.
 lazy from wio.templates.reference import render_reference as render_directives
 lazy from wio.templates.show import show_skeleton
 

@@ -724,6 +724,13 @@ parseable by a markdown parser. The grammar is small:
 | `pattern=<regex>` | The section's items match the regular expression, and the matches are their **item ids**. |
 | `inherit` | The section is inheritable: a descendant's resolved view includes it ([Inheritance, computed](#inheritance-computed)). |
 
+`wio templates directives` prints this grammar: every directive with its syntax,
+its meaning and its examples, as an indented list, or as one array of objects
+with `--json`. It prints what the directive parser's own table holds, in the
+table's order, so it cannot say anything else than the parser accepts. It reads
+no file of the project and no config, so it works outside a repository and with
+a project whose config has an error, and it prints the same text on every run.
+
 Sections are **optional until marked required**, so the agent can choose
 sections based on what the Work needs. Authoring comments do not count as
 content, so a Work fresh from its template passes a check that only requires
