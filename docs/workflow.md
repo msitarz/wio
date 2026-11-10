@@ -280,19 +280,25 @@ The contract, amendment and docs gates are marked `judge = "human"`, because
 they ask whether something states what the driver meant. The delivery gates are
 judged by an agent.
 
-## 7. Checking the config after every edit
+## 7. Checking the config and the templates after every edit
 
-A config with an error is refused by every command that needs its settings, so
-an agent that edits it needs to be told at once. `wio config check` prints the
-diagnostics and exits 1 on an error, and each project decides how its harness
-runs it. This repository does it twice:
+A config or a template with an error is refused or misread by the commands that
+need it, so an agent that edits one needs to be told at once. `wio config check`
+and `wio templates check` print the diagnostics and exit 1 on an error, and each
+project decides how its harness runs them. This repository checks the config and
+the templates after every edit and before every commit that changes them:
 
-- **When an agent edits the config.** An entry in `.claude/settings.json` runs
-  the check after `Edit`, `Write` and `MultiEdit`, and exits 2 with the
-  diagnostics on standard error, which Claude Code gives back to the model. It
-  reads the edited path with `jq`, which must be on the `PATH` as it is for the
-  formatter hook beside it, and runs the check only for the config, so wio holds
-  no knowledge of the harness. The entry sits beside the formatter:
+- **When an agent edits the config or a template.** An entry in
+  `.claude/settings.json` for each runs the check after `Edit`, `Write` and
+  `MultiEdit`, and exits 2 with the diagnostics on standard error, which Claude
+  Code gives back to the model. It reads the edited path with `jq`, which must
+  be on the `PATH` as it is for the formatter hook beside it, and runs the check
+  only for its own files, so wio holds no knowledge of the harness: the config
+  for `.agents/wio/config.toml`, and the templates for an `.md` file under
+  `.agents/wio/templates/`, in any subdirectory. A check that exits with
+  anything but 1, such as one that is refused for a config with an error, is
+  silent and does not block the edit, and so is a warning, which the hook does
+  not report. The entries sit beside the formatter:
 
   ```json
   {
@@ -304,6 +310,10 @@ runs it. This repository does it twice:
             {
               "type": "command",
               "command": "jq -r '.tool_input.file_path // empty' | { read -r f; case \"$f\" in */.agents/wio/config.toml) out=$(uv run wio config check 2>/dev/null); [ $? -ne 1 ] || { printf '%s\\n' \"$out\" >&2; exit 2; };; esac; }"
+            },
+            {
+              "type": "command",
+              "command": "jq -r '.tool_input.file_path // empty' | { read -r f; case \"$f\" in */.agents/wio/templates/*.md) out=$(uv run wio templates check 2>/dev/null); [ $? -ne 1 ] || { printf '%s\\n' \"$out\" >&2; exit 2; };; esac; }"
             }
           ]
         }
@@ -312,9 +322,15 @@ runs it. This repository does it twice:
   }
   ```
 
-  A project that has `wio` on its `PATH` writes `wio config check` where this
-  says `uv run wio config check`, and another harness does the same with its own
-  hook.
-- **When a commit changes the config.** The `wio-config` hook of `prek.toml`
-  runs `uv run wio config check` when `.agents/wio/config.toml` is in the
-  commit, and passes it no file names.
+  A project that has `wio` on its `PATH` writes `wio config check` and
+  `wio templates check` where this says `uv run`, and another harness does the
+  same with its own hook. Claude Code runs the hooks of one matcher side by
+  side, so the formatter can rewrite a template while its check reads it; a line
+  in a diagnostic may then be stale for that one edit, and the next edit
+  corrects it.
+- **When a commit changes the config or a template.** The `wio-config` hook of
+  `prek.toml` runs `uv run wio config check` when `.agents/wio/config.toml` is
+  in the commit, and the `wio-templates` hook of `prek.toml` runs
+  `uv run wio templates check` when an `.md` file of `.agents/wio/templates/`
+  is. Neither is passed file names, and neither runs for a commit that changes
+  neither.
