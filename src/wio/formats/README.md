@@ -55,7 +55,8 @@ block starts and ends. Its docstring, that of
 line into its text, its level and its directives, so a template's sections say
 what they must hold in one grammar that the checks and
 `wio templates directives` share. The table `DIRECTIVES` beside it lists every
-directive with its syntax, its meaning and its examples, the parser's docstring
+directive with its syntax, its meaning and its examples, `COMBINING` says how
+several directives share one comment, the parser's docstring
 and [`DirectiveSyntaxError`](errors.py) say what it reads and raises, and the
 [concepts](../../../docs/concepts.md#directives) say what each directive means.
 
