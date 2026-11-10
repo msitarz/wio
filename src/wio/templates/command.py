@@ -32,7 +32,7 @@ class Arguments:
     them.
     """
 
-    templates_view: Literal["list", "show", "directives"] | None
+    templates_view: Literal["list", "show", "check", "directives"] | None
     """The subcommand chosen, `None` for bare `wio templates`."""
 
     templates_help: Callable[[], str]
@@ -43,14 +43,14 @@ class Arguments:
     """The kind that `list` is limited to; present for `list`."""
 
     json: bool
-    """Whether `list` or `directives` writes JSON; present for both."""
+    """Whether `list`, `check` or `directives` writes JSON; present for each."""
 
     name: str
     """The name of the template that `show` prints; present for `show`."""
 
 
 class TemplatesCommand:
-    """Runs `wio templates`: its help, `list`, `show` and `directives`."""
+    """Runs `wio templates`: its help, `list`, `show`, `check` and `directives`."""
 
     def __init__(
         self, settings: Settings, repository: Repository, files: FileSystem
@@ -75,18 +75,25 @@ class TemplatesCommand:
             stdio: Where the output and the errors go.
 
         Returns:
-            The exit code, 0. Bare `wio templates` writes its help and loads no
-            config. `list` writes the templates to `stdio.stdout`, limited to
-            `--kind` when it is given, as one JSON array with `--json`, and
-            nothing for a declared kind with no templates. `show` writes the
+            The exit code: 0, except that `check` returns 1 when it found an
+            error and 0 when it found none or only warnings. Bare `wio templates`
+            writes its help and loads no config. `list` writes the templates to
+            `stdio.stdout`, limited to `--kind` when it is given, as one JSON
+            array with `--json`, and nothing for a declared kind with no
+            templates. `show` writes the
             skeleton of the template with the name, exactly as it is prepared,
             to `stdio.stdout` and nothing to `stdio.stderr`. `directives` writes
             the table of the directive grammar, as an indented list or as one
             JSON array with `--json`, and reads no config, no repository and no
-            file of the project, so it works anywhere.
+            file of the project, so it works anywhere. `check` loads the config,
+            then writes every diagnostic of `check_templates`, as the lines of
+            `render_check` or as one JSON array with `--json`, to `stdio.stdout`
+            and nothing to `stdio.stderr`; it does not refuse around a template
+            error, which is what it reports.
 
         Raises:
-            ConfigurationError: The config has an error.
+            ConfigurationError: The config has an error, which `check` prints
+                and exits 2 for, as the other commands do.
             TemplatesError: A template or the templates directory has an error,
                 which `list` and `show` refuse to work around: it carries the
                 errors and says that `wio templates check` shows every problem.

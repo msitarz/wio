@@ -128,3 +128,45 @@ def test_the_help_of_templates_names_directives() -> None:
 
     # Then it names `directives`
     assert "directives" in help_text
+
+
+def test_check_reads_its_json_flag() -> None:
+    """AC-1: `check` and `check --json` set the view and the flag."""
+    # Given the parser of `wio templates`
+    parser = _parser()
+
+    # When `check` is parsed with `--json` and without it
+    plain = parser.parse_args(["check"])
+    as_json = parser.parse_args(["check", "--json"])
+
+    # Then the view is `check` in both and only the second sets the flag
+    assert (plain.templates_view, plain.json) == ("check", False)
+    assert (as_json.templates_view, as_json.json) == ("check", True)
+
+
+@pytest.mark.parametrize(
+    "argv", [["check", "feature.leaf"], ["check", "--kind", "feature"]]
+)
+def test_check_takes_no_name_and_no_kind(argv: list[str]) -> None:
+    """AC-1: it checks the whole project, so a name or a kind is a usage mistake."""
+    # Given the parser of `wio templates`
+    parser = _parser()
+
+    # When a name or `--kind` is given to `check`
+    with pytest.raises(SystemExit) as caught:
+        parser.parse_args(argv)
+
+    # Then the parser exits with the code of a usage mistake
+    assert caught.value.code == 2
+
+
+def test_the_help_of_templates_names_check() -> None:
+    """AC-1: the usage of `wio templates` lists `check`."""
+    # Given the parser of `wio templates`
+    parser = _parser()
+
+    # When its help is written
+    text = parser.format_help()
+
+    # Then it names `check`
+    assert "check" in text

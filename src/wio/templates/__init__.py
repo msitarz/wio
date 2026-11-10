@@ -3,6 +3,7 @@
 
 from typing import TYPE_CHECKING
 
+lazy from wio.templates.check import check_templates
 lazy from wio.templates.command import TemplatesCommand
 lazy from wio.templates.discovery import Discovery, discover
 lazy from wio.templates.errors import TemplatesError
@@ -19,7 +20,7 @@ class TemplatesSpec:
     """What the usage needs to know about `wio templates`, and nothing more."""
 
     name = "templates"
-    help = "List, show and explain the project's templates."
+    help = "List, show, check and explain the project's templates."
 
     def configure(self, parser: ArgumentParser) -> None:
         """Add the views of `wio templates` to its subparser.
@@ -34,6 +35,8 @@ class TemplatesSpec:
         listing.add_argument("--json", action="store_true", help=_JSON)
         shown = _subcommand(views, "show", _SHOW_HELP, _SHOW)
         shown.add_argument("name", metavar="name", help=_NAME)
+        checked = _subcommand(views, "check", _CHECK_HELP, _CHECK)
+        checked.add_argument("--json", action="store_true", help=_CHECK_JSON)
         grammar = _subcommand(views, "directives", _DIRECTIVES_HELP, _DIRECTIVES)
         grammar.add_argument("--json", action="store_true", help=_DIRECTIVES_JSON)
 
@@ -67,6 +70,13 @@ _SHOW = (
     "new` would write it but without an id, and nothing else. Refuses while a "
     "template has an error: `wio templates check` shows every problem."
 )
+_CHECK_HELP = "Report every problem of the templates."
+_CHECK = (
+    "Check every template of the project at once and print each problem with its "
+    "file, line and column, or say that the templates pass. A problem that only "
+    "looks suspicious is a warning and does not fail the check; an error exits 1."
+)
+_CHECK_JSON = "Write one JSON array of the problems instead of the text."
 _DIRECTIVES_HELP = "Print the directives that a template may use."
 _DIRECTIVES = (
     "Print every directive of the grammar with its syntax, its meaning and its "
@@ -93,6 +103,7 @@ __all__ = [
     "Discovery",
     "TemplatesCommand",
     "TemplatesError",
+    "check_templates",
     "describe",
     "discover",
     "render_reference",
