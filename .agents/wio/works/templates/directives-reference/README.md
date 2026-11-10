@@ -30,11 +30,8 @@ directives exist and how to write them without leaving the command line.
 
 ## Assumptions
 
-- **A-1**: The directives leaf is delivered, so the table has, in the order
-  `required`, `items`, `pattern`, `inherit`, an entry for each directive with
-  its name, its syntax, its meaning and its examples.
-- **A-2**: `wio.cli` can run a command without finding the repository or loading
-  the config, as bare `wio config` does.
+- **A-1**: The [directives](../directives/README.md) leaf is delivered and its
+  AC-7 holds, so the table has an entry for each directive in a fixed order.
 
 ## Mechanisms
 
@@ -46,8 +43,10 @@ directives exist and how to write them without leaving the command line.
 
 - **The table is the only source.** The command prints the table's fields as
   they are and adds no text about a directive of its own.
-- **The order is the table's.** The command does not sort or filter.
-- **The command reads nothing.** It reads no file, no config and no repository.
+- **The order is the table's fixed order.** The command does not sort or
+  filter.
+- **The command reads nothing of the project.** It reads no file of it, no
+  config and no repository.
 - **It loads no parser or writer.** Without `--json` it imports none of `json`,
   `tomllib`, `tomlkit` or a Markdown parser, so that it starts fast.
 - **Verification.** The human form and its fidelity to the table are verified by
@@ -77,8 +76,15 @@ entries, and every field is the table's, character for character.
     Example: <the entry's example>
   ```
 
-  with one `Example:` line for each example of the entry, and an empty line
-  between blocks.
+  with one `Example:` line for each example of the entry, a meaning of one line,
+  an empty line between blocks and none after the last.
+
+#### The same output twice
+
+- **Given** any working directory.
+- **When** `wio templates directives` and `wio templates directives --json` each
+  run twice.
+- **Then** the two outputs of each command are identical.
 
 ### **AC-2** `--json` prints the table as one array
 

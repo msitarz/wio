@@ -100,8 +100,8 @@ reads a template must be one that the contracts command can reuse.
 - **Unknown keys are errors.** A key the schema does not know in the metadata of
   a template is an error, as in the config, and the keys under `[contract]` are
   free.
-- **Output is deterministic.** It is sorted and has no timestamps, and `--json`
-  prints one JSON array or object that parses.
+- **Output is deterministic.** It is sorted or in a fixed order and has no
+  timestamps, and `--json` prints one JSON array or object that parses.
 - **Nothing is imported before it is needed.** `list` and `check` import neither
   `tomlkit` nor `json` unless `--json` asks for it, only preparing a skeleton
   imports the writer, and `list` reads no body and imports no Markdown parser.
