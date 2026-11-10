@@ -37,3 +37,12 @@ flowchart LR
   file is a template by the same test as a Work is a contract.
 - **A template is named by its file,** which is why a template has no `name`
   key and a name cannot differ from where the template lives.
+- **The check is one function for each concern.** [`check_templates`](check.py)
+  walks with `discover`, reads each built template a second time, and runs the
+  keys, the headings, the `[actions]` names and the kinds on them, so a problem
+  in one template never hides another. It orders what it finds by file, line and
+  column with numbers as numbers, which `sort_diagnostics` does not do yet, and
+  `render_check` prints it in that order.
+- **A template that discovery could not build is not reported missing.** A
+  refused directory is the one error, and an entry template whose file has an
+  error of its own is not an entry template that is missing.

@@ -1,0 +1,4 @@
+# A project whose templates have no problem.
+
+[templates.kinds]
+feature = "feature.draft"

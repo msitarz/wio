@@ -7,10 +7,16 @@ from functools import partial
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
-from wio.formats.errors import MetadataBlockError
+from wio.formats.errors import DirectiveSyntaxError, MetadataBlockError
 from wio.models.diagnostics import Diagnostic
 from wio.templates.discovery import discover
-lazy from wio.formats import read_metadata_block, read_outline
+lazy from wio.formats import (
+    read_directive_heading,
+    read_metadata_block,
+    read_outline,
+    render_json,
+    render_text,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator, Mapping
@@ -26,6 +32,17 @@ _error = partial(Diagnostic, "error")
 """Make an error diagnostic from a place and a message."""
 _POSITION = re.compile(r"(:\d+)+$")
 """The `:<line>` and `:<column>` that end a place."""
+_OPENER = re.compile(r"<!--\s*wio:\s*")
+"""The opener of a directive list, as the directive parser reads it."""
+_LEADING_MARKS = re.compile(r"^#+\s*")
+_CLOSING_MARKS = re.compile(r"\s+#+\s*$")
+_FILE_PLACE = re.compile(
+    r"^(?P<file>[^,]*\.md)(?::(?P<line>\d+))?(?::(?P<column>\d+))?$"
+)
+"""A place that is a file, with the line and the column that may follow it."""
+_KEYS = frozenset({"kind", "shape", "description", "actions", "contract"})
+_TABLES = ("actions", "contract")
+_RANK = {"error": 0, "warning": 1, "note": 2}
 
 DIRECTIVE_LEVEL: HeadingLevel = 2
 """The only heading level on which a directive list is read."""
@@ -209,7 +226,19 @@ def check_keys(place: str, data: Mapping[str, object]) -> list[Diagnostic]:
         saying that a template is named by its file, and for an `actions` or a
         `contract` that is not a table. The keys under `contract` are free.
     """
-    raise NotImplementedError
+    problems: list[Diagnostic] = []
+    for key in data:
+        if key == "name":
+            message = "A template has no `name` key: it is named by its file"
+            problems.append(_error(place, message))
+        elif key not in _KEYS:
+            problems.append(_error(place, f"Unknown key `{key}` in the metadata"))
+    problems.extend(
+        _error(place, f"`{key}` must be a table")
+        for key in _TABLES
+        if key in data and not isinstance(data[key], dict)
+    )
+    return problems
 
 
 def check_headings(
@@ -232,13 +261,18 @@ def check_headings(
         earlier heading, whose place is the file and the line of the later
         heading and whose message names the line of the first.
 
-        The text of a heading for the repeats is its raw line without the
-        directive list, which `remove_directive_list` of `wio.formats` gives, so
-        a heading whose list is refused still counts, by the text before the
-        list. A heading that is not level 2 whose list is refused gets that one
-        error, and a heading with no list gets none.
+        The text of a heading for the repeats is its text before the directive
+        list, so a heading whose list is refused still counts. A heading that is
+        not level 2 whose list is refused gets that one error, and a heading
+        with no list gets none.
     """
-    raise NotImplementedError
+    problems: list[Diagnostic] = []
+    seen: dict[str, int] = {}
+    for heading in reading.headings:
+        problems.extend(_directive_problems(reading.place, heading, level))
+        if heading.level == level:
+            problems.extend(_repeat_problems(reading.place, heading, seen))
+    return problems
 
 
 def check_actions(place: str, actions: object, config: Config) -> list[Diagnostic]:
@@ -263,7 +297,14 @@ def check_actions(place: str, actions: object, config: Config) -> list[Diagnosti
         An `actions` that is not a table is the error of `check_keys`, so this
         returns nothing for it, and the one mistake is reported once.
     """
-    raise NotImplementedError
+    if not isinstance(actions, dict):
+        return []
+    problems: list[Diagnostic] = []
+    for action, value in actions.items():
+        if action not in config.actions:
+            problems.append(_error(place, f"The action `{action}` is not declared"))
+        problems.extend(_value_problems(place, action, value, config))
+    return problems
 
 
 def check_kinds(
@@ -288,7 +329,15 @@ def check_kinds(
         an error naming the file for an entry template whose own kind differs
         from the one it starts.
     """
-    raise NotImplementedError
+    names = {template.name for template in templates}
+    problems: list[Diagnostic] = []
+    for template in templates:
+        problems.extend(_kind_problems(template, kinds))
+    for kind, entry in kinds.items():
+        if entry not in names and entry not in unbuilt:
+            message = f"The entry template `{entry}` of the kind `{kind}` is missing"
+            problems.append(_error(f"templates.kinds.{kind}", message))
+    return problems
 
 
 def order_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ...]:
@@ -308,7 +357,9 @@ def order_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ..
         and all of the places of that form come before it. Ties are broken by
         error, warning and note, then by message.
     """
-    raise NotImplementedError
+    keyed = [(_order_key(diagnostic), diagnostic) for diagnostic in diagnostics]
+    keyed.sort(key=lambda pair: pair[0])
+    return tuple(diagnostic for _, diagnostic in keyed)
 
 
 def render_check(diagnostics: Iterable[Diagnostic], *, as_json: bool) -> str:
@@ -324,4 +375,166 @@ def render_check(diagnostics: Iterable[Diagnostic], *, as_json: bool) -> str:
         when there is no diagnostic, and the `<severity>: <where>: <message>`
         lines when there are some, each ending in a newline.
     """
-    raise NotImplementedError
+    ordered = tuple(diagnostics)
+    if as_json:
+        return render_json(ordered, keep_order=True) + "\n"
+    if not ordered:
+        return PASSES + "\n"
+    return render_text(ordered, keep_order=True) + "\n"
+
+
+def _directive_problems(
+    place: str, heading: Heading, level: HeadingLevel
+) -> list[Diagnostic]:
+    """Judge the directive list of one heading.
+
+    Args:
+        place: The template's file.
+        heading: The heading.
+        level: The one level on which directives are read.
+
+    Returns:
+        The error of a list the parser refuses, or of a list on another level,
+        or nothing.
+    """
+    where = f"{place}:{heading.line}"
+    try:
+        parsed = read_directive_heading(heading.raw)
+    except DirectiveSyntaxError as error:
+        return [_error(f"{where}:{error.column}", error.message)]
+    if parsed is None or not parsed.directives or heading.level == level:
+        return []
+    opener = _OPENER.search(heading.raw)
+    column = 1 if opener is None else opener.start() + 1
+    message = f"Directives are read on level-{level} headings only"
+    return [_error(f"{where}:{column}", message)]
+
+
+def _repeat_problems(
+    place: str, heading: Heading, seen: dict[str, int]
+) -> list[Diagnostic]:
+    """Judge whether a heading repeats an earlier one of the same template.
+
+    Args:
+        place: The template's file.
+        heading: A heading of the level that is checked for repeats.
+        seen: The line of the first heading with each text so far; this adds
+            the heading when it is the first.
+
+    Returns:
+        A warning when an earlier heading has the same text, otherwise nothing.
+    """
+    text = _comparable(heading)
+    if text not in seen:
+        seen[text] = heading.line
+        return []
+    message = f"The heading repeats the one on line {seen[text]}"
+    return [Diagnostic("warning", f"{place}:{heading.line}", message)]
+
+
+def _comparable(heading: Heading) -> str:
+    """Reduce a heading to the text that repeats are compared by.
+
+    Args:
+        heading: The heading.
+
+    Returns:
+        Its text before a directive list, without the `#` marks, the whitespace
+        around it and the case.
+    """
+    opener = _OPENER.search(heading.raw)
+    raw = heading.raw if opener is None else heading.raw[: opener.start()]
+    text = _CLOSING_MARKS.sub("", _LEADING_MARKS.sub("", raw.strip()))
+    return text.strip().casefold()
+
+
+def _value_problems(
+    place: str, action: str, value: object, config: Config
+) -> list[Diagnostic]:
+    """Judge the value of one entry of `[actions]`.
+
+    Args:
+        place: The template's file.
+        action: The entry's key.
+        value: Its value.
+        config: The settings that declare the stage presets and the stages.
+
+    Returns:
+        An error for a name the config does not declare, or for a value that is
+        neither a name nor a list of names.
+    """
+    match value:
+        case str():
+            return _undeclared(place, "stage preset", [value], config.stage_presets)
+        case list() if all(isinstance(name, str) for name in value):
+            return _undeclared(place, "stage", value, config.stages)
+        case _:
+            return [_error(place, f"`{action}` must be a name or a list of names")]
+
+
+def _undeclared(
+    place: str, noun: str, names: Iterable[str], declared: Mapping[str, object]
+) -> list[Diagnostic]:
+    """Make an error for each name that the config does not declare.
+
+    Args:
+        place: The template's file.
+        noun: What the names are, such as `stage`.
+        names: The names to look up.
+        declared: The config's declarations of that kind, by name.
+
+    Returns:
+        An error for each name that is not a key of `declared`.
+    """
+    return [
+        _error(place, f"The {noun} `{name}` is not declared")
+        for name in names
+        if name not in declared
+    ]
+
+
+def _kind_problems(template: Template, kinds: Mapping[str, str]) -> list[Diagnostic]:
+    """Judge one template's kind against the declared kinds.
+
+    Args:
+        template: The template.
+        kinds: The entry template of each declared kind.
+
+    Returns:
+        An error for a kind that is not declared, and one for an entry template
+        of another kind than the one it starts.
+    """
+    place = PurePosixPath(template.path).as_posix()
+    if template.kind not in kinds:
+        message = f"The kind `{template.kind}` is not declared in `[templates.kinds]`"
+        return [_error(place, message)]
+    started = [kind for kind, entry in kinds.items() if entry == template.name]
+    if started and template.kind not in started:
+        message = (
+            f"The template is the entry template of `{started[0]}`, but its kind "
+            f"is `{template.kind}`"
+        )
+        return [_error(place, message)]
+    return []
+
+
+def _order_key(
+    diagnostic: Diagnostic,
+) -> tuple[int, str, int, int, int, str]:
+    """Give the key by which the check orders a diagnostic.
+
+    Args:
+        diagnostic: The finding.
+
+    Returns:
+        Whether its place is not a file, the file or the text of the place, the
+        line and the column as numbers, then the rank of the severity and the
+        message.
+    """
+    match = _FILE_PLACE.match(diagnostic.where)
+    rank = _RANK[diagnostic.severity]
+    if match is None:
+        return (1, diagnostic.where, 0, 0, rank, diagnostic.message)
+    line = int(match["line"] or 0)
+    column = int(match["column"] or 0)
+    return (0, match["file"], line, column, rank, diagnostic.message)

@@ -1,0 +1,4 @@
+# A block that does not close and two files named a.md.
+
+[templates.kinds]
+feature = "feature.draft"

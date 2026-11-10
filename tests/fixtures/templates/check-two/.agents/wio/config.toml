@@ -1,0 +1,4 @@
+# An unknown key in one template and a wrong directive in another.
+
+[templates.kinds]
+feature = "feature.draft"
