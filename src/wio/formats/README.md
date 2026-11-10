@@ -80,6 +80,9 @@ agree on which lines are section headings. Its docstring and
   inside code, an HTML comment, a blockquote or a list item, and a setext
   heading, only looks like one, because the check and `wio contracts` treat a
   section heading as a heading of the body itself.
+- **A heading carries four fields:** its level from 1 to 6, its text without the
+  marks and spaces around it, its raw line as written, and its line in the file,
+  counted from the start line of the body that the caller passes.
 - **Headings are the only structure it returns.** What lies between them, the
   extent of a section and its items, is for the contracts Work to decide.
 - **The parser is `markdown-it-py`,** whose CommonMark rules are the definition
