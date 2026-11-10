@@ -46,6 +46,10 @@ def discover(root: Path, settings: Templates, files: FileSystem) -> Discovery:
     that is not a string and a name that two files share are errors too, and the
     other templates are still found.
 
+    Every diagnostic names its place as the file's path relative to `root`,
+    written with `/` and followed by `:<line>` when the problem has a line, or as
+    the directory's path. A duplicate name names both files, joined by `, `.
+
     Args:
         root: The repository root, which `settings.dir` and the templates' paths
             are relative to.
