@@ -147,3 +147,17 @@ def test_a_template_error_refuses_the_list_and_lists_nothing() -> None:
             ".agents/wio/templates/broken.md:1"
         ]
         assert _text(streams) == ""
+
+
+def test_a_template_error_is_reported_before_an_undeclared_kind() -> None:
+    """AC-6: a broken project is refused whatever `--kind` names."""
+    # Given a template that does not close
+    files: dict[Path, str] = {DIR / "broken.md": "<!-- wio\nkind = 'x'\n"}
+
+    # When `list` runs with a kind that the config does not declare
+    with pytest.raises(TemplatesError) as caught:
+        _run(files, "nosuch")
+
+    # Then the error is the one of the template, not of the kind
+    assert "broken.md" in str(caught.value)
+    assert "nosuch" not in str(caught.value)

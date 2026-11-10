@@ -139,3 +139,44 @@ def test_the_json_form_is_one_sorted_array_of_objects() -> None:
         "description",
         "path",
     ]
+
+
+def test_the_mark_column_is_present_only_in_a_group_with_an_entry() -> None:
+    """AC-5: a group with no entry has no gap where the mark would be."""
+    # Given a group with no entry template whose templates have shapes, and a
+    # group that has one entry and one template without a mark
+    templates = [
+        _template("a.draft", "a", shape="draft"),
+        _template("a.leaf", "a", shape="leaf"),
+        _template("b.draft", "b", shape="draft", entry=True),
+        _template("b.leaf", "b", shape="leaf"),
+    ]
+
+    # When they are rendered for a person
+    text = render_list(templates, as_json=False)
+
+    # Then the first group has a single space before each shape, and the second
+    # keeps the width of the mark
+    assert text == (
+        "a\n"
+        "  a.draft shape: draft\n"
+        "  a.leaf  shape: leaf\n"
+        "\n"
+        "b\n"
+        "  b.draft [entry] shape: draft\n"
+        "  b.leaf          shape: leaf\n"
+    )
+
+
+def test_templates_are_sorted_by_kind_and_then_by_name() -> None:
+    """AC-5: the kind comes first, whatever the names are."""
+    # Given a template of kind `b` whose name sorts first, and one of kind `a`
+    templates = [_template("a.x", "b"), _template("z.x", "a")]
+
+    # When they are rendered as JSON and for a person
+    machine = loads(render_list(templates, as_json=True))
+    human = render_list(templates, as_json=False)
+
+    # Then the kind `a` is first in both
+    assert [item["name"] for item in machine] == ["z.x", "a.x"]
+    assert human == "a\n  z.x\n\nb\n  a.x\n"

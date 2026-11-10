@@ -635,7 +635,8 @@ project without templates leaves it out:
   are skipped; no symbolic link is followed; and a file that cannot be read or
   decoded as UTF-8 is an error that names it. A file there is a template when
   its `<!-- wio` block, or `+++` front matter with the marker, starts on its
-  first line; any other file is ignored. A template is named by its file.
+  first line, after a byte-order mark if there is one; any other file is
+  ignored. A template is named by its file.
 - Finding the templates reports what it cannot read, a `kind` that is missing or
   not a string, a `shape` or `description` that is not a string, and two files
   with one name as error diagnostics that name their place, which the other
