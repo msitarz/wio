@@ -148,7 +148,7 @@ def test_a_text_that_is_not_marked_gives_nothing(text: str) -> None:
     [
         ('<!-- wio\nid = "k"', 1, "does not close"),
         ('<!-- wio\nid = "k"\nid =\n-->', 3, ""),
-        ('<!-- wio\ns = "a-->b"\n-->', 2, ""),
+        ('<!-- wio\ns = "a-->b"\n-->', 2, "Unterminated string"),
         ('+++\nwio = 1\nid = "k"\n', 1, "does not close"),
         ("+++\nwio = 1\nid =\n+++", 3, ""),
     ],
@@ -181,10 +181,17 @@ def test_line_endings_and_the_byte_order_mark_do_not_change_the_result(
 ) -> None:
     """AC-5: LF, CRLF and a leading U+FEFF read alike."""
     # Given one block written with LF, with CRLF and with a leading U+FEFF
-    variants = [text, text.replace("\n", "\r\n"), "﻿" + text]
+    variants = [text, text.replace("\n", "\r\n"), "\ufeff" + text]
 
     # When each is read
     results = [_read(variant) for variant in variants]
 
-    # Then the form, the version, the data and the body start line are equal
+    # Then the form, the version, the data and the body start line are equal,
+    # and the body is the same text with the endings it had
     assert results[0] == results[1] == results[2]
+    bodies = [read_metadata_block(variant) for variant in variants]
+    assert [b.body if b else None for b in bodies] == [
+        "\n# Title",
+        "\r\n# Title",
+        "\n# Title",
+    ]
