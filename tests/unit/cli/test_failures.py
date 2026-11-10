@@ -10,6 +10,7 @@ from tests.unit.cli.fakes import Fake, FakeStdio, Spec, run_main, run_on_termina
 from wio import cli
 from wio.errors import ConfigurationError
 from wio.models.diagnostics import Diagnostic
+from wio.templates import TemplatesError
 
 if TYPE_CHECKING:
     from wio.cli.table import Entry
@@ -50,6 +51,20 @@ def test_the_diagnostics_of_an_error_are_written_as_they_are() -> None:
 
     # Then it returns 2, standard error is the two lines and a newline, and
     # standard output is empty
+    assert (code, out, err) == (2, "", f"{message}\n")
+
+
+def test_the_diagnostics_of_a_templates_error_are_written_as_they_are() -> None:
+    """Any error that carries diagnostics is written as its message, not prefixed."""
+    # Given a command whose run raises a templates error that carries a finding
+    found = (Diagnostic("error", "t/a.md:1", "wrong"),)
+    message = "error: t/a.md:1: wrong\n`wio templates check` shows every problem."
+    table = [Fake.failing("run", TemplatesError(message, found)).entry()]
+
+    # When the command runs
+    code, out, err = run_main(["failing"], table)
+
+    # Then it returns 2 and standard error is the message and a newline
     assert (code, out, err) == (2, "", f"{message}\n")
 
 

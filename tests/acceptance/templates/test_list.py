@@ -11,13 +11,18 @@ if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
 
 
-@pytest.mark.skip(reason="Pending the implementation stage.")
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_bare_templates_shows_the_help_of_the_component(wio: Wio) -> None:
     """AC-4: `wio templates` names `list` and exits 0."""
     # Given a repository
+    wio.fixture("config/rich")
+
     # When `wio templates` runs
+    output = wio.run(["templates"])
+
     # Then the output names `list` and the exit code is 0
+    assert "list" in output.stdout
+    assert output.exit_code == 0
 
 
 @pytest.mark.skip(reason="Pending the implementation stage.")
