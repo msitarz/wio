@@ -10,8 +10,9 @@ SKIP = "Pending the implementation stage."
 @pytest.mark.slow
 def test_the_hook_returns_the_errors_of_an_edit_of_a_template() -> None:
     """AC-1: the command of the hook exits 2 with the diagnostics on stderr."""
-    # Given the hook's command, a check that fails, and the `PostToolUse` input
-    # for an edit of `.agents/wio/templates/feature.leaf.md`
+    # Given the hook's command, a fake `uv` that stands for a check that fails
+    # (the template has an unknown key), and the `PostToolUse` input for an edit
+    # of `.agents/wio/templates/feature.leaf.md`
     # When the command runs with that input, and again for an edit of
     # `.agents/wio/templates/sub/other.md`
     # Then each exits 2 with the diagnostics on standard error and nothing on
@@ -22,7 +23,7 @@ def test_the_hook_returns_the_errors_of_an_edit_of_a_template() -> None:
 @pytest.mark.slow
 def test_the_hook_is_silent_for_other_edits_and_for_a_check_that_passes() -> None:
     """AC-2: not a template, a passing check and a warning alone print nothing."""
-    # Given the hook's command and a check that fails
+    # Given the hook's command and a fake `uv` for a check that fails
     # When the command receives the input for an edit of `src/wio/cli/x.py`, of
     # `.agents/wio/config.toml` and of `.agents/wio/templates/notes.txt`; and
     # then, for an edit of a template, a check that passes and one whose only
@@ -34,7 +35,8 @@ def test_the_hook_is_silent_for_other_edits_and_for_a_check_that_passes() -> Non
 @pytest.mark.slow
 def test_the_hook_does_not_block_an_edit_when_the_check_cannot_run() -> None:
     """AC-3: a check that exits with anything but 1 gives exit 0 and no output."""
-    # Given the hook's command and a check that exits 2
+    # Given the hook's command and a fake `uv` for a check that exits 2, as a
+    # config with an error makes the real one
     # When the command receives the input for an edit of a template
     # Then it exits 0 with no output
 
@@ -46,9 +48,10 @@ def test_prek_runs_the_check_when_a_template_is_in_the_commit() -> None:
     # `src/wio/cli/x.py` alone
     # When its `wio-templates` hook is read, with its `files` pattern applied to
     # each path
-    # Then it runs `uv run wio templates check`, matches a template in any
+    # Then it runs `uv run wio templates check`, matches a `.md` file in any
     # subdirectory of the templates directory, does not match the other paths and
-    # passes no file names
+    # passes no file names; that it fails and prints the diagnostics on an error
+    # follows from the check's exit code, which the check leaf verifies
 
 
 @pytest.mark.skip(reason=SKIP)
