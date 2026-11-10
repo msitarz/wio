@@ -593,8 +593,9 @@ contract skeleton. The `[contract]` table is promoted to the top level
 (`[contract.foo]` becomes `[foo]`), and the template's own keys (`kind`,
 `shape`, `description` and `[actions]`) are dropped. wio always sets `id` and
 `template` itself, even if the template specifies them, and it removes comments
-from the metadata, because they belong to the template author. So a template
-can, for example, give every contract a ticket key to fill in:
+from the metadata, because they belong to the template author. The template's
+own keys have no `name` among them: a template is named by its file. So a
+template can, for example, give every contract a ticket key to fill in:
 
 ```toml
 [contract.x]
@@ -605,8 +606,10 @@ A contract created from a template therefore has exactly the shape the template
 describes, and the agent that fills it in sees that shape.
 `wio templates show <name>` prints that prepared skeleton without creating a
 Work, so a skill can name a template and show it to the agent without knowing
-which file holds it. That skeleton carries no `id`: pasted as it is, it fails
-`wio contracts check`, and the output is the same on every run. With
+which file holds it. That skeleton has the `template` key and no `id`, whereas
+`wio contracts new` adds the `id` when it writes the contract: pasted as it is,
+the skeleton fails `wio contracts check`, and the output is the same on every
+run. With
 `--work <id>`, it is the skeleton for that existing Work: `template` is the
 requested template, and the Work's `id` and `depends_on` are carried over,
 because they are its identity and its ordering in any template. Everything else

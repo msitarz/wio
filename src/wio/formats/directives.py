@@ -109,6 +109,27 @@ def read_directive_heading(line: str) -> DirectiveHeading | None:
     return DirectiveHeading(text, level, directives)
 
 
+def remove_directive_list(line: str) -> str:
+    """Take the directive list off a heading line.
+
+    It removes the list and the whitespace before it, and keeps every other
+    character, a note before the list and whatever follows it included. A line
+    that is not a heading, or has no list, is returned as it is.
+
+    Args:
+        line: One line of Markdown, without its line ending.
+
+    Returns:
+        The line without its directive list.
+    """
+    heading = _HEADING.match(line)
+    opener = None if heading is None else _OPENER.search(line, heading.end())
+    close = -1 if opener is None else line.find("-->", opener.end())
+    if opener is None or close < 0:
+        return line
+    return line[: len(line[: opener.start()].rstrip())] + line[close + len("-->") :]
+
+
 def _check_tail(line: str, start: int) -> None:
     """Check that nothing but whitespace follows the list.
 

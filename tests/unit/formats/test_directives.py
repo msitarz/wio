@@ -4,7 +4,7 @@
 import pytest
 
 from wio.errors import WioError
-from wio.formats.directives import DIRECTIVES
+from wio.formats.directives import DIRECTIVES, remove_directive_list
 from wio.models.directives import (
     Directive,
     DirectiveHeading,
@@ -294,3 +294,27 @@ def test_every_example_of_the_table_parses_into_its_directive(
         len(h.directives) == 1 and isinstance(h.directives[0], kinds[spec.name])
         for h in headings
     )
+
+
+@pytest.mark.parametrize(
+    ("line", "expected"),
+    [
+        ("## A <!-- wio: required -->", "## A"),
+        ("## Both <!-- a note --> <!-- wio: required -->", "## Both <!-- a note -->"),
+        ("##   Spaced   <!--wio:inherit-->  ", "##   Spaced  "),
+        ("## Note <!-- a note -->", "## Note <!-- a note -->"),
+        ("## Plain", "## Plain"),
+        ("Some text <!-- wio: required -->", "Some text <!-- wio: required -->"),
+    ],
+)
+def test_the_list_and_the_spaces_before_it_are_taken_off_a_heading(
+    line: str, expected: str
+) -> None:
+    """Skeleton AC-4: only the list goes, and what follows it stays."""
+    # Given a heading line, with a list, a note, or neither, or a line that is
+    # not a heading
+    # When the directive list is taken off
+    found = remove_directive_list(line)
+
+    # Then only the list and the spaces before it are gone
+    assert found == expected

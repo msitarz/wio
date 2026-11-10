@@ -15,6 +15,7 @@ commit messages.
 | Sibling split | Splitting a Work into sibling Works, ordered by `depends_on`, instead of into its children; both hierarchy modes allow it, and it is not the `flat` mode. |
 | Template | A markdown file that shapes a contract that names it: sections, directives and a metadata block with the template's kind, optional shape (leaf or parent) and default actions. |
 | Kind | A sort of Work, such as `feature`, declared in the config's `[templates.kinds]` with its entry template. A kind groups templates. |
+| Skeleton | A template prepared as the text of a contract: the template's block form with `template` and the keys of its `[contract]` table, its body without the directive lists, and no `id`. `wio templates show` prints it, and `wio contracts new` adds the `id` when it writes a contract. |
 | Template name | The name of a template's file without `.md`, which `[templates.kinds]`, a contract's `template` key and `wio templates show` refer to. A template has no `name` key. |
 | Entry template | The template of a kind that new Works of that kind start from. Declared in `[templates.kinds]`. |
 | Metadata block | The TOML at the top of a contract, template or rule, in a hidden comment or between `+++` lines. |

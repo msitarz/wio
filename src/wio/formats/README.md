@@ -89,3 +89,25 @@ agree on which lines are section headings. Its docstring and
   of a heading, a fence and a comment block, so wio has no grammar of its own to
   keep in step with Markdown. Only `wio.formats` imports it, and it loads on the
   first reading, so a command that reads no body never pays for it.
+
+## The skeleton
+
+`prepare_skeleton` in [`skeleton.py`](skeleton.py) prepares a template as the
+text of a contract that follows it, so that what `wio templates show` prints is
+what `wio contracts new` writes, apart from the `id` it adds. Its docstring says
+what it takes, returns and raises, and its
+[tests](../../../tests/unit/formats/test_skeleton.py) say how each case reads.
+
+- **It keeps what the author wrote for the agent and drops what is for wio.**
+  The skeleton holds `template` and the keys and tables of the template's
+  `[contract]` table in the order the template wrote them, and the body with the
+  directive list taken off each real heading. The template's own keys, the
+  comments of its metadata and any `id` are dropped, and wio writes no `id`.
+- **The block form is the template's.** A comment block gives a comment block,
+  and `+++` front matter gives `+++` front matter with the marker `wio = 1` as
+  its first key.
+- **The same template always gives the same skeleton,** so the output of
+  `wio templates show` is stable.
+- **The writer loads on first use.** `encode_toml` in [`writer.py`](writer.py)
+  is the one writer of TOML, and `tomlkit` is imported when it is first called,
+  so reading a block or a template never loads it.

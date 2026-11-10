@@ -3,6 +3,8 @@
 
 from typing import TYPE_CHECKING
 
+lazy import tomlkit
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
@@ -27,4 +29,4 @@ def encode_toml(data: Mapping[str, object]) -> str:
         The document with LF line endings, ending in a line ending, and empty
         for an empty mapping.
     """
-    raise NotImplementedError
+    return tomlkit.dumps(data)
