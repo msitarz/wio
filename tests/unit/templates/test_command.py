@@ -222,3 +222,27 @@ def test_a_directory_outside_a_repository_is_a_refusal_not_a_bug(view: str) -> N
 
     # Then the refusal of the config is raised, not the error of the repository
     assert "not inside a git repository" in str(caught.value)
+
+
+@pytest.mark.parametrize("as_json", [False, True])
+def test_directives_reads_nothing_of_the_project(*, as_json: bool) -> None:
+    """AC-3: the table is written before the config, the root and the files."""
+    # Given a command whose settings fail when loaded and whose repository fails
+    # when asked for its root
+    command = TemplatesCommand(
+        _RefusingSettings(), FakeRepository(top=None), MemoryFileSystem()
+    )
+    args = Namespace(
+        templates_view="directives",
+        templates_help=lambda: "usage",
+        kind=None,
+        name=None,
+        json=as_json,
+    )
+
+    # When `directives` runs, while the renderer is still a stub
+    with pytest.raises(NotImplementedError):
+        command.run(args, FakeStdio())
+
+    # Then the failure is the stub's, not a refusal of the config or a bug of the
+    # repository, which shows that neither was touched

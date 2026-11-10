@@ -3,9 +3,11 @@
 
 from typing import TYPE_CHECKING, Literal, cast
 
+lazy from wio.formats import DIRECTIVES
 lazy from wio.templates.discovery import discover
 lazy from wio.templates.errors import TemplatesError, refusal
 lazy from wio.templates.listing import render_list
+lazy from wio.templates.reference import render_reference as render_directives
 lazy from wio.templates.show import show_skeleton
 
 if TYPE_CHECKING:
@@ -96,9 +98,10 @@ class TemplatesCommand:
             stdio.stdout.write(arguments.templates_help())
             return 0
         if arguments.templates_view == "directives":
-            # The wiring stage replaces this guard: `directives` runs before the
-            # config is loaded, so that it reads nothing of the project.
-            raise NotImplementedError
+            # Before the config is loaded: the table is the parser's, and the
+            # command reads nothing of the project, so it works anywhere.
+            stdio.stdout.write(render_directives(DIRECTIVES, as_json=arguments.json))
+            return 0
         config = self._settings.load()
         root = self._repository.root()
         found = discover(root, config.templates, self._files)
