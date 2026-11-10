@@ -18,6 +18,7 @@ class TomlSyntaxError(WioError):
         column: The column of the first problem, counted from 1.
     """
 
+    message: str
     line: int
     column: int
 
