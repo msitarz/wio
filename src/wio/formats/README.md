@@ -75,9 +75,9 @@ every directive with its syntax, its meaning and its examples, and the
   long for the line limit of Markdown is shortened, or has the limit suppressed
   by `<!-- rumdl-disable-next-line MD013 -->` on the line above it.
 - **Errors name a column.** An unknown name or one in the wrong case, a name
-  written twice, an empty list, a list that does not close, text or a second
-  list after it and a wrong value are errors, and each names the first character
-  of the offending token, counted from 1 on the line.
+  written twice, an empty list, a trailing comma, a list that does not close,
+  text or a second list after it and a wrong value are errors, and each names
+  the first character of the offending token, counted from 1 on the line.
 - **The level is returned, not restricted.** The parser reads a list on a
   heading of any level, and the checks that use it allow directives on level-2
   headings only.

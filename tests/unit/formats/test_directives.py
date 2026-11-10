@@ -171,8 +171,18 @@ def test_a_note_before_a_list_stays_in_the_text() -> None:
             29,
             "one directive list to a heading",
         ),
+        ("## V <!-- wio: required, -->", 26, "name is expected"),
     ],
-    ids=["unknown", "case", "twice", "empty", "unclosed", "text-after", "two-lists"],
+    ids=[
+        "unknown",
+        "case",
+        "twice",
+        "empty",
+        "unclosed",
+        "text-after",
+        "two-lists",
+        "trailing-comma",
+    ],
 )
 def test_a_list_with_a_wrong_name_or_shape_is_an_error_with_its_column(
     line: str, column: int, message: str
