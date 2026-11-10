@@ -13,6 +13,14 @@ FORMS = (
     "lazy from tomllib import loads",
 )
 
+MARKDOWN_FORMS = (
+    "import markdown_it",
+    "from markdown_it import MarkdownIt",
+    "from markdown_it.token import Token",
+    "lazy import markdown_it",
+    "lazy from markdown_it import MarkdownIt",
+)
+
 CWD_PROBE = (
     "import os\nfrom pathlib import Path\n\n"
     "HERE = (Path.cwd(), os.getcwd(), os.getcwdb())\n"
@@ -66,10 +74,25 @@ def test_only_the_environment_adapter_may_read_the_working_directory() -> None:
     }
 
 
-@pytest.mark.skip(reason="Pending the implementation stage.")
 @pytest.mark.slow
-def test_only_wio_formats_may_import_markdown_it() -> None:
+@pytest.mark.parametrize("form", MARKDOWN_FORMS)
+def test_only_wio_formats_may_import_markdown_it(form: str) -> None:
     """AC-5: ruff reports an import of the Markdown parser outside `wio.formats`."""
-    # Given a probe file that imports `markdown_it`
-    # When it is linted as a file of wio.templates and of wio.formats
-    # Then it is reported for the first and not for the second
+    # Given a probe file that imports `markdown_it` in one form
+
+    # When it is linted as a file of wio.templates, of wio.formats and of tests
+    reported = {
+        path: bool(banned_api(form, path))
+        for path in (
+            "src/wio/templates/probe.py",
+            "src/wio/formats/probe.py",
+            "tests/unit/probe.py",
+        )
+    }
+
+    # Then it is reported the first time and neither of the other times
+    assert reported == {
+        "src/wio/templates/probe.py": True,
+        "src/wio/formats/probe.py": False,
+        "tests/unit/probe.py": False,
+    }
