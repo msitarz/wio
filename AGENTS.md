@@ -69,7 +69,9 @@ Single tools, for quick feedback:
   verification, such as the runs, counts or revisions something was checked
   against: CI and prek verify. Report a manual check to the driver or in a
   commit message. A contract's criteria, which say how a reviewer judges them,
-  are the exception.
+  are an exception, and so is the baseline of a diagram in a contract's Visuals:
+  the short SHA of the commit, and the branch, that the diagram was drawn from
+  is not a record of verification.
 - Fix the cause when a check fails. Never weaken a test or loosen a rule to get
   green. If a rule seems wrong, say so and propose a config change.
 
