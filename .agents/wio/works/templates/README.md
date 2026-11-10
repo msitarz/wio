@@ -77,7 +77,9 @@ reads a template must be one that the contracts command can reuse.
 
 - `wio.formats`, which gains the reader of the metadata block, the parser of
   directives and the table of directives that it and `wio templates directives`
-  share, the preparer of a skeleton and a TOML writer on `tomlkit`.
+  share, the outline of a Markdown body, which the outline leaf builds on
+  `markdown_it` or on a scanner of its own, the preparer of a skeleton and a
+  TOML writer on `tomlkit`.
 - `wio.templates`, the component that finds the templates, builds a `Template`
   and judges it for `check`.
 - `wio.models`, which gains `Template`, `Directive` and the metadata block, the
@@ -102,8 +104,8 @@ reads a template must be one that the contracts command can reuse.
 - **Output is deterministic.** It is sorted and has no timestamps, and `--json`
   prints one JSON array or object that parses.
 - **Nothing is imported before it is needed.** `list` and `check` import neither
-  `tomlkit` nor `json` unless `--json` asks for it, and only preparing a
-  skeleton imports the writer.
+  `tomlkit` nor `json` unless `--json` asks for it, only preparing a skeleton
+  imports the writer, and `list` reads no body and imports no Markdown parser.
 - **One writer.** Only `wio.formats` imports `tomlkit`, as only it imports
   `tomllib`, and ruff's `banned-api` reports any other import.
 - **Dependency direction.** `wio.templates` imports `wio.formats`, `wio.models`
@@ -116,7 +118,8 @@ reads a template must be one that the contracts command can reuse.
   - Output sorted, without timestamps and the same on every run: AC-3 and the
     discovery, show and directives reference leaves.
   - What `list` and `check` import: AC-2; that the writer is imported only to
-    prepare a skeleton: the skeleton leaf.
+    prepare a skeleton: the skeleton leaf; that only the outline imports a
+    Markdown parser: the outline leaf.
   - One writer: AC-5.
   - The grammar that `directives` prints: the directives and directives
     reference leaves.
@@ -187,9 +190,10 @@ any repository.
   meaning and an example, and the second prints the same as one JSON array; each
   exits 0.
 
-### **AC-2** A run that reads no skeleton loads no writer
+### **AC-2** A run that reads no skeleton or body loads no writer or parser
 
-`wio templates list` and `wio templates check`, without `--json`, import neither
+`wio templates list`, without `--json`, imports none of `tomlkit`, `json` and
+`markdown_it`, and `wio templates check`, without `--json`, imports neither
 `tomlkit` nor `json`.
 
 #### A fresh interpreter
@@ -198,7 +202,8 @@ any repository.
 - **When** `main(["templates", "list"], stdio)` and then
   `main(["templates", "check"], stdio)` of `wio.cli` run in that process and
   `sys.modules` is read.
-- **Then** neither module is there.
+- **Then** after the first none of the three modules is there, and after the
+  second neither `tomlkit` nor `json` is there.
 
 ### **AC-3** This repository's templates agree across the three commands
 
@@ -299,13 +304,14 @@ glossary defines Template name and Skeleton.
 - [Templates in the concepts](../../../../docs/concepts.md) say what a template
   is, how a skeleton is prepared and which directives exist.
 - Each child updates the sentences of the documents about its own part: the
-  block reader, the directives and the skeleton leaves
+  block reader, the outline, the directives and the skeleton leaves
   `src/wio/formats/README.md` and the concepts; discovery, show, check and the
   directives reference the scope and the concepts, and discovery and skeleton
   the glossary; the hooks leaf `docs/workflow.md`. The parent's promote stage
   checks that the documents agree.
 - The children are [block reader](block-reader/README.md),
-  [directives](directives/README.md), [skeleton](skeleton/README.md),
+  [outline](outline/README.md), [directives](directives/README.md),
+  [skeleton](skeleton/README.md),
   [discovery](discovery/README.md), [show](show/README.md),
   [check](check/README.md), [hooks](hooks/README.md) and
   [directives reference](directives-reference/README.md).

@@ -2,7 +2,7 @@
 id = "0nfz54"
 template = "feature.draft"
 roots = []
-depends_on = ["p8vtzx"]
+depends_on = ["p8vtzx", "1n1p8j", "vyjmpc"]
 -->
 
 # Preparing a contract skeleton
