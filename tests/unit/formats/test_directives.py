@@ -118,6 +118,7 @@ def test_a_literal_quote_and_angle_bracket_are_written_as_hex_escapes() -> None:
         ("## T <!-- wio -->", "T <!-- wio -->"),
         ("## T <!-- WIO: required -->", "T <!-- WIO: required -->"),
         ("## T <!-- wio : required -->", "T <!-- wio : required -->"),
+        ("## Purpose  ", "Purpose"),
     ],
 )
 def test_a_line_with_no_directive_list_gives_no_directives_and_no_error(

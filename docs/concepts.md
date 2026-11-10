@@ -680,9 +680,8 @@ Directives tell wio what a contract's sections mean: which are mandatory, what
 their content must look like, and which ones children inherit. A directive
 list is an HTML comment that opens with `<!--`, optional whitespace and the
 lowercase `wio:`, and ends the heading, with the directives separated by
-commas. A contract's directives have one
-source: its template if it names one, and otherwise its own `##` headings, in
-the same grammar:
+commas. A contract's directives have one source: its template if it names one,
+and otherwise its own `##` headings, in the same grammar:
 
 ```markdown
 ## Purpose <!-- wio: required -->
