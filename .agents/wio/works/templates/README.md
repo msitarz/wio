@@ -27,8 +27,8 @@ reads a template must be one that the contracts command can reuse.
   problem in the project's templates at once.
 - A template is named by its file, so its name cannot differ from where it
   lives.
-- Only `wio.formats` reads or writes TOML, so the metadata block, the directive
-  grammar and the skeleton have one implementation that `wio contracts` reuses.
+- The metadata block, the directive grammar and the skeleton live only in
+  `wio.formats`, where `wio contracts` can reuse them.
 - The documents describe the command and the grammar as they are.
 
 ## Glossary
@@ -69,6 +69,9 @@ reads a template must be one that the contracts command can reuse.
   `wio templates check` once their `name` key is dropped.
 - **A-7**: Ruff's `banned-api` table can ban `tomlkit` outside `wio.formats` as
   it bans `tomllib`.
+- **A-8**: `wio.cli` can run a command without finding the repository or loading
+  the config, as bare `wio config` does, so `wio templates directives` needs
+  neither.
 
 ## Mechanisms
 
@@ -86,6 +89,9 @@ reads a template must be one that the contracts command can reuse.
 - The `PostToolUse` entry of `.claude/settings.json` and the `wio-templates`
   hook of `prek.toml`, which run `wio templates check` after an agent's edit of
   a template and in a commit that changes one.
+- The `tomlkit` writer in `wio.formats` and the split between `wio.formats` and
+  `wio.templates` are fixed; `Template`, `Directive` and the block type are
+  provisional, for the children that build them to decide.
 
 ## Constraints
 
@@ -93,8 +99,8 @@ reads a template must be one that the contracts command can reuse.
 - **Unknown keys are errors.** A key the schema does not know in the metadata of
   a template is an error, as in the config, and the keys under `[contract]` are
   free.
-- **Output is deterministic.** It is sorted and has no timestamps, and
-  `--json` is plain data for a program.
+- **Output is deterministic.** It is sorted and has no timestamps, and `--json`
+  prints one JSON array or object that parses.
 - **Nothing is imported before it is needed.** `list` and `check` import neither
   `tomlkit` nor `json` unless `--json` asks for it, and only preparing a
   skeleton imports the writer.
@@ -107,8 +113,8 @@ reads a template must be one that the contracts command can reuse.
 - **Verification.** The constraints and goals are established as follows.
   - Read, never written: AC-3.
   - Unknown keys are errors: AC-3 and the check leaf.
-  - Output sorted and without timestamps: the discovery, show and directives
-    reference leaves.
+  - Output sorted, without timestamps and the same on every run: AC-3 and the
+    discovery, show and directives reference leaves.
   - What `list` and `check` import: AC-2; that the writer is imported only to
     prepare a skeleton: the skeleton leaf.
   - One writer: AC-5.
@@ -217,6 +223,13 @@ check, each of which has criteria of its own in its leaf.
 - **When** `wio templates list`, `show` and `check` run on them.
 - **Then** the hash of every template is unchanged.
 
+#### The same output twice
+
+- **Given** this repository's templates.
+- **When** `wio templates list`, `show feature.parent` and `check` each run
+  twice.
+- **Then** the two outputs of each command are identical.
+
 #### A `name` key
 
 - **Given** a copy of this repository's templates in which one template has the
@@ -269,14 +282,14 @@ No module of `wio` other than `wio.formats` imports `tomllib` or `tomlkit`.
 
 `docs/concepts.md`, `docs/v0.1-scope.md`, `docs/workflow.md`,
 `src/wio/formats/README.md` and `GLOSSARY.md` state what the command, the hooks
-and the codecs do as they are. They name
-the four subcommands, `list --kind`, the entry marker and the grouped layout,
-and the bare skeleton that `show` prints. They say a template is named by its
-file and has no `name` key, that the quoted form of `pattern` is the way to
-write a comma, and that `wio.formats` holds the block reader, the directive
-parser, the skeleton and the only `tomlkit` writer. They list `--work`, `--keep`
-and the finding of items under `wio contracts`, and they no longer list the form
-of a `pattern` among the open points.
+and the codecs do as they are. They name the four subcommands, `list --kind`,
+the entry marker, the grouped layout and the bare skeleton that `show` prints.
+They say a template is named by its file and has no `name` key, that the quoted
+form of `pattern` is the way to write a comma, and that `wio.formats` holds the
+block reader, the directive parser, the skeleton and the only `tomlkit` writer.
+They list `--work`, `--keep` and the finding of items under `wio contracts`,
+they no longer list the form of a `pattern` among the open points, and the
+glossary defines Template name and Skeleton.
 
 ## Additional context
 
@@ -285,6 +298,12 @@ of a `pattern` among the open points.
   moves `--work` and `--keep` to the contracts Work.
 - [Templates in the concepts](../../../../docs/concepts.md) say what a template
   is, how a skeleton is prepared and which directives exist.
+- Each child updates the sentences of the documents about its own part: the
+  block reader, the directives and the skeleton leaves
+  `src/wio/formats/README.md` and the concepts; discovery, show, check and the
+  directives reference the scope and the concepts, and discovery and skeleton
+  the glossary; the hooks leaf `docs/workflow.md`. The parent's promote stage
+  checks that the documents agree.
 - The children are [block reader](block-reader/README.md),
   [directives](directives/README.md), [skeleton](skeleton/README.md),
   [discovery](discovery/README.md), [show](show/README.md),
