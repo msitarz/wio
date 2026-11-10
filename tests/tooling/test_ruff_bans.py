@@ -41,19 +41,22 @@ def test_only_wio_formats_may_import_tomllib(form: str) -> None:
     """AC-3 of the decoder: ruff reports every form outside `wio.formats`."""
     # Given a probe file holding one form of the import
 
-    # When it is linted as a file of wio.config, of wio.formats and of tests
+    # When it is linted as a file of wio.config, of wio.templates, of
+    # wio.formats and of tests
     reported = {
         path: bool(banned_api(form, path))
         for path in (
             "src/wio/config/probe.py",
+            "src/wio/templates/probe.py",
             "src/wio/formats/probe.py",
             "tests/unit/probe.py",
         )
     }
 
-    # Then it is reported the first time and neither of the other times
+    # Then it is reported in the two components and in neither of the other places
     assert reported == {
         "src/wio/config/probe.py": True,
+        "src/wio/templates/probe.py": True,
         "src/wio/formats/probe.py": False,
         "tests/unit/probe.py": False,
     }

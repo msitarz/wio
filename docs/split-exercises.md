@@ -170,12 +170,13 @@ after:   context/rule-selection/                  (parent, still s9t2wy)
   system-level guarantees (rule ACC006), so the parent gets new criteria for
   what only the joined result establishes, such as "a stage gets exactly the
   rules that the layers select and its roots allow". The skill prints the parent
-  template with `wio templates show feature.parent --work s9t2wy`, without
-  `--keep`, so the parent gets the template's roots, `["@descendants"]`, and its
-  pipelines instead of the leaf's, and wio lists the leaf's roots and overrides
-  it did not carry. It adds Constraints and Visuals and rewrites the contract in
-  that shape. Each child that takes over criteria is created from the leaf
-  template
+  template with `wio templates show feature.parent` and prepares the Work's
+  skeleton with `wio contracts` and `--work s9t2wy`, without `--keep`, so the
+  Work keeps its id and its dependencies and gets the template's roots,
+  `["@descendants"]`, and its pipelines instead of the leaf's, and wio lists the
+  leaf's roots and overrides it did not carry. It adds Constraints and Visuals
+  and rewrites the contract in that shape. Each child that takes over criteria
+  is created from the leaf template
   (`wio contracts new feature --template feature.leaf --parent s9t2wy`), because
   the draft has no place for them.
 - Dependents need no change: `context-command` depends on `s9t2wy`, which still
