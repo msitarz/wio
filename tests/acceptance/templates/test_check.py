@@ -80,7 +80,11 @@ def test_check_names_the_line_and_column_of_a_directive_error(wio: Wio) -> None:
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_check_reports_names_the_config_does_not_declare(wio: Wio) -> None:
     """AC-5: undeclared names and wrong value types are errors, empty is not."""
-    # Given the config and the `[actions]` of AC-5
+    # Given a config declaring the action `define`, the stage preset
+    # `define-feature` and the stage `implementation`, and templates whose
+    # `[actions]` hold `define = "nosuch"`, `nosuch = "define-feature"`,
+    # `define = ["nosuch"]`, `define = 1`, `define = [1]`, `define = []` and
+    # `define = ["implementation"]`
     # When `wio templates check` runs
     # Then the first three name the file and the undeclared name, the next two
     # name the file and the key `define`, and the last two give none
@@ -90,7 +94,9 @@ def test_check_reports_names_the_config_does_not_declare(wio: Wio) -> None:
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_check_reports_a_kind_that_disagrees_with_the_config(wio: Wio) -> None:
     """AC-6: an undeclared kind, a missing entry and an entry of another kind."""
-    # Given the kinds and templates of AC-6
+    # Given the kinds `feature = "feature.draft"` and `bugfix = "missing"`, a
+    # template `feature.draft` of kind `bugfix`, and a template `other` of kind
+    # `nokind`
     # When `wio templates check` runs
     # Then it prints the three errors at their places and exits 1
 

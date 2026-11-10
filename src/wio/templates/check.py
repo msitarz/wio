@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Collection, Iterable, Mapping
     from pathlib import Path
 
     from wio.io.ports import FileSystem
@@ -52,8 +52,12 @@ def check_templates(
     discovery built, and runs the checks below on all of them, so a problem in
     one template never hides another. It reads files only through `files` and
     writes none. The diagnostics of `discover` are errors of the check as they
-    are. A templates directory that is missing or invalid is that one error, and
-    no check that follows reports an entry template missing because of it.
+    are. A templates directory that discovery refuses, because it is missing,
+    is not a directory or is a symbolic link, is that one error: the check
+    returns it alone and runs nothing else, so no entry template is reported
+    missing because of it. An entry template whose file discovery reported an
+    error is not reported missing either: the check passes `check_kinds` the
+    names of those files, taken from the places of discovery's errors.
 
     Args:
         root: The repository root, which `config.templates.dir` and the
@@ -105,6 +109,12 @@ def check_headings(
         whitespace around it and a trailing directive list, was seen on an
         earlier heading, whose place is the file and the line of the later
         heading and whose message names the line of the first.
+
+        The text of a heading for the repeats is its raw line without the
+        directive list, which `remove_directive_list` of `wio.formats` gives, so
+        a heading whose list is refused still counts, by the text before the
+        list. A heading that is not level 2 whose list is refused gets that one
+        error, and a heading with no list gets none.
     """
     raise NotImplementedError
 
@@ -132,7 +142,9 @@ def check_actions(place: str, actions: object, config: Config) -> list[Diagnosti
 
 
 def check_kinds(
-    templates: Iterable[Template], kinds: Mapping[str, str]
+    templates: Iterable[Template],
+    kinds: Mapping[str, str],
+    unbuilt: Collection[str] = (),
 ) -> list[Diagnostic]:
     """Judge the templates' kinds and the entry templates against the config.
 
@@ -140,6 +152,9 @@ def check_kinds(
         templates: The templates that discovery built.
         kinds: `[templates.kinds]` of the config: the entry template of each
             declared kind.
+        unbuilt: The names of the template files that discovery could not build
+            because of an error of their own. An entry template among them is
+            not missing, and is not reported as such.
 
     Returns:
         An error naming the file and the kind for a template whose kind is not
@@ -161,9 +176,12 @@ def order_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ..
 
     Returns:
         The findings sorted by file, line and column, the numbers compared as
-        numbers so that line 4 comes before line 12; a place without a line or a
-        column, and a key path, come in the order of their text; then error,
-        warning and note, then message.
+        numbers so that line 4 comes before line 12. A place is read as a file, an
+        optional line and an optional column; a file without a line comes before
+        its lines. A place that is not of that form, such as a key path or the
+        two files of a duplicate name joined by `, `, is compared as its text,
+        and all of the places of that form come before it. Ties are broken by
+        error, warning and note, then by message.
     """
     raise NotImplementedError
 
@@ -177,8 +195,8 @@ def render_check(diagnostics: Iterable[Diagnostic], *, as_json: bool) -> str:
 
     Returns:
         With `as_json`, the array of `severity`, `where` and `message` objects,
-        `[]` for none. Otherwise `PASSES` and a newline when there is no
-        diagnostic, and the `<severity>: <where>: <message>` lines when there
-        are some, each ending in a newline.
+        `[]` for none, ending in a newline. Otherwise `PASSES` and a newline
+        when there is no diagnostic, and the `<severity>: <where>: <message>`
+        lines when there are some, each ending in a newline.
     """
     raise NotImplementedError

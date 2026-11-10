@@ -105,4 +105,5 @@ def test_the_text_says_that_the_templates_pass_and_the_json_is_empty() -> None:
     """AC-1: the rendering of no diagnostic, as text and as JSON."""
     # Given no diagnostic
     # When it is rendered as text and as JSON
-    # Then the text is `The templates pass.` and a newline and the JSON is `[]`
+    # Then the text is `The templates pass.` and a newline, and the JSON is `[]`
+    # and a newline

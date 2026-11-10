@@ -80,16 +80,16 @@ class TemplatesCommand:
             writes its help and loads no config. `list` writes the templates to
             `stdio.stdout`, limited to `--kind` when it is given, as one JSON
             array with `--json`, and nothing for a declared kind with no
-            templates. `show` writes the
-            skeleton of the template with the name, exactly as it is prepared,
-            to `stdio.stdout` and nothing to `stdio.stderr`. `directives` writes
-            the table of the directive grammar, as an indented list or as one
-            JSON array with `--json`, and reads no config, no repository and no
-            file of the project, so it works anywhere. `check` loads the config,
-            then writes every diagnostic of `check_templates`, as the lines of
-            `render_check` or as one JSON array with `--json`, to `stdio.stdout`
-            and nothing to `stdio.stderr`; it does not refuse around a template
-            error, which is what it reports.
+            templates. `show` writes the skeleton of the template with the name,
+            exactly as it is prepared, to `stdio.stdout` and nothing to
+            `stdio.stderr`. `directives` writes the table of the directive
+            grammar, as an indented list or as one JSON array with `--json`, and
+            reads no config, no repository and no file of the project, so it
+            works anywhere. `check` loads the config, then writes every
+            diagnostic of `check_templates`, as the lines of `render_check` or as
+            one JSON array with `--json`, to `stdio.stdout` and nothing to
+            `stdio.stderr`; it does not refuse around a template error, which is
+            what it reports.
 
         Raises:
             ConfigurationError: The config has an error, which `check` prints
