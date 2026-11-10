@@ -25,8 +25,12 @@ def render_reference(directives: Sequence[DirectiveSpec], *, as_json: bool) -> s
         entry, with the name on a line and under it, indented by two spaces, a
         `Syntax:` line, the meaning, each of its lines indented by two spaces,
         and an `Example:` line for each example, with one empty line between
-        blocks and none after the last. The JSON form is one array, with an object
-        for each entry holding `name`, `syntax`, `meaning` and `examples`, the
-        last an array. The same table always gives the same text.
+        blocks and none after the last; the text ends in exactly one line
+        ending, and is empty for an empty table. The JSON form is one compact
+        array, as `list --json` writes it, ending in a line ending, with an
+        object for each entry holding `name`, `syntax`, `meaning` and `examples`
+        in that order, the last an array that is empty for an entry with no
+        example, and `[]` for an empty table. The same table always gives the
+        same text.
     """
     raise NotImplementedError

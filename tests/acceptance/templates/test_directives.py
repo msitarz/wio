@@ -17,7 +17,7 @@ def test_directives_prints_the_table_for_a_person(wio: Wio) -> None:
     """AC-1: one block for each entry of the table, in its order, exit 0."""
     # Given any working directory and the table
     # When `wio templates directives` runs
-    # Then it prints exactly one block for each entry in order, nothing to
+    # Then it prints exactly one block for each entry in order, with empty
     # standard error, and exits 0
 
 
@@ -27,7 +27,8 @@ def test_directives_json_prints_the_table_as_one_array(wio: Wio) -> None:
     """AC-2: `--json` prints one array in the table's order with its fields."""
     # Given any working directory and the table
     # When `wio templates directives --json` runs
-    # Then the output is one array with an object for each entry, and exit 0
+    # Then the output is one array with an object for each entry in order, empty
+    # standard error, and exit 0
 
 
 @pytest.mark.skip(reason="Pending the implementation stage.")
@@ -40,7 +41,8 @@ def test_directives_works_outside_a_repository_and_with_a_broken_project(
     # error, one with no config file and one whose templates directory is
     # unreadable
     # When `wio templates directives` runs in each
-    # Then all four print the same output as anywhere else and exit 0
+    # Then all four print the same text, in both forms, as anywhere else and
+    # exit 0
 
 
 @pytest.mark.skip(reason="Pending the implementation stage.")
