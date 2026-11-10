@@ -14,6 +14,14 @@ def test_the_headings_come_with_their_level_text_raw_line_and_file_line() -> Non
 
 
 @pytest.mark.skip(reason="Pending the implementation stage.")
+def test_a_body_that_starts_in_the_middle_of_a_line_keeps_that_line_as_it_is() -> None:
+    """AC-1: a heading on the body's first line has its start line and its raw text."""
+    # Given a body that is ` # Title` followed by a paragraph, starting on line 3
+    # When the outline reads it
+    # Then the heading has the text `Title`, the raw line ` # Title` and line 3
+
+
+@pytest.mark.skip(reason="Pending the implementation stage.")
 def test_a_body_without_a_heading_has_no_headings() -> None:
     """AC-1: two paragraphs give nothing."""
     # Given a body of two paragraphs
@@ -40,6 +48,8 @@ def test_a_line_that_only_looks_like_a_heading_is_not_one() -> None:
 @pytest.mark.skip(reason="Pending the implementation stage.")
 def test_line_endings_do_not_change_the_headings() -> None:
     """AC-4: CRLF and LF give equal results, and no raw line ends in a CR."""
-    # Given one body written with LF and with CRLF
-    # When the outline reads both
-    # Then the results are equal and no raw line ends in a carriage return
+    # Given one body written with LF and with CRLF, and a body with a form feed
+    # and a next-line character in a paragraph, which are no line ending
+    # When the outline reads them
+    # Then the first two results are equal, no raw line ends in a carriage
+    # return, and the lines of the last count only `\r\n`, `\r` and `\n`

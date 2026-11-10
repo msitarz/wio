@@ -14,7 +14,9 @@ def read_outline(body: str, start_line: int) -> tuple[Heading, ...]:
     and comments: a heading inside a fenced or an indented code block, an HTML
     comment, a blockquote or a list item, and a setext heading, is not one. It
     reads no file, and the Markdown parser is imported on the first call, not
-    when `wio.formats` is imported. CRLF and LF read alike.
+    when `wio.formats` is imported. A line ends at a CRLF, a CR or an LF and at no
+    other character, so CRLF and LF read alike and a raw line never ends in a
+    carriage return.
 
     Args:
         body: The body of a file, as the block reader returns it.
