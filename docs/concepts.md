@@ -123,7 +123,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `[contract]` | *open* | The metadata of the contracts the template produces. | [From template to contract](#from-template-to-contract) |
 | `<!-- wio: required -->` | *optional* | The section must be present in the contract. | [Directives](#directives) |
 | `<!-- wio: items>=N -->` | *optional* | The section must hold at least `N` items; what counts is *open*. | [Directives](#directives) |
-| `<!-- wio: pattern=... -->` | *optional* | The section's items must match a regular expression, and the matches are their item ids; its quoting is *open*. | [Directives](#directives), [Item ids](#item-ids) |
+| `<!-- wio: pattern=... -->` | *optional* | The section's items must match a regular expression, and the matches are their item ids; it is written plainly or between double quotes. | [Directives](#directives), [Item ids](#item-ids) |
 | `<!-- wio: inherit -->` | *optional* | The section is included in every descendant's resolved view. | [Inheritance, computed](#inheritance-computed) |
 
 ### A rule file
@@ -678,10 +678,10 @@ point for projects.
 
 Directives tell wio what a contract's sections mean: which are mandatory, what
 their content must look like, and which ones children inherit. A directive
-list is an HTML comment that starts with `wio:` at the end of a `##` heading,
-with the directives separated by commas. A contract's directives have one
-source: its template if it names one, and otherwise its own `##` headings, in
-the same grammar:
+list is an HTML comment that opens with `<!--`, optional whitespace and the
+lowercase `wio:`, and ends the heading, with the directives separated by
+commas. A contract's directives have one source: its template if it names one,
+and otherwise its own `##` headings, in the same grammar:
 
 ```markdown
 ## Purpose <!-- wio: required -->
@@ -703,8 +703,14 @@ Sections are **optional until marked required**, so the agent can choose
 sections based on what the Work needs. Authoring comments do not count as
 content, so a Work fresh from its template passes a check that only requires
 headings, and a template that wants content says so with `items`. What counts
-as an item, and how a `pattern` that holds a comma or `-->` is written, are
-open ([Open points](#15-open-points)).
+as an item is left to the contracts Work ([Open points](#15-open-points)).
+
+A `pattern` is written in one of two forms. Plainly, it runs from the `=` to the
+next comma or the end of the list, so it holds no comma. Between double quotes,
+it runs to the closing quote and may hold commas. A literal `"` or `>` is
+written `\x22` or `\x3e`, which `re` reads, so `-->` cannot occur inside a list.
+The [grammar](../src/wio/formats/README.md#the-directive-grammar) gives the
+rest.
 
 ### Item ids
 
@@ -2435,9 +2441,8 @@ and its own selection give it.
 - How wio finds the items of a section, and so their ids
   ([Item ids](#item-ids)), and what `items` and `pattern` count. This
   repository's criteria are `### **AC-1** ...` subheadings, not list items, so
-  the directive grammar must be able to apply to subheadings. How a `pattern`
-  that contains a comma or `-->` is written is open too. The directive-grammar
-  Work settles both.
+  the contracts Work must apply the directives to subheadings. The directive
+  grammar leaves both to it.
 - A directive by which a template asks for coverage of its items, such as that
   every item of a section is cited by some stage's records before a gate. v0.1
   only carries ids ([Item ids](#item-ids)), and records already hold what such

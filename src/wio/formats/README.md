@@ -48,3 +48,22 @@ block starts and ends. Its docstring, that of
 - **What raises.** A block that has the marker or the comment opening and does
   not close, whose TOML does not parse, or whose marker is not 1. The error
   names the line of the text.
+
+## The directive grammar
+
+`read_directive_heading` in [`directives.py`](directives.py) reads one heading
+line into its text, its level and its directives, so a template's sections say
+what they must hold in one grammar that the checks and
+`wio templates directives` share. The table `DIRECTIVES` beside it lists every
+directive with its syntax, its meaning and its examples, the parser's docstring
+and [`DirectiveSyntaxError`](errors.py) say what it reads and raises, and the
+[concepts](../../../docs/concepts.md#directives) say what each directive means.
+
+- A plain pattern runs to the next comma and a quoted one holds commas, because
+  wio has no escape of its own. A literal `"` or `>` is written `\x22` or
+  `\x3e`, which `re` reads, so `-->` never occurs inside a list.
+- The parser returns the level and does not restrict it. The checks that use it
+  allow directives on level-2 headings only.
+- A heading too long for the line limit of Markdown is shortened, or has the
+  limit suppressed by `<!-- rumdl-disable-next-line MD013 -->` on the line above
+  it, because a list closes on its heading's line.
