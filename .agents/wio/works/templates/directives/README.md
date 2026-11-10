@@ -59,11 +59,12 @@ grammar is.
 
 ## Constraints
 
-- **The opener is exact.** A directive list opens with the exact text
-  `<!-- wio:` and ends at the first `-->`; any other comment, such as
-  `<!--wio:`, `<!--  wio:`, `<!-- wio :` or `<!-- WIO:`, is a note and not a
-  list, and spaces are allowed after the `:`, before the `-->`, around the
-  commas, and around the `>=` and the `=`.
+- **The opener is `<!--`, whitespace, `wio:`, whitespace.** A directive list
+  opens with `<!--`, zero or more whitespace characters, the lowercase `wio:`
+  with the colon right after it, and zero or more whitespace characters, and
+  ends at the first `-->`; any other comment, such as `<!-- wio :` or
+  `<!-- WIO:`, is a note and not a list, and spaces are also allowed before the
+  `-->`, around the commas, and around the `>=` and the `=`.
 - **Names are exact.** A directive name is lowercase.
 - **A name takes what its syntax says.** `required` and `inherit` take no value,
   `items` takes `>=` and a count, and `pattern` takes `=` and a pattern; a
@@ -112,11 +113,13 @@ its directives in the order written.
 #### Spaces
 
 - **Given** the lines `## Glossary <!-- wio: inherit   -->`,
-  `## Goals <!-- wio:required ,items>=2 -->` and
+  `## Goals <!--wio:required ,items>=2 -->`,
+  `## H <!--  wio:  inherit -->` and
   `## C <!-- wio: items >= 2, pattern = AC-\d+ -->`.
 - **When** the parser reads each.
 - **Then** the first gives `inherit`, the second gives `required` and at least 2
-  items, and the third gives at least 2 items and the pattern `AC-\d+`.
+  items, the third gives `inherit`, and the fourth gives at least 2 items and
+  the pattern `AC-\d+`.
 
 ### **AC-2** A pattern can be written plainly or between quotes
 
@@ -149,11 +152,10 @@ directives, and a line that is not a heading gives `None`.
 
 - **Given** the lines `## Purpose`, `## Purpose <!-- a note -->`,
   `## T <!-- wio -->`, `## T <!-- WIO: required -->`,
-  `## T <!--wio: required -->`, `## T <!--  wio: required -->`,
   `## T <!-- wio : required -->` and the non-heading line
   `Some text <!-- wio: required -->`.
 - **When** the parser reads each.
-- **Then** the first gives the text `Purpose` and no directives, the next six
+- **Then** the first gives the text `Purpose` and no directives, the next four
   give their text with the comment kept and no directives, and the last gives
   `None`; none raises an error.
 
@@ -237,14 +239,14 @@ whole heading line that the parser reads into the directive it documents.
 ### **AC-8** The documents describe the grammar
 
 `src/wio/formats/README.md` states where a directive list sits and that it opens
-with the exact text `<!-- wio:`, the four directives with their syntax, that
+with `<!--`, whitespace and `wio:`, the four directives with their syntax, that
 names are lowercase and exact, what a name takes, the plain and quoted forms of
 `pattern`, with the way to write a literal `"` or `>` as `\x22` or `\x3e`, which
 wrong lists are errors and the column an error names, that the parser returns
 the level and the checks that use it allow directives on level-2 headings only,
 that a list closes on its heading's line and ends it, and how a long heading is
 kept within the line limit with `<!-- rumdl-disable-next-line MD013 -->`.
-`docs/concepts.md` describes the exact opener and the two forms of `pattern` in
+`docs/concepts.md` describes the opener and the two forms of `pattern` in
 its Directives section, no longer says in the open points that writing a
 `pattern` that holds a comma or `-->` is open, and says that finding items is
 left to the contracts Work.
