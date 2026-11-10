@@ -173,3 +173,19 @@ def test_a_file_that_cannot_be_read_after_the_walk_is_an_error_for_the_file(
     [diagnostic] = caught.value.diagnostics
     assert diagnostic.where == ".agents/wio/templates/feature.leaf.md"
     assert message in diagnostic.message
+
+
+def test_the_place_of_a_nested_template_is_its_path_from_the_root() -> None:
+    """AC-3: a template below a subdirectory is named by its path with `/`."""
+    # Given a template in a subdirectory whose block does not close after the walk
+    nested = DIR / "sub" / "feature.leaf.md"
+    found = discover(ROOT, Templates(), MemoryFileSystem({nested: LEAF}))
+    later = MemoryFileSystem({nested: '<!-- wio\nkind = "k"\n'})
+
+    # When it is shown
+    with pytest.raises(TemplatesError) as caught:
+        show_skeleton("feature.leaf", found, ROOT, later)
+
+    # Then the place is the path from the root, written with `/`, and the line
+    [diagnostic] = caught.value.diagnostics
+    assert diagnostic.where == ".agents/wio/templates/sub/feature.leaf.md:1"
