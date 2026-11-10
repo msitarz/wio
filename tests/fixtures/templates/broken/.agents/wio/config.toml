@@ -1,0 +1,4 @@
+# A project with one valid template and one whose comment block does not close.
+
+[templates.kinds]
+feature = "feature.draft"

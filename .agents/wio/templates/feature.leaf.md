@@ -1,5 +1,4 @@
 <!-- wio
-name = "feature.leaf"
 kind = "feature"
 shape = "leaf"
 description = "A capability delivered directly as one coherent outcome."

@@ -1,0 +1,6 @@
+# A project with three declared kinds, four templates and one kind without any.
+
+[templates.kinds]
+feature = "feature.draft"
+bugfix = "bugfix.fix"
+spec = "spec.draft"

@@ -1,5 +1,4 @@
 <!-- wio
-name = "feature.parent"
 kind = "feature"
 shape = "parent"
 description = "A capability delivered by child Works, with constraints they share."
