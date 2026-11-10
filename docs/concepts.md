@@ -115,7 +115,6 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
-| `name` | *required* | The template's unique name, which contracts and `[templates.kinds]` refer to. | [What a template is](#what-a-template-is) |
 | `kind` | *required* | The declared kind the template serves. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `description` | *open* | What tools show when they list templates. | [What a template is](#what-a-template-is) |
 | `shape` | *optional* | `"leaf"` or `"parent"`, the shape of Work the author expected. | [What a template is](#what-a-template-is) |
@@ -540,7 +539,6 @@ from it look like:
 
 ```markdown
 <!-- wio
-name = "feature.leaf"
 kind = "feature"
 description = "A capability delivered directly as one coherent outcome."
 
@@ -553,8 +551,10 @@ depends_on = []
 -->
 ```
 
-- `name` is the template's unique name. Two templates cannot share a name, and
-  the file name does not matter.
+- A template has no `name` key: its **template name** is its file's name
+  without `.md`, which a contract's `template` key, `[templates.kinds]` and
+  `wio templates show` refer to, so a name cannot differ from where the template
+  lives. Two templates cannot share a name.
 - `kind` is the template's kind, one of the kinds the config declares.
 - `description` is what tools show when they list templates.
 - `shape` is optional: `"leaf"` or `"parent"`, the shape of Work the template
@@ -590,7 +590,7 @@ contract cannot escape writes a template.
 
 When wio creates a contract from a template, it prepares the template as a
 contract skeleton. The `[contract]` table is promoted to the top level
-(`[contract.foo]` becomes `[foo]`), and the template's own keys (`name`, `kind`,
+(`[contract.foo]` becomes `[foo]`), and the template's own keys (`kind`,
 `shape`, `description` and `[actions]`) are dropped. wio always sets `id` and
 `template` itself, even if the template specifies them, and it removes comments
 from the metadata, because they belong to the template author. So a template
@@ -635,7 +635,13 @@ project without templates leaves it out:
   are skipped; no symbolic link is followed; and a file that cannot be read or
   decoded as UTF-8 is an error that names it. A file there is a template when
   its `<!-- wio` block, or `+++` front matter with the marker, starts on its
-  first line; any other file is ignored.
+  first line, after a byte-order mark if there is one; any other file is
+  ignored. A template is named by its file.
+- Finding the templates reports what it cannot read, a `kind` that is missing or
+  not a string, a `shape` or `description` that is not a string, and two files
+  with one name as error diagnostics that name their place, which the other
+  commands that read a template can use. `wio templates list` refuses to list
+  while there is one, and `wio templates check` shows them all.
 - `[templates.kinds]` declares the valid kinds, and for each kind its **entry
   template**: the template that new Works of that kind start from. It sits
   under `[templates]` because a kind exists only to choose an entry template.
@@ -665,6 +671,13 @@ the skills of its define stages are written together, as one package: the
 skills know which templates the kind has, name them, and print them with
 `wio templates show <name> --work <id>`, and the agent rewrites the contract
 in the chosen shape. wio does not rewrite contracts itself.
+
+`wio templates list` prints the templates grouped by kind, kinds and names in
+sorted order, each template on a line with its name, an `[entry]` mark where
+`[templates.kinds]` names it as the entry of its own kind, and its `shape`, with
+its description under it as written. `--kind` limits it to one declared kind,
+and `--json` prints one array of objects with `name`, `kind`, `shape`, `entry`,
+`description` and `path`.
 
 `wio templates check` fails when a kind's entry template does not exist or has
 another kind, and when a template names a kind that is not declared.

@@ -9,9 +9,10 @@ import importlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, Literal
 
-lazy from wio.config import ConfigCommand
+lazy from wio.config import ConfigCommand, ConfigSettings
 lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
+lazy from wio.templates import TemplatesCommand
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -82,5 +83,19 @@ def _config() -> Command:
     return ConfigCommand(repository, io.LocalFileSystem())
 
 
-COMMANDS: Final[Sequence[Entry]] = (component_entry("config", _config),)
+def _templates() -> Command:
+    """Wire `wio templates` to the local disk, the git repository and the config.
+
+    Returns:
+        The command, finding the templates through the adapters.
+    """
+    repository = io.GitRepository(env.ProcessEnvironment())
+    files = io.LocalFileSystem()
+    return TemplatesCommand(ConfigSettings(repository, files), repository, files)
+
+
+COMMANDS: Final[Sequence[Entry]] = (
+    component_entry("config", _config),
+    component_entry("templates", _templates),
+)
 """Every subcommand of wio, one entry for each component that has a command."""

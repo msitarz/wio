@@ -4,8 +4,9 @@
 import io
 import os
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, TextIO
+from typing import TYPE_CHECKING
 
+from tests.unit.fakes import FakeStdio
 from wio import cli
 from wio.cli.table import Entry
 
@@ -14,15 +15,6 @@ if TYPE_CHECKING:
 
     from wio.cli.ports import Command, CommandSpec
     from wio.io.ports import Stdio
-
-
-@dataclass
-class FakeStdio:
-    """In-memory standard streams that satisfy the `Stdio` port."""
-
-    stdin: TextIO = field(default_factory=io.StringIO)
-    stdout: TextIO = field(default_factory=io.StringIO)
-    stderr: TextIO = field(default_factory=io.StringIO)
 
 
 @dataclass

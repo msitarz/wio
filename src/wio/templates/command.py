@@ -1,0 +1,150 @@
+# SPDX-License-Identifier: Apache-2.0
+"""The `wio templates` command: show the templates of the project."""
+
+from typing import TYPE_CHECKING, Literal, cast
+
+lazy from wio.formats import render_text
+lazy from wio.templates.discovery import discover
+lazy from wio.templates.errors import TemplatesError
+lazy from wio.templates.listing import render_list
+
+if TYPE_CHECKING:
+    from argparse import Namespace
+    from collections.abc import Callable, Iterable
+
+    from wio.io.ports import FileSystem, Repository, Stdio
+    from wio.models.config import Templates
+    from wio.models.template import Template
+    from wio.ports import Settings
+    from wio.templates.discovery import Discovery
+
+_CHECK_HINT = "`wio templates check` shows every problem."
+
+
+class Arguments:
+    """The attributes of the parsed arguments that `TemplatesCommand.run` reads.
+
+    The parser set up by `wio.templates.describe()` sets them; the command reads
+    them from the `Namespace` it is given, so this class only documents and types
+    them.
+    """
+
+    templates_view: Literal["list"] | None
+    """The subcommand chosen, `None` for bare `wio templates`."""
+
+    templates_help: Callable[[], str]
+    """Returns the usage of `wio templates`; set by the parser, so bare
+    `wio templates` prints it without loading the config."""
+
+    kind: str | None
+    """The kind that `list` is limited to; present for `list`."""
+
+    json: bool
+    """Whether `list` writes JSON; present for `list`."""
+
+
+class TemplatesCommand:
+    """Runs `wio templates`: its help, and `list` for the templates."""
+
+    def __init__(
+        self, settings: Settings, repository: Repository, files: FileSystem
+    ) -> None:
+        """Keep the ports the command reads through.
+
+        Args:
+            settings: Loads the config, whose `[templates]` table says where the
+                templates are and which one is each kind's entry.
+            repository: Finds the repository root.
+            files: Lists the templates directory and reads the templates.
+        """
+        self._files = files
+        self._settings = settings
+        self._repository = repository
+
+    def run(self, args: Namespace, stdio: Stdio) -> int:
+        """Run `wio templates` as the arguments ask.
+
+        Args:
+            args: What the parser read, as `Arguments` describes it.
+            stdio: Where the output and the errors go.
+
+        Returns:
+            The exit code, 0. Bare `wio templates` writes its help and loads no
+            config. `list` writes the templates to `stdio.stdout`, limited to
+            `--kind` when it is given, as one JSON array with `--json`, and
+            nothing for a declared kind with no templates.
+
+        Raises:
+            ConfigurationError: The config has an error.
+            TemplatesError: A template or the templates directory has an error,
+                which `list` refuses to list around: it carries the errors and
+                says that `wio templates check` shows every problem. Or `--kind`
+                names a kind that the config does not declare, and the message
+                names it and the declared kinds. The command line exits 2.
+        """
+        arguments = cast("Arguments", args)
+        if arguments.templates_view is None:
+            stdio.stdout.write(arguments.templates_help())
+            return 0
+        config = self._settings.load()
+        found = discover(self._repository.root(), config.templates, self._files)
+        _refuse_problems(found)
+        shown = _of_kind(found.templates, arguments.kind, config.templates)
+        stdio.stdout.write(render_list(shown, as_json=arguments.json))
+        return 0
+
+
+def _refuse_problems(found: Discovery) -> None:
+    """Refuse to list around a problem in the templates.
+
+    Args:
+        found: What the walk found.
+
+    Raises:
+        TemplatesError: The walk reported a diagnostic. Its message is the
+            diagnostics rendered, then a line that names `wio templates check`.
+    """
+    if found.diagnostics:
+        message = f"{render_text(found.diagnostics)}\n{_CHECK_HINT}"
+        raise TemplatesError(message, found.diagnostics)
+
+
+def _of_kind(
+    templates: Iterable[Template], kind: str | None, settings: Templates
+) -> tuple[Template, ...]:
+    """Limit the templates to one declared kind, or keep them all.
+
+    Args:
+        templates: The templates the walk found.
+        kind: The kind asked for, or `None` for every kind.
+        settings: The `[templates]` table, which declares the kinds.
+
+    Returns:
+        The templates of the kind, or all of them when no kind was asked for.
+
+    Raises:
+        TemplatesError: The kind is not declared.
+    """
+    if kind is None:
+        return tuple(templates)
+    _require_declared(kind, settings)
+    return tuple(template for template in templates if template.kind == kind)
+
+
+def _require_declared(kind: str, settings: Templates) -> None:
+    """Check that a kind is one that the config declares.
+
+    Args:
+        kind: The kind asked for.
+        settings: The `[templates]` table, which declares the kinds.
+
+    Raises:
+        TemplatesError: The kind is not declared; the message names it and the
+            declared kinds, or says that none is declared.
+    """
+    if kind in settings.kinds:
+        return
+    declared = ", ".join(f"`{name}`" for name in sorted(settings.kinds))
+    known = f"the declared kinds are {declared}" if declared else "none is declared"
+    message = f"Unknown kind `{kind}`; {known}"
+    raise TemplatesError(message)

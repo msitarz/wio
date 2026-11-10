@@ -93,6 +93,7 @@ depends_on = [
     "wio.env.adapters",
     "wio.ports",
     "wio.config",
+    "wio.templates",
     "wio.contracts",
     "wio.rules",
     "wio.trailers",
@@ -165,6 +166,7 @@ depends_on = [
     "wio.io",
     "wio.io.adapters",
     "wio.ports",
+    "wio.templates",
 ]
 
 # Integration tests meet the adapters, and the code that has something real

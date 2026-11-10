@@ -73,3 +73,30 @@ def test_listing_is_sorted_and_missing_paths_raise(tmp_path: Path) -> None:
         disk.list_dir(tmp_path / "missing")
     with pytest.raises(FileNotFoundError):
         disk.read_text(tmp_path / "missing")
+
+
+def test_a_symbolic_link_is_told_apart_from_the_file_it_points_to(
+    tmp_path: Path,
+) -> None:
+    """AC-1 of discovery: a link is a link, broken or not, and a file is not."""
+    # Given a file, a link to it, a link to nothing and a directory
+    (tmp_path / "file").write_text("x")
+    (tmp_path / "link").symlink_to(tmp_path / "file")
+    (tmp_path / "broken").symlink_to(tmp_path / "nothing")
+    (tmp_path / "dir").mkdir()
+    disk = LocalFileSystem()
+
+    # When each is asked whether it is a symbolic link
+    answers = {
+        name: disk.is_symlink(tmp_path / name)
+        for name in ("file", "link", "broken", "dir", "absent")
+    }
+
+    # Then only the two links are
+    assert answers == {
+        "file": False,
+        "link": True,
+        "broken": True,
+        "dir": False,
+        "absent": False,
+    }
