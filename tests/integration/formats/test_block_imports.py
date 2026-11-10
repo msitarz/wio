@@ -3,10 +3,8 @@
 
 import pytest
 
-PENDING = pytest.mark.skip(reason="Pending the implementation stage.")
 
-
-@PENDING
+@pytest.mark.skip(reason="Pending the implementation stage.")
 @pytest.mark.slow
 def test_reading_an_unmarked_text_does_not_import_tomllib() -> None:
     """AC-6: a text with no block loads no TOML decoder."""

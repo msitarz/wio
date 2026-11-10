@@ -3,10 +3,8 @@
 
 import pytest
 
-PENDING = pytest.mark.skip(reason="Pending the implementation stage.")
 
-
-@PENDING
+@pytest.mark.skip(reason="Pending the implementation stage.")
 def test_both_forms_give_their_form_version_data_and_body() -> None:
     """AC-1: each form is split into its parts and the body is kept as it was."""
     # Given a comment block, one with text after `-->`, one with CRLF and a
@@ -16,7 +14,7 @@ def test_both_forms_give_their_form_version_data_and_body() -> None:
     # those of the contract, and the body is the text from that line on
 
 
-@PENDING
+@pytest.mark.skip(reason="Pending the implementation stage.")
 def test_the_marker_is_optional_in_a_comment_and_checked_everywhere() -> None:
     """AC-2: an absent marker is version 1, and any marker but 1 is refused."""
     # Given comment blocks with no marker and with `wio = 1`, and blocks of both
@@ -26,7 +24,7 @@ def test_the_marker_is_optional_in_a_comment_and_checked_everywhere() -> None:
     # marker
 
 
-@PENDING
+@pytest.mark.skip(reason="Pending the implementation stage.")
 def test_a_text_that_is_not_marked_gives_nothing() -> None:
     """AC-3: a text without wio's block gives `None` and raises nothing."""
     # Given texts with no block, a late comment, `<!-- wiox` and front matter
@@ -35,7 +33,7 @@ def test_a_text_that_is_not_marked_gives_nothing() -> None:
     # Then each gives nothing
 
 
-@PENDING
+@pytest.mark.skip(reason="Pending the implementation stage.")
 def test_a_block_that_cannot_be_read_is_an_error_with_its_line() -> None:
     """AC-4: an unclosed or invalid block raises an error at its line."""
     # Given blocks that never close, that hold invalid TOML, or that close at
@@ -44,7 +42,7 @@ def test_a_block_that_cannot_be_read_is_an_error_with_its_line() -> None:
     # Then each raises an error that names the line of the text
 
 
-@PENDING
+@pytest.mark.skip(reason="Pending the implementation stage.")
 def test_line_endings_and_the_byte_order_mark_do_not_change_the_result() -> None:
     """AC-5: LF, CRLF and a leading U+FEFF read alike."""
     # Given one block of each form written three ways
