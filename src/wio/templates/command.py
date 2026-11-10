@@ -7,6 +7,7 @@ lazy from wio.formats import render_text
 lazy from wio.templates.discovery import discover
 lazy from wio.templates.errors import CHECK_HINT, TemplatesError
 lazy from wio.templates.listing import render_list
+lazy from wio.templates.show import show_skeleton
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -92,13 +93,14 @@ class TemplatesCommand:
         if arguments.templates_view is None:
             stdio.stdout.write(arguments.templates_help())
             return 0
-        if arguments.templates_view == "show":
-            # The wiring stage replaces this guard: `show` runs after the
-            # refusal of template errors, so that it composes below it.
-            raise NotImplementedError
+        root = self._repository.root()
         config = self._settings.load()
-        found = discover(self._repository.root(), config.templates, self._files)
+        found = discover(root, config.templates, self._files)
         _refuse_problems(found)
+        if arguments.templates_view == "show":
+            skeleton = show_skeleton(arguments.name, found, root, self._files)
+            stdio.stdout.write(skeleton)
+            return 0
         shown = _of_kind(found.templates, arguments.kind, config.templates)
         stdio.stdout.write(render_list(shown, as_json=arguments.json))
         return 0

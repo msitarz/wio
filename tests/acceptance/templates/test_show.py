@@ -31,15 +31,21 @@ def test_show_refuses_a_name_that_no_template_has(wio: Wio) -> None:
     # prints nothing to standard output and exits 2
 
 
-@pytest.mark.skip(reason="Pending the implementation stage.")
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_show_refuses_a_project_with_a_broken_neighbour(wio: Wio) -> None:
     """AC-3: a template error found by discovery refuses even a valid template."""
-    # Given a project with the valid `feature.leaf` and a template whose block
+    # Given a project with the valid `feature.draft` and a template whose block
     # does not close
-    # When `wio templates show feature.leaf` runs
+    wio.fixture("templates/broken")
+
+    # When `wio templates show feature.draft` runs
+    output = wio.run(["templates", "show", "feature.draft"])
+
     # Then it names the broken file and `wio templates check`, prints nothing to
     # standard output and exits 2
+    assert ".agents/wio/templates/broken.md:1" in output.stderr
+    assert "wio templates check" in output.stderr
+    assert (output.stdout, output.exit_code) == ("", 2)
 
 
 @pytest.mark.skip(reason="Pending the implementation stage.")
@@ -53,12 +59,24 @@ def test_show_names_the_line_and_column_of_a_bad_directive_list(wio: Wio) -> Non
     # output and exits 2
 
 
-@pytest.mark.skip(reason="Pending the implementation stage.")
 @pytest.mark.channels(Channel.CLI)
 def test_show_with_a_wrong_command_line_is_a_usage_mistake(wio: Wio) -> None:
     """AC-4: no name, two names and `--json` exit 2, and the help names `show`."""
     # Given a repository
+    wio.fixture("config/rich")
+
     # When `show`, `show a b` and `show feature.leaf --json` run, and then
     # `wio templates`
+    wrong = [
+        wio.run(["templates", "show"]),
+        wio.run(["templates", "show", "a", "b"]),
+        wio.run(["templates", "show", "feature.leaf", "--json"]),
+    ]
+    help_output = wio.run(["templates"])
+
     # Then each of the first three exits 2 with a usage message, and the help
     # names `show`
+    for output in wrong:
+        assert (output.exit_code, output.stdout) == (2, "")
+        assert "usage:" in output.stderr
+    assert "show" in help_output.stdout
