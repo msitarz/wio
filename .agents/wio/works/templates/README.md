@@ -56,8 +56,8 @@ reads a template must be one that the contracts command can reuse.
 
 - **A-1**: The config Work is delivered, so `[templates]` is loaded and checked
   in its shape and `wio config check` reads no template.
-- **A-2**: `tomlkit` can be added as a runtime dependency under the project's
-  `exclude-newer` guard.
+- **A-2**: `tomlkit` and `markdown-it-py` can be added as runtime dependencies
+  under the project's `exclude-newer` guard.
 - **A-3**: The contracts Work, delivered after this one, takes the block reader,
   the directive parser and the skeleton from `wio.formats` as they are.
 - **A-4**: Nothing wio imports at start-up, and nothing in the standard library
@@ -77,9 +77,8 @@ reads a template must be one that the contracts command can reuse.
 
 - `wio.formats`, which gains the reader of the metadata block, the parser of
   directives and the table of directives that it and `wio templates directives`
-  share, the outline of a Markdown body, which the outline leaf builds on
-  `markdown_it` or on a scanner of its own, the preparer of a skeleton and a
-  TOML writer on `tomlkit`.
+  share, the outline of a Markdown body, built on `markdown-it-py`, the preparer
+  of a skeleton and a TOML writer on `tomlkit`.
 - `wio.templates`, the component that finds the templates, builds a `Template`
   and judges it for `check`.
 - `wio.models`, which gains `Template`, `Directive` and the metadata block, the
