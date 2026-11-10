@@ -1,12 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 """Fakes of the ports that the unit tests of several components share."""
 
+import io
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
-lazy from pathlib import Path
+from pathlib import Path
+from typing import TYPE_CHECKING, TextIO
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+ROOT = Path("/repo")
 
 
 @dataclass
@@ -133,3 +136,60 @@ class MemoryFileSystem:
             if path in key.parents
         }
         return sorted(found)
+
+
+@dataclass
+class FakeRepository:
+    """A `Repository` whose root is fixed, or that is not inside a repository."""
+
+    top: Path | None = ROOT
+    message: str = "not inside a git repository: /elsewhere"
+
+    def root(self) -> Path:
+        """Find the root.
+
+        Returns:
+            The fixed root.
+
+        Raises:
+            RuntimeError: The fake is outside any repository.
+        """
+        if self.top is None:
+            raise RuntimeError(self.message)
+        return self.top
+
+    def identity(self) -> Path:
+        """Find the identity, which is the root's own `.git`.
+
+        Returns:
+            The path of the `.git` directory.
+        """
+        return self.root() / ".git"
+
+    def show_index(self, path: Path) -> str | None:  # noqa: ARG002
+        """Read a staged file; nothing is staged.
+
+        Args:
+            path: The file.
+
+        Returns:
+            None.
+        """
+        return None
+
+    def is_dirty(self) -> bool:
+        """Tell whether the tree is dirty; it never is.
+
+        Returns:
+            False.
+        """
+        return False
+
+
+@dataclass
+class FakeStdio:
+    """In-memory standard streams that satisfy the `Stdio` port."""
+
+    stdin: TextIO = field(default_factory=io.StringIO)
+    stdout: TextIO = field(default_factory=io.StringIO)
+    stderr: TextIO = field(default_factory=io.StringIO)

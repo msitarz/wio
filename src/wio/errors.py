@@ -20,14 +20,13 @@ class WioError(Exception):
     """
 
 
-class ConfigurationError(WioError):
-    """A problem with the settings that several components share.
+class DiagnosticsError(WioError):
+    """A `WioError` that keeps the diagnostics it was raised with.
 
-    Raised, for example, by `Settings.load` when the settings cannot be read.
-    It keeps the diagnostics it was raised with, in the order given, and
-    `str` of it is the message. An error that is given diagnostics has them
-    rendered, one `<severity>: <where>: <message>` line each, as its message, so
-    that the command line can write it as it is.
+    It keeps them in the order given, and `str` of it is the message. An error
+    that is given diagnostics has them rendered, one
+    `<severity>: <where>: <message>` line each, as its message, so that the
+    command line can write it as it is.
 
     Attributes:
         diagnostics: The findings that caused the error; empty when it has
@@ -46,3 +45,10 @@ class ConfigurationError(WioError):
         """
         super().__init__(message)
         self.diagnostics = tuple(diagnostics)
+
+
+class ConfigurationError(DiagnosticsError):
+    """A problem with the settings that several components share.
+
+    Raised, for example, by `Settings.load` when the settings cannot be read.
+    """

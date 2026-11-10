@@ -1,11 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Fakes of the ports the loader reads through, for the tests of `wio.config`."""
 
-from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING
 
-from tests.unit.fakes import MemoryFileSystem
+from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
 from wio.config import CHECKS, load_config
 from wio.models.config import Config, Gates, Skills, Templates, Works
 from wio.models.frozen import freeze
@@ -17,56 +15,7 @@ if TYPE_CHECKING:
     from wio.models.config import Action, Root, RulePreset, Ruleset, Stage
     from wio.models.diagnostics import Diagnostic
 
-ROOT = Path("/repo")
 CONFIG = ROOT / ".agents" / "wio" / "config.toml"
-
-
-@dataclass
-class FakeRepository:
-    """A `Repository` whose root is fixed, or that is not inside a repository."""
-
-    top: Path | None = ROOT
-    message: str = "not inside a git repository: /elsewhere"
-
-    def root(self) -> Path:
-        """Find the root.
-
-        Returns:
-            The fixed root.
-
-        Raises:
-            RuntimeError: The fake is outside any repository.
-        """
-        if self.top is None:
-            raise RuntimeError(self.message)
-        return self.top
-
-    def identity(self) -> Path:
-        """Find the identity, which is the root's own `.git`.
-
-        Returns:
-            The path of the `.git` directory.
-        """
-        return self.root() / ".git"
-
-    def show_index(self, path: Path) -> str | None:  # noqa: ARG002
-        """Read a staged file; nothing is staged.
-
-        Args:
-            path: The file.
-
-        Returns:
-            None.
-        """
-        return None
-
-    def is_dirty(self) -> bool:
-        """Tell whether the tree is dirty; it never is.
-
-        Returns:
-            False.
-        """
-        return False
 
 
 def load_text(text: str, checks: Sequence[Check] = ()) -> Loaded:

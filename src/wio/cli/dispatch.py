@@ -7,7 +7,7 @@ import importlib.metadata
 import traceback
 from typing import TYPE_CHECKING
 
-from wio.errors import ConfigurationError, WioError
+from wio.errors import DiagnosticsError, WioError
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -139,7 +139,7 @@ def _report(error: WioError) -> str:
         message is the diagnostics rendered one to a line with their own
         severity, so it is written as it is.
     """
-    if isinstance(error, ConfigurationError) and error.diagnostics:
+    if isinstance(error, DiagnosticsError) and error.diagnostics:
         return str(error)
     return f"error: {error}"
 
