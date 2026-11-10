@@ -64,3 +64,12 @@ def test_only_the_environment_adapter_may_read_the_working_directory() -> None:
         "src/wio/env/probe.py": 3,
         "src/wio/env/adapters.py": 0,
     }
+
+
+@pytest.mark.skip(reason="Pending the implementation stage.")
+@pytest.mark.slow
+def test_only_wio_formats_may_import_markdown_it() -> None:
+    """AC-5: ruff reports an import of the Markdown parser outside `wio.formats`."""
+    # Given a probe file that imports `markdown_it`
+    # When it is linted as a file of wio.templates and of wio.formats
+    # Then it is reported for the first and not for the second
