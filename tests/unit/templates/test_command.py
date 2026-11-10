@@ -8,6 +8,7 @@ lazy from pathlib import Path
 import pytest
 
 from tests.unit.fakes import ROOT, FakeRepository, FakeStdio, MemoryFileSystem
+from wio.errors import ConfigurationError
 from wio.models.config import Config, Templates
 from wio.models.frozen import freeze
 from wio.templates import TemplatesCommand, TemplatesError
@@ -188,3 +189,36 @@ def test_a_template_error_refuses_show_whatever_the_name() -> None:
         message = str(caught.value)
         assert "error: .agents/wio/templates/broken.md:1:" in message
         assert CHECK_HINT in message
+
+
+class _RefusingSettings:
+    """A `Settings` that refuses as the config loader does outside a repository."""
+
+    def load(self) -> Config:
+        """Refuse.
+
+        Raises:
+            ConfigurationError: Always, as for a directory outside any repository.
+        """
+        message = "not inside a git repository"
+        raise ConfigurationError(message)
+
+
+@pytest.mark.parametrize("view", ["list", "show"])
+def test_a_directory_outside_a_repository_is_a_refusal_not_a_bug(view: str) -> None:
+    """AC-3: the config is loaded before the root, so its refusal is the one given."""
+    # Given a settings port that refuses, and a repository port that raises a
+    # `RuntimeError` when asked for its root
+    command = TemplatesCommand(
+        _RefusingSettings(), FakeRepository(top=None), MemoryFileSystem()
+    )
+    args = Namespace(
+        templates_view=view, templates_help=lambda: "usage", kind=None, name="x"
+    )
+
+    # When `list` or `show` runs
+    with pytest.raises(ConfigurationError) as caught:
+        command.run(args, FakeStdio())
+
+    # Then the refusal of the config is raised, not the error of the repository
+    assert "not inside a git repository" in str(caught.value)

@@ -93,8 +93,8 @@ class TemplatesCommand:
         if arguments.templates_view is None:
             stdio.stdout.write(arguments.templates_help())
             return 0
-        root = self._repository.root()
         config = self._settings.load()
+        root = self._repository.root()
         found = discover(root, config.templates, self._files)
         _refuse_problems(found)
         if arguments.templates_view == "show":
