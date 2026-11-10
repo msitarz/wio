@@ -85,8 +85,9 @@ grammar is.
   escape of its own, so `-->` cannot occur inside a list.
 - **An error names a column.** It is counted from 1 on the heading's line and is
   the first character of the offending token: the name, the operator or the
-  value, the opener of a list that does not close or of a second list, or the
-  first character after the list.
+  value, the opener of a list that does not close or of a second list, the
+  first character after the list, or the closing `-->` of a list that ends with
+  a comma.
 - **The parser touches no file.** It takes a line and returns data or raises,
   which its signature, fixed at the architecture stage, shows and its review
   judges.
@@ -169,8 +170,8 @@ directives, and a line that is not a heading gives `None`.
 ### **AC-4** A list with a wrong name or shape is an error with its column
 
 An unknown name, a name in the wrong case, a name written twice, an empty list,
-a list that does not close on its line, text after a list and two lists on one
-heading are errors.
+a list that ends with a comma, a list that does not close on its line, text
+after a list and two lists on one heading are errors.
 
 #### The wrong lists
 
@@ -178,13 +179,15 @@ heading are errors.
   `## B <!-- wio: Required -->`, `## D <!-- wio: required, required -->`,
   `## E <!-- wio: -->`, `## S <!-- wio: required,`,
   `## T <!-- wio: required --> tail` and
-  `## U <!-- wio: required --> <!-- wio: inherit -->`.
+  `## U <!-- wio: required --> <!-- wio: inherit -->` and
+  `## V <!-- wio: required, -->`.
 - **When** the parser reads each.
 - **Then** each raises an error that says what is wrong and names, in turn,
-  columns 16, 16, 26, 16, 6, 29 and 29; the one for the unclosed list says that
-  a list must close on the line of its heading, the one for text after the list
-  that a list must end its heading, and the one for two lists that there is one
-  list to a heading.
+  columns 16, 16, 26, 16, 6, 29, 29 and 26; the one for the unclosed list says
+  that a list must close on the line of its heading, the one for text after the
+  list that a list must end its heading, the one for two lists that there is one
+  list to a heading, and the one for the trailing comma that a directive name is
+  expected there.
 
 ### **AC-5** A directive with a wrong value is an error with its column
 
