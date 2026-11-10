@@ -121,6 +121,17 @@ class LocalFileSystem:
         """
         return path.is_file()
 
+    def is_symlink(self, path: Path) -> bool:
+        """Tell whether a path is a symbolic link, whatever it points to.
+
+        Args:
+            path: Any path.
+
+        Returns:
+            True when the path is a symbolic link, also one that is broken.
+        """
+        return path.is_symlink()
+
     def list_dir(self, path: Path) -> Sequence[Path]:
         """List a directory's entries.
 

@@ -28,6 +28,7 @@ class MemoryFileSystem:
     """
 
     files: dict[Path, str] = field(default_factory=dict)
+    links: set[Path] = field(default_factory=set)
     failure: Exception | None = None
     calls: list[tuple[str, Path]] = field(default_factory=list)
 
@@ -113,6 +114,17 @@ class MemoryFileSystem:
             True when the path is a key.
         """
         return self.exists(path)
+
+    def is_symlink(self, path: Path) -> bool:
+        """Tell whether a path was given as a symbolic link.
+
+        Args:
+            path: Any path.
+
+        Returns:
+            True when the path is in `links`.
+        """
+        return path in self.links
 
     def list_dir(self, path: Path) -> Sequence[Path]:
         """List the stored files and the directories directly under a path.
