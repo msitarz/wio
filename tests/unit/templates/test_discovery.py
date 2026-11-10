@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of the discovery of templates in `wio.templates`."""
 
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -16,30 +15,6 @@ if TYPE_CHECKING:
     from wio.templates import Discovery
 
 DIR = ROOT / ".agents" / "wio" / "templates"
-
-
-@dataclass
-class _Disk(MemoryFileSystem):
-    """A memory file system in which some files cannot be read as text."""
-
-    broken: dict[Path, Exception] = field(default_factory=dict)
-
-    @override
-    def read_text(self, path: Path) -> str:
-        """Read a file, or fail as the test arranged.
-
-        Args:
-            path: The file.
-
-        Returns:
-            Its text.
-
-        Raises:
-            Exception: The failure that was arranged for the path.
-        """
-        if path in self.broken:
-            raise self.broken[path]
-        return super().read_text(path)
 
 
 def _block(*lines: str) -> str:
@@ -171,7 +146,7 @@ def test_a_file_with_a_problem_is_an_error_and_the_other_templates_stay(
 def test_a_file_that_cannot_be_read_is_an_error(error: Exception, message: str) -> None:
     """AC-3: a file that cannot be read or decoded is an error that names it."""
     # Given a file that raises when it is read, and a valid template
-    disk = _Disk(
+    disk = MemoryFileSystem(
         {DIR / "a.md": "x", DIR / "b.md": _block('kind = "feature"')},
         broken={DIR / "a.md": error},
     )

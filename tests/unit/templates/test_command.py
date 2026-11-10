@@ -8,9 +8,11 @@ lazy from pathlib import Path
 import pytest
 
 from tests.unit.fakes import ROOT, FakeRepository, FakeStdio, MemoryFileSystem
+from wio.errors import ConfigurationError
 from wio.models.config import Config, Templates
 from wio.models.frozen import freeze
 from wio.templates import TemplatesCommand, TemplatesError
+from wio.templates.errors import CHECK_HINT
 
 DIR = ROOT / ".agents" / "wio" / "templates"
 BLOCK = '<!-- wio\nkind = "{}"\n-->\n\n# Title\n'
@@ -33,12 +35,15 @@ class _Settings:
         return self.config
 
 
-def _run(files: dict[Path, str], kind: str | None = None) -> tuple[FakeStdio, int]:
-    """Run `wio templates list` over files and a config that declares two kinds.
+def _run(
+    files: dict[Path, str], kind: str | None = None, show: str | None = None
+) -> tuple[FakeStdio, int]:
+    """Run `wio templates` over files and a config that declares two kinds.
 
     Args:
         files: The stored files.
-        kind: The value of `--kind`, or `None`.
+        kind: The value of `--kind` for `list`, or `None`.
+        show: The name that `show` is given, or `None` to run `list`.
 
     Returns:
         The streams and the exit code.
@@ -48,7 +53,11 @@ def _run(files: dict[Path, str], kind: str | None = None) -> tuple[FakeStdio, in
     command = TemplatesCommand(settings, FakeRepository(), MemoryFileSystem(files))
     streams = FakeStdio()
     args = Namespace(
-        templates_view="list", templates_help=lambda: "usage", kind=kind, json=False
+        templates_view="list" if show is None else "show",
+        templates_help=lambda: "usage",
+        kind=kind,
+        json=False,
+        name=show,
     )
     return streams, command.run(args, streams)
 
@@ -161,3 +170,55 @@ def test_a_template_error_is_reported_before_an_undeclared_kind() -> None:
     # Then the error is the one of the template, not of the kind
     assert "broken.md" in str(caught.value)
     assert "nosuch" not in str(caught.value)
+
+
+def test_a_template_error_refuses_show_whatever_the_name() -> None:
+    """AC-3: a broken neighbour refuses even a valid template, before the name."""
+    # Given a valid template and one whose block does not close
+    files: dict[Path, str] = {
+        DIR / "feature.draft.md": BLOCK.format("feature"),
+        DIR / "broken.md": "<!-- wio\nkind = 'x'\n",
+    }
+
+    # When `show` runs for the valid template and for a name that does not exist
+    for name in ("feature.draft", "nosuch"):
+        with pytest.raises(TemplatesError) as caught:
+            _run(files, show=name)
+
+        # Then each is refused with the error of the broken file and the hint
+        message = str(caught.value)
+        assert "error: .agents/wio/templates/broken.md:1:" in message
+        assert CHECK_HINT in message
+
+
+class _RefusingSettings:
+    """A `Settings` that refuses as the config loader does outside a repository."""
+
+    def load(self) -> Config:
+        """Refuse.
+
+        Raises:
+            ConfigurationError: Always, as for a directory outside any repository.
+        """
+        message = "not inside a git repository"
+        raise ConfigurationError(message)
+
+
+@pytest.mark.parametrize("view", ["list", "show"])
+def test_a_directory_outside_a_repository_is_a_refusal_not_a_bug(view: str) -> None:
+    """AC-3: the config is loaded before the root, so its refusal is the one given."""
+    # Given a settings port that refuses, and a repository port that raises a
+    # `RuntimeError` when asked for its root
+    command = TemplatesCommand(
+        _RefusingSettings(), FakeRepository(top=None), MemoryFileSystem()
+    )
+    args = Namespace(
+        templates_view=view, templates_help=lambda: "usage", kind=None, name="x"
+    )
+
+    # When `list` or `show` runs
+    with pytest.raises(ConfigurationError) as caught:
+        command.run(args, FakeStdio())
+
+    # Then the refusal of the config is raised, not the error of the repository
+    assert "not inside a git repository" in str(caught.value)

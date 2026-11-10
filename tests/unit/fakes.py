@@ -21,6 +21,7 @@ class MemoryFileSystem:
 
     files: dict[Path, str] = field(default_factory=dict)
     links: set[Path] = field(default_factory=set)
+    broken: dict[Path, Exception] = field(default_factory=dict)
     failure: Exception | None = None
     calls: list[tuple[str, Path]] = field(default_factory=list)
 
@@ -35,10 +36,13 @@ class MemoryFileSystem:
 
         Raises:
             FileNotFoundError: The path is not a key.
-            Exception: The `failure` the fake was given, whatever the path.
+            Exception: The `failure` the fake was given, whatever the path, or the
+                one it was given for this path in `broken`.
         """
         if self.failure is not None:
             raise self.failure
+        if path in self.broken:
+            raise self.broken[path]
         if path not in self.files:
             raise FileNotFoundError(path)
         return self.files[path]

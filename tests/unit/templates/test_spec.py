@@ -3,6 +3,8 @@
 
 from argparse import ArgumentParser
 
+import pytest
+
 from wio.templates import describe
 
 
@@ -42,3 +44,45 @@ def test_bare_templates_has_no_view_and_a_help_that_names_list() -> None:
     # Then there is no view, and the help names `list`
     assert args.templates_view is None
     assert "list" in args.templates_help()
+
+
+def test_show_reads_one_name() -> None:
+    """AC-4: `show feature.leaf` sets the view and the name, and takes no option."""
+    # Given the parser of `wio templates`
+    parser = _parser()
+
+    # When `show` is parsed with a name
+    args = parser.parse_args(["show", "feature.leaf"])
+
+    # Then the view is `show` and the name is the one given
+    assert (args.templates_view, args.name) == ("show", "feature.leaf")
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [["show"], ["show", "a", "b"], ["show", "feature.leaf", "--json"]],
+    ids=["no-name", "two-names", "json"],
+)
+def test_show_with_a_wrong_command_line_is_a_usage_mistake(argv: list[str]) -> None:
+    """AC-4: no name, two names and `--json` exit 2 with a usage message."""
+    # Given the parser of `wio templates`
+    parser = _parser()
+
+    # When a wrong command line is parsed
+    with pytest.raises(SystemExit) as caught:
+        parser.parse_args(argv)
+
+    # Then the parser exits with the code of a usage mistake
+    assert caught.value.code == 2
+
+
+def test_the_help_of_templates_names_show() -> None:
+    """AC-4: the usage of `wio templates` lists `show`."""
+    # Given the parser of `wio templates`
+    parser = _parser()
+
+    # When its help is formatted
+    help_text = parser.format_help()
+
+    # Then it names `show`
+    assert "show" in help_text

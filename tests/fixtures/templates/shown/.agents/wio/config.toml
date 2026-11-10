@@ -1,0 +1,4 @@
+# A project with the kind `feature` and two templates to show.
+
+[templates.kinds]
+feature = "feature.leaf"

@@ -606,11 +606,19 @@ A contract created from a template therefore has exactly the shape the template
 describes, and the agent that fills it in sees that shape.
 `wio templates show <name>` prints that prepared skeleton without creating a
 Work, so a skill can name a template and show it to the agent without knowing
-which file holds it. That skeleton has the `template` key and no `id`, whereas
+which file holds it. It prints the bare skeleton, with nothing around it on
+standard output and nothing on standard error, and the output is the same on
+every run. That skeleton has the `template` key and no `id`, whereas
 `wio contracts new` adds the `id` when it writes the contract: pasted as it is,
-the skeleton fails `wio contracts check`, and the output is the same on every
-run. With
-`--work <id>`, it is the skeleton for that existing Work: `template` is the
+the skeleton fails `wio contracts check`. The name is the template's name, with
+its case, and a name that no template has is an error that lists the names that
+exist. A project with a template error is refused, as `wio templates list`
+refuses it.
+
+Carrying an existing Work's identity into a skeleton belongs to `wio contracts`,
+and `--work` and `--keep` are not options of `wio templates show`. With
+`--work <id>`, a skeleton of `wio contracts` is the one for that existing Work:
+`template` is the
 requested template, and the Work's `id` and `depends_on` are carried over,
 because they are its identity and its ordering in any template. Everything else
 comes from the new template's defaults. `--keep <key>`, which can be repeated,
@@ -619,8 +627,8 @@ roots and its action overrides. wio knows no procedure for moving between
 templates, so it never decides what else to keep: the skill that knows its
 templates does. On standard error, wio lists the Work's metadata the skeleton
 does not carry, so nothing is dropped silently; standard output stays the
-skeleton. A stage that moves a Work to another template uses `--work`, so the
-Work keeps its id and its records.
+skeleton. A stage that moves a Work to another template uses `wio contracts`
+with `--work`, so the Work keeps its id and its records.
 
 ### Kinds and entry templates
 
@@ -669,11 +677,12 @@ template can also be chosen by name.
 
 How a Work moves from its entry template to another one, for example from a
 draft to a leaf or a parent, is a procedure of the stages that define it. wio
-does not know about it. It only checks the result. So a kind's templates and
-the skills of its define stages are written together, as one package: the
-skills know which templates the kind has, name them, and print them with
-`wio templates show <name> --work <id>`, and the agent rewrites the contract
-in the chosen shape. wio does not rewrite contracts itself.
+does not know about it. It only checks the result. So a kind's templates and the
+skills of its define stages are written together, as one package: the skills
+know which templates the kind has, name them, and print them with
+`wio templates show <name>`, and the agent rewrites the contract in the chosen
+shape, keeping the Work's identity with `wio contracts`. wio does not rewrite
+contracts itself.
 
 `wio templates list` prints the templates grouped by kind, kinds and names in
 sorted order, each template on a line with its name, an `[entry]` mark where

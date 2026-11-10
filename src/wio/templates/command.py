@@ -3,10 +3,10 @@
 
 from typing import TYPE_CHECKING, Literal, cast
 
-lazy from wio.formats import render_text
 lazy from wio.templates.discovery import discover
-lazy from wio.templates.errors import TemplatesError
+lazy from wio.templates.errors import TemplatesError, refusal
 lazy from wio.templates.listing import render_list
+lazy from wio.templates.show import show_skeleton
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -18,8 +18,6 @@ if TYPE_CHECKING:
     from wio.ports import Settings
     from wio.templates.discovery import Discovery
 
-_CHECK_HINT = "`wio templates check` shows every problem."
-
 
 class Arguments:
     """The attributes of the parsed arguments that `TemplatesCommand.run` reads.
@@ -29,7 +27,7 @@ class Arguments:
     them.
     """
 
-    templates_view: Literal["list"] | None
+    templates_view: Literal["list", "show"] | None
     """The subcommand chosen, `None` for bare `wio templates`."""
 
     templates_help: Callable[[], str]
@@ -42,9 +40,12 @@ class Arguments:
     json: bool
     """Whether `list` writes JSON; present for `list`."""
 
+    name: str
+    """The name of the template that `show` prints; present for `show`."""
+
 
 class TemplatesCommand:
-    """Runs `wio templates`: its help, and `list` for the templates."""
+    """Runs `wio templates`: its help, `list` and `show` for the templates."""
 
     def __init__(
         self, settings: Settings, repository: Repository, files: FileSystem
@@ -72,23 +73,33 @@ class TemplatesCommand:
             The exit code, 0. Bare `wio templates` writes its help and loads no
             config. `list` writes the templates to `stdio.stdout`, limited to
             `--kind` when it is given, as one JSON array with `--json`, and
-            nothing for a declared kind with no templates.
+            nothing for a declared kind with no templates. `show` writes the
+            skeleton of the template with the name, exactly as it is prepared,
+            to `stdio.stdout` and nothing to `stdio.stderr`.
 
         Raises:
             ConfigurationError: The config has an error.
             TemplatesError: A template or the templates directory has an error,
-                which `list` refuses to list around: it carries the errors and
-                says that `wio templates check` shows every problem. Or `--kind`
-                names a kind that the config does not declare, and the message
-                names it and the declared kinds. The command line exits 2.
+                which `list` and `show` refuse to work around: it carries the
+                errors and says that `wio templates check` shows every problem.
+                Or `--kind` names a kind that the config does not declare, and
+                the message names it and the declared kinds. Or `show` names a
+                template that does not exist, and the message names it and lists
+                the names that exist; or preparing the skeleton failed, which
+                `show_skeleton` words. The command line exits 2.
         """
         arguments = cast("Arguments", args)
         if arguments.templates_view is None:
             stdio.stdout.write(arguments.templates_help())
             return 0
         config = self._settings.load()
-        found = discover(self._repository.root(), config.templates, self._files)
+        root = self._repository.root()
+        found = discover(root, config.templates, self._files)
         _refuse_problems(found)
+        if arguments.templates_view == "show":
+            skeleton = show_skeleton(arguments.name, found, root, self._files)
+            stdio.stdout.write(skeleton)
+            return 0
         shown = _of_kind(found.templates, arguments.kind, config.templates)
         stdio.stdout.write(render_list(shown, as_json=arguments.json))
         return 0
@@ -105,8 +116,7 @@ def _refuse_problems(found: Discovery) -> None:
             diagnostics rendered, then a line that names `wio templates check`.
     """
     if found.diagnostics:
-        message = f"{render_text(found.diagnostics)}\n{_CHECK_HINT}"
-        raise TemplatesError(message, found.diagnostics)
+        raise refusal(found.diagnostics)
 
 
 def _of_kind(
