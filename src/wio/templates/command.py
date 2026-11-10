@@ -3,9 +3,14 @@
 
 from typing import TYPE_CHECKING, Literal, cast
 
+lazy from wio.formats import COMBINING, DIRECTIVES
 lazy from wio.templates.discovery import discover
 lazy from wio.templates.errors import TemplatesError, refusal
 lazy from wio.templates.listing import render_list
+
+# Named for what `run` prints, which also keeps this block of imports from
+# repeating the package's own, line for line.
+lazy from wio.templates.reference import render_reference as render_directives
 lazy from wio.templates.show import show_skeleton
 
 if TYPE_CHECKING:
@@ -27,7 +32,7 @@ class Arguments:
     them.
     """
 
-    templates_view: Literal["list", "show"] | None
+    templates_view: Literal["list", "show", "directives"] | None
     """The subcommand chosen, `None` for bare `wio templates`."""
 
     templates_help: Callable[[], str]
@@ -38,14 +43,14 @@ class Arguments:
     """The kind that `list` is limited to; present for `list`."""
 
     json: bool
-    """Whether `list` writes JSON; present for `list`."""
+    """Whether `list` or `directives` writes JSON; present for both."""
 
     name: str
     """The name of the template that `show` prints; present for `show`."""
 
 
 class TemplatesCommand:
-    """Runs `wio templates`: its help, `list` and `show` for the templates."""
+    """Runs `wio templates`: its help, `list`, `show` and `directives`."""
 
     def __init__(
         self, settings: Settings, repository: Repository, files: FileSystem
@@ -75,7 +80,10 @@ class TemplatesCommand:
             `--kind` when it is given, as one JSON array with `--json`, and
             nothing for a declared kind with no templates. `show` writes the
             skeleton of the template with the name, exactly as it is prepared,
-            to `stdio.stdout` and nothing to `stdio.stderr`.
+            to `stdio.stdout` and nothing to `stdio.stderr`. `directives` writes
+            the table of the directive grammar, as an indented list or as one
+            JSON array with `--json`, and reads no config, no repository and no
+            file of the project, so it works anywhere.
 
         Raises:
             ConfigurationError: The config has an error.
@@ -91,6 +99,12 @@ class TemplatesCommand:
         arguments = cast("Arguments", args)
         if arguments.templates_view is None:
             stdio.stdout.write(arguments.templates_help())
+            return 0
+        if arguments.templates_view == "directives":
+            # Before the config is loaded: the table is the parser's, and the
+            # command reads nothing of the project, so it works anywhere.
+            text = render_directives(DIRECTIVES, COMBINING, as_json=arguments.json)
+            stdio.stdout.write(text)
             return 0
         config = self._settings.load()
         root = self._repository.root()

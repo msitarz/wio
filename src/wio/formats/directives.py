@@ -48,6 +48,22 @@ DIRECTIVES: tuple[DirectiveSpec, ...] = (
 )
 """Every directive in the order `required`, `items`, `pattern`, `inherit`."""
 
+COMBINING: tuple[DirectiveSpec, ...] = (
+    DirectiveSpec(
+        name="several directives",
+        syntax="<!-- wio: <directive>, <directive>, ... -->",
+        meaning=(
+            "Write them in one comment at the end of the heading, separated by "
+            "commas. All of them apply to the section. A heading has one such "
+            "comment, and each directive is named once."
+        ),
+        examples=(
+            "## Acceptance criteria <!-- wio: required, items>=1, pattern=AC-\\d+ -->",
+        ),
+    ),
+)
+"""How directives combine in one comment, with an entry of the table's shape."""
+
 
 _HEADING = re.compile(r"(#{1,6})\s+")
 _OPENER = re.compile(r"<!--\s*wio:\s*")

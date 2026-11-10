@@ -86,3 +86,45 @@ def test_the_help_of_templates_names_show() -> None:
 
     # Then it names `show`
     assert "show" in help_text
+
+
+@pytest.mark.parametrize(
+    ("argv", "as_json"),
+    [(["directives"], False), (["directives", "--json"], True)],
+    ids=["text", "json"],
+)
+def test_directives_reads_only_its_json_flag(argv: list[str], *, as_json: bool) -> None:
+    """AC-5: `directives` sets its view and the flag, and takes nothing else."""
+    # Given the parser of `wio templates`
+    parser = _parser()
+
+    # When `directives` is parsed, with and without `--json`
+    args = parser.parse_args(argv)
+
+    # Then the view is `directives` and the flag is as given
+    assert (args.templates_view, args.json) == ("directives", as_json)
+
+
+def test_directives_with_another_argument_is_a_usage_mistake() -> None:
+    """AC-5: `directives extra` exits 2 with a usage message."""
+    # Given the parser of `wio templates`
+    parser = _parser()
+
+    # When `directives` is parsed with an extra argument
+    with pytest.raises(SystemExit) as caught:
+        parser.parse_args(["directives", "extra"])
+
+    # Then the parser exits with the code of a usage mistake
+    assert caught.value.code == 2
+
+
+def test_the_help_of_templates_names_directives() -> None:
+    """AC-5: the usage of `wio templates` lists `directives`."""
+    # Given the parser of `wio templates`
+    parser = _parser()
+
+    # When its help is formatted
+    help_text = parser.format_help()
+
+    # Then it names `directives`
+    assert "directives" in help_text

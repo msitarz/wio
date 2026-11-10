@@ -196,8 +196,8 @@ any repository.
 - **When** `wio templates directives` and `wio templates directives --json` run
   there.
 - **Then** the first prints every directive of the grammar with its syntax,
-  meaning and its examples, and the second prints the same as one JSON array;
-  each exits 0.
+  meaning and its examples, and how directives combine, and the second prints
+  the same as one JSON object; each exits 0.
 
 ### **AC-2** A run that reads no skeleton or body loads no writer or parser
 
