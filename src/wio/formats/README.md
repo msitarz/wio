@@ -4,7 +4,7 @@ The pure codecs between text and the shared types. A codec reads or writes text,
 touches no file and raises a `WioError` when the text is wrong, so a model in
 `wio.models` never raises. The
 [v0.1 scope](../../../docs/v0.1-scope.md#wioformats-internal) lists what the
-package will hold.
+package holds.
 
 ## The TOML decoder
 
@@ -13,6 +13,10 @@ reads goes through it, so a person or an agent learns where a syntax error is
 without searching. It reads TOML and does not judge the data: whether a value is
 a date or a string is the caller's. Its docstring and that of
 [`TomlSyntaxError`](errors.py) say what it returns and raises.
+
+`encode_toml` in [`writer.py`](writer.py) is the one writer. So only this
+package imports `tomllib` and `tomlkit`, and ruff's `banned-api` reports an
+import of either anywhere else.
 
 ## The metadata block reader
 

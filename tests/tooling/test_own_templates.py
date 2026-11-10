@@ -100,6 +100,7 @@ def test_the_skeleton_of_the_parent_template_has_no_template_only_keys() -> None
     # Then its block has no `name`, `kind`, `shape`, `description` or `actions`,
     # its body has no directive comment, and nothing else is written
     block = out.removeprefix("<!-- wio\n").split("\n-->\n", maxsplit=1)[0]
+    assert out.startswith('<!-- wio\ntemplate = "feature.parent"\n')
     keys = set(tomllib.loads(block))
     assert keys.isdisjoint({"name", "kind", "shape", "description", "actions"})
     assert "template" in keys

@@ -461,7 +461,9 @@ def test_the_installed_wheel_lists_shows_and_checks_templates(
     assert lines[0] == "feature"
     assert lines[1].split()[:2] == ["feature.draft", "[entry]"]
     assert any(line.split()[:1] == ["feature.leaf"] for line in lines[2:])
-    assert shown.stdout.startswith('<!-- wio\ntemplate = "feature.leaf"\n')
+    assert shown.stdout == (
+        '<!-- wio\ntemplate = "feature.leaf"\nroots = []\n-->\n\n# Title\n\n## Goals\n'
+    )
     assert checked.stdout == "The templates pass.\n"
     assert [r.returncode for r in (listed, shown, checked)] == [0, 0, 0]
 
@@ -504,4 +506,8 @@ def test_the_installed_wheel_explains_the_directives_outside_a_repository(
         "inherit",
     ]
     assert data["combining"][0]["name"] == "several directives"
+    for entry in [*data["directives"], *data["combining"]]:
+        assert entry["syntax"]
+        assert entry["meaning"]
+        assert entry["examples"]
     assert (text.returncode, machine.returncode) == (0, 0)
