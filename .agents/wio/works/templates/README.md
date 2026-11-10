@@ -19,6 +19,9 @@ reads a template must be one that the contracts command can reuse.
   with the entry template of each kind marked.
 - An agent can print any template as the contract skeleton to rewrite a
   contract in, with nothing around it.
+- A person or an agent can learn from the command line which directives a
+  template may use, with their syntax and an example, even outside a
+  repository.
 - A person or an agent that edits a template is told what is wrong with it.
 - An agent that edits a template, and a commit that changes one, is told of a
   problem in the project's templates at once.
@@ -61,13 +64,14 @@ reads a template must be one that the contracts command can reuse.
 ## Mechanisms
 
 - `wio.formats`, which gains the reader of the metadata block, the parser of
-  directives, the preparer of a skeleton and a TOML writer on `tomlkit`.
+  directives and the table of directives that it and `wio templates directives`
+  share, the preparer of a skeleton and a TOML writer on `tomlkit`.
 - `wio.templates`, the component that finds the templates, builds a `Template`
   and judges it for `check`.
 - `wio.models`, which gains `Template`, `Directive` and the metadata block, the
   plain types that the codecs and the component pass to each other.
-- `wio.cli`'s table of commands, which gains `templates` with `list`, `show` and
-  `check`.
+- `wio.cli`'s table of commands, which gains `templates` with `list`, `show`,
+  `check` and `directives`.
 - The `FileSystem` port of `wio.io` and the `Settings` port of `wio.ports`,
   which the component reads files and the config through.
 - The `PostToolUse` entry of `.claude/settings.json` and the `wio-templates`
@@ -93,6 +97,8 @@ reads a template must be one that the contracts command can reuse.
   ([known issues](../../../../docs/known-issues.md)).
 - **Verification.** What a run imports is verified by AC-2, the output of
   `list` and `show` by the criteria of the discovery and show leaves, the
+  grammar that `directives` prints by the criteria of the directives and
+  directives reference leaves, the
   problems that `check` reports by the criteria of the check leaf, the hooks
   by AC-4 and the criteria of the hooks leaf, and the
   dependency direction by the review of each child and by `tach check`.
@@ -126,10 +132,11 @@ flowchart LR
 
 ## Acceptance criteria
 
-### **AC-1** The installed package lists, shows and checks templates
+### **AC-1** The installed package lists, shows, checks and explains templates
 
-The built wheel gives a working `wio templates list`, `show` and `check` in a
-project that is not this repository.
+The built wheel gives a working `wio templates list`, `show`, `check` and
+`directives` in a project that is not this repository, and `directives` outside
+any repository.
 
 #### The installed command
 
@@ -142,6 +149,15 @@ project that is not this repository.
 - **Then** the first prints the kind `feature` with its two templates and marks
   `feature.draft` as the entry, the second prints the skeleton of
   `feature.leaf`, and the third passes; each exits 0.
+
+#### Outside a repository
+
+- **Given** the same wheel and a directory that is not in a git repository.
+- **When** `wio templates directives` and `wio templates directives --json` run
+  there.
+- **Then** the first prints every directive of the grammar with its syntax,
+  meaning and an example, and the second prints the same as one JSON array; each
+  exits 0.
 
 ### **AC-2** A run that reads no skeleton loads no writer
 
@@ -205,7 +221,7 @@ templates have an error.
 `docs/concepts.md`, `docs/v0.1-scope.md`, `docs/workflow.md`,
 `src/wio/formats/README.md` and `GLOSSARY.md` state what the command, the hooks
 and the codecs do as they are. They name
-the three subcommands, `list --kind`, the entry marker and the grouped layout,
+the four subcommands, `list --kind`, the entry marker and the grouped layout,
 and the bare skeleton that `show` prints. They say a template is named by its
 file and has no `name` key, that the quoted form of `pattern` is the way to
 write a comma, and that `wio.formats` holds the block reader, the directive
@@ -223,4 +239,5 @@ of a `pattern` among the open points.
 - The children are [block reader](block-reader/README.md),
   [directives](directives/README.md), [skeleton](skeleton/README.md),
   [discovery](discovery/README.md), [show](show/README.md),
-  [check](check/README.md) and [hooks](hooks/README.md).
+  [check](check/README.md), [hooks](hooks/README.md) and
+  [directives reference](directives-reference/README.md).
