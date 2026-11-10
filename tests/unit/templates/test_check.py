@@ -305,6 +305,7 @@ def test_a_kind_that_disagrees_with_the_config_is_an_error() -> None:
     assert "`nokind`" in messages
     assert "`missing`" in messages
     assert "entry template of `feature`" in messages
+    assert "kind `bugfix` differs" in messages
 
 
 def test_a_repeated_heading_is_a_warning() -> None:

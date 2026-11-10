@@ -712,10 +712,12 @@ exits 0. It judges:
 - a `##` heading that a template repeats, ignoring case, which is a warning and
   the only one.
 
-Diagnostics are ordered by file, line and column, with numbers compared as
-numbers. `wio config check` checks only the shape of the `[templates]` table and
-reads no template, so a project without templates passes it, and a contract is
-judged against its template by `wio contracts check`.
+A template that finding the templates could not build, such as one with no
+`kind`, is reported by that error and judged no further, so its other problems
+show once it is fixed. Diagnostics are ordered by file, line and column, with
+numbers compared as numbers. `wio config check` checks only the shape of the
+`[templates]` table and reads no template, so a project without templates passes
+it, and a contract is judged against its template by `wio contracts check`.
 
 Anyone can add a template, and with it a kind, and that is the main extension
 point for projects.

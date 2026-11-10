@@ -202,7 +202,8 @@ def test_check_reports_a_kind_that_disagrees_with_the_config(wio: Wio) -> None:
     ]
     assert "`nokind`" in output.lines[1]
     assert "`missing`" in output.lines[2]
-    assert "differs" in output.lines[0] or "kind is `bugfix`" in output.lines[0]
+    assert "entry template of `feature`" in output.lines[0]
+    assert "kind `bugfix` differs" in output.lines[0]
     assert output.exit_code == 1
 
 

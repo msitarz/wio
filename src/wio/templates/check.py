@@ -327,7 +327,8 @@ def check_kinds(
         declared, an error whose place is the key path `templates.kinds.<kind>`
         and that names the entry for an entry template that does not exist, and
         an error naming the file for an entry template whose own kind differs
-        from the one it starts.
+        from the one it starts. A template of an undeclared kind gets the first
+        error only, even when it is also an entry template.
     """
     names = {template.name for template in templates}
     problems: list[Diagnostic] = []
@@ -512,7 +513,7 @@ def _kind_problems(template: Template, kinds: Mapping[str, str]) -> list[Diagnos
     if started and template.kind not in started:
         message = (
             f"The template is the entry template of `{started[0]}`, but its kind "
-            f"is `{template.kind}`"
+            f"`{template.kind}` differs from it"
         )
         return [_error(place, message)]
     return []

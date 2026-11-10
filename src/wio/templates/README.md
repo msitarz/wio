@@ -43,6 +43,9 @@ flowchart LR
   in one template never hides another. It orders what it finds by file, line and
   column with numbers as numbers, which `sort_diagnostics` does not do yet, and
   `render_check` prints it in that order.
+- **A template that discovery could not build is judged no further.** Its own
+  error is what the check reports for it, so an unknown key or a wrong directive
+  in the same file shows once the error is fixed.
 - **A template that discovery could not build is not reported missing.** A
   refused directory is the one error, and an entry template whose file has an
   error of its own is not an entry template that is missing.
