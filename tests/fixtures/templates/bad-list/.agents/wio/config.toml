@@ -1,0 +1,4 @@
+# A project whose template `feature.leaf` has a wrong directive list on line 12.
+
+[templates.kinds]
+feature = "feature.leaf"

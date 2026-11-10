@@ -3,9 +3,8 @@
 
 from typing import TYPE_CHECKING, Literal, cast
 
-lazy from wio.formats import render_text
 lazy from wio.templates.discovery import discover
-lazy from wio.templates.errors import CHECK_HINT, TemplatesError
+lazy from wio.templates.errors import TemplatesError, refusal
 lazy from wio.templates.listing import render_list
 lazy from wio.templates.show import show_skeleton
 
@@ -117,8 +116,7 @@ def _refuse_problems(found: Discovery) -> None:
             diagnostics rendered, then a line that names `wio templates check`.
     """
     if found.diagnostics:
-        message = f"{render_text(found.diagnostics)}\n{CHECK_HINT}"
-        raise TemplatesError(message, found.diagnostics)
+        raise refusal(found.diagnostics)
 
 
 def _of_kind(

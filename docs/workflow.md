@@ -76,12 +76,13 @@ the define stage uses as working space.
 only a purpose and an intent section, which serve as working space while the
 `define` stage interviews the driver. Once the intent is clear, the stage
 decides whether the Work is a leaf or a parent, prints that template with
-`wio templates show <name> --work <id>` and rewrites the contract in its
-shape. `--work` keeps the Work's id and its dependencies, so the Work keeps its
-records. The stage passes no `--keep`, so the new template's roots and actions
-apply: a leaf gets the typed-boundary delivery, and a parent gets
-`roots = ["@descendants"]` and the integrate delivery. The intent section does
-not carry over.
+`wio templates show <name>`, which prints the bare skeleton, and rewrites the
+contract in its shape. The Work keeps its id and its dependencies, so that it
+keeps its records: carrying them is `wio contracts`'s job, with `--work` and
+`--keep`, which are not options of `wio templates show`. The stage passes no
+`--keep`, so the new template's roots and actions apply: a leaf gets the
+typed-boundary delivery, and a parent gets `roots = ["@descendants"]` and the
+integrate delivery. The intent section does not carry over.
 
 A contract created from a template keeps the template's authoring comments,
 and the stage follows them while it fills each section in. The agent deletes
