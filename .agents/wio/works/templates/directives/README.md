@@ -63,6 +63,9 @@ grammar is.
 
 - **Names are exact.** A directive name is lowercase, and spaces around the
   `:` and the commas are allowed.
+- **A list is on one line.** It opens and closes on its heading's line, so a
+  heading too long for the Markdown line limit is shortened or has the limit
+  suppressed on the line above it, and a list split over two lines is an error.
 - **A pattern has two forms.** Written plainly, it runs to the next comma;
   written between double quotes, it runs to the closing quote and may hold
   commas, and neither form has an escape of wio's own.
@@ -124,16 +127,18 @@ that is not a heading gives nothing.
 
 ### **AC-4** A list with a wrong name or shape is an error with its column
 
-An unknown name, a name in the wrong case, a name written twice and an empty
-list are errors.
+An unknown name, a name in the wrong case, a name written twice, an empty list
+and a list that does not close on its line are errors.
 
 #### The wrong lists
 
-- **Given** the lists `mandatory`, `Required`, `required, required`, and an
-  empty list `<!-- wio: -->`, each on a level-2 heading.
+- **Given** the lists `mandatory`, `Required`, `required, required`, an empty
+  list `<!-- wio: -->`, and the heading line `## Split <!-- wio: required,`
+  whose list does not close, each on a level-2 heading.
 - **When** the parser reads each.
 - **Then** each raises an error that says what is wrong and names the column
-  where it starts.
+  where it starts, and the one for the unclosed list says that a list must close
+  on the line of its heading.
 
 ### **AC-5** A directive with a wrong value is an error with its column
 
@@ -177,8 +182,10 @@ it documents.
 directives with their syntax, that names are lowercase and exact, the plain and
 quoted forms of `pattern`, with the way to write a literal `"` or `>` as `\x22`
 or `\x3e`, which wrong lists are errors, that the parser returns the level and
-the checks that use it allow directives on level-2 headings only, and that
-finding items is left to the contracts Work.
+the checks that use it allow directives on level-2 headings only, that a list
+closes on its heading's line and how a long heading is kept within the line
+limit with `<!-- rumdl-disable-next-line MD013 -->`, and that finding items is
+left to the contracts Work.
 
 ## Additional context
 
