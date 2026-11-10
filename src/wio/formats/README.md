@@ -54,30 +54,16 @@ block starts and ends. Its docstring, that of
 `read_directive_heading` in [`directives.py`](directives.py) reads one heading
 line into its text, its level and its directives, so a template's sections say
 what they must hold in one grammar that the checks and
-`wio templates directives` share. The table `DIRECTIVES` in the same file lists
-every directive with its syntax, its meaning and its examples, and the
-[concepts](../../../docs/concepts.md#directives) say what each means.
+`wio templates directives` share. The table `DIRECTIVES` beside it lists every
+directive with its syntax, its meaning and its examples, the parser's docstring
+and [`DirectiveSyntaxError`](errors.py) say what it reads and raises, and the
+[concepts](../../../docs/concepts.md#directives) say what each directive means.
 
-- **Where a list sits.** At the end of a heading's line, as a comment that opens
-  with `<!--`, whitespace and the lowercase `wio:`. Any other comment, such as
-  `<!-- wio :` or `<!-- WIO:`, is a note and stays in the heading's text.
-- **The directives.** `required` and `inherit` take no value, `items>=N` takes a
-  count of 1 or more and `pattern=<regex>` takes a regular expression, separated
-  by commas, with spaces allowed around the commas, `>=` and `=`.
-- **Names are exact.** A name is lowercase and written once in a list.
-- **Two forms of a pattern.** Plain, it runs to the next comma or the end of the
-  list, trimmed, and holds no `"`. Between double quotes, it runs to the closing
-  quote and may hold commas. wio has no escape of its own, so a literal `"` or
-  `>` is written `\x22` or `\x3e`, which `re` reads, and `-->` cannot occur
-  inside a list.
-- **One list that ends its heading.** It closes on its heading's line, nothing
-  follows it, and a heading has one. A note may come before it. A heading too
-  long for the line limit of Markdown is shortened, or has the limit suppressed
-  by `<!-- rumdl-disable-next-line MD013 -->` on the line above it.
-- **Errors name a column.** An unknown name or one in the wrong case, a name
-  written twice, an empty list, a trailing comma, a list that does not close,
-  text or a second list after it and a wrong value are errors, and each names
-  the first character of the offending token, counted from 1 on the line.
-- **The level is returned, not restricted.** The parser reads a list on a
-  heading of any level, and the checks that use it allow directives on level-2
-  headings only.
+- A plain pattern runs to the next comma and a quoted one holds commas, because
+  wio has no escape of its own. A literal `"` or `>` is written `\x22` or
+  `\x3e`, which `re` reads, so `-->` never occurs inside a list.
+- The parser returns the level and does not restrict it. The checks that use it
+  allow directives on level-2 headings only.
+- A heading too long for the line limit of Markdown is shortened, or has the
+  limit suppressed by `<!-- rumdl-disable-next-line MD013 -->` on the line above
+  it, because a list closes on its heading's line.
