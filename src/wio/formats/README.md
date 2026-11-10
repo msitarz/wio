@@ -28,26 +28,19 @@ without searching. Its docstring and that of
 
 `read_metadata_block` in [`block.py`](block.py) is the one reader of the
 metadata block that opens a file, so no command has its own idea of where a
-block starts and ends. It takes the text of a file and returns a
-[`MetadataBlock`](../models/block.py), and its docstring and that of
-[`MetadataBlockError`](errors.py) say what it returns and raises.
+block starts and ends. Its docstring, that of
+[`MetadataBlock`](../models/block.py) and that of
+[`MetadataBlockError`](errors.py) say what it reads, returns and raises, and its
+[tests](../../../tests/unit/formats/test_block.py) say how each case reads.
 
-- The block is on the first line of the text, after an optional leading U+FEFF:
-  a `<!-- wio` comment that ends at the first `-->`, or `+++` front matter that
-  ends at the next line that is `+++`. CRLF and LF read alike.
-- The marker is the key `wio`, and its only value is the integer 1. A comment
-  may leave it out, and its version is then 1. Front matter needs it, and no
-  other value is accepted.
-- The body is the text from its start line on, byte for byte. It starts on the
-  line after the one that holds the closing delimiter, or on that same line
-  when text follows a closing `-->`.
-- A text with no block gives `None`, and so does `+++` front matter with no
-  `wio =` in it, closed or not, because it is not wio's.
-- A block that claims to be wio's and cannot be read raises
-  `MetadataBlockError` with the line in the text that the reader was given: a
-  comment or front matter that does not close, TOML that does not parse, or a
-  marker that is not 1.
+- The reader judges the shape of the block and never its keys, which belong to
+  the template and the contract, and it reads no file and names none in an
+  error, so the caller does both.
+- Whether a text is wio's is decided by the marker, so `+++` front matter that
+  has no `wio =` in it belongs to another tool and gives nothing, while a block
+  that does carry the marker and cannot be read is an error and is never
+  skipped.
 - The reader decodes the TOML with `decode_toml`, which loads `tomllib` on its
-  first call, so a text with no block never loads it.
-- The reader does not judge the keys of the data, and it reads no file and
-  names none in an error: the caller does both.
+  first call, so a text with no block never loads it, and an
+  [integration test](../../../tests/integration/formats/test_block_imports.py)
+  holds that.
