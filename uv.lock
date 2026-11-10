@@ -808,6 +808,7 @@ version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "markdown-it-py" },
+    { name = "tomlkit" },
 ]
 
 [package.dev-dependencies]
@@ -834,7 +835,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "markdown-it-py", specifier = ">=4.2.0" }]
+requires-dist = [
+    { name = "markdown-it-py", specifier = ">=4.2.0" },
+    { name = "tomlkit", specifier = ">=0.15.2" },
+]
 
 [package.metadata.requires-dev]
 dev = [
