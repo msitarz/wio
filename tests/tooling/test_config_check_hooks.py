@@ -3,22 +3,19 @@
 
 import json
 import re
-import shutil
-import stat
-import subprocess
 import tomllib
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
+from tests.tooling.hooks import NEEDS_JQ, ROOT, find_hook, run_hook
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
 CONFIG = ".agents/wio/config.toml"
-FAKE_UV = """#!/bin/sh
-# A stand-in for `uv run wio config check`: prints a diagnostic, exits as told.
-[ "$*" = "run wio config check" ] || exit 70
-printf 'error: works.nonsense: unknown key\\n'
-exit "$FAKE_CHECK_EXIT"
-"""
+CHECK = "uv run wio config check"
+DIAGNOSTIC = "error: works.nonsense: unknown key"
 
 
 def _hook() -> dict[str, object]:
@@ -27,18 +24,7 @@ def _hook() -> dict[str, object]:
     Returns:
         The hook: its `command` runs `uv run wio config check`.
     """
-    settings = json.loads((ROOT / ".claude" / "settings.json").read_text())
-    entries = settings["hooks"]["PostToolUse"]
-    found = [
-        (entry["matcher"], hook)
-        for entry in entries
-        for hook in entry["hooks"]
-        if "uv run wio config check" in hook["command"]
-    ]
-    assert len(found) == 1
-    matcher, hook = found[0]
-    assert set(matcher.split("|")) == {"Edit", "Write", "MultiEdit"}
-    return hook
+    return find_hook(CHECK)
 
 
 def test_prek_runs_the_check_when_only_the_config_changes() -> None:
@@ -93,22 +79,14 @@ def _run_hook(tmp_path: Path, file_path: str, check_exit: int) -> tuple[int, str
     Returns:
         The exit code, standard output and standard error of the hook.
     """
-    uv = tmp_path / "uv"
-    uv.write_text(FAKE_UV)
-    uv.chmod(uv.stat().st_mode | stat.S_IXUSR)
-    path = f"{tmp_path}:/usr/bin:/bin"
-    done = subprocess.run(
-        ["/bin/sh", "-c", str(_hook()["command"])],
-        input=json.dumps({"tool_input": {"file_path": file_path}}),
-        capture_output=True,
-        text=True,
-        check=False,
-        env={"PATH": path, "FAKE_CHECK_EXIT": str(check_exit)},
+    return run_hook(
+        _hook(),
+        tmp_path,
+        file_path,
+        check="config check",
+        exit_code=check_exit,
+        output=DIAGNOSTIC,
     )
-    return done.returncode, done.stdout, done.stderr
-
-
-NEEDS_JQ = pytest.mark.skipif(shutil.which("jq") is None, reason="needs jq")
 
 
 @NEEDS_JQ
@@ -124,7 +102,7 @@ def test_the_hook_returns_the_errors_of_an_edit_of_the_config(tmp_path: Path) ->
     # Then it prints the diagnostics to standard error and exits 2
     assert code == 2
     assert out == ""
-    assert err == "error: works.nonsense: unknown key\n"
+    assert err == f"{DIAGNOSTIC}\n"
 
 
 @NEEDS_JQ
