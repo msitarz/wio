@@ -19,6 +19,9 @@ def show_skeleton(name: str, found: Discovery, root: Path, files: FileSystem) ->
     That function knows no file, so an error it raises is given the file of the
     template here, as a diagnostic whose place is the file's path relative to
     `root` with `/`, followed by `:<line>` and, for a directive list, `:<column>`.
+    A text with no block has no line, so its place is the bare path. A failure to
+    read the file after the walk found it, an `OSError` or a `UnicodeDecodeError`,
+    is worded the way the walk words it, as one diagnostic for the file.
 
     Args:
         name: The template's name, which is its file's name without `.md`.
@@ -33,8 +36,10 @@ def show_skeleton(name: str, found: Discovery, root: Path, files: FileSystem) ->
 
     Raises:
         TemplatesError: No template has the name, and the message names what was
-            given and lists the names that exist; or preparing the skeleton
-            failed, and the error carries one diagnostic for the template's file
-            and says that `wio templates check` shows every problem.
+            given and lists the names that exist in the order the walk returns
+            them, which is sorted, or says that no template exists when there is
+            none; or preparing or reading the skeleton failed, and the error
+            carries one diagnostic for the template's file and ends with
+            `CHECK_HINT`.
     """
     raise NotImplementedError

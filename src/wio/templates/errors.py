@@ -11,3 +11,7 @@ class TemplatesError(DiagnosticsError):
     does, and `str` of it is the message, so the command line writes it as it is
     when it carries diagnostics.
     """
+
+
+CHECK_HINT = "`wio templates check` shows every problem."
+"""The line that a refusal ends with, so a person knows where to see them all."""

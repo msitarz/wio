@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Literal, cast
 
 lazy from wio.formats import render_text
 lazy from wio.templates.discovery import discover
-lazy from wio.templates.errors import TemplatesError
+lazy from wio.templates.errors import CHECK_HINT, TemplatesError
 lazy from wio.templates.listing import render_list
 
 if TYPE_CHECKING:
@@ -17,8 +17,6 @@ if TYPE_CHECKING:
     from wio.models.template import Template
     from wio.ports import Settings
     from wio.templates.discovery import Discovery
-
-_CHECK_HINT = "`wio templates check` shows every problem."
 
 
 class Arguments:
@@ -95,7 +93,8 @@ class TemplatesCommand:
             stdio.stdout.write(arguments.templates_help())
             return 0
         if arguments.templates_view == "show":
-            # The wiring stage composes `show`, as it composed `list`.
+            # The wiring stage replaces this guard: `show` runs after the
+            # refusal of template errors, so that it composes below it.
             raise NotImplementedError
         config = self._settings.load()
         found = discover(self._repository.root(), config.templates, self._files)
@@ -116,7 +115,7 @@ def _refuse_problems(found: Discovery) -> None:
             diagnostics rendered, then a line that names `wio templates check`.
     """
     if found.diagnostics:
-        message = f"{render_text(found.diagnostics)}\n{_CHECK_HINT}"
+        message = f"{render_text(found.diagnostics)}\n{CHECK_HINT}"
         raise TemplatesError(message, found.diagnostics)
 
 
