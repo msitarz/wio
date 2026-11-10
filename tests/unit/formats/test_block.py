@@ -27,8 +27,9 @@ def test_the_marker_is_optional_in_a_comment_and_checked_everywhere() -> None:
 @pytest.mark.skip(reason="Pending the implementation stage.")
 def test_a_text_that_is_not_marked_gives_nothing() -> None:
     """AC-3: a text without wio's block gives `None` and raises nothing."""
-    # Given texts with no block, a late comment, `<!-- wiox` and front matter
-    # that is not wio's
+    # Given texts with no block, a blank first line, a late comment,
+    # `<!-- wiox`, `+++` front matter with no `wio =` and the same front matter
+    # that never closes
     # When each is read
     # Then each gives nothing
 
@@ -36,10 +37,12 @@ def test_a_text_that_is_not_marked_gives_nothing() -> None:
 @pytest.mark.skip(reason="Pending the implementation stage.")
 def test_a_block_that_cannot_be_read_is_an_error_with_its_line() -> None:
     """AC-4: an unclosed or invalid block raises an error at its line."""
-    # Given blocks that never close, that hold invalid TOML, or that close at
-    # the first `-->`
+    # Given comment blocks that never close, that hold invalid TOML or that
+    # close at the first `-->`, and `+++` front matter that holds `wio = 1` and
+    # never closes or whose third line is `id =`
     # When each is read
-    # Then each raises an error that names the line of the text
+    # Then each raises an error that names the line of the text: 1 for a block
+    # that never closes, and the line of the invalid TOML otherwise
 
 
 @pytest.mark.skip(reason="Pending the implementation stage.")
