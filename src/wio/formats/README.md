@@ -32,3 +32,19 @@ block starts and ends. Its docstring, that of
   skipped.
 - A text with no block never loads `tomllib`, which the decoder loads on its
   first call, so reading an unmarked file stays cheap.
+
+### What the reader accepts
+
+- **Delimiters.** The block is on the first line of the text, after an optional
+  leading U+FEFF: a `<!-- wio` comment that ends at the first `-->`, or `+++`
+  front matter that ends at the next line that is `+++`. CRLF and LF read alike.
+- **The marker.** The key `wio`, whose only value is the integer 1. A comment
+  may leave it out, and its version is then 1. Front matter needs it, and no
+  other value is accepted.
+- **What it returns.** The form, the version, the data without the marker, and
+  the body from its start line on, byte for byte.
+- **What gives nothing.** A text with no block on its first line, and `+++`
+  front matter with no `wio =` in it, closed or not.
+- **What raises.** A block that has the marker or the comment opening and does
+  not close, whose TOML does not parse, or whose marker is not 1. The error
+  names the line of the text.
