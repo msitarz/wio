@@ -20,6 +20,8 @@ reads a template must be one that the contracts command can reuse.
 - An agent can print any template as the contract skeleton to rewrite a
   contract in, with nothing around it.
 - A person or an agent that edits a template is told what is wrong with it.
+- An agent that edits a template, and a commit that changes one, is told of a
+  problem in the project's templates at once.
 - A template is named by its file, so its name cannot differ from where it
   lives.
 - The metadata block, the directive grammar and the skeleton are read and
@@ -44,6 +46,8 @@ reads a template must be one that the contracts command can reuse.
   which the contracts Work decides.
 - Writing, changing or moving a template, or moving a Work between templates.
 - Changing the three `feature` templates, other than dropping their `name` key.
+- Limiting `wio templates check` to one file, which can come later if a full
+  check is too slow or too noisy for a hook.
 
 ## Assumptions
 
@@ -66,6 +70,9 @@ reads a template must be one that the contracts command can reuse.
   `check`.
 - The `FileSystem` port of `wio.io` and the `Settings` port of `wio.ports`,
   which the component reads files and the config through.
+- The `PostToolUse` entry of `.claude/settings.json` and the `wio-templates`
+  hook of `prek.toml`, which run `wio templates check` after an agent's edit of
+  a template and in a commit that changes one.
 
 ## Constraints
 
@@ -86,7 +93,8 @@ reads a template must be one that the contracts command can reuse.
   ([known issues](../../../../docs/known-issues.md)).
 - **Verification.** What a run imports is verified by AC-2, the output of
   `list` and `show` by the criteria of the discovery and show leaves, the
-  problems that `check` reports by the criteria of the check leaf, and the
+  problems that `check` reports by the criteria of the check leaf, the hooks
+  by AC-4 and the criteria of the hooks leaf, and the
   dependency direction by the review of each child and by `tach check`.
 
 ## Visuals
@@ -171,10 +179,32 @@ without a `name` key, and a broken copy of one is reported by place.
 - **Then** it prints an error that names that template's file and heading and
   exits 1.
 
-### **AC-4** The documents describe the command and the grammar
+### **AC-4** An edit that breaks a template is reported at once
 
-`docs/concepts.md`, `docs/v0.1-scope.md`, `src/wio/formats/README.md` and
-`GLOSSARY.md` state what the command and the codecs do as they are. They name
+An agent that edits a template gets the diagnostics of `wio templates check`
+back in the same turn, and a commit that changes a template is refused while the
+templates have an error.
+
+#### An agent's edit
+
+- **Given** this repository's hook command for `PostToolUse` and a template that
+  has an error.
+- **When** the hook receives the edit of a file in `.agents/wio/templates/`, and
+  again the edit of a file elsewhere.
+- **Then** the first exits 2 with the diagnostics on standard error, and the
+  second exits 0 and prints nothing.
+
+#### A commit
+
+- **Given** this repository's `prek.toml` and a staged template with an error.
+- **When** the `wio-templates` hook runs.
+- **Then** it fails and prints the diagnostics.
+
+### **AC-5** The documents describe the command and the grammar
+
+`docs/concepts.md`, `docs/v0.1-scope.md`, `docs/workflow.md`,
+`src/wio/formats/README.md` and `GLOSSARY.md` state what the command, the hooks
+and the codecs do as they are. They name
 the three subcommands, `list --kind`, the entry marker and the grouped layout,
 and the bare skeleton that `show` prints. They say a template is named by its
 file and has no `name` key, that the quoted form of `pattern` is the way to
@@ -192,5 +222,5 @@ of a `pattern` among the open points.
   is, how a skeleton is prepared and which directives exist.
 - The children are [block reader](block-reader/README.md),
   [directives](directives/README.md), [skeleton](skeleton/README.md),
-  [discovery](discovery/README.md), [show](show/README.md) and
-  [check](check/README.md).
+  [discovery](discovery/README.md), [show](show/README.md),
+  [check](check/README.md) and [hooks](hooks/README.md).
