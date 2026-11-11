@@ -50,3 +50,25 @@ def render_json(diagnostics: Iterable[Diagnostic], *, keep_order: bool = False) 
 
     ordered = tuple(diagnostics) if keep_order else sort_diagnostics(diagnostics)
     return json.dumps([asdict(d) for d in ordered])
+
+
+def render_check(
+    diagnostics: Iterable[Diagnostic], *, as_json: bool, passes: str
+) -> str:
+    """Render the result of a `check` command, in the order given.
+
+    `json` is imported only when `as_json` is set.
+
+    Args:
+        diagnostics: The findings, already in the order the command prints them.
+        as_json: Whether to write the JSON array instead of the text.
+        passes: The sentence that says nothing was found, such as `The
+            templates pass.`.
+
+    Returns:
+        With `as_json`, the array of `severity`, `where` and `message` objects,
+        `[]` for none, ending in a newline. Otherwise `passes` when there is no
+        diagnostic, and the `<severity>: <where>: <message>` lines when there are
+        some, each ending in a newline.
+    """
+    raise NotImplementedError

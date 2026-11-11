@@ -53,3 +53,35 @@ def sort_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ...
         `message`, as plain strings (so `x[10]` sorts before `x[2]`).
     """
     return tuple(sorted(diagnostics, key=_key))
+
+
+def order_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ...]:
+    """Put diagnostics in the order that a check of files prints them.
+
+    It is not `sort_diagnostics`, which compares `where` as a plain string, and
+    it keeps the rank of severities that this module already holds.
+
+    Args:
+        diagnostics: The findings, in any order.
+
+    Returns:
+        The findings by file, then by line and column as numbers, so that line 4
+        precedes line 12. A `where` is read as a file with an optional line and
+        an optional column, and a file alone precedes its lines. Any other
+        `where`, such as a key path or two files joined by `, `, is compared as
+        text and follows every place that is a file. Equal places are ordered by
+        error, warning and note, then by message.
+    """
+    raise NotImplementedError
+
+
+def has_error(diagnostics: Iterable[Diagnostic]) -> bool:
+    """Tell whether a diagnostic is an error, which is what fails a check.
+
+    Args:
+        diagnostics: The findings of a check.
+
+    Returns:
+        Whether any of them is an error; a warning or a note is not.
+    """
+    raise NotImplementedError
