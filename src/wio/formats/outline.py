@@ -2,11 +2,9 @@
 """The outline of a Markdown body: the real headings that it holds."""
 
 import re
-from functools import cache
 from typing import TYPE_CHECKING, cast
 
-lazy from markdown_it import MarkdownIt
-
+from wio.formats.markdown import parse
 from wio.models.heading import Heading, HeadingLevel
 
 if TYPE_CHECKING:
@@ -35,22 +33,12 @@ def read_outline(body: str, start_line: int) -> tuple[Heading, ...]:
         The headings in the order they appear, empty for a body without one.
     """
     lines = _LINE_END.split(body)
-    tokens = _parser().parse(body)
+    tokens = parse(body)
     return tuple(
         _heading(tokens[index + 1], token, lines, start_line)
         for index, token in enumerate(tokens)
         if _is_real_heading(token)
     )
-
-
-@cache
-def _parser() -> MarkdownIt:
-    """Build the Markdown parser, once.
-
-    Returns:
-        A CommonMark parser, which is the definition of a heading here.
-    """
-    return MarkdownIt("commonmark")
 
 
 def _is_real_heading(token: Token) -> bool:
