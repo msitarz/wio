@@ -62,9 +62,11 @@ SUBCOMMANDS: Final[Sequence[Subcommand]] = ()
 """The subcommands of `wio contracts`, to which each leaf adds its own entry.
 
 It lives here and not in a module of its own, because describing the command
-loads no module of the package besides this one. A leaf imports its module with
-`lazy from`, as `wio.cli.table` does, so that describing the command imports no
-codec.
+loads no module of the package besides this one, and that holds for `configure`
+as well, which runs when the command is described. So an entry's `configure` is
+defined in this module, and its `handler` is a function of this module that
+imports the leaf's own module when it runs. A `lazy from` in the tuple would
+not defer anything, because the names are used as the tuple is built.
 """
 
 
