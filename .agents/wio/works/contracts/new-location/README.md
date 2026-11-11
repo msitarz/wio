@@ -62,11 +62,14 @@ later.
   random byte. The id is drawn again until no Work in the tree has it, a Work
   with a shared id included, and after 100 draws the command gives up with an
   error.
-- **A slug is derived by one rule.** From a title it is the title with accents
-  folded to ASCII, in lowercase, with every run of other characters turned into
-  one `-`, with `-` trimmed from both ends, and cut at 48 characters with a
-  trailing `-` trimmed again. A character that does not fold to ASCII is
-  dropped, and a slug that is empty is an error that asks for `--slug`.
+- **A slug is derived by one rule.** From a title it is the title in lowercase,
+  with the letters of a fixed table written out (`ł` as `l`, `ø` as `o`, `đ` as
+  `d`, `ð` as `d`, `ħ` as `h`, `ı` as `i`, `æ` as `ae`, `œ` as `oe`, `ß` as `ss`
+  and `þ` as `th`) and the other accents folded to ASCII, with every run of
+  other characters turned into one `-`, with `-` trimmed from both ends, and cut
+  at 48 characters with a trailing `-` trimmed again. A character that is still
+  not ASCII is dropped, and a slug that is empty is an error that asks for
+  `--slug`.
 - **A given slug is used as written.** It must be lowercase letters and digits
   in groups joined by single `-`, so it can never start with `.`, hold `/` or
   `..`, and hide the Work.
@@ -96,11 +99,11 @@ characters, and a title with no usable letter is an error.
 
 #### Titles
 
-- **Given** the titles `Read config.toml`, `Łódź café`, `  --A  B--  `,
-  forty-seven letters `a`, a space and `b`, and `Привет`.
+- **Given** the titles `Read config.toml`, `Łódź café`, `Straße æon`,
+  `  --A  B--  `, forty-seven letters `a`, a space and `b`, and `Привет`.
 - **When** the slug of each is derived.
-- **Then** the slugs are `read-config-toml`, `odz-cafe`, `a-b`, the forty-seven
-  letters, and an error that asks for `--slug` for the last.
+- **Then** the slugs are `read-config-toml`, `lodz-cafe`, `strasse-aeon`, `a-b`,
+  the forty-seven letters, and an error that asks for `--slug` for the last.
 
 ### **AC-2** A given slug must be lowercase kebab case
 
