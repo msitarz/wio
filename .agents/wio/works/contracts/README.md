@@ -94,6 +94,9 @@ agrees on what a Work is, what it inherits and what it depends on.
 - The ports `FileSystem`, `Entropy`, `Settings` and `Repository`, which the
   component reads files, randomness, the config and the repository root
   through.
+- A port in `wio/contracts/ports.pyi` that finds a template by name and the
+  entry template of a kind, which `wio.templates` satisfies and `wio.cli`
+  wires, so `wio.contracts` never imports it.
 - `wio.cli`'s table of commands, which gains `contracts` with `new`, `list`,
   `check`, `show` and `skeleton`.
 - The `PostToolUse` entry of `.claude/settings.json` and the `wio-contracts`
@@ -130,7 +133,8 @@ agrees on what a Work is, what it inherits and what it depends on.
   `tomllib`, `tomlkit` and `markdown_it`, and ruff's `banned-api` reports any
   other import.
 - **Dependency direction.** `wio.contracts` imports `wio.formats`,
-  `wio.models`, `wio.io` and ports, never another component. The review of each
+  `wio.models`, `wio.io` and ports, never another component, and it reaches the
+  templates only through its own port, which `wio.cli` wires. The review of each
   child checks the imports of its files, because `tach check` alone can pass a
   forbidden one ([known issues](../../../../docs/known-issues.md)).
 
@@ -154,6 +158,7 @@ flowchart LR
     io["wio.io: FileSystem, Works-directory walk"]:::changed
     settings["wio.ports: Settings"]
     entropy["wio.env: Entropy"]
+    catalog["wio.contracts ports: template catalog"]:::new
     later["wio trailers, rules, context, later"]
     cli --> contracts
     cli --> templates
@@ -167,7 +172,9 @@ flowchart LR
     templates -- "ports" --> io
     formats --> models
     io --> models
-    later -. "reuse" .-> contracts
+    contracts -- "ports" --> catalog
+    templates -. "satisfies" .-> catalog
+    later -. "through ports" .-> contracts
     classDef new stroke-width: 3px
     classDef changed stroke-width: 3px,stroke-dasharray: 4 3
 ```
