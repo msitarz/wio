@@ -35,9 +35,10 @@ flowchart LR
 - **The walk is the Works directory's.** Finding templates follows the rules of
   [Which files are Works](../../../docs/concepts.md#which-files-are-works), so a
   file is a template by the same test as a Work is a contract. It is the walk in
-  [`walk.py`](../io/walk.py) of `wio.io`, which `wio.contracts` uses too, so the
-  two cannot disagree about which files are there; discovery keeps only what is
-  its own: building a template from a file and grouping the templates by name.
+  [`walk.py`](../io/walk.py) of `wio.io`, which any component may import and
+  `wio.contracts` takes when it reads Works, so that the two cannot disagree
+  about which files are there; discovery keeps only what is its own: building a
+  template from a file and grouping the templates by name.
 - **A template is named by its file,** which is why a template has no `name`
   key and a name cannot differ from where the template lives.
 - **The check is one function for each concern.** [`check_templates`](check.py)

@@ -37,7 +37,7 @@ flowchart LR
         context
     end
     ioadapters["wio.io.adapters"]
-    io["wio.io (ports)"]
+    io["wio.io (ports and the shared walk)"]
     envadapters["wio.env.adapters"]
     env["wio.env (ports)"]
     sharedports["wio.ports (shared ports)"]
