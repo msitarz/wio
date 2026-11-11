@@ -15,7 +15,7 @@ PORTS = [SHARED, *sorted(SRC.glob("*/ports.pyi"))]
 MODELS = sorted((SRC / "models").glob("*.pyi"))
 IMPLEMENTED = sorted((SRC / "models").glob("[!_]*.py"))
 ERRORS = SRC / "errors.py"
-OWNERS = {"cli", "context", "env", "io", "trailers"}
+OWNERS = {"cli", "context", "contracts", "env", "io", "trailers"}
 
 
 def _tree(path: Path) -> ast.Module:
@@ -220,12 +220,12 @@ def test_the_shared_ports_stub_exists_and_a_consumer_does_not_repeat_it() -> Non
 
 
 def test_only_the_consuming_packages_have_a_ports_stub() -> None:
-    """Five packages declare ports, and the rest declare none."""
+    """Six packages declare ports, and the rest declare none."""
     # Given the packages that hold a `ports.pyi`
     owners = {path.parent.name for path in PORTS if path != SHARED}
 
     # When they are compared with the packages that consume something
-    # Then they are the same five
+    # Then they are the same six
     assert owners == OWNERS
 
 

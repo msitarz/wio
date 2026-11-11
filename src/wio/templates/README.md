@@ -48,6 +48,11 @@ flowchart LR
   [`order_diagnostics`](../models/diagnostics.py), by file, line and column with
   numbers as numbers, which `sort_diagnostics` does not do, and the command
   prints it in that order with [`render_check`](../formats/diagnostics.py).
+- **The catalog answers for `wio.contracts`.** [`TemplatesCatalog`](catalog.py)
+  finds a template by name from one discovery and says whether the check rejects
+  it from one check, which is how `wio.contracts` reaches the templates without
+  importing this package: it declares the port and `wio.cli` wires the two. A
+  template that discovery could not build is rejected without being found.
 - **A template that discovery could not build is judged no further.** Its own
   error is what the check reports for it, so an unknown key or a wrong directive
   in the same file shows once the error is fixed.

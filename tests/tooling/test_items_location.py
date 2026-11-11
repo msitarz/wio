@@ -4,25 +4,9 @@
 import ast
 from pathlib import Path
 
+from tests.tooling.imports import modules_imported
+
 SRC = Path(__file__).resolve().parents[2] / "src" / "wio"
-
-
-def _modules_imported(node: ast.AST) -> list[str]:
-    """Name the modules that a syntax node imports.
-
-    Args:
-        node: Any node of a syntax tree.
-
-    Returns:
-        The modules, empty for a node that is not an import.
-    """
-    match node:
-        case ast.Import(names=names):
-            return [alias.name for alias in names]
-        case ast.ImportFrom(module=module):
-            return [module or ""]
-        case _:
-            return []
 
 
 def _imports_the_parser(path: Path) -> bool:
@@ -38,7 +22,7 @@ def _imports_the_parser(path: Path) -> bool:
     return any(
         name.split(".")[0] == "markdown_it"
         for node in ast.walk(tree)
-        for name in _modules_imported(node)
+        for name in modules_imported(node)
     )
 
 

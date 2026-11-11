@@ -5,6 +5,8 @@ import ast
 import sys
 from pathlib import Path
 
+from tests.tooling.imports import modules_imported
+
 SRC = Path(__file__).resolve().parents[2] / "src" / "wio"
 
 HOMES = {
@@ -66,14 +68,7 @@ def _imported(path: Path) -> set[str]:
     Returns:
         The modules.
     """
-    names: set[str] = set()
-    for node in ast.walk(_tree(path)):
-        match node:
-            case ast.Import(names=aliases):
-                names.update(alias.name for alias in aliases)
-            case ast.ImportFrom(module=module):
-                names.add(module or "")
-    return names
+    return {name for node in ast.walk(_tree(path)) for name in modules_imported(node)}
 
 
 def _is_error_test(node: ast.AST) -> bool:

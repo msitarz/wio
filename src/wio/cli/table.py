@@ -10,9 +10,10 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, Literal
 
 lazy from wio.config import ConfigCommand, ConfigSettings
+lazy from wio.contracts import ContractsCommand, Services
 lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
-lazy from wio.templates import TemplatesCommand
+lazy from wio.templates import TemplatesCatalog, TemplatesCommand
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -94,8 +95,23 @@ def _templates() -> Command:
     return TemplatesCommand(ConfigSettings(repository, files), repository, files)
 
 
+def _contracts() -> Command:
+    """Wire `wio contracts` to the disk, the repository, the config and the templates.
+
+    Returns:
+        The command, whose subcommands read the project through the adapters and
+        find the templates through the catalog of `wio.templates`.
+    """
+    repository = io.GitRepository(env.ProcessEnvironment())
+    files = io.LocalFileSystem()
+    settings = ConfigSettings(repository, files)
+    catalog = TemplatesCatalog(settings, repository, files)
+    return ContractsCommand(Services(settings, repository, files, catalog))
+
+
 COMMANDS: Final[Sequence[Entry]] = (
     component_entry("config", _config),
+    component_entry("contracts", _contracts),
     component_entry("templates", _templates),
 )
 """Every subcommand of wio, one entry for each component that has a command."""
