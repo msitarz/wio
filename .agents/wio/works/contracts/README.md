@@ -34,6 +34,9 @@ agrees on what a Work is, what it inherits and what it depends on.
 
 ## Glossary
 
+- **Catalog**: the `TemplateCatalog` port that `wio.contracts` declares to find
+  a template by name and to ask whether `wio templates check` rejects it, and
+  that `wio.templates` satisfies.
 - **Resolved view**: a Work's contract together with the sections its ancestors
   mark as inherited, which `wio contracts show` prints and a context bundle
   later shows.

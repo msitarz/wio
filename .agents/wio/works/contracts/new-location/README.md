@@ -72,7 +72,8 @@ can give another implementation.
   every character that is still not ASCII dropped. Then every run of characters
   outside `a-z0-9` becomes one `-`, `-` is trimmed from both ends, and the slug
   is cut at 48 characters with a trailing `-` trimmed again. A slug that is
-  empty is an error that asks for `--slug`.
+  empty is an error that asks for `--slug`, and an empty `--slug` counts as
+  given and gets the error about the form of a slug.
 - **A given slug is used as written.** It must be lowercase letters and digits
   in groups joined by single `-`, so it can never start with `.`, hold `/` or
   `..`, and hide the Work.
@@ -106,15 +107,16 @@ can give another implementation.
 ### **AC-1** A slug is derived from a title by one rule
 
 The slug of a title is ASCII, lowercase, joined by single `-` and at most 48
-characters, and a title with no usable letter is an error.
+characters, and a title with no usable letter or digit is an error.
 
 #### Titles
 
 - **Given** the titles `Read config.toml`, `Łódź café`, `Straße æon`,
-  `  --A  B--  `, `aпb`, forty-seven letters `a`, a space and `b`, and `Привет`.
+  `  --A  B--  `, `aпb`, 47 letters `a`, a space and `b` (49 characters), and
+  `Привет`.
 - **When** the slug of each is derived.
 - **Then** the slugs are `read-config-toml`, `lodz-cafe`, `strasse-aeon`, `a-b`,
-  `ab`, the forty-seven letters, and an error that asks for `--slug` for the
+  `ab`, the 47 letters, and an error that asks for `--slug` for the
   last.
 
 ### **AC-2** A given slug must be lowercase kebab case
@@ -149,7 +151,8 @@ the options that cannot be combined, or name what does not exist, are errors.
 #### Refusals
 
 - **Given** the same Works, an empty existing directory
-  `.agents/wio/works/child`, and two Works with the id `a7b2c4`.
+  `.agents/wio/works/child`, and two Works with the id `a7b2c4` at `s/README.md`
+  and `t/README.md`.
 - **When** the place is decided with no name, with `--path` and `--slug`, with
   `--path` and `--parent`, with `--parent k3m9xr --title Child`, with
   `--parent a7b2c4 --title Child`, and with the title `Child`.
@@ -176,8 +179,8 @@ the options that cannot be combined, or name what does not exist, are errors.
   `.agents/wio/works/top.md`, `.agents/wio/works/p/other.md`, and
   `.agents/wio/works/link/x.md`, where `link` is a symbolic link.
 - **When** each is checked as the path of a new Work.
-- **Then** the first is accepted and its directory is created by the writer, and
-  each of the others is an error that names the path and says why.
+- **Then** the first is accepted, and each of the others is an error that names
+  the path and says why.
 
 #### A directory that exists and a file that was left out
 
@@ -239,9 +242,9 @@ one that exists.
   `.agents/wio/works/old/spec.md`, which exists.
 - **When** the place is decided with `--path` for each, and the guard is asked
   to write a contract to each.
-- **Then** deciding wrote nothing, the guard wrote the free path with its
-  directories, and for the existing path it raised an error that names it and
-  changed nothing.
+- **Then** deciding wrote nothing and, for the existing path, raised an error
+  that names it, the guard wrote the free path with its directories, and for the
+  existing path it raised the same refusal and changed nothing.
 
 ## Additional context
 

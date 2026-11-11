@@ -28,7 +28,8 @@ owns them.
 
 ## Glossary
 
-- **Catalog**: the port through which `wio.contracts` asks for templates.
+- **Catalog**: the `TemplateCatalog` port through which `wio.contracts` asks for
+  templates, as the parent's Glossary defines it.
 
 ## Non-Goals
 
@@ -67,8 +68,11 @@ owns them.
 - `wio.cli`'s table of commands and its wiring function for `contracts`, the
   one place where the group, the settings, the repository, the file system and
   the catalog meet.
+- A table entry holds at least a name, a line of help, a function that registers
+  its arguments on a parser, and a handler that takes the parsed arguments and
+  the streams and returns the exit code.
 - The names and signatures above are provisional, for the architecture stage to
-  decide, except the two members of the port.
+  decide, except the two members of the port and `ContractsError`.
 
 ## Constraints
 
@@ -87,13 +91,15 @@ owns them.
   directory itself is refused, it is false for every name.
 - **The provider discovers once and checks once.** `find` runs `discover` once,
   on its first call, and `is_rejected` runs `check_templates` once, on its first
-  call, and neither runs the other's, and each keeps what it returns.
-- **Neither package imports the other.** `wio.contracts` never imports
-  `wio.templates`, `wio.templates` never imports `wio.contracts`, and only
-  `wio.cli` builds the catalog and hands it to the group.
-- **A user's mistake is a `ContractsError`.** It carries the message, the
-  command line prints it, and the exit code is 2. A failed check is exit code 1
-  and any other exception is a bug.
+  call, and neither runs the other's, and each keeps what it returns. The config
+  is loaded once, on the first call of either, and an error of loading it
+  propagates as the `ConfigurationError` that it is, so the command exits 2.
+- **`wio.templates` never imports `wio.contracts`.** Only `wio.cli` builds the
+  catalog and hands it to the group.
+- **A user's mistake is a `ContractsError`.** It extends `WioError` and carries
+  the message, and the command line prints it, as the parent's exit codes say.
+  The name `ContractsError` and its message argument are required, and the
+  sibling leaves cite them.
 
 ## Visuals
 
@@ -130,6 +136,12 @@ config, and `wio --help` lists the command.
 - **When** `wio contracts` and `wio --help` run there.
 - **Then** the first prints a help text that names `wio contracts` and exits 0,
   and the second lists `contracts` with its one-line help.
+
+#### An invalid config does not stop the help
+
+- **Given** a repository whose config has an error.
+- **When** `wio contracts` runs there.
+- **Then** it prints its help and exits 0.
 
 #### Nothing heavy is loaded
 
@@ -202,9 +214,10 @@ often it is asked.
 
 #### Counting the reads
 
-- **Given** a catalog over a file system that counts the reads of each
-  template, and the counts of a reference run of `discover` and of a whole
-  `check_templates` on the same templates.
+- **Given** a catalog over a file system that counts the reads of each template,
+  at least one valid template, so that the counts are not zero, and the counts
+  of a reference run of `discover` and of a whole `check_templates` on the same
+  templates.
 - **When** `find` runs twice and then `is_rejected` runs three times, and, on a
   fresh catalog, `is_rejected` runs twice and then `find` runs twice.
 - **Then** in the first case the counts are those of the reference `discover`

@@ -40,9 +40,8 @@ Works, in the graph or in the metadata of a Work is not hidden by another.
   `docs/v0.1-scope.md` describe is dropped, and those documents change when they
   are promoted.
 - Looking up a removed dependency in the history.
-- A repeated stage in a pipeline that a Work inherits from its template, in a
-  stage preset or in a config default, which `wio templates check` and
-  `wio config check` judge.
+- A repeated stage inside a stage preset or a config default, which
+  `wio config check` judges.
 - A form of an id beyond what a record needs. That rule is new here, and the
   concepts do not list it among the invariants.
 
@@ -95,7 +94,8 @@ Works, in the graph or in the metadata of a Work is not hidden by another.
 - **A note is one for each omitted root.** A parent whose resolved roots leave
   out a root that its descendants' resolved roots hold gets one note for each,
   whether or not the config declares the root, and an undeclared root also gets
-  its own error at the Work that names it.
+  its own error at the Work that names it. A parent whose own `roots` was
+  reported as being of the wrong type gets no note.
 - **The place is the file.** Each diagnostic of this leaf names the Work's file
   as its place, without a line.
 - **A warning or a note never fails the command.**
@@ -149,8 +149,8 @@ closest known key when there is one.
 
 ### **AC-3** An id that would break a record is an error
 
-An id that holds whitespace, as `str.isspace()` tells, or a comma, or is exactly
-`none`, is an error, and any other non-empty id is not.
+An id that holds a character for which `str.isspace()` is true, or a comma, or
+is exactly `none`, is an error, and any other non-empty id is not.
 
 #### Ids
 
@@ -183,17 +183,18 @@ second points to that command.
 ### **AC-5** The actions a Work names exist, and it has some
 
 The names in a Work's own `[actions]` are declared in the config, no stage
-repeats in a pipeline, and the resolved actions are not empty.
+repeats in a pipeline of its resolved actions, whether the Work, its template or
+the defaults give it, and the resolved actions are not empty.
 
 #### Names
 
 - **Given** a config that declares the actions `deliver` and `amend`, the stage
-  preset `integrate`, the stage `implementation` and the kind of `t.leaf`, a
-  template `t.leaf` whose actions are `deliver = ["implementation"]` and
-  `amend = ["implementation"]`, and Works that follow it whose `[actions]` hold
-  `shipp = ["implementation"]`, `deliver = "nosuch"`,
-  `deliver = ["implementation", "implementation"]`, `deliver = ["gone"]` and
-  `deliver = []`.
+  preset `integrate`, the stage `implementation` and the kind `feature` with
+  `[templates.kinds] feature = "t.leaf"`, a template `t.leaf` of that kind whose
+  actions are `deliver = ["implementation"]` and `amend = ["implementation"]`,
+  and Works that follow it whose `[actions]` hold `shipp = ["implementation"]`,
+  `deliver = "nosuch"`, `deliver = ["implementation", "implementation"]`,
+  `deliver = ["gone"]` and `deliver = []`.
 - **When** `wio contracts check` runs.
 - **Then** the first four are errors,
   ``The action `shipp` is not declared in `[actions]` of the config``,
@@ -201,6 +202,16 @@ repeats in a pipeline, and the resolved actions are not empty.
   `` The stage `implementation` appears twice in action `deliver` ``, and
   ``The stage `gone` of action `deliver` is not declared``, and the last is not
   an error, because `amend` remains.
+
+#### A repeat that the Work inherits
+
+- **Given** the config of the previous scenario and a template `t.dup` of its
+  kind whose action `deliver` is `["implementation", "implementation"]`, and a
+  Work that follows it and names no action of its own.
+- **When** `wio contracts check` runs.
+- **Then** the error ``The stage `implementation` appears twice in action
+  `deliver` `` is reported at the Work's file, because no other command judges a
+  pipeline that a template gives.
 
 #### No action at all
 
@@ -251,10 +262,14 @@ finding already reported is skipped.
 #### Files that cannot be read
 
 - **Given** a fake `FileSystem` that fails the second read of a Work's file, and
-  a template whose file fails when its `[actions]` is read.
+  a template whose file fails on this leaf's own read of its `[actions]`, which
+  comes after the catalog's reads, so that `is_rejected` is false and `find`
+  gives the template.
 - **When** `wio contracts check` runs.
-- **Then** the first gives one error at the Work's file, and the Works of the
-  template give no finding about their actions.
+- **Then** the first gives one error at the Work's file, worded as discovery
+  words a file that cannot be read, and the Works of the template give no
+  diagnostic at all, because the template's file is read once and the failure is
+  skipped.
 
 ## Additional context
 

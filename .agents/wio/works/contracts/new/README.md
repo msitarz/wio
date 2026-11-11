@@ -2,7 +2,7 @@
 id = "pv47sz"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["h8qpxd", "sz1zsq", "ces6tf"]
+depends_on = ["h8qpxd", "sz1zsq"]
 -->
 
 # Creating a Work
@@ -49,19 +49,23 @@ of the block exists.
 
 ## Mechanisms
 
-- A function in `wio.formats` that takes the text of a contract and the keys and
-  tables to set, and returns the text with them set in its metadata block: the
-  `id` first, after `wio = 1` for `+++` front matter, and any other key in
-  place, or, when the block has none, a plain key after the last plain key and a
-  table after the last table, or after the plain keys when there is none,
-  preceded by one empty line. The block's form, its other keys, its line endings
-  and its body are not changed.
+- A function in `wio.formats` that takes the text of a contract and the plain
+  keys and tables to set, a table being given after the plain keys and in order,
+  and returns the text with them set in its metadata block: the `id` first,
+  after `wio = 1` for `+++` front matter, an `id` that is already there replaced
+  in place, and any other key in place, or, when the block has none, a plain key
+  after the last plain key and a table after the last table, or after the plain
+  keys when there is none. An inline table counts as a plain key, and only an
+  added table is preceded by one empty line. An added key or table is written
+  with the line ending of the text, and a byte-order mark is kept.
 - `prepare_skeleton` and `read_outline` of `wio.formats`, the last to find the
   first level-1 heading that `--title` replaces.
 - The decision and the guard of the new-location leaf, the catalog's `find` and
-  `is_rejected`, and the hierarchy of the hierarchy leaf, whose parent of a Work
-  is the Work of the nearest directory above its own that holds one, which gives
-  the parent of a new Work for a `--path` as well as for `--parent`.
+  `is_rejected`, the `FileSystem` port to read the template's text at the
+  catalog's path, and `Repository` for the root that the report's path is
+  relative to. The parent of a new Work is computed here: the Work of the
+  nearest directory above its path that holds a discovered Work, none under
+  `flat`, which serves `--path` as well as `--parent`.
 - `Config` for the kinds, their entry templates and the declared roots, the
   `Entropy` port, which `wio.cli` wires into the group for this leaf, and `json`
   for `--json` only.
@@ -79,11 +83,12 @@ of the block exists.
 - **The skeleton is the baseline, and three things change.** The text is what
   `prepare_skeleton` gives. On top of it the `id` is added first, `roots` is
   replaced when `--root` is given, and the first level-1 heading is replaced
-  when `--title` is given, or, when the template has none, inserted before the
-  first line of the body that is not empty and followed by one empty line, in
-  the template's line ending. Nothing else changes: the block's form, the line
-  endings, the authoring comments and the sections stay as the skeleton has
-  them. A bare contract has `# Title` unless `--title` is given.
+  when `--title` is given, which must be one non-blank line, trimmed, or it is
+  an error, or, when the template has none, inserted before the first line of
+  the body that is not empty and followed by one empty line, in the template's
+  line ending. Nothing else changes: the block's form, the line endings, the
+  authoring comments and the sections stay as the skeleton has them. A bare
+  contract has `# Title` unless `--title` is given.
 - **Roots are a set of declared names.** `--root` is repeatable, each name is a
   declared root or `@descendants`, and a name given twice counts once, in the
   order of its first appearance. On a bare contract it adds the key `roots`.
@@ -97,8 +102,9 @@ of the block exists.
   rejected, whether it is a kind's entry template or comes from `--template`,
   points to `wio templates check` when it is rejected or is an entry template,
   and a name that no file has points to `wio templates list`.
-- **One file is written.** It is written once, through the guard, and the report
-  follows the write, so a write that fails reports nothing on standard output.
+- **One file is written.** It is written once, through the guard, and ends as
+  the skeleton does, with one line ending. The report follows the write, so a
+  write that fails reports nothing on standard output.
 - **The report is short.** The human form is `Created Work <id>  <title>` and
   the path on the next line, indented two spaces, and `--json` is one object
   with `id`, `title`, `path`, `template` and `parent`, with `null` for none, the
@@ -175,14 +181,16 @@ With no kind and no template, the file is the block with the `id` and a heading.
 
 #### Bare
 
-- **Given** an `Entropy` that gives the bytes 19, 3, 20, 9, 29 and 23, and an
-  empty tree for each run, with the root `wio` declared.
+- **Given** `hierarchy = "nesting"`, an `Entropy` that gives the bytes 19, 3,
+  20, 9, 29 and 23, and an empty tree for each run, with the root `wio`
+  declared.
 - **When** `wio contracts new --slug note`, `wio contracts new --title Read` and
   `wio contracts new --path .agents/wio/works/x/spec.md --root wio` run.
 - **Then** the first writes `.agents/wio/works/note/README.md` that holds
-  exactly `<!-- wio`, `id = "k3m9xq"`, `-->`, an empty line and `# Title`, the
-  second writes `.agents/wio/works/read/README.md` that holds `# Read`, the
-  third writes `.agents/wio/works/x/spec.md` whose block has `id = "k3m9xq"` and
+  exactly `<!-- wio`, `id = "k3m9xq"`, `-->`, an empty line and `# Title`, each
+  line ending in a line feed, the second writes
+  `.agents/wio/works/read/README.md` whose heading is `# Read`, the third writes
+  `.agents/wio/works/x/spec.md` whose block has `id = "k3m9xq"` and
   `roots = ["wio"]`, and each reports its id and path.
 
 ### **AC-4** The block is edited and nothing else is
@@ -194,10 +202,11 @@ added, and the form, the keys, the line endings and the body are kept.
 
 - **Given** a config declaring the roots `api` and `web` and the kind `feature`,
   an `Entropy` that gives the bytes 19, 3, 20, 9, 29 and 23 and a tree of its
-  own for each run, and templates of the kind: `t.front` in `+++` form with
-  `wio = 1`, `template` and `roots = ["a"]`; `t.plain` with no `roots` key whose
-  block has a table `[x]`; and `t.crlf` written with CRLF line endings and with
-  no title heading.
+  own for each run, and templates of the kind, each with `kind = "feature"` and
+  a `[contract]` table: `t.front` in `+++` form with `wio = 1` whose
+  `[contract]` has `roots = ["a"]`; `t.plain` whose `[contract]` has no `roots`
+  and has a table `[contract.x]`; and `t.crlf` written with CRLF line endings,
+  with no title heading and a `[contract]` that has `depends_on = []`.
 - **When** `wio contracts new --template t.front --slug a` runs with
   `--root api --root web --root api`, `wio contracts new --template t.plain
   --slug b --root api` runs, and `wio contracts new --template t.crlf --slug c`
@@ -206,6 +215,14 @@ added, and the form, the keys, the line endings and the body are kept.
   `roots = ["api", "web"]` in that order, the second has `roots = ["api"]` right
   after `template` and its `[x]` as it was, and the third has CRLF endings
   throughout and the same body as its template.
+
+#### CRLF with roots
+
+- **Given** the template `t.crlf` with CRLF endings and a `[contract]` that has
+  `depends_on = []` and no `roots`.
+- **When** `wio contracts new --template t.crlf --slug g --root api` runs.
+- **Then** the block has `roots = ["api"]` added, written with CRLF, and every
+  line ending of the file is CRLF.
 
 #### A template with no title
 
