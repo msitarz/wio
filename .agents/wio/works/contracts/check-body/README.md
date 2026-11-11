@@ -2,7 +2,7 @@
 id = "d2ytdf"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["7anq34", "xtgz9z", "sz1zsq", "mb4q2g"]
+depends_on = ["7anq34", "xtgz9z", "sz1zsq", "mb4q2g", "h69nf8"]
 -->
 
 # Checking the body of a contract
@@ -21,12 +21,14 @@ same run as the problems of the Works' metadata.
   against its own headings when it names none, in the `wio contracts check` run.
 - A section that is misspelled is told by the closest section of the template.
 - A contract that follows a template cannot loosen the template's checks.
-- The directives of a template are read once, however many contracts follow it.
+- A contract with no title is told.
+- The body check reads the directives of a template once, however many contracts
+  follow it.
 
 ## Glossary
 
 - **Section of a contract**: a `##` heading of its body with what follows it up
-  to the next heading of level 2 or above.
+  to the next heading of level 1 or 2.
 
 ## Non-Goals
 
@@ -43,9 +45,9 @@ same run as the problems of the Works' metadata.
   so the finder and the judge of items, the Works, the catalog and the `check`
   command exist.
 - **A-2**: `read_outline` and `read_directive_heading` give the headings of a
-  body with their lines and the directives of a heading, and the directive
-  parser's error carries a line and a column, as `wio templates check` already
-  relies on.
+  body with their lines and the directives of a heading. The directive parser's
+  error carries a column, and the line is that of the heading, as
+  `wio templates check` already supplies it.
 - **A-3**: When the body is checked, a template that the catalog gives is one
   that `wio templates check` accepts, and any other has been reported already.
 
@@ -59,27 +61,39 @@ same run as the problems of the Works' metadata.
 - `read_outline` and `read_directive_heading` for the headings and directives,
   `read_metadata_block` for the body, and the catalog port and `FileSystem` to
   find and read a template.
+- The rule that a directive is read on a level-2 heading only and the rule that
+  a repeated `##` heading is a warning are those of `wio templates check`,
+  written again here because a component cannot import another. Both lean on
+  the parsers of `wio.formats`.
 - The names and the signatures above are provisional, for the architecture stage
   to decide.
 
 ## Constraints
 
 - **One source of directives.** A contract that names a template takes them from
-  that template, and a directive list in the contract is ignored with a warning.
-  A contract that names none takes them from its own `##` headings, and only
-  from those.
+  that template, and a directive list in the contract, on a heading of any level
+  and whatever its syntax, is ignored with one warning. A contract that names
+  none takes them from its own `##` headings, and only from those.
 - **Sections are matched by text.** A contract's `##` heading matches the
   template's by its text, ignoring case, surrounding whitespace and a trailing
   directive comment, and nothing else is normalized.
-- **The first heading counts.** When a `##` heading is repeated, the first is
-  the section, the repeat is a warning, and it carries no items.
-- **Every finding is at a line.** It is at `<file>:<line>` of the heading, with
-  `:<column>` for an error of the directive parser, and a section that is
-  missing is at the file.
+- **The first heading counts.** When a `##` heading is repeated, in a contract
+  or in a template, the first is the section, and in a contract the repeat is a
+  warning and carries no items.
+- **A suggestion is by the text as written.** The closest template section to a
+  misspelled one is found by `closest_key` on the texts as written.
+- **The title is the first heading.** A contract has one when its body has a
+  heading, as the discovery leaf finds it.
+- **Every finding has a place.** A heading's finding is at `<file>:<line>` of
+  the heading. An error of the directive parser is at `<file>:<line>:<column>`,
+  and so is the error for a directive on a heading that is not level 2, at the
+  column of the list's opener. A missing section and a missing title are at the
+  file.
 - **Nothing is reported twice.** A contract whose template is missing or
   rejected gets no body check, because the check-works leaf has reported it.
-- **A template is read once per run.** Its directives are found once and shared
-  by every contract that follows it.
+- **A template's directives are read once per run.** The body check reads its
+  file once and shares what it found with every contract that follows it. The
+  reads of the catalog and of the check-works leaf are theirs.
 - **Nothing is written.** The body is read through `FileSystem`.
 
 ## Acceptance criteria
@@ -87,7 +101,8 @@ same run as the problems of the Works' metadata.
 ### **AC-1** A required section that is missing is an error
 
 A section that the template marks `required` and the contract lacks is an error,
-and a section that is not required may be absent.
+and a section that is not required may be absent. It is reported in the same
+run as the metadata findings.
 
 #### Matching and missing
 
@@ -98,6 +113,14 @@ and a section that is not required may be absent.
 - **Then** there is one error at the contract's file, ``The section `Goals` is
   required by the template `t` ``, none for `Purpose`, which matches in another
   case, and none for `Notes`.
+
+#### In the same run as the metadata
+
+- **Given** the same template, that contract, and another Work with the unknown
+  key `depend_on`.
+- **When** `wio contracts check` and `wio contracts check --json` run.
+- **Then** both report the missing section and the unknown key, in the same
+  order, the second as one JSON array that parses, and each exits 1.
 
 ### **AC-2** Items and their ids are judged as the items leaf judges them
 
@@ -111,9 +134,9 @@ ids are checked.
   `## Goals` holds only an authoring comment and whose criteria are
   `### **AC-1** First`, `### **AC-1** Second` and `### Third`.
 - **When** `wio contracts check` runs.
-- **Then** there is one error at `## Goals` for the missing item, one that names
-  `AC-1` and the lines of both criteria, and one at `### Third` for its missing
-  id.
+- **Then** there is one error at `## Goals` for the missing item, one at the
+  first `AC-1` that names the line of the second, and one at `### Third` for its
+  missing id.
 
 ### **AC-3** A misspelled section is a warning with a suggestion
 
@@ -126,10 +149,10 @@ names the closest template section when there is one.
   contract with `## Constraint`, `## Zzz` and a `### Detail` heading below one
   of them.
 - **When** `wio contracts check` runs.
-- **Then** there is a warning
-  ``The section `Constraint` is not in the template `t`. Did you mean `Constraints`?``
-  at its line, a warning ``The section `Zzz` is not in the template `t` `` at
-  its line, none for `### Detail`, and the command exits 0 for these alone.
+- **Then** there is a warning ``The section `Constraint` is not in the template
+  `t`. Did you mean `Constraints`?`` at its line, a warning
+  ``The section `Zzz` is not in the template `t` `` at its line, none for
+  `### Detail`, and the command exits 0 for these alone.
 
 #### No template
 
@@ -139,17 +162,18 @@ names the closest template section when there is one.
 
 ### **AC-4** A directive list in a contract that follows a template is ignored
 
-Such a list gives a warning and changes nothing, so a contract cannot loosen the
-template's checks.
+Such a list, whatever its level or syntax, gives a warning and changes nothing,
+so a contract cannot loosen the template's checks.
 
-#### A list in a contract
+#### Lists in a contract
 
 - **Given** a template that requires `## Goals`, and a contract that follows it,
-  lacks `## Goals` and has `## Notes <!-- wio: required -->`.
+  lacks `## Goals` and has `## Notes <!-- wio: required -->`,
+  `## Bad <!-- wio: mandatory -->` and `### Deep <!-- wio: required -->`.
 - **When** `wio contracts check` runs.
-- **Then** there is a warning at the line of `## Notes` that says the directive
-  list is ignored because the contract follows the template, and the error for
-  the missing `Goals` is still reported.
+- **Then** there is one warning at the line of each of the three headings that
+  says the directive list is ignored because the contract follows the template,
+  no parser error, and the error for the missing `Goals` is still reported.
 
 ### **AC-5** A contract without a template is checked by its own headings
 
@@ -164,9 +188,9 @@ parser's line and column.
   `### Deep <!-- wio: required -->`.
 - **When** `wio contracts check` runs.
 - **Then** there is an error for too few items in `Goals`, an error at the line
-  and column of the parser for `mandatory`, an error at the heading of `Deep`
-  that says directives are read on level-2 headings only, and none for
-  `Purpose`.
+  and column of the parser for `mandatory`, an error at the line and the
+  column of the list's opener of `Deep` that says directives are read on
+  level-2 headings only, and none for `Purpose`.
 
 #### No directives
 
@@ -183,7 +207,8 @@ with no heading is a warning.
 
 - **Given** a contract with `## Goals` twice, the first holding one item and the
   second two, under a template that requires `items>=2` for it, and a second
-  contract whose body has no heading.
+  contract that follows a template with no required section and whose body has
+  no heading.
 - **When** `wio contracts check` runs.
 - **Then** there is a warning at the second `## Goals`,
   ``The section `Goals` is repeated; the first one counts``, an error for the
@@ -193,21 +218,22 @@ with no heading is a warning.
 ### **AC-7** A template that cannot be used gets no body check, and is read once
 
 A contract whose template is missing or rejected gets no body diagnostic, and a
-template that several contracts follow is read once.
+template that several contracts follow is read once by the body check.
 
 #### Skipped and shared
 
 - **Given** a contract that names a template the catalog does not have, a
   contract whose template is rejected, and three contracts that follow one good
-  template, over a file system that counts reads.
-- **When** `wio contracts check` runs.
+  template, and a file system that counts reads.
+- **When** the body check runs on them, on its own, with a catalog that reads no
+  file.
 - **Then** the first two have no diagnostic about their bodies, and the good
   template's file was read once for the three.
 
 ### **AC-8** What an entry template requires decides what a fresh Work needs
 
 A contract fresh from a template that requires only headings passes, and one
-from a template that requires an item does not until it has one.
+from a template that requires an item fails until it has one.
 
 #### Fresh Works
 
@@ -215,9 +241,10 @@ from a template that requires an item does not until it has one.
   with its Purpose written, and a template that requires `items>=1` on
   `## Goals` and a contract made from it whose Goals holds only the authoring
   comment.
-- **When** `wio contracts check` runs.
-- **Then** the first passes, and the second gives one error at `## Goals` for
-  the missing item until a first item is written.
+- **When** `wio contracts check` runs, then a first item is written under
+  `## Goals` of the second contract, and it runs again.
+- **Then** the first passes, the second gives one error at `## Goals` for the
+  missing item the first time, and it passes the second time.
 
 ## Additional context
 

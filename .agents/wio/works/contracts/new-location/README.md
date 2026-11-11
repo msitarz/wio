@@ -2,7 +2,7 @@
 id = "h8qpxd"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["xtgz9z"]
+depends_on = ["xtgz9z", "sz1zsq", "h69nf8"]
 -->
 
 # The id and the place of a new Work
@@ -12,8 +12,8 @@ depends_on = ["xtgz9z"]
 A new Work needs an id that no Work in the tree has and a place that cannot
 clash with another Work or hide the new one from every command. Deciding them is
 separate from writing the contract, so that the rules for ids and paths are
-stated and tested once, and the generator of ids can be replaced by a project
-later.
+stated and tested once, and the id generator is one interface that a later Work
+can give another implementation.
 
 ## Goals
 
@@ -59,9 +59,9 @@ later.
 
 - **The id is six characters of a fixed alphabet.** They are lowercase Crockford
   base32, `0123456789abcdefghjkmnpqrstvwxyz`, each the low five bits of one
-  random byte. The id is drawn again until no Work in the tree has it, a Work
-  with a shared id included, and after 100 draws the command gives up with an
-  error.
+  random byte. One draw is one `Entropy.random_bytes(6)` call. The id is drawn
+  again until no Work in the tree has it, a Work with a shared id included, and
+  after 100 draws the command gives up with an error.
 - **A slug is derived by one rule.** From a title it is the title in lowercase,
   with the letters of a fixed table written out (`ł` as `l`, `ø` as `o`, `đ` as
   `d`, `ð` as `d`, `ħ` as `h`, `ı` as `i`, `æ` as `ae`, `œ` as `oe`, `ß` as `ss`
@@ -82,12 +82,15 @@ later.
   `flat`, `--parent` is an error, and a parent that no Work has, or that two
   Works share, is an error.
 - **A path is a Work's path.** `--path` is relative to the repository root, has
-  no `..` and no segment that starts with `.`, ends in `.md` with that case,
-  lies under the Works directory, runs through no symbolic link, and does not
-  exist. Under `nesting` it is not directly in the Works directory and its
-  directory holds no marked file already, and under `flat` neither applies.
-- **Nothing is overwritten.** A directory or a file that exists, an empty
-  directory included, is an error that names it.
+  no `..` and no segment below the Works directory that starts with `.`, ends in
+  `.md` with that case, lies under the Works directory, runs through no symbolic
+  link, and does not exist. Under `nesting` it is not directly in the Works
+  directory and its directory holds no marked file already, and under `flat`
+  neither applies.
+- **Nothing is overwritten.** The directory of the default place and the file of
+  any place must not exist, an empty directory included, or it is an error that
+  names it. An existing directory is no obstacle to a `--path` that names a new
+  file in it.
 - **Deciding writes nothing.** Only the guard writes, one new file.
 
 ## Acceptance criteria
@@ -116,7 +119,7 @@ is already kebab case is used as written.
   `Login`, `a_b`, `a--b`, `-a` and an empty one.
 - **When** each is checked.
 - **Then** the first two are used as written, and each of the others is an error
-  that shows the rule.
+  that says a slug is lowercase letters and digits joined by single `-`.
 
 ### **AC-3** The place follows the arguments and the hierarchy mode
 
@@ -132,7 +135,7 @@ the options that cannot be combined, or name what does not exist, are errors.
   `--slug child --title Other`.
 - **Then** the paths are `.agents/wio/works/child/README.md`,
   `.agents/wio/works/p/child/README.md`, `.agents/wio/works/q/child/README.md`
-  and `.agents/wio/works/child/README.md`, the last with the title `Other`.
+  and `.agents/wio/works/child/README.md`, the last accepted with both options.
 
 #### Refusals
 
@@ -161,8 +164,8 @@ the options that cannot be combined, or name what does not exist, are errors.
   `.agents/wio/works/q/spec.md`, `/tmp/x.md`, `.agents/wio/works/../x.md`,
   `docs/x.md`, `.agents/wio/works/.hidden/x.md`, `.agents/wio/works/q/spec.txt`,
   `.agents/wio/works/q/spec.MD`, `.agents/wio/works/p/README.md`,
-  `.agents/wio/works/top.md`, `.agents/wio/works/p/other.md`, and a path through
-  a symbolic link.
+  `.agents/wio/works/top.md`, `.agents/wio/works/p/other.md`, and
+  `.agents/wio/works/link/x.md`, where `link` is a symbolic link.
 - **When** each is checked as the path of a new Work.
 - **Then** the first is accepted and its directory is created by the writer, and
   each of the others is an error that names the path and says why.
@@ -182,20 +185,21 @@ tries.
 
 #### Fixed bytes
 
-- **Given** an `Entropy` that gives the bytes 0 to 5 and then 6 to 11, an empty
-  tree, and a tree with a Work whose id is `012345`.
+- **Given** an `Entropy` whose first `random_bytes(6)` call gives the bytes 0 to
+  5 and whose second gives 6 to 11, an empty tree, and a tree with a Work whose
+  id is `012345`.
 - **When** an id is drawn for each.
 - **Then** the first is `012345`, the second is `6789ab`, and both consist of
   the characters of the alphabet only.
 
 #### A shared id and no free id
 
-- **Given** a tree where two Works share the id `012345` and an `Entropy` that
-  gives the bytes 0 to 5 and then 6 to 11, and a tree that holds `012345` with
-  an `Entropy` that gives the bytes 0 to 5 every time.
+- **Given** a tree where two Works share the id `012345` and an `Entropy` whose
+  calls give the bytes 0 to 5 and then 6 to 11, and a tree that holds `012345`
+  with an `Entropy` that gives the bytes 0 to 5 on every call.
 - **When** an id is drawn for each.
-- **Then** the first is `6789ab`, drawn after the shared id, and the second ends
-  after 100 draws with an error.
+- **Then** the first is `6789ab`, drawn after the shared id, and the second
+  makes exactly 100 calls of `random_bytes(6)` and ends with an error.
 
 ### **AC-6** Deciding writes nothing, and the guard never overwrites
 

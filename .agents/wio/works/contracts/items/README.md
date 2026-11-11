@@ -21,17 +21,16 @@ this Work.
 - The id of an item is found by its section's `pattern`.
 - A contract's items are judged: their number, their ids, and the uniqueness of
   the ids.
-- The rule lives in `wio.formats`, so `wio contracts check` and, later,
-  `wio trailers` use the same one.
+- The rule is one function of `wio.formats`, so every reader of a contract finds
+  the same items.
 
 ## Glossary
 
-- **Item**: a heading one level below its section when the section has one,
-  and otherwise a top-level list item of the section, bulleted or numbered.
 - **Item text**: the Markdown of an item as written: a heading's text, or the
   first line of a list item after its marker.
 - **Id**: the match of the section's `pattern` at the start of the item text.
-  The start is the first character that is not `*`, `_`, a backtick or a space.
+  The start is the first character that is not `*`, `_`, a backtick or a space,
+  and an empty match is no id.
 
 ## Non-Goals
 
@@ -47,11 +46,13 @@ this Work.
 ## Assumptions
 
 - **A-1**: The directive parser returns `Items` and `Pattern` for a heading, and
-  `read_outline` returns the real headings of a body with their lines, as they
-  are delivered.
+  `read_outline` returns the real headings of a body with their lines, as
+  `wio.formats` and `wio.models` deliver them.
 - **A-2**: The Markdown parser that `read_outline` uses reports a top-level list
   item and its line, keeps the source text of an inline, and reports a list in a
-  quote, a code block or a comment as something else than a top-level list.
+  quote, a code block or a comment as something else than a top-level list. A
+  quote or a fence that follows a list item with no blank line between them is
+  not relied on, so the criteria separate blocks by blank lines.
 
 ## Mechanisms
 
@@ -72,19 +73,23 @@ this Work.
 
 - **One rule.** Only `wio.formats` finds items, and no other package derives
   them from the Markdown again.
-- **A section runs to the next heading of level 2 or above.** Its items are its
-  headings one level below it, and only when it has none, its top-level list
-  items. A list item is one item with its nested lists and paragraphs.
+- **A section is a `##` heading and runs to the next heading of level 1 or 2.**
+  Its items are its headings one level below it, and only when it has none, its
+  top-level list items. A list item is one item with its nested lists and
+  paragraphs.
 - **Only the content of the body counts.** An HTML comment, a code block and a
   quote hold no items, so the authoring example of a template is never counted.
-- **The id is exactly the match.** It is not trimmed or changed in case, and an
-  item without a match at its start has no id.
-- **Every finding is an error at the line of the item.** Every error names the
-  item, its section and the directive that it breaks, and the finder and the
-  judge give the same order for the same body.
-- **Nothing is imported before it is needed.** The Markdown parser loads on the
-  first call, as `read_outline` does, and no module outside `wio.formats`
-  imports it.
+- **The id is exactly the match.** It is not trimmed or changed in case, an
+  empty match is no id, and an item without a match at its start has no id.
+- **Every finding is an error with a fixed place.** Too few items is at the
+  section's heading and breaks the `items` directive. An item with no id is at
+  the item and breaks the `pattern` directive. An id that holds whitespace or a
+  comma is at its item. A repeated id is at its first occurrence and names the
+  lines of the others, in one error, and the last two break the rule that ids
+  are unique and free of whitespace and commas. The finder and the judge give
+  the same order for the same body.
+- **The parser loads lazily.** The Markdown parser loads on the first call, as
+  `read_outline` does.
 
 ## Acceptance criteria
 
@@ -95,20 +100,22 @@ otherwise the top-level list items, each with its text and its line in the file.
 
 #### Subheadings win
 
-- **Given** a body, starting at line 10 of a file, with `## Acceptance criteria`
-  holding an intro bullet `- intro`, `### **AC-1** First`, a `#### Scenario`
-  heading, and `### **AC-2** Second`, followed by `## Next` with a `### X`.
+- **Given** a body that starts at line 10 of a file, with blank lines between
+  its blocks: `## Acceptance criteria` on line 10, an intro bullet `- intro`,
+  `### **AC-1** First` on line 14, a `#### Scenario` heading,
+  `### **AC-2** Second` on line 18, and then `## Next` with a `### X`.
 - **When** the items of `## Acceptance criteria` are found.
-- **Then** they are `**AC-1** First` and `**AC-2** Second`, each at its line of
-  the file, and the intro bullet, the `####` heading and `### X` are not items.
+- **Then** they are `**AC-1** First` on line 14 and `**AC-2** Second` on line
+  18, and the intro bullet, the `####` heading and `### X` are not items.
 
 #### List items
 
-- **Given** a body whose `## Goals` holds `- one` with a nested `- sub`,
-  `1. two`, a quoted `> - quoted`, a comment that holds `- hidden`, and a fenced
-  block that holds `- code`, in a file with CRLF line endings.
+- **Given** a body that starts at line 1 of a file with CRLF line endings and
+  blank lines between its blocks: `## Goals`, `- one` on line 3 with a nested
+  `- sub`, `1. two` on line 6, a quoted `> - quoted`, a comment that holds
+  `- hidden`, and a fenced block that holds `- code`.
 - **When** the items of `## Goals` are found.
-- **Then** they are `one` and `two`, each at its line, and nothing else.
+- **Then** they are `one` on line 3 and `two` on line 6, and nothing else.
 
 #### No items
 
@@ -120,7 +127,7 @@ otherwise the top-level list items, each with its text and its line in the file.
 ### **AC-2** The id is the pattern's match at the start of the item text
 
 An item has an id when the section's pattern matches at the start of its text,
-after leading `*`, `_`, backticks and spaces.
+after leading `*`, `_`, backticks and spaces, and the match is not empty.
 
 #### Where the id is
 
@@ -136,6 +143,13 @@ after leading `*`, `_`, backticks and spaces.
 - **When** the items are found.
 - **Then** the ids are `A-1` and `A-2`.
 
+#### An empty match
+
+- **Given** the pattern `\d*` and the items `Plain` and `7 seven`.
+- **When** the items are found.
+- **Then** the first has no id, because its match is empty, and the second has
+  the id `7`.
+
 #### No pattern
 
 - **Given** a section with items and no pattern.
@@ -144,24 +158,25 @@ after leading `*`, `_`, backticks and spaces.
 
 ### **AC-3** The number of items and the missing ids are errors
 
-A section with fewer items than `items>=N`, and an item without an id in a
-section that has a pattern, are errors at the line they belong to.
+A section with fewer items than `items>=N` is an error at its heading, and an
+item without an id in a section that has a pattern is an error at the item.
 
 #### Too few
 
 - **Given** `items>=3` on a section with two items, and `items>=1` on a section
   that holds only an authoring comment.
 - **When** the items are judged.
-- **Then** each is an error at its section's heading that says how many items
-  the section holds and how many it needs.
+- **Then** each is an error at its section's heading that names the `items`
+  directive and says how many items the section holds and how many it needs.
 
 #### An item without an id
 
 - **Given** the pattern `AC-\d+` on a section whose second item is
   `Replaces AC-3`.
 - **When** the items are judged.
-- **Then** there is one error at that item's line that says it has no id
-  matching `AC-\d+`, and none for the others.
+- **Then** there is one error at that item's line that names the `pattern`
+  directive and says the item has no id matching `AC-\d+`, and none for the
+  others.
 
 #### Unmarked items are free
 
@@ -176,14 +191,17 @@ holds whitespace or a comma, are errors.
 
 #### A repeated id
 
-- **Given** the pattern `AC-\d+` and `AC-1` on two items of one section and on
-  an item of `## Other`, which has the same pattern.
+- **Given** the pattern `AC-\d+` on `## Criteria` on line 10, whose items
+  `- **AC-1** a` and `- **AC-1** b` are on lines 12 and 14, and on `## Other` on
+  line 16, whose item `- **AC-1** c` is on line 18.
 - **When** the items are judged.
-- **Then** one error names `AC-1` and the three lines it is on.
+- **Then** there is one error at line 12 that names `AC-1` and the lines 14 and
+  18.
 
 #### A bad id
 
-- **Given** the patterns `AC \d` and `A,\d`, and the items `AC 1` and `A,1`.
+- **Given** the patterns `pattern="AC \d"` and `pattern="A,\d"`, which are
+  quoted because a plain pattern holds no comma, and the items `AC 1` and `A,1`.
 - **When** the items are judged.
 - **Then** each is an error at its item's line that says the id holds
   whitespace or a comma.
@@ -207,4 +225,5 @@ does.
   found.
 - The check-body leaf calls the finder and the judge with the sections and
   directives of a contract. `wio trailers` will use the ids to check what a
-  record cites.
+  record cites. The ban on importing the Markdown parser outside `wio.formats`,
+  which the parent's criteria check, keeps the rule in one place.

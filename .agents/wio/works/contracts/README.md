@@ -36,8 +36,10 @@ agrees on what a Work is, what it inherits and what it depends on.
 - **Resolved view**: a Work's contract together with the sections its ancestors
   mark as inherited, which `wio contracts show` prints and a context bundle
   later shows.
-- **Item**: a part of a section that carries an id, such as a criterion
-  `AC-1`. A Work's items are those of its own sections only.
+- **Item**: a heading one level below a section, or without any, a top-level
+  list item of it, as the items leaf defines. It carries an id, such as a
+  criterion `AC-1`, when its section has a `pattern`. A Work's items are those
+  of its own sections only.
 - **Skeleton for an existing Work**: the skeleton of a template that keeps the
   Work's `id` and `depends_on`, as `wio contracts skeleton` prints it. A
   skeleton that `wio templates show` prints has no `id`.
@@ -95,9 +97,9 @@ agrees on what a Work is, what it inherits and what it depends on.
 - The ports `FileSystem`, `Entropy`, `Settings` and `Repository`, which the
   component reads files, randomness, the config and the repository root
   through.
-- A port in `wio/contracts/ports.pyi` that finds a template by name and the
-  entry template of a kind, which `wio.templates` satisfies and `wio.cli`
-  wires, so `wio.contracts` never imports it.
+- A port in `wio/contracts/ports.pyi` that finds a template by name and says
+  whether `wio templates check` rejects it, which `wio.templates` satisfies and
+  `wio.cli` wires, so `wio.contracts` never imports it.
 - `wio.cli`'s table of commands, which gains `contracts` with `new`, `list`,
   `check`, `show` and `skeleton`.
 - The `PostToolUse` entry of `.claude/settings.json` and the `wio-contracts`
@@ -322,9 +324,11 @@ No module of `wio.contracts` imports another component, `tomllib`, `tomlkit` or
 
 - **Given** a module of `wio.contracts` that imports `wio.templates`, another
   that imports `tomlkit` and a third that imports `markdown_it`.
-- **When** `tach check` and `ruff check` run on `src/wio`.
-- **Then** `tach` reports the first, and ruff reports `TID251` for the second
-  and the third.
+- **When** the imports of `src/wio/contracts` are read from the syntax trees of
+  its modules, and `tach check` and `ruff check` run on `src/wio`.
+- **Then** the syntax trees show the three imports, `tach` reports the first,
+  though its pass alone does not prove that there is none, and ruff reports
+  `TID251` for the second and the third.
 
 ### **AC-8** `wio templates` behaves as before
 
@@ -353,3 +357,7 @@ the same on this repository's templates.
   `wio templates check`. It is replaced when `wio config check` gets a line and
   a column and the three commands share one ordering.
 - Each leaf names the documents it touches in its own context.
+- By the driver's decisions in this Work, a template's `shape` is a free
+  descriptive string that no command checks, `wio contracts show` prints no
+  action descriptions, and the form of an id is checked. `docs/concepts.md` and
+  `docs/v0.1-scope.md` say otherwise until the documents are promoted.

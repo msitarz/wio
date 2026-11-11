@@ -18,14 +18,14 @@ joins them.
 
 ## Goals
 
-- One walk of the Works directory, which `wio templates` and `wio contracts`
-  both use.
+- One walk of the Works directory, which `wio templates` uses and
+  `wio contracts` will use.
 - One place that finds the closest known key to a mistyped one, used by
-  `wio config`, `wio templates` and `wio contracts`, and the only importer of
-  `difflib`.
+  `wio config`, `wio templates` and later `wio contracts`, and the only importer
+  of `difflib`.
 - One `has_error`, one ordering of diagnostics by file, line and column, and one
-  rendering of a check's result, used by `wio templates` and `wio contracts`,
-  with `has_error` also used by `wio config`.
+  rendering of a check's result, used by `wio templates` and later by
+  `wio contracts`, with `has_error` also used by `wio config`.
 - A person who mistypes a key in a template is told the closest valid key, as a
   person who mistypes a key in the config already is.
 - Every other output of `wio config` and `wio templates` stays as it is.
@@ -59,19 +59,23 @@ joins them.
 
 ## Mechanisms
 
-- A module `walk.py` in `wio.io` with `walk_markdown(directory, files)`, which
-  yields the Markdown files below a directory, and
-  `refuse_directory(directory, written, files, *, noun, default)`, which judges
-  the directory itself. Both take a `FileSystem` and read no file.
-- `closest_key(key, known)` and `render_check(diagnostics, *, as_json, passes)`
-  in `wio.formats`. `closest_key` is the one importer of `difflib`, lazily, and
-  returns the closest key or `None`.
-- `order_diagnostics` and `has_error` in `wio.models.diagnostics`, beside
-  `Diagnostic` and `sort_diagnostics`, reusing that module's rank of severities.
+- A module `walk.py` in `wio.io` with two functions: `walk_markdown(directory:
+  Path, files: FileSystem) -> Iterator[Path]`, which yields the Markdown files
+  below a directory, and `refuse_directory(directory: Path, written: str, files:
+  FileSystem, *, noun: str, default: str) -> list[Diagnostic] | None`, which
+  judges the directory itself and returns its one error, or none. Both read no
+  file.
+- In `wio.formats`: `closest_key(key: str, known: Iterable[str]) -> str | None`,
+  the one importer of `difflib`, lazily, and `render_check(diagnostics:
+  Iterable[Diagnostic], *, as_json: bool, passes: str) -> str`.
+- In `wio.models.diagnostics`, beside `Diagnostic` and `sort_diagnostics`:
+  `order_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic,
+  ...]` and `has_error(diagnostics: Iterable[Diagnostic]) -> bool`, reusing that
+  module's rank of severities.
 - The callers that change: `wio.templates` (discovery, check and command) and
   `wio.config` (`messages.py`, `keypath.py`, `loader.py` and `report.py`).
-- Ruff's `banned-api` table, which gains `difflib` outside `wio.formats` as it
-  bans `tomllib` and `markdown_it`.
+- Ruff's `banned-api` table, which gains `difflib`, as it bans `tomllib` and
+  `markdown_it`, with the exemption that `wio.formats` already has.
 - The names and the signatures above are fixed. The tests and what else a
   module holds are for the architecture stage.
 
@@ -80,13 +84,14 @@ joins them.
 - **Moved, not changed.** Every output of `wio config` and `wio templates` is
   byte for byte what it was, except the message of a mistyped key in a template,
   which gains the closest key.
-- **Nothing is imported before it is needed.** A run that finds no mistyped key
-  does not import `difflib`, as the config's own README already requires, and
-  neither does a run that renders no result.
+- **Nothing is imported before it is needed.** `difflib` loads on the first call
+  of `closest_key`, as the config's own README already requires, and `json`
+  loads only when `render_check` renders JSON.
 - **The helpers import only what they need.** `wio.io.walk` imports the
-  `FileSystem` port and the standard library, `closest_key` and `render_check`
-  import `wio.models` and the standard library, and the two functions of
-  `wio.models.diagnostics` import nothing else.
+  `FileSystem` port and the standard library. `closest_key` imports `difflib`
+  and nothing else. `render_check` imports `render_text` and `render_json` of
+  `wio.formats` and `wio.models`. `order_diagnostics` and `has_error` import the
+  standard library, `re` among it, and `wio.models`.
 
 ## Visuals
 
@@ -101,7 +106,7 @@ flowchart LR
     templates["wio.templates"]:::changed
     config["wio.config"]:::changed
     contracts["wio.contracts, later"]
-    walk["wio.io: walk_markdown, refuse_directory"]:::new
+    walk["wio.io: walk.py, a new module"]:::new
     formats["wio.formats: closest_key, render_check"]:::changed
     diagnostics["wio.models: order_diagnostics, has_error"]:::changed
     templates --> walk
@@ -134,8 +139,8 @@ a directory, and nothing else.
 
 ### **AC-2** The directory itself is judged with the caller's noun
 
-`refuse_directory` returns one error for a directory that cannot be walked, and
-none for one that can, or for a missing default.
+`refuse_directory` returns a list of one error for a directory that cannot be
+walked, and none for one that can, or for a missing default.
 
 #### Each case
 
@@ -144,10 +149,10 @@ none for one that can, or for a missing default.
   `other`, one that is a file, one that is missing and written as
   `.agents/wio/templates`, and an ordinary directory.
 - **When** `refuse_directory` runs on each.
-- **Then** the first three return an error whose message is `The templates
-  directory must not be a symbolic link`, `The templates directory does not
-  exist` and `The templates directory is not a directory`, whose place is the
-  path as written, and the last two return none.
+- **Then** the first three return a list of one error whose message is `The
+  templates directory must not be a symbolic link`, `The templates directory
+  does not exist` and `The templates directory is not a directory`, whose place
+  is the path as written, and the last two return none.
 
 #### Another noun
 
@@ -158,7 +163,8 @@ none for one that can, or for a missing default.
 ### **AC-3** The closest key is found, and `difflib` loads only then
 
 `closest_key` returns the closest known key or none, and importing `wio.formats`
-or running a command that finds no mistyped key does not import `difflib`.
+or running a command that finds no mistyped key imports neither `difflib` nor
+`json`.
 
 #### The match
 
@@ -171,9 +177,10 @@ or running a command that finds no mistyped key does not import `difflib`.
 
 - **Given** a new Python process, a valid config and valid templates.
 - **When** `wio.formats` is imported, then `main(["config", "check"], stdio)`
-  and `main(["templates", "check"], stdio)` of `wio.cli` run, and `sys.modules`
-  is read, and then `closest_key` is called and it is read again.
-- **Then** `difflib` is not there the first time and is there the second.
+  and `main(["templates", "check"], stdio)` of `wio.cli` run in text form, and
+  `sys.modules` is read, and then `closest_key` is called and it is read again.
+- **Then** neither `difflib` nor `json` is there the first time, and `difflib`
+  is there the second.
 
 ### **AC-4** `wio config` says what it said
 
@@ -192,9 +199,11 @@ before, and `wio config` imports `difflib` nowhere itself.
 
 #### The import
 
-- **Given** the modules of `wio.config`.
-- **When** `ruff check` runs on `src/wio`, with one of them importing `difflib`.
-- **Then** it reports `TID251` for that import, and for none in `wio.formats`.
+- **Given** the new `difflib` entry of ruff's `banned-api`, and a module of
+  `wio.config` that imports `difflib`.
+- **When** `ruff check` runs on `src/wio`.
+- **Then** it reports `TID251` for that import, and reports none for the import
+  in `wio.formats`.
 
 ### **AC-5** A template says the closest key
 
@@ -235,8 +244,8 @@ when there is nothing to report.
 
 ### **AC-7** `wio templates` prints what it printed
 
-Apart from a mistyped key, every output of the three commands that use the
-moved helpers is the same.
+Apart from a mistyped key, every output of the commands of `wio templates` is
+the same.
 
 #### The repository's templates and a broken directory
 
@@ -247,8 +256,28 @@ moved helpers is the same.
 - **Then** on the first, the outputs and exit codes are those of the commands
   before this change, and `check` prints `The templates pass.`. On the second,
   `check` prints `error: .agents/wio/templates: The templates directory must
-  not be a symbolic link` and exits 1, and `list` prints that error and a line
-  that points to `wio templates check`, and exits 2.
+  not be a symbolic link` and exits 1, and `list` prints that error and the line
+  `` `wio templates check` shows every problem. `` and exits 2.
+
+### **AC-8** There is one copy of each helper
+
+After the move, each helper is defined once, in the package named for it, and
+the components use it.
+
+#### The sources
+
+- **Given** the sources of `src/wio` after the change.
+- **When** their syntax trees are searched for the definitions of the helpers,
+  for the use of `severity == "error"`, and for the imports of the helper
+  modules.
+- **Then** `walk_markdown` and `refuse_directory` are defined only in
+  `wio.io.walk`, `closest_key` and `render_check` only in `wio.formats`, and
+  `order_diagnostics` and `has_error` only in `wio.models.diagnostics`;
+  `wio.templates` defines none of `_walk`, `_walk_visible`, `_refuse_directory`,
+  `_has_error`, `_order_key` and `render_check`; `wio.config` has no inline test
+  `severity == "error"` and imports `has_error` and `closest_key`; `difflib` is
+  imported only in `wio.formats`; and each helper module imports only what the
+  Constraints list.
 
 ## Additional context
 

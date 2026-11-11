@@ -2,7 +2,7 @@
 id = "ces6tf"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["xtgz9z"]
+depends_on = ["xtgz9z", "h69nf8"]
 -->
 
 # The hierarchy and the dependency graph of the Works
@@ -11,8 +11,8 @@ depends_on = ["xtgz9z"]
 
 Commands need the parents, children and dependents of a Work, the roots that a
 parent collects from its descendants, and a dependency graph without cycles.
-These are computed from the layout and the metadata, never stored, so that
-every command gets the same answer and none drifts from the files.
+These are computed from the layout and the metadata, so that every command gets
+the same answer and none drifts from the files.
 
 ## Goals
 
@@ -34,7 +34,7 @@ every command gets the same answer and none drifts from the files.
 
 - Warnings about roots, such as a leaf that lists `@descendants` or a parent
   whose roots omit a root of a descendant, which the check-works leaf gives from
-  the data returned here.
+  the data returned here, and judging a root's name against the config.
 - Looking up a removed Work in the history, and which actions of a dependency
   must have run.
 - Ordering the delivery of Works, and tracking items of a parent through the
@@ -63,33 +63,41 @@ every command gets the same answer and none drifts from the files.
 
 ## Constraints
 
-- **Computed, never stored.** There is no `parent` or `children` key, and the
-  hierarchy is built from the paths and the metadata on each run.
+- **The hierarchy is built on each run.** It comes from the paths and the
+  metadata of the Works that are given.
 - **The parent is the nearest Work above.** It is the Work of the nearest
   directory above the Work's own that holds one. A plain directory between
-  holds no Work and is passed over, and a file beside a Work is never its
-  child. Under `flat` a Work has no relatives.
+  holds no Work and is passed over, so does a directory whose Work was left
+  out, and a file beside a Work is never its child. Under `flat` a Work has no
+  relatives.
 - **Roots are a set.** A Work's resolved roots are its own entries, with
   `@descendants` replaced by the union of what its children's roots resolve to,
   each name once and sorted. A child contributes what its own roots resolve to,
-  so a middle parent decides what it passes up, and a name is not checked
-  against the config here.
+  so a middle parent decides what it passes up.
 - **The graph is the listed edges and the implicit ones.** Under `flat` it is
-  the listed edges only. An id that is shared by two Works counts as existing,
-  so the duplicate is reported once, by discovery.
-- **Every report is one error at one file.** An unknown id is one error at the
-  Work that lists it. A group of Works that wait on each other is one error at
-  the file of its Work with the smallest path, and shows one cycle that starts
-  at that Work.
+  the listed edges only. An id that is shared by two Works counts as existing: a
+  dependency on it is an edge to each of the two, and the duplicate is reported
+  once, by discovery.
+- **An unknown id is one error for each Work and id.** It is at the Work that
+  lists it, and reads ``The dependency `zzzzzz` is not a Work``.
+- **A group of Works that wait on each other is one error.** It is at the file
+  of the group's Work with the smallest path, and shows the shortest cycle that
+  starts at that Work, taking at each step, among equally short ones, the edge
+  to the Work with the smallest path. When a pair has a listed and an implicit
+  edge, the edge is called listed.
 - **A cycle names its edges.** Each step names the id it reaches and says
   whether the edge was listed in `depends_on` or is a parent waiting for its
   child, and a Work that lists its own id is a cycle of one.
 - **The output is deterministic.** Children, descendants and dependents are
-  sorted by path, ancestors run from the nearest, and the diagnostics are
-  ordered as the shared leaf orders them.
+  sorted by the string of their paths, ancestors run from the nearest,
+  dependencies are in the order listed, and the diagnostics are ordered as the
+  shared leaf orders them.
 - **Nothing is read or written.** It works on the Works it is given.
 
 ## Acceptance criteria
+
+In these scenarios a Work is named by its directory, such as `p` for
+`p/README.md`.
 
 ### **AC-1** Under nesting each Work has a parent, children and descendants
 
@@ -107,6 +115,13 @@ one, its children are the Works whose parent it is, and the rest follows.
   of `d` are `c1` and `p`, the descendants of `p` are `c1`, `d` and `x` in the
   order of their paths, and a leaf has no children.
 
+#### A directory whose Work was left out
+
+- **Given** `hierarchy = "nesting"`, a Work `p/README.md`, a file
+  `p/m/README.md` whose block does not close, and a Work `p/m/k/README.md`.
+- **When** the hierarchy is built.
+- **Then** the parent of `k` is `p`.
+
 ### **AC-2** Under flat nobody is related
 
 Under `flat`, no Work has a parent, a child, an ancestor or a descendant, and
@@ -114,24 +129,26 @@ the graph holds the listed edges only.
 
 #### The same Works
 
-- **Given** `hierarchy = "flat"`, the Works of the previous scenario, and `d`
-  listing `p` in `depends_on`.
+- **Given** `hierarchy = "flat"`, the Works of the first scenario of AC-1 with
+  `p` having `roots = ["@descendants", "wio"]`, and `d` listing `p` in
+  `depends_on`.
 - **When** the hierarchy is built.
-- **Then** no Work has a relative, `@descendants` resolves to nothing, and `d`
-  has the one dependency `p` with no diagnostic.
+- **Then** no Work has a parent, a child, an ancestor or a descendant, `p` has
+  the roots `wio` only, and `d` has the one dependency `p` with no diagnostic.
 
-### **AC-3** Roots resolve through the descendants
+### **AC-3** Roots resolve through the children
 
-`@descendants` is the union of what the descendants' roots resolve to, and a
+`@descendants` is the union of what the children's roots resolve to, and a
 middle parent passes up what its own roots resolve to.
 
 #### Resolving
 
-- **Given** `hierarchy = "nesting"`, a Work `top` with
-  `roots = ["e2e", "@descendants"]`, a child `mid` with `roots = ["api"]` that
-  has a child `deep` with `roots = ["web"]`, a child `leaf` with
-  `roots = ["db", "db"]`, a child `bad` whose `roots` was of the wrong type and
-  so is empty, and a Work `solo` that lists `@descendants` and `wio`.
+- **Given** `hierarchy = "nesting"` and Works `top/README.md` with
+  `roots = ["e2e", "@descendants"]`, `top/mid/README.md` with `roots = ["api"]`,
+  `top/mid/deep/README.md` with `roots = ["web"]`, `top/leaf/README.md` with
+  `roots = ["db", "db"]`, `top/bad/README.md` whose `roots` was of the wrong
+  type and so is empty, and `solo/README.md` that lists `@descendants` and
+  `wio`.
 - **When** the roots are resolved.
 - **Then** `top` has `api`, `db` and `e2e`, `mid` has `api`, `deep` has `web`,
   `leaf` has `db` once, `bad` has none, and `solo`, which has no children, has
@@ -140,7 +157,7 @@ middle parent passes up what its own roots resolve to.
 #### A chain of parents
 
 - **Given** `top` and `mid` both with `roots = ["@descendants"]` and `deep` with
-  `roots = ["web"]`.
+  `roots = ["web"]`, in the same tree.
 - **When** the roots are resolved.
 - **Then** `mid` and `top` both have `web`.
 
@@ -151,20 +168,25 @@ that list its id, and an id that is not in the tree is an error.
 
 #### Dependents
 
-- **Given** Works `a` listing `b` and `c`, `d` listing `b`, and `b` the child
-  of a parent `p`.
+- **Given** `hierarchy = "nesting"` and Works `a/README.md` that lists `b` and
+  `c` by their ids, `d/README.md` that lists `b`, `c/README.md`, and `b` at
+  `p/b/README.md`, the child of a parent `p/README.md`.
 - **When** the dependents of `b`, `a` and `p` are read.
 - **Then** those of `b` are `a` and `d` in the order of their paths, `a` has the
-  dependencies `b` and `c`, and `p`, which waits for `b` implicitly, is not a
-  dependent of `b`, and `p` and `b` are not dependents of each other.
+  dependencies `b` and `c` in the order listed, and `p`, which waits for `b`
+  implicitly, is not a dependent of `b`.
 
 #### An unknown id and a shared id
 
-- **Given** a Work that lists `zzzzzz`, which no Work has, and a Work that lists
-  `k3m9xq`, which two Works share.
+- **Given** Works `u1/README.md` and `u2/README.md` that each list `zzzzzz`,
+  which no Work has, `u3/README.md` that lists `zzzzzz` and `yyyyyy`, neither of
+  which a Work has, a Work `r/README.md` that lists `k3m9xq`, and two Works
+  `s1/README.md` and `s2/README.md` that share the id `k3m9xq`.
 - **When** the hierarchy is built.
-- **Then** there is one error at the first Work that names `zzzzzz`, and none
-  for the second.
+- **Then** there is one error for each of `u1` and `u2`, two for `u3`, each at
+  its own file and reading ``The dependency `zzzzzz` is not a Work`` or the same
+  with `yyyyyy`, none for `r`, and the dependents of both `s1` and `s2` include
+  `r`.
 
 ### **AC-5** A dependency cycle is one error with one readable cycle
 
@@ -182,19 +204,23 @@ first Work, with one cycle through the group and the kind of each edge.
 
 #### Overlapping cycles and a self-dependency
 
-- **Given** Works `a` that lists `b` and `c`, `b` and `c` that each list `a`,
-  and a Work `s` with the id `s5t3wx` that lists its own id.
+- **Given** a Work `a7b2c4` at `a/README.md` that lists `b8c3d5` and `c9d4e6`,
+  Works `b8c3d5` at `b/README.md` and `c9d4e6` at `c/README.md` that each list
+  `a7b2c4`, and a Work `s5t3wx` at `s/README.md` that lists its own id.
 - **When** the hierarchy is built.
-- **Then** there are two errors: one at `a`, with one cycle that starts at `a`
-  and none of the other, and one at `s` that reads
+- **Then** there are two errors: one at `a/README.md` that reads
+  `Dependency cycle: a7b2c4 → b8c3d5 (listed in depends_on) → a7b2c4 (listed in
+  depends_on)`, with no mention of `c9d4e6`, and one at `s/README.md` that reads
   `Dependency cycle: s5t3wx → s5t3wx (listed in depends_on)`.
 
 #### Two separate cycles
 
-- **Given** two pairs of Works that list each other, in different directories.
+- **Given** a Work `e1f2g3` at `e/README.md` and `f4g5h6` at `f/README.md` that
+  list each other, and `t1v2w3` at `t/README.md` and `w4x5y6` at `w/README.md`
+  that list each other.
 - **When** the hierarchy is built.
-- **Then** there are two errors, one at the first file of each pair, in the
-  order of their paths.
+- **Then** there are two errors, one at `e/README.md` and one at `t/README.md`,
+  in that order, each reading `Dependency cycle:` with its own two ids.
 
 ## Additional context
 

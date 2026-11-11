@@ -19,13 +19,13 @@ of the block exists.
 
 - A Work is created from the entry template of a kind, from any template, or as
   a bare contract.
-- The new contract carries the id, the title and the roots that were asked for,
-  and keeps the template's authoring as it was written.
+- The new contract is the template's skeleton with the id, the title and the
+  roots that were asked for.
 - The person is told the id and the path of the new Work, in a form a script can
   read.
 - Nothing is created when anything that was asked for is wrong.
 - Setting keys in a contract's metadata block is done by one function in
-  `wio.formats`.
+  `wio.formats`, whose behaviour is fixed.
 
 ## Glossary
 
@@ -46,7 +46,8 @@ of the block exists.
   path are decided, a guard writes one new file, and the group and the catalog
   exist.
 - **A-2**: `prepare_skeleton` gives a template's skeleton in the template's
-  block form, with the `template` key and no `id`, as it is delivered.
+  block form, with the `template` key and no `id`, and drops the template's own
+  keys, its metadata comments and the directive lists, as it is delivered.
 - **A-3**: `tomlkit` replaces a value in place and keeps the order of the keys
   and the rest of the text, and adding a first key is done on the text of the
   block.
@@ -59,11 +60,12 @@ of the block exists.
   that holds a value and before the first table when the block has none. The
   block's form, its other keys and its body are not changed.
 - `prepare_skeleton` and `read_outline` of `wio.formats`, the last to find the
-  first heading that `--title` replaces.
+  first level-1 heading that `--title` replaces.
 - The decision and the guard of the new-location leaf, and the catalog's `find`
   and `is_rejected`.
-- `Config` for the kinds, their entry templates and the declared roots, and
-  `json` for `--json` only.
+- `Config` for the kinds, their entry templates and the declared roots, the
+  `Entropy` port, which `wio.cli` wires into the group for this leaf, and `json`
+  for `--json` only.
 - A `new` entry in the table of the group, with the argument `kind` and the
   options `--template`, `--parent`, `--slug`, `--title`, `--path`, `--root` and
   `--json`.
@@ -75,24 +77,29 @@ of the block exists.
 - **The template decides.** `new <kind>` starts from the entry template of the
   kind and `--template <name>` from that template. Given both, the template's
   kind must be the kind. Given neither, it writes the bare contract.
-- **Only three things change.** The `id` is added first, `roots` is replaced
-  when `--root` is given, and the first heading is replaced when `--title` is
-  given. The block's form, the template's line endings, its authoring comments
-  and its sections stay as they were. Without `--title` the template's heading
-  stays, and a bare contract has `# Title`.
+- **The skeleton is the baseline, and three things change.** The text is what
+  `prepare_skeleton` gives. On top of it the `id` is added first, `roots` is
+  replaced when `--root` is given, and the first level-1 heading is replaced
+  when `--title` is given, or added as the first line of the body when the
+  template has none. Nothing else changes: the block's form, the line endings,
+  the authoring comments and the sections stay as the skeleton has them. A
+  bare contract has `# Title` unless `--title` is given.
 - **Roots are a set of declared names.** `--root` is repeatable, each name is a
-  declared root or `@descendants`, and a name given twice counts once.
+  declared root or `@descendants`, and a name given twice counts once. On a bare
+  contract it adds the key `roots`.
 - **Everything is checked before anything is written.** A mistake of the user is
   a `ContractsError`, exit 2, and no file is created.
-- **The errors say what to do.** No kinds declared says so, an undeclared kind
-  names it and the declared ones, a kind whose entry template is missing or
-  rejected points to `wio templates check`, and a template that no file has
-  points to `wio templates list`.
+- **The errors say what to do.** `new <kind>` with no kinds declared says so, an
+  undeclared kind names it and the declared ones, a kind whose entry template is
+  missing or rejected points to `wio templates check`, and a template that no
+  file has points to `wio templates list`.
 - **One file is written.** It is written once, through the guard, and the report
-  follows the write.
+  follows the write, so a write that fails reports nothing on standard output.
 - **The report is short.** The human form is `Created Work <id>  <title>` and
   the path on the next line, indented two spaces, and `--json` is one object
-  with `id`, `title`, `path`, `template` and `parent`, with `null` for none.
+  with `id`, `title`, `path`, `template` and `parent`, with `null` for none. The
+  title is the first heading of the text written, `(no title)` in the human form
+  and `null` in JSON when there is none.
 
 ## Acceptance criteria
 
@@ -107,7 +114,8 @@ were asked for, and the report names the id and the path.
   `feature.draft` has the block `kind = "feature"`, `[contract]` with
   `roots = []` and `depends_on = []`, and the body `# <Work name>`, `## Purpose`
   and `<!-- Why. -->`, the root `wio` declared, and an `Entropy` that gives the
-  bytes 19, 3, 20, 9, 29 and 23.
+  bytes 19, 3, 20, 9, 29 and 23. The skeleton drops the template's `kind` and
+  `[contract]`, so the file has neither.
 - **When** `wio contracts new feature --title "Read config" --root wio` runs.
 - **Then** the file `.agents/wio/works/read-config/README.md` holds exactly
   this, and the command prints the two lines below and exits 0:
@@ -139,8 +147,9 @@ is an error.
 
 #### A template under a parent
 
-- **Given** the config and templates of AC-1, a template `feature.leaf` of the
-  kind `feature`, a template `other.note` of the kind `other`, and a Work
+- **Given** a config that declares the kinds `feature`, with the entry template
+  `feature.draft`, and `other`, with the entry template `other.note`, the
+  templates of AC-1, a template `feature.leaf` of the kind `feature`, and a Work
   `p5n2hv` at `p/README.md` under `nesting`.
 - **When** `wio contracts new feature --template feature.leaf --parent p5n2hv
   --title Child` runs, `wio contracts new --template feature.leaf --slug a`
@@ -157,30 +166,44 @@ With no kind and no template, the file is the block with the `id` and a heading.
 #### Bare
 
 - **Given** an `Entropy` that gives the bytes 19, 3, 20, 9, 29 and 23, and an
-  empty tree for each run.
-- **When** `wio contracts new --slug note` and `wio contracts new --title Read`
-  run.
+  empty tree for each run, with the root `wio` declared.
+- **When** `wio contracts new --slug note`, `wio contracts new --title Read` and
+  `wio contracts new --path .agents/wio/works/x/spec.md --root wio` run.
 - **Then** the first writes `.agents/wio/works/note/README.md` that holds
   exactly `<!-- wio`, `id = "k3m9xq"`, `-->`, an empty line and `# Title`, the
-  second writes `.agents/wio/works/read/README.md` that holds `# Read`, and each
-  reports its id and path.
+  second writes `.agents/wio/works/read/README.md` that holds `# Read`, the
+  third writes `.agents/wio/works/x/spec.md` whose block has `id = "k3m9xq"` and
+  `roots = ["wio"]`, and each reports its id and path.
 
 ### **AC-4** The block is edited and nothing else is
 
-The `id` goes first, the roots are replaced or added, and the form, the keys,
-the line endings and the body are kept.
+The `id` goes first, the roots are replaced or added, the title is replaced or
+added, and the form, the keys, the line endings and the body are kept.
 
 #### Front matter, roots and line endings
 
-- **Given** a template in `+++` form with `wio = 1`, `template` and
-  `roots = ["a"]`, one with no `roots` key whose block has the tables `[x]`, and
-  one written with CRLF line endings.
-- **When** `wio contracts new` runs on each, the first with
-  `--root api --root web --root api`, the second with `--root api`.
+- **Given** a config declaring the roots `api` and `web` and the kind `feature`,
+  and templates of it: `t.front` in `+++` form with `wio = 1`, `template` and
+  `roots = ["a"]`; `t.plain` with no `roots` key whose block has a table `[x]`;
+  and `t.crlf` written with CRLF line endings.
+- **When** `wio contracts new --template t.front --slug a` runs with
+  `--root api --root web --root api`, `wio contracts new --template t.plain
+  --slug b --root api` runs, and `wio contracts new --template t.crlf --slug c`
+  runs.
 - **Then** the first has `wio = 1`, `id`, `template` and
   `roots = ["api", "web"]` in that order, the second has `roots = ["api"]` right
   after `template` and its `[x]` as it was, and the third has CRLF endings
   throughout and the same body as its template.
+
+#### A template with no title
+
+- **Given** a template `t.notitle` whose body is `## Purpose` and no level-1
+  heading.
+- **When** `wio contracts new --template t.notitle --title Mine --slug d` runs,
+  and then the same without `--title` with `--slug e`.
+- **Then** the first body starts with `# Mine`, an empty line and `## Purpose`,
+  the second is the template's body, reports `(no title)`, and the JSON of
+  either has the title `"Mine"` or `null`.
 
 ### **AC-5** A mistake creates nothing
 
@@ -192,15 +215,25 @@ Each mistake is an error that says what to do, and no file is written.
   template is missing, one whose entry template `bad` is rejected by
   `wio templates check`, and the config of AC-1.
 - **When** `wio contracts new feature --slug a` runs on the first three,
-  `wio contracts new nosuch --slug a` runs on the last,
+  `wio contracts new nosuch --slug a`,
   `wio contracts new feature --template nosuch --slug a` and
-  `wio contracts new feature --root nosuch --slug a` run on the last.
-- **Then** each exits 2 with its own message: that no kinds are declared, that
-  the entry template is missing and points to `wio templates check`, that it is
-  rejected and points to the same, that the kind `nosuch` is not declared and
-  names `feature`, that the template `nosuch` does not exist and points to
-  `wio templates list`, and that the root `nosuch` is not declared, and no file
-  was written in any case.
+  `wio contracts new feature --root nosuch --slug a` run on the last, and
+  `wio contracts new --slug a` runs on the first.
+- **Then** each of the first six exits 2 with its own message: that no kinds are
+  declared, that the entry template is missing and points to
+  `wio templates check`, that it is rejected and points to the same, that the
+  kind `nosuch` is not declared and names `feature`, that the template `nosuch`
+  does not exist and points to `wio templates list`, and that the root `nosuch`
+  is not declared, no file was written in any case, and the last, which is a
+  bare contract, succeeds.
+
+#### A write that fails
+
+- **Given** a guard that refuses the path because it has appeared since the
+  decision.
+- **When** `wio contracts new feature --slug a` runs.
+- **Then** it exits 2 with an error that names the path, writes nothing to
+  standard output, and creates no file.
 
 ### **AC-6** `--json` is one object with the same facts
 
@@ -208,13 +241,35 @@ The object has the fields in a fixed order and `null` for what there is none.
 
 #### Objects
 
-- **Given** the Works of AC-2 and AC-3.
+- **Given** the config and templates of AC-2, a Work `p5n2hv` at `p/README.md`,
+  no `child` or `note` directory, and an `Entropy` that gives the bytes 19, 3,
+  20, 9, 29 and 23, in a tree of its own for each run.
 - **When** `wio contracts new feature --template feature.leaf --parent p5n2hv
   --title Child --json` and `wio contracts new --slug note --json` run.
-- **Then** the first prints one object with `"id"`, `"title": "Child"`, the
-  path, `"template": "feature.leaf"` and `"parent": "p5n2hv"`, in that order,
-  and the second has `"title": "Title"`, `"template": null` and
-  `"parent": null`.
+- **Then** the first prints one object with `"id": "k3m9xq"`,
+  `"title": "Child"`, `"path": ".agents/wio/works/p/child/README.md"`,
+  `"template": "feature.leaf"` and `"parent": "p5n2hv"`, in that order, and the
+  second has `"title": "Title"`, `"template": null` and `"parent": null`.
+
+### **AC-7** The function that sets keys in a block does what it is fixed to do
+
+The one function of `wio.formats` that sets keys in a metadata block puts the
+`id` first, replaces a key in place, adds a missing key before the first table,
+and changes nothing else.
+
+#### Cases
+
+- **Given** the block text of a comment block with `template = "t"`,
+  `roots = []` and a table `[x]` with `a = 1`, and the block text of `+++` front
+  matter with `wio = 1` and `template = "t"`.
+- **When** the function sets `id = "k3m9xq"`, `roots = ["wio"]` and
+  `depends_on = ["a7b2c4"]` on the first, `id = "k3m9xq"` on the second, and
+  then the table `[actions]` with `deliver = ["build"]` on the first.
+- **Then** the first block reads `id = "k3m9xq"`, `template = "t"`,
+  `roots = ["wio"]`, `depends_on = ["a7b2c4"]`, an empty line, `[x]` with
+  `a = 1`, and then `[actions]` with `deliver = ["build"]`, the second reads
+  `wio = 1`, `id = "k3m9xq"`, `template = "t"`, and the body and the delimiters
+  are as they were.
 
 ## Additional context
 

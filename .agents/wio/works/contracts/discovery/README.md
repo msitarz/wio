@@ -26,7 +26,8 @@ another or break the tree around it.
 ## Glossary
 
 - **Marked file**: a file under the Works directory whose name ends in `.md` and
-  whose metadata block starts on its first line.
+  whose metadata block starts on its first line, in the comment form or in
+  `+++` front matter, which needs the marker `wio = 1`.
 - **Left out**: a marked file that discovery reports and builds no Work from.
 
 ## Non-Goals
@@ -47,8 +48,9 @@ another or break the tree around it.
   `wio.models`.
 - **A-2**: `read_metadata_block` returns none for a file whose block does not
   start on its first line, and raises an error with the line of the problem for
-  a block it cannot read or whose marker it does not know, as the templates
-  discovery already relies on.
+  a block it cannot read or whose marker it does not know: line 1 for a block
+  that does not close, the line of the TOML error, and the line of the `wio` key
+  for a marker that is not 1, as the templates discovery already relies on.
 - **A-3**: `Config.works` carries `dir`, `hierarchy` and `defaults`.
 
 ## Mechanisms
@@ -75,19 +77,25 @@ another or break the tree around it.
 - **A wrong optional field is empty and reported.** A `template`, `roots`,
   `depends_on` or `[actions]` of the wrong type gives one error, the Work is
   built with that field empty, and it stays in the tree.
+- **The title is the first heading.** It is the first heading of the body at any
+  level, found with `read_outline`, and none when the body has no heading.
 - **A shared id keeps both Works.** Both stay in the tree with one error that
   names both paths, and a lookup by that id is refused with that error.
 - **Nesting collisions are the concepts'.** Under `nesting`, a directory with
   two or more marked files holds no Work, one error names all of them, and a
-  marked file directly in the Works directory is not a Work. Under `flat`
-  neither rule applies.
+  marked file directly in the Works directory is not a Work. A marked file that
+  is left out for its own error still counts, and its own error is reported as
+  well. Under `flat` neither rule applies.
+- **A hidden directory is one below the Works directory.** The walk skips a
+  directory whose name starts with `.` below the Works directory, and the Works
+  directory itself may start with one.
 - **Every place is a path.** A diagnostic's place is the file's path relative to
   the repository root, written with `/`, followed by `:<line>` for a problem of
   the block, and the paths of a shared id are joined by a comma and a space.
 - **Read, never written.** Every file is read through `FileSystem`, and no file
   is written.
-- **The output is deterministic.** The Works are sorted by path, and the
-  diagnostics are ordered as `order_diagnostics` orders them.
+- **The output is deterministic.** The Works are sorted by the string of their
+  paths, and the diagnostics are ordered as `order_diagnostics` orders them.
 
 ## Acceptance criteria
 
@@ -105,38 +113,43 @@ is not marked is ignored.
   an `[actions]` table with `define = "define-feature"` and
   `deliver = ["implementation"]`, and a body that starts with `# First`,
   `b/spec.md` with `+++` front matter that holds `wio = 1` and `id = "a7b2c4"`
-  and a body with `## Only` and no `#` heading, `a/notes.md` with no block,
+  and a body with `## Only` and no `#` heading, `d/README.md` with the id
+  `p5n2hv` and a body with no heading at all, `a/notes.md` with no block,
   `c/x.md` with a block on its second line, a hidden directory `.git` holding a
   marked file, and a symbolic link to a marked file.
 - **When** the Works are discovered.
-- **Then** there are two Works, `a/README.md` and `b/spec.md`, with those ids,
-  `First` and `Only` as their titles, the first with its template, roots,
-  dependencies and both overrides as written, the second with no template, no
-  roots, no dependencies and no overrides, there is no diagnostic, and no file
-  has been written.
+- **Then** there are three Works, `a/README.md`, `b/spec.md` and `d/README.md`,
+  with those ids and `First`, `Only` and no title, the first with its template,
+  roots, dependencies and both overrides as written, the others with no
+  template, no roots, no dependencies and no overrides, there is no diagnostic,
+  and no file has been written.
 
 ### **AC-2** A Work that cannot be identified is left out with one error
 
 A file that cannot be read or decoded, a block that cannot be read, a marker of
-an unknown version, and a missing, non-string or empty id each give one error at
-the file and no Work, while the other Works are found.
+an unknown version, and a missing, non-string or empty id each give one error
+and no Work, while the other Works are found.
 
-#### Six broken files and a good one
+#### Seven broken files and a good one
 
-- **Given** Works under the Works directory: a file that is not UTF-8, a comment
-  block that does not close at its line 3, `wio = 2` in `+++` front matter, a
-  block without an `id`, `id = ""`, `id = 12`, and a good Work.
+- **Given** Works under the Works directory: `bad/utf.md` that is not UTF-8,
+  `bad/open.md` whose comment block does not close, `bad/toml.md` whose comment
+  block has invalid TOML on its line 3, `bad/marker.md` whose `+++` front matter
+  has `wio = 2` on its line 2, `bad/noid.md` whose block has no `id`,
+  `bad/empty.md` with `id = ""`, `bad/number.md` with `id = 12`, and a good
+  Work.
 - **When** the Works are discovered.
-- **Then** the good Work is found, and there is one error for each of the six
-  files, at the file, with `:3` for the block that does not close, and no other
-  diagnostic.
+- **Then** the good Work is found, and there is one error for each of the seven
+  files and no other diagnostic. Their places are `bad/utf.md`, `bad/open.md:1`,
+  `bad/toml.md:3`, `bad/marker.md:2`, `bad/noid.md`, `bad/empty.md` and
+  `bad/number.md`.
 
 ### **AC-3** A wrong optional field is reported and the Work stays
 
 An optional key of the wrong type is an error, the Work is built with that field
 empty, and the Work keeps its place in the tree.
 
-#### Three wrong fields
+#### Four wrong fields
 
 - **Given** `hierarchy = "nesting"`, a Work `p` with `roots = "api"` that has a
   child Work `p/c` with `depends_on = [1]`, and a Work `q` whose `[actions]` is
@@ -163,18 +176,28 @@ of that id is refused.
 
 ### **AC-5** Under nesting a directory holds one Work
 
-A directory with two or more marked files holds no Work, and a marked file
-directly in the Works directory is not a Work.
+A directory with two or more marked files holds no Work, a marked file that is
+left out still counts, and a marked file directly in the Works directory is not
+a Work.
 
 #### Collisions
 
-- **Given** `hierarchy = "nesting"` and Works `a/one.md` and `a/two.md`, a
-  marked file `top.md` directly in the Works directory, and a Work
-  `b/README.md`.
+- **Given** `hierarchy = "nesting"` and Works `a/one.md` with the id `k3m9xq`
+  and `a/two.md` with the id `a7b2c4`, a marked file `top.md` with the id
+  `p5n2hv` directly in the Works directory, and a Work `b/README.md` with the id
+  `s5t3wx`.
 - **When** the Works are discovered.
 - **Then** only `b/README.md` is a Work, one error is at `a/one.md, a/two.md`
   and names the directory, and one error is at `top.md` and says that a Work
   cannot sit directly in the Works directory.
+
+#### A marked file that is left out
+
+- **Given** `hierarchy = "nesting"` and `a/one.md` with the id `k3m9xq` and
+  `a/two.md` whose block has no `id`.
+- **When** the Works are discovered.
+- **Then** there is no Work, one error is at `a/one.md, a/two.md` for the
+  collision, and one error is at `a/two.md` for the missing id.
 
 ### **AC-6** Under flat there are no collisions
 
@@ -183,7 +206,7 @@ Works directory.
 
 #### The same files
 
-- **Given** `hierarchy = "flat"` and the files of the previous scenario.
+- **Given** `hierarchy = "flat"` and the files of the first scenario of AC-5.
 - **When** the Works are discovered.
 - **Then** `a/one.md`, `a/two.md`, `top.md` and `b/README.md` are all Works and
   there is no diagnostic.
@@ -199,8 +222,8 @@ be walked is one error and no Work.
   missing, one that is a file, one that is a symbolic link, and an empty one.
 - **When** the Works are discovered for each.
 - **Then** the first and the last find no Work and no diagnostic, and each of
-  the others gives one error whose message names the Works directory and whose
-  place is the directory as written, and finds no Work.
+  the others gives one error whose message begins `The Works directory` and
+  whose place is the directory as written, and finds no Work.
 
 ### **AC-8** A file that is not a Work is explained
 
@@ -212,11 +235,13 @@ none.
 - **Given** `hierarchy = "nesting"` and paths: one that does not exist, a
   directory, `x.txt`, an `.md` file with no block, one with its block on line 2,
   `+++` front matter without `wio = 1`, a file outside the Works directory, one
-  under a directory whose name starts with `.`, a symbolic link, a file in a
+  under a directory below the Works directory whose name starts with `.`, a
+  symbolic link, a path that runs through a symbolic link, a file in a
   directory with another marked file, a marked file directly in the Works
-  directory, and a good Work.
+  directory, a marked file whose block does not close, and a good Work.
 - **When** the reason each is not a Work is asked for.
-- **Then** each of the first eleven has its own reason that names what is wrong,
+- **Then** each of the first thirteen has its own reason that names what is
+  wrong, the last of them being the error that discovery reports for that file,
   and the Work has none.
 
 ## Additional context
