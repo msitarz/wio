@@ -89,7 +89,8 @@ agree on which lines are section headings. Its docstring and
   marks and spaces around it, its raw line as written, and its line in the file,
   counted from the start line of the body that the caller passes.
 - **Headings are the only structure it returns.** What lies between them, the
-  extent of a section and its items, is for the contracts Work to decide.
+  extent of a section and its items, is found by
+  [`find_items`](#the-items-of-a-section).
 - **The parser is `markdown-it-py`,** whose CommonMark rules are the definition
   of a heading, a fence and a comment block, so wio has no grammar of its own to
   keep in step with Markdown. [`markdown.py`](markdown.py) builds it once for
@@ -122,6 +123,8 @@ Their docstrings say what each takes and returns, the types are in
 - **The id is exactly what the pattern matches at the start of the text.** It
   skips the markup that a writer puts around an id, such as `**AC-1**`, and
   never trims or changes it, so what a record cites is what the contract shows.
+  A pattern that must begin with `*`, `_` or a backtick never matches, because
+  those characters are skipped before the match starts.
   An item without a match has no id, and so does an empty match, because an id
   that is empty cites nothing.
 - **A finding has a fixed place.** The judge reports a section's shortfall at
