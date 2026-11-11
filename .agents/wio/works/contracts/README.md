@@ -132,23 +132,6 @@ agrees on what a Work is, what it inherits and what it depends on.
   `wio.models`, `wio.io` and ports, never another component. The review of each
   child checks the imports of its files, because `tach check` alone can pass a
   forbidden one ([known issues](../../../../docs/known-issues.md)).
-- **Verification.** The constraints and goals are established as follows.
-  - Never rewritten: AC-5 and the `new` and `skeleton` leaves.
-  - The tree as it is on disk and the hierarchy computed: the discovery and
-    hierarchy leaves.
-  - Unknown keys warn: the `check-works` leaf.
-  - One Diagnostic and every problem at once: AC-4, the discovery leaf and the
-    two check leaves.
-  - Deterministic output: AC-5 and the `list` and `show` leaves.
-  - The ids: the `new-location` leaf.
-  - What `list` and `check` import: AC-6.
-  - One reader, one writer, one parser and the dependency direction: AC-7 and
-    the review of each child.
-  - The goals about creating, listing and showing: AC-1, AC-2 and AC-3, and the
-    `new`, `skeleton`, `list` and `show` leaves.
-  - The goals about being told of a problem: AC-4 and the `hooks` leaf.
-  - The goal about one place for the reader: AC-7 and the `shared`, `discovery`,
-    `hierarchy`, `resolve` and `items` leaves.
 
 ## Visuals
 
