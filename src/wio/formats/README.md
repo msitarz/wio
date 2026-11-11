@@ -92,8 +92,46 @@ agree on which lines are section headings. Its docstring and
   extent of a section and its items, is for the contracts Work to decide.
 - **The parser is `markdown-it-py`,** whose CommonMark rules are the definition
   of a heading, a fence and a comment block, so wio has no grammar of its own to
-  keep in step with Markdown. Only `wio.formats` imports it, and it loads on the
+  keep in step with Markdown. [`markdown.py`](markdown.py) builds it once for
+  the outline and the items. Only `wio.formats` imports it, and it loads on the
   first reading, so a command that reads no body never pays for it.
+
+## The items of a section
+
+`find_items` and `judge_items` in [`items.py`](items.py) are the one rule for
+what an item of a contract's section is, which id it carries and whether a
+contract's items are sound, so every reader of a contract finds the same items.
+Their docstrings say what each takes and returns, the types are in
+[`item.py`](../models/item.py), and their
+[tests](../../../tests/unit/formats/test_items.py) say how each case reads. The
+[concepts](../../../docs/concepts.md#item-ids) say what an id is for.
+
+- **Only `wio.formats` finds items.** No other package derives them from the
+  Markdown again, because two readers would disagree about an edge case and a
+  record would cite an id that one of them cannot see. A test reads the syntax
+  trees of the sources to hold this, and ruff bans the parser outside the
+  package.
+- **A section's items are its subheadings, or else its list items.** This
+  repository's criteria are `###` subheadings, and its assumptions and goals are
+  lists, so both shapes count and the subheadings win. A list that comes after a
+  deeper heading belongs to that part of the section and is not an item, and a
+  list item is one item with everything nested in it.
+- **Only the body's own content counts.** A comment, a code block and a quote
+  hold no items, so the authoring example of a template is never counted as the
+  contract's own.
+- **The id is exactly what the pattern matches at the start of the text.** It
+  skips the markup that a writer puts around an id, such as `**AC-1**`, and
+  never trims or changes it, so what a record cites is what the contract shows.
+  An item without a match has no id, and so does an empty match, because an id
+  that is empty cites nothing.
+- **A finding has a fixed place.** The judge reports a section's shortfall at
+  its heading and an item's fault at the item, and a repeated id once, at its
+  first use, so a person fixes one place and an editor can jump to it. It
+  returns them in the order of `sort_diagnostics`, as the other checks do.
+- **The block reader and the directive parser are not its business.** It takes
+  the sections and their directives from the caller, so it never reads a
+  template, and matching a contract's sections to a template's is for
+  `wio contracts`.
 
 ## The skeleton
 

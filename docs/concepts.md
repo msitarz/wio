@@ -761,7 +761,7 @@ Sections are **optional until marked required**, so the agent can choose
 sections based on what the Work needs. Authoring comments do not count as
 content, so a Work fresh from its template passes a check that only requires
 headings, and a template that wants content says so with `items`. What counts
-as an item is left to the contracts Work ([Open points](#15-open-points)).
+as an item is set out under [Item ids](#item-ids).
 
 A `pattern` is written in one of two forms. Plainly, it runs from the `=` to the
 next comma or the end of the list, so it holds no comma. Between double quotes,
@@ -802,9 +802,12 @@ section: the trailer that carries them is `Wio-Items` and the flag is
   judgement belongs to a stage's skill and criteria, which can read the ids a
   stage addressed from wio's output. A template that wants coverage enforced
   has no directive for it yet ([Open points](#15-open-points)).
-
-This is the direction for v0.1, not a settled grammar: how wio finds the items
-of a section, and so their ids, is open ([Open points](#15-open-points)).
+- **Items are found by one rule.** The items of a section are its subheadings
+  one level below it, or else its top-level list items before its first deeper
+  heading, and the id of an item is what the section's `pattern` matches at the
+  start of its text. The
+  [rule](../src/wio/formats/README.md#the-items-of-a-section) is in one place,
+  so every reader of a contract finds the same items.
 
 A contract that follows a template takes its directives from it, so a
 template change reaches every contract that follows it and a contract cannot
@@ -2496,11 +2499,6 @@ and its own selection give it.
 - The order of records in a history with merge commits, where "the order of
   the history" is not a total order. Topological order, oldest first, is the
   likely answer, for `wio next` to settle.
-- How wio finds the items of a section, and so their ids
-  ([Item ids](#item-ids)), and what `items` and `pattern` count. This
-  repository's criteria are `### **AC-1** ...` subheadings, not list items, so
-  the contracts Work must apply the directives to subheadings. The directive
-  grammar leaves both to it.
 - A directive by which a template asks for coverage of its items, such as that
   every item of a section is cited by some stage's records before a gate. v0.1
   only carries ids ([Item ids](#item-ids)), and records already hold what such

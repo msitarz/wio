@@ -20,6 +20,8 @@ commit messages.
 | Entry template | The template of a kind that new Works of that kind start from. Declared in `[templates.kinds]`. |
 | Metadata block | The TOML at the top of a contract, template or rule, in a hidden comment or between `+++` lines. |
 | Directive | A `wio:` instruction in an HTML comment on a template heading, such as `required` or `inherit`. |
+| Item | A heading one level below a section of a contract, or without any, a top-level list item of it. It carries an id when the section has a `pattern` ([Item ids](docs/concepts.md#item-ids)). |
+| Item id | What a section's `pattern` matches at the start of an item's text, such as `AC-1`, after leading `*`, `_`, backticks and spaces. It is unique in its contract and holds no whitespace or comma. |
 | Dependency | A Work id in `depends_on`: that Work must be delivered first. |
 | Action | A named kind of work done on a Work, such as `define` or `deliver`. Declared in the config with a description, the actions it comes after, what invalidates its work, and whether it is on demand; none are built in. Its pipeline is a stage preset or a list of stages. |
 | Config | The `.agents/wio/config.toml` file: kinds, actions, roots, stages, stage presets, rule presets, ruleset aliases, the always fields, gate results, skill directories, the trailer reader, and bundle settings. In memory it is the immutable `Config` that the loader builds from the file. |
