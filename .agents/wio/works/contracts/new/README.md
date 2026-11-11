@@ -83,20 +83,21 @@ of the block exists.
 - **The skeleton is the baseline, and three things change.** The text is what
   `prepare_skeleton` gives. On top of it the `id` is added first, `roots` is
   replaced when `--root` is given, and the first level-1 heading is replaced
-  when `--title` is given, which must be one non-blank line, trimmed, or it is
-  an error, or, when the template has none, inserted before the first line of
-  the body that is not empty and followed by one empty line, in the template's
-  line ending. Nothing else changes: the block's form, the line endings, the
-  authoring comments and the sections stay as the skeleton has them. A bare
-  contract has `# Title` unless `--title` is given.
+  when `--title` is given. A title is trimmed, and must then be one non-blank
+  line, or the error is ``The title must be one non-blank line``, or, when the
+  template has none, inserted before the first line of the body that is not
+  empty and followed by one empty line, in the template's line ending, or at the
+  end of the body when it has no such line. Nothing else changes: the block's
+  form, the line endings, the authoring comments and the sections stay as the
+  skeleton has them. A bare contract has `# Title` unless `--title` is given.
 - **Roots are a set of declared names.** `--root` is repeatable, each name is a
   declared root or `@descendants`, and a name given twice counts once, in the
   order of its first appearance. On a bare contract it adds the key `roots`.
 - **Everything is checked before anything is written.** A mistake of the user is
   a `ContractsError`, exit 2, and no file is created.
 - **One error for each call, the first of these.** No kinds, the kind, the
-  template, a root, then the errors of placement in the order of the
-  new-location leaf.
+  template, a root, the title, then the errors of placement in the order of the
+  new-location leaf. A blank title is the title error, and not the slug error.
 - **The errors say what to do.** `new <kind>` with no kinds declared says so, an
   undeclared kind names it and the declared ones, a template that is missing or
   rejected, whether it is a kind's entry template or comes from `--template`,
@@ -245,7 +246,8 @@ Each mistake is an error that says what to do, and no file is written.
 
 - **Given** a config with no kinds, a config with the kind `feature` whose entry
   template is missing, one whose entry template `bad` is rejected by
-  `wio templates check`, and the config of AC-1.
+  `wio templates check`, the config of AC-1, an `Entropy` that gives the bytes
+  19, 3, 20, 9, 29 and 23, and a tree of its own for each run.
 - **When** `wio contracts new feature --slug a` runs on the first three,
   `wio contracts new nosuch --slug a`,
   `wio contracts new feature --template nosuch --slug a` and
@@ -266,6 +268,19 @@ Each mistake is an error that says what to do, and no file is written.
 - **When** `wio contracts new feature --template bad --slug a` runs.
 - **Then** it exits 2 with an error that says the template is rejected and
   points to `wio templates check`, and no file is written.
+
+#### Two mistakes at once, a bad title and a placement mistake
+
+- **Given** the config of AC-1, an `Entropy` that gives the bytes 19, 3, 20, 9,
+  29 and 23, and a tree of its own for each run.
+- **When** `wio contracts new nosuch --root nosuch --slug a`,
+  `wio contracts new feature --root nosuch --slug child` with an existing
+  directory `.agents/wio/works/child`, `wio contracts new --title " "`,
+  `wio contracts new --title "line one"` with a line break in the title, and
+  `wio contracts new --parent nosuch --title X` run.
+- **Then** the first reports only the kind, the second only the root, the third
+  and the fourth the title error, and the fifth that no Work has the id
+  `nosuch`, each exits 2, and no file is written.
 
 #### A write that fails
 
@@ -294,7 +309,20 @@ The object has the fields in a fixed order and `null` for what there is none.
   `wio contracts new feature --template feature.leaf --title Under --path
   .agents/wio/works/p/under/spec.md --json` has `"parent": "p5n2hv"`.
 
-### **AC-7** The function that sets keys in a block does what it is fixed to do
+### **AC-7** `new` writes through the one function that sets keys
+
+`new` sets the `id`, the roots and the title through the one function of
+`wio.formats` and edits the block nowhere else.
+
+#### A recording stand-in
+
+- **Given** the config of AC-1 and a stand-in for the function that records its
+  calls.
+- **When** `wio contracts new feature --title "Read config" --root wio` runs.
+- **Then** the stand-in was called with the `id` and `roots`, and the block of
+  the file is what the stand-in returned.
+
+### **AC-8** The function that sets keys in a block does what it is fixed to do
 
 The one function of `wio.formats` that sets keys in a metadata block puts the
 `id` first, replaces a key in place, adds a missing plain key after the last

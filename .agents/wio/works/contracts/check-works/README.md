@@ -82,11 +82,11 @@ Works, in the graph or in the metadata of a Work is not hidden by another.
 
 - **Every concern is checked for every Work.** A problem found in one Work or
   one check does not stop another, and a Work with an error still gets the rest.
-- **A finding is reported once.** What discovery and the hierarchy report is
-  carried through and not found again, and a check that depends on something
-  already reported is skipped: the resolved actions of a Work whose template is
-  missing or rejected, and the roots of a Work whose `roots` was of the wrong
-  type.
+- **A finding is reported once, and a skip is of the resolved check only.** What
+  discovery and the hierarchy report is carried through and not found again, and
+  a check that depends on something already reported is skipped: the resolved
+  actions of a Work whose template is missing or rejected, and the roots of a
+  Work whose `roots` was of the wrong type.
 - **The known keys are these.** They are `id`, `template`, `roots`, `depends_on`
   and `actions`. The table `[x]` and the key `tracks` are exempt and never
   suggested, a plain key `x` is unknown, and the `wio` marker is not a key,
@@ -96,6 +96,10 @@ Works, in the graph or in the metadata of a Work is not hidden by another.
   whether or not the config declares the root, and an undeclared root also gets
   its own error at the Work that names it. A parent whose own `roots` was
   reported as being of the wrong type gets no note.
+- **The layering keeps its source.** The resolution applies the defaults only
+  when a Work names no template, never under a named template, and keeps for
+  each action where it comes from and whether the Work removed it, which the
+  show leaf reuses.
 - **The place is the file.** Each diagnostic of this leaf names the Work's file
   as its place, without a line.
 - **A warning or a note never fails the command.**
@@ -104,7 +108,11 @@ Works, in the graph or in the metadata of a Work is not hidden by another.
 - **A Work that discovery reported is not resolved.** The resolved actions of a
   Work whose `template` or `[actions]` discovery reported as being of the wrong
   type are not checked, as the roots of a Work whose `roots` was reported are
-  not.
+  not. The leaf knows which fields were reported by type-testing the block that
+  it reads again. The checks of a Work's own `[actions]` names always run, and
+  only the checks of the resolved pipelines, the repeats in a template's and the
+  empty set, are skipped for a Work whose template is missing, rejected or
+  unreadable for its `[actions]`.
 
 ## Acceptance criteria
 
@@ -183,8 +191,9 @@ second points to that command.
 ### **AC-5** The actions a Work names exist, and it has some
 
 The names in a Work's own `[actions]` are declared in the config, no stage
-repeats in a pipeline of its resolved actions, whether the Work, its template or
-the defaults give it, and the resolved actions are not empty.
+repeats in a pipeline that the Work's own `[actions]` or its template gives as a
+list of stages, and the resolved actions are not empty. A stage preset or a
+config default is not judged for repeats, because `wio config check` does.
 
 #### Names
 
@@ -213,15 +222,26 @@ the defaults give it, and the resolved actions are not empty.
   `deliver` `` is reported at the Work's file, because no other command judges a
   pipeline that a template gives.
 
+#### The defaults in these scenarios
+
+- **Given** a config that declares the action `deliver` and the stage
+  `implementation`, with `[works.defaults.actions]` of
+  `deliver = ["implementation"]`.
+- **When** the scenarios of this criterion and of AC-2, AC-3, AC-4, AC-6 and
+  AC-7 say a project whose defaults have the action `deliver`.
+- **Then** they mean that config.
+
 #### No action at all
 
 - **Given** three projects: one with no default actions, in which a Work names
-  no template and has no `[actions]`; one in which a Work follows a template
-  whose only action is `deliver` and has `deliver = []`; and one whose defaults
-  have `deliver`, in which a Work names no template and has no `[actions]`.
+  no template and has no `[actions]`; one with the defaults above in which a
+  Work follows a template whose only action is `deliver` and has `deliver = []`;
+  and one with the defaults above, in which a Work names no template and has no
+  `[actions]`.
 - **When** `wio contracts check` runs in each.
 - **Then** the first two give ``The Work resolves to no action`` as an error,
-  and the third gives nothing.
+  because the defaults are not layered under a named template, and the third
+  gives nothing.
 
 ### **AC-6** The roots a Work names exist
 
@@ -253,11 +273,14 @@ finding already reported is skipped.
 
 - **Given** a project whose defaults have the action `deliver`, a Work with an
   unknown key, an undeclared root and an `[actions]` with an undeclared action,
-  and a Work with `roots = "api"`.
+  and a parent `c` with `roots = "api"` that has a child `c/x` with
+  `roots = ["api"]`, and a Work with `template = 1`.
 - **When** `wio contracts check` runs.
 - **Then** the first Work gets a warning for the key and an error for the root
-  and one for the action, each at its file, and the second gets the error of
-  discovery for its `roots` and no finding about its roots.
+  and one for the action, each at its file, and the parent gets the error of
+  discovery for its `roots` and no finding about its roots, no note included,
+  and the Work with `template = 1` gets the error of discovery and no "resolves
+  to no action" error.
 
 #### Files that cannot be read
 

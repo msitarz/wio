@@ -78,11 +78,13 @@ text.
   with nothing in it is the empty string. The own contract is right-trimmed of
   blank lines, so one blank line stands before an `## Inherited from:` line.
 - **The title is the ancestor's first heading.** It is the text of the first
-  real heading of its body at any level, as the discovery leaf finds it. An
+  real heading of its body at any level, as the discovery leaf finds it, with a
+  readable directive list taken off. An
   ancestor that passes a section has a heading, and so a title.
 - **A directive list needs its heading at column 0.** `read_directive_heading`
   and `remove_directive_list` take the raw line, so an indented heading that
-  `read_outline` still counts is treated as having no list.
+  `read_outline` still counts is treated as having no list. It is left as
+  written, it is not demoted, and it never matches a template's heading.
 - **Directive comments are shown only when they cannot be read.** The directive
   list is taken off every heading of the view, the Work's and the ancestors',
   whatever its level, after `read_directive_heading` has read it. A list that it
@@ -100,10 +102,11 @@ text.
   template of its name, when the template is rejected, when the template's file
   cannot be read, a `UnicodeDecodeError` or an `OSError` of `FileSystem`, or
   when the ancestor's own file cannot be read, with the same errors, the walk
-  goes on to the ancestors above it, and no error is raised. The Work's own file
-  that cannot be read is the caller's error, which discovery has reported. A
-  section that holds only comments and whitespace is not passed, and a deeper
-  heading is content. A directive list that cannot be read marks nothing.
+  goes on to the ancestors above it, and no error is raised. The `OSError` or
+  `UnicodeDecodeError` of the Work's own file propagates to the caller, as
+  discovery reports it. A section that holds only comments and whitespace is not
+  passed, and a deeper heading is content. A directive list that cannot be read
+  marks nothing.
 - **The output is deterministic.** Line endings are LF and the same Work gives
   the same text on every run.
 
@@ -111,9 +114,10 @@ text.
 
 In these scenarios `hierarchy = "nesting"`, the templates come from a stub
 catalog and the files from a fake `FileSystem`, a Work's metadata block carries
-its `template` and, in `+++` form, `wio = 1`, every section that is to be passed
-holds at least one line of text, each heading and line is separated by a blank
-line, and Works named by directories, such as `g/p/c`, are nested as written.
+its `id`, its `template` and, in `+++` form, `wio = 1`, every section that is to
+be passed holds at least one line of text, each heading and line is separated by
+a blank line, and Works named by directories, such as `g/p/c`, are nested as
+written.
 
 ### **AC-1** The view holds the Work and what its parent passes on
 
@@ -284,9 +288,11 @@ same on every run, with LF endings.
 
 #### Files that cannot be read
 
-- **Given** a stub catalog and a fake `FileSystem`, a parent `b` whose template
-  file raises an `OSError`, a parent `c` whose own file raises an `OSError`, and
-  a grandparent `g` with an inheritable `## Constraints` above both, each with a
+- **Given** the Works given to the resolver as values, with their ids, titles
+  and paths, a stub catalog, and a fake `FileSystem` that raises an `OSError` on
+  the resolver's own read of the template file of a parent `b` and on its own
+  read of the file of a parent `c`, though discovery read both, and a
+  grandparent `g` with an inheritable `## Constraints` above both, each with a
   child.
 - **When** the views of the two children are rendered.
 - **Then** each view is the child's own contract plus one `## Inherited from:`
@@ -321,6 +327,15 @@ content, and an ancestor is named by its first heading.
 
   Note.
   ```
+
+#### An ancestor whose title carries a directive list
+
+- **Given** a parent with the id `p5n2hv` whose body starts with
+  `# Parent <!-- wio: required -->`, from a template that marks `Constraints`
+  inheritable, with a `## Constraints` that holds the line `A line.`, and a
+  child with an empty own contract.
+- **When** the view of the child is rendered.
+- **Then** it begins with `## Inherited from: Parent (p5n2hv)`.
 
 #### An ancestor named by its first heading
 
