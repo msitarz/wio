@@ -123,8 +123,9 @@ agrees on what a Work is, what it inherits and what it depends on.
 - **Ids are 6 lowercase Crockford base32 characters from `Entropy`.** An id is
   unique among the Works of the tree and may be one that a deleted Work had.
 - **Nothing is imported before it is needed.** `list` and `check` without
-  `--json` import neither `tomlkit` nor `json`, and `list` imports no Markdown
-  parser. Only `new` and `skeleton` import the writer.
+  `--json` import neither `tomlkit` nor `json`, and the Markdown parser loads
+  on the first body that is read for a title or a heading. Only `new` and
+  `skeleton` import the writer.
 - **One reader, one writer, one Markdown parser.** Only `wio.formats` imports
   `tomllib`, `tomlkit` and `markdown_it`, and ruff's `banned-api` reports any
   other import.
@@ -291,11 +292,10 @@ no command changes them.
 - **When** `list`, `show` and `check` each run twice.
 - **Then** the two outputs of each command are identical.
 
-### **AC-6** A run that reads no skeleton or body loads no writer or parser
+### **AC-6** A run that reads no skeleton loads no writer and no `json`
 
-`wio contracts list`, without `--json`, imports none of `tomlkit`, `json` and
-`markdown_it`, and `wio contracts check`, without `--json`, imports neither
-`tomlkit` nor `json`.
+`wio contracts list`, without `--json`, imports neither `tomlkit` nor `json`,
+and neither does `wio contracts check`.
 
 #### A fresh interpreter
 
@@ -303,8 +303,7 @@ no command changes them.
 - **When** `main(["contracts", "list"], stdio)` and then
   `main(["contracts", "check"], stdio)` of `wio.cli` run in that process and
   `sys.modules` is read.
-- **Then** after the first none of the three modules is there, and after the
-  second neither `tomlkit` nor `json` is there.
+- **Then** after each neither `tomlkit` nor `json` is there.
 
 ### **AC-7** `wio.contracts` depends on nothing it should not
 
