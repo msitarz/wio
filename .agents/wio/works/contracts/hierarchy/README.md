@@ -183,11 +183,11 @@ first Work, with one cycle through the group and the kind of each edge.
 #### Overlapping cycles and a self-dependency
 
 - **Given** Works `a` that lists `b` and `c`, `b` and `c` that each list `a`,
-  and a Work `s` that lists its own id.
+  and a Work `s` with the id `s5t3wx` that lists its own id.
 - **When** the hierarchy is built.
 - **Then** there are two errors: one at `a`, with one cycle that starts at `a`
   and none of the other, and one at `s` that reads
-  `Dependency cycle: <id> → <id> (listed in depends_on)`.
+  `Dependency cycle: s5t3wx → s5t3wx (listed in depends_on)`.
 
 #### Two separate cycles
 
