@@ -2,7 +2,7 @@
 id = "mwyc7s"
 template = "feature.draft"
 roots = []
-depends_on = ["xtgz9z"]
+depends_on = ["xtgz9z", "sz1zsq"]
 -->
 
 # The skeleton of an existing Work

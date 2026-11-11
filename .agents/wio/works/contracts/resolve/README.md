@@ -2,7 +2,7 @@
 id = "h3jhtw"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["ces6tf"]
+depends_on = ["ces6tf", "sz1zsq"]
 -->
 
 # The resolved view of a Work

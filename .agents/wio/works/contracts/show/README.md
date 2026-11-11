@@ -2,7 +2,7 @@
 id = "bhrjjs"
 template = "feature.draft"
 roots = []
-depends_on = ["h3jhtw"]
+depends_on = ["h3jhtw", "sz1zsq"]
 -->
 
 # Showing a Work

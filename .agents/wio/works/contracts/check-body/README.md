@@ -2,7 +2,7 @@
 id = "d2ytdf"
 template = "feature.draft"
 roots = []
-depends_on = ["7anq34", "xtgz9z"]
+depends_on = ["7anq34", "xtgz9z", "sz1zsq", "mb4q2g"]
 -->
 
 # Checking the body of a contract
