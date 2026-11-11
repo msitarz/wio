@@ -15,6 +15,7 @@ lazy from wio.formats.errors import (
     TemplateDirectiveError,
     TomlSyntaxError,
 )
+lazy from wio.formats.items import find_items, judge_items
 lazy from wio.formats.outline import read_outline
 lazy from wio.formats.skeleton import prepare_skeleton
 lazy from wio.formats.toml import decode_toml
@@ -30,6 +31,8 @@ __all__ = [
     "TomlSyntaxError",
     "decode_toml",
     "encode_toml",
+    "find_items",
+    "judge_items",
     "prepare_skeleton",
     "read_directive_heading",
     "read_metadata_block",
