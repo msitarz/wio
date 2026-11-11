@@ -56,4 +56,8 @@ class Subcommand:
 
 
 SUBCOMMANDS: Final[Sequence[Subcommand]] = ()
-"""The subcommands of `wio contracts`, to which each leaf adds its own entry."""
+"""The subcommands of `wio contracts`, to which each leaf adds its own entry.
+
+A leaf imports its module with `lazy from`, as `wio.cli.table` does, so that
+describing the command imports no codec.
+"""

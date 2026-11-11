@@ -48,4 +48,9 @@ class ContractsCommand:
                 is not caught here, and the command line exits 2.
             ConfigurationError: A subcommand loaded a config that has an error.
         """
-        raise NotImplementedError
+        name: str | None = args.contracts_subcommand
+        if name is None:
+            stdio.stdout.write(args.contracts_help())
+            return 0
+        entry = {entry.name: entry for entry in self._table}[name]
+        return entry.handler(self._services, args, stdio)
