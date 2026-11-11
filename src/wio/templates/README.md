@@ -34,15 +34,19 @@ flowchart LR
   broken template.
 - **The walk is the Works directory's.** Finding templates follows the rules of
   [Which files are Works](../../../docs/concepts.md#which-files-are-works), so a
-  file is a template by the same test as a Work is a contract.
+  file is a template by the same test as a Work is a contract. It is the walk in
+  [`walk.py`](../io/walk.py) of `wio.io`, which `wio.contracts` uses too, so the
+  two cannot disagree about which files are there; discovery keeps only what is
+  its own: building a template from a file and grouping the templates by name.
 - **A template is named by its file,** which is why a template has no `name`
   key and a name cannot differ from where the template lives.
 - **The check is one function for each concern.** [`check_templates`](check.py)
   walks with `discover`, reads each built template a second time, and runs the
   keys, the headings, the `[actions]` names and the kinds on them, so a problem
-  in one template never hides another. It orders what it finds by file, line and
-  column with numbers as numbers, which `sort_diagnostics` does not do yet, and
-  `render_check` prints it in that order.
+  in one template never hides another. It orders what it finds with
+  [`order_diagnostics`](../models/diagnostics.py), by file, line and column with
+  numbers as numbers, which `sort_diagnostics` does not do, and the command
+  prints it in that order with [`render_check`](../formats/diagnostics.py).
 - **A template that discovery could not build is judged no further.** Its own
   error is what the check reports for it, so an unknown key or a wrong directive
   in the same file shows once the error is fixed.

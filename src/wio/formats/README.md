@@ -97,6 +97,25 @@ agree on which lines are section headings. Its docstring and
   the outline and the items. Only `wio.formats` imports it, and it loads on the
   first reading, so a command that reads no body never pays for it.
 
+## The closest key and the rendering of a check
+
+`closest_key` in [`closest.py`](closest.py) and `render_check` in
+[`diagnostics.py`](diagnostics.py) are what the `check` commands share. Their
+docstrings say what each takes and returns, and the
+[tests](../../../tests/unit/formats/test_closest.py) say how each case reads.
+
+- **One place suggests a key.** `wio config`, `wio templates` and
+  `wio contracts` tell a person who mistypes a key which key they likely meant,
+  and only this package imports `difflib`, so the three agree on what is close,
+  and ruff reports an import of it anywhere else. Each command keeps its own
+  wording and only the matching is shared.
+- **`difflib` loads when a key is first mistyped.** A check that finds no
+  mistyped key never pays for it, and importing the package does not load it.
+- **A check says it passed in its own words.** `render_check` takes the sentence
+  for an empty result, so each command keeps its sentence, and it prints in the
+  order given, because each command orders its findings by its own rule. It
+  imports `json` only for JSON.
+
 ## The items of a section
 
 `find_items` and `judge_items` in [`items.py`](items.py) are the one rule for
