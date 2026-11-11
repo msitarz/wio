@@ -160,6 +160,7 @@ depends_on = [
     "tests.support",
     "wio.cli",
     "wio.config",
+    "wio.contracts",
     "wio.env",
     "wio.env.adapters",
     "wio.formats",

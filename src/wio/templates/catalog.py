@@ -1,7 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 """The catalog of the templates of a project, for the commands that read them."""
 
+import re
+from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
+
+from wio.templates.check import check_templates
+from wio.templates.discovery import discover
 
 if TYPE_CHECKING:
     from wio.io.ports import FileSystem, Repository
@@ -10,6 +15,9 @@ if TYPE_CHECKING:
     from wio.models.template import Template
     from wio.ports import Settings
     from wio.templates.discovery import Discovery
+
+_FILE = re.compile(r"(?P<file>.+\.md)(?::\d+){0,2}")
+"""A place that is a template file, with the line and the column that may follow."""
 
 
 class TemplatesCatalog:
@@ -30,7 +38,9 @@ class TemplatesCatalog:
             repository: Finds the repository root.
             files: Lists the templates directory and reads the templates.
         """
-        self._ports = (settings, repository, files)
+        self._settings = settings
+        self._repository = repository
+        self._files = files
         self._config: Config | None = None
         self._discovery: Discovery | None = None
         self._findings: tuple[Diagnostic, ...] | None = None
@@ -49,7 +59,11 @@ class TemplatesCatalog:
             name. A config with an error raises `ConfigurationError`, as the port
             says.
         """
-        raise NotImplementedError
+        if self._discovery is None:
+            self._discovery = discover(
+                self._repository.root(), self._load().templates, self._files
+            )
+        return next((t for t in self._discovery.templates if t.name == name), None)
 
     def is_rejected(self, name: str) -> bool:
         """Tell whether `wio templates check` reports an error for a template.
@@ -68,4 +82,42 @@ class TemplatesCatalog:
             templates directory itself is refused. A config with an error raises
             `ConfigurationError`, as the port says.
         """
-        raise NotImplementedError
+        if self._findings is None:
+            self._findings = check_templates(
+                self._repository.root(), self._load(), self._files
+            )
+        return any(
+            name in _names(finding.where)
+            for finding in self._findings
+            if finding.severity == "error"
+        )
+
+    def _load(self) -> Config:
+        """Load the config, once.
+
+        Returns:
+            The config, kept after the first call.
+        """
+        if self._config is None:
+            self._config = self._settings.load()
+        return self._config
+
+
+def _names(where: str) -> set[str]:
+    """Name the template files that a place of a diagnostic points at.
+
+    Args:
+        where: The place: a file with an optional line and column, two such
+            places joined by `, ` for a repeated name, or something else, such as
+            the templates directory or a key path.
+
+    Returns:
+        The names, which are the files' names without `.md`, none for a place
+        that is not a file.
+    """
+    parts = (_FILE.fullmatch(part) for part in where.split(", "))
+    return {
+        PurePosixPath(match["file"]).name.removesuffix(".md")
+        for match in parts
+        if match is not None
+    }
