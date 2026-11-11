@@ -2,7 +2,7 @@
 id = "bhrjjs"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["h3jhtw", "sz1zsq", "ces6tf", "xtgz9z", "h69nf8"]
+depends_on = ["h3jhtw", "sz1zsq", "ces6tf", "xtgz9z", "h69nf8", "mb4q2g"]
 -->
 
 # Showing a Work
@@ -48,9 +48,11 @@ where each comes from, and its contract with what its ancestors pass on.
 - The resolved view of the resolve leaf, the hierarchy of the hierarchy leaf for
   the parent, the resolved roots, the dependencies and the dependents, and the
   explanation of why a path is not a Work from the discovery leaf.
-- The catalog's `find` and `FileSystem`, to read a template's `[actions]` from
-  its file at the catalog's path, and `Config` for the actions, stage presets
-  and defaults.
+- The resolution of a Work's actions that the check-works leaf defines, with the
+  catalog's `find`, `FileSystem` and `read_metadata_block` to read a template's
+  `[actions]` from its file at the catalog's path, `Repository` for the root
+  that paths are relative to, and `Config` for the actions, stage presets and
+  defaults.
 - The `Environment` port for the working directory, `closest_key` for a
   mistyped id, and `json` for `--json` only.
 - The names and the signatures above are provisional, for the architecture stage
@@ -61,26 +63,36 @@ where each comes from, and its contract with what its ancestors pass on.
 - **The layout is facts, actions, a rule, then the view.** The first line is
   `Work <id>  <title>`, with `(no title)` for a Work with none. The facts
   follow, each line written only when it has something to say and in this order:
-  `Path`, `Template`, `Parent`, `Roots`, `After`, `Needed by`. The values start
-  at one column, and a second dependency or dependent is on the next line, in
-  that column. Then a blank line, the `Actions` block, a blank line, a line of
-  `----`, a blank line and the resolved view, exactly as the resolve leaf
-  renders it. The text ends in one line ending.
+  `Path`, `Template`, `Parent`, `Roots`, `After`, `Needed by`. Each is indented
+  two spaces, its label is padded to a fixed 13 characters, so that every value
+  starts at column 15, and a second dependency or dependent is on the next line,
+  in that column. Then a blank line, `Actions` at column 0, the actions, a blank
+  line, a line of `----` at column 0, a blank line and the resolved view,
+  exactly as the resolve leaf renders it. The text ends in one line ending and
+  is UTF-8.
 - **Related Works are `<id>  <title>`.** A dependency that no Work has is
-  `<id>  (not found)`, and a Work with no title is `<id>  (no title)`.
+  `<id>  (not found)`, a Work with no title is `<id>  (no title)`, and an id
+  that two Works share is written once for each of them.
 - **Roots show what they resolve to.** A Work that lists `@descendants` shows
   its roots as written, an arrow and the resolved roots, or `none` when they
   resolve to nothing. Any other Work shows them as written.
-- **Actions are in the order of the config.** The actions the config declares
-  come first, in its order, then names it does not declare, in the order of the
-  Work, printed as written. Each line is the action, the stage preset it names
+- **Actions are the resolved actions, in the order of the config.** They are
+  those that the check-works leaf defines: the template's, or the config
+  defaults for a Work with no template and only then, with the Work's own
+  replacing them. The actions the config declares come first, in its order, then
+  names it does not declare that the Work's own `[actions]` gives, in the Work's
+  order, printed as written. Each line is indented two spaces and has the action
+  padded to the widest action name plus two spaces, the stage preset it names
   and, in parentheses, where it comes from: `from the template`,
   `from the contract` or `from the config defaults`, preceded by `on demand,`
   for an action the config marks on demand. A list of stages has no preset name.
-  The stages follow on a line of their own, joined by a comma and a space. An
-  action that the contract empties is `removed (by the contract)`. A template
-  that is missing from the catalog or rejected gives no actions, so the Work's
-  own are all there is.
+  The stages follow on a line indented two spaces past the preset's column,
+  joined by a comma and a space, and a preset that the config does not declare
+  is printed with no stages line. An action that the contract empties is
+  `removed (by the contract)` without the on-demand mark, and an action that is
+  empty and that nothing else gives is not shown. A template that is missing
+  from the catalog or rejected gives no actions, so the Work's own are all there
+  is.
 - **A path or an id.** An argument that contains `/` or ends in `.md` is a path,
   resolved against the working directory, and any other is an id.
 - **The tree is judged first.** An error of finding the Works that leaves the
@@ -92,7 +104,9 @@ where each comes from, and its contract with what its ancestors pass on.
   the closest one when there is one, a shared id refuses only its own lookup
   with the error of discovery and the same line, and a file that is not a Work
   names the reason of the discovery leaf for it. Each exits 2.
-- **JSON is one object.** It has `id`, `title`, `path`, `template`, `parent`,
+- **JSON is one object on one line.** It is the `json.dumps` of the object with
+  its default separators, followed by one line ending. It has `id`, `title`,
+  `path`, `template`, `parent`,
   `roots`, `resolved_roots`, `depends_on`, `dependents`, `actions` and `view`,
   in that order. `depends_on` and `dependents` are arrays of ids. Each action
   has `name`, `source`, `on_demand`, `preset` and `stages`. `source` is
@@ -100,7 +114,8 @@ where each comes from, and its contract with what its ancestors pass on.
   `view` is the resolved Markdown as one string. `title`, `template`, `parent`
   and `preset` are `null` when there is none, and a removed action has the
   source `contract`, no preset and no stages.
-- **`json` is imported only for `--json`.**
+- **`json` is imported only for `--json`.** A run without it imports neither
+  `json` nor `tomlkit`.
 
 ## Acceptance criteria
 
@@ -113,17 +128,20 @@ view.
 
 #### A child with an override
 
-- **Given** `hierarchy = "nesting"`, a config that declares the actions
-  `define`, `deliver` and `amend`, with `amend` on demand, and the stage presets
-  `define-feature` of `define` and `review-contract` and `amend-contract` of
-  `amend`; a Work `p5n2hv` titled `Parent` at `p/README.md`; a Work `a7b2c4`
-  titled `Sibling` at `p/s/README.md`; and a Work `k3m9xq` titled `Child` at
+- **Given** `hierarchy = "nesting"`, a config that declares the kind of
+  `feature.leaf`, the actions `define`, `deliver` and `amend`, with `amend` on
+  demand, the stages `define`, `review-contract`, `build`, `ship`, `amend` and
+  `review-amendment`, and the stage presets `define-feature` of `define` and
+  `review-contract` and `amend-contract` of `amend` and `review-amendment`; a
+  Work `p5n2hv` titled `Parent` at `p/README.md`; a Work `a7b2c4` titled
+  `Sibling` at `p/s/README.md`; and a Work `k3m9xq` titled `Child` at
   `p/c/README.md` from the template `feature.leaf`, whose actions are
   `define = "define-feature"`, `deliver = ["build"]` and
   `amend = "amend-contract"`, with `roots = ["wio"]`, `depends_on = ["a7b2c4"]`
   and its own `[actions]` of `deliver = ["ship"]` and `amend = []`. Its body is
-  `# Child`, `## Purpose` and the line `Own text.`, and `Parent` has an
-  inheritable `## Glossary` with the line `- **Term**: a word.`.
+  `# Child`, `## Purpose` and the line `Own text.`, and `Parent` has no template
+  and an inheritable `## Glossary <!-- wio: inherit -->` with the line
+  `- **Term**: a word.`.
 - **When** `wio contracts show k3m9xq` runs.
 - **Then** it prints exactly this, ending in one line ending, and exits 0:
 
@@ -160,8 +178,9 @@ view.
 #### Defaults, an on-demand action and an undeclared name
 
 - **Given** a config that declares the actions `deliver` and `amend`, with
-  `amend` on demand, the stage preset `amend-contract` of the stages `amend` and
-  `review-amendment`, and `[works.defaults.actions]` of `deliver = ["build"]`
+  `amend` on demand, the stages `build`, `amend`, `review-amendment` and `ship`,
+  the stage preset `amend-contract` of `amend` and `review-amendment`, and
+  `[works.defaults.actions]` of `deliver = ["build"]`
   and `amend = "amend-contract"`, and a Work `k3m9xq` titled `Solo` with no
   template whose own `[actions]` is `ratify = ["ship"]`.
 - **When** `wio contracts show k3m9xq` runs.
@@ -228,11 +247,13 @@ that is not a Work are errors that say what is wrong.
 
 #### A shared id
 
-- **Given** two Works with the id `a7b2c4` besides the Work `k3m9xq`.
+- **Given** two Works with the id `a7b2c4`, titled `Twin` and `Twin two`,
+  besides the Work `k3m9xq` that lists `a7b2c4`.
 - **When** `wio contracts show a7b2c4` and `wio contracts show k3m9xq` run.
 - **Then** the first prints the error of discovery that names both paths and the
   line that says `wio contracts check` shows every problem, and exits 2, and the
-  second shows the Work.
+  second shows the Work with the lines `After        a7b2c4  Twin` and, below
+  it in the same column, `a7b2c4  Twin two`.
 
 ### **AC-4** An incomplete tree refuses the command
 
@@ -284,7 +305,6 @@ The command changes no file, two runs print the same bytes, and a run without
 
 ## Additional context
 
-- The layout puts the facts first, as the header of a bundle will, and then the
-  contract.
+- The layout puts the facts first and then the contract.
 - `wio contracts list` shows the same overrides in one line for each Work, and
   `show` is where a Work is read in full.

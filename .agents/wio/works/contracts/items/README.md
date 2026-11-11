@@ -21,13 +21,14 @@ this Work.
 - The id of an item is found by its section's `pattern`.
 - A contract's items are judged: their number, their ids, and the uniqueness of
   the ids.
-- The rule is one function of `wio.formats`, so every reader of a contract finds
-  the same items.
+- The rule is in `wio.formats` alone, so every reader of a contract finds the
+  same items.
 
 ## Glossary
 
 - **Item text**: the Markdown of an item as written: a heading's text, or the
-  first line of a list item after its marker.
+  first line of a list item after its marker. A list item whose first block is
+  not a paragraph has an empty text.
 - **Id**: the match of the section's `pattern` at the start of the item text.
   The start is the first character that is not `*`, `_`, a backtick or a space,
   and an empty match is no id.
@@ -75,21 +76,23 @@ this Work.
   them from the Markdown again.
 - **A section is a `##` heading and runs to the next heading of level 1 or 2.**
   Its items are its headings one level below it, and only when it has none, its
-  top-level list items. A list item is one item with its nested lists and
-  paragraphs.
+  top-level list items that come before its first heading of any deeper level.
+  A list item is one item with its nested lists and paragraphs.
 - **Only the content of the body counts.** An HTML comment, a code block and a
   quote hold no items, so the authoring example of a template is never counted.
 - **The id is exactly the match.** It is not trimmed or changed in case, an
-  empty match is no id, and an item without a match at its start has no id.
+  empty match is no id, and an item without a match at its start has no id. A
+  pattern that must begin with `*`, `_` or a backtick never matches, because
+  those characters are skipped first.
 - **Every finding is an error with a fixed place.** Too few items is at the
   section's heading and breaks the `items` directive. An item with no id is at
   the item and breaks the `pattern` directive. An id that holds whitespace or a
   comma is at its item. A repeated id is at its first occurrence and names the
   lines of the others, in one error, and the last two break the rule that ids
-  are unique and free of whitespace and commas. The finder and the judge give
-  the same order for the same body.
-- **The parser loads lazily.** The Markdown parser loads on the first call, as
-  `read_outline` does.
+  are unique and free of whitespace and commas. The finder gives the items in
+  the order of the body.
+- **The finder loads the parser.** It is the first call that loads the Markdown
+  parser, as `read_outline` does.
 
 ## Acceptance criteria
 
@@ -117,6 +120,14 @@ otherwise the top-level list items, each with its text and its line in the file.
 - **When** the items of `## Goals` are found.
 - **Then** they are `one` on line 3 and `two` on line 6, and nothing else.
 
+#### A list under a deeper heading
+
+- **Given** a section `## Notes` that holds `- before`, then a `#### Part`
+  heading, and `- after` under it.
+- **When** the items of `## Notes` are found.
+- **Then** the only item is `before`, because `- after` comes after a deeper
+  heading.
+
 #### No items
 
 - **Given** a section that holds only prose, and one that holds only an
@@ -131,8 +142,9 @@ after leading `*`, `_`, backticks and spaces, and the match is not empty.
 
 #### Where the id is
 
-- **Given** the pattern `AC-\d+` and items `**AC-1** First`, `` `AC-2` Second``,
-  `Replaces AC-3`, `AC-12 twelve` and `First AC-4`.
+- **Given** the pattern `AC-\d+` and items `**AC-1** First`, one whose text is a
+  backtick, `AC-2`, a backtick, a space and `Second`, `Replaces AC-3`,
+  `AC-12 twelve` and `First AC-4`.
 - **When** the items are found.
 - **Then** the ids are `AC-1`, `AC-2`, none, `AC-12` and none.
 
@@ -200,8 +212,9 @@ holds whitespace or a comma, are errors.
 
 #### A bad id
 
-- **Given** the patterns `pattern="AC \d"` and `pattern="A,\d"`, which are
-  quoted because a plain pattern holds no comma, and the items `AC 1` and `A,1`.
+- **Given** the patterns `pattern="AC \d"` and `pattern="A,\d"`, the second of
+  which must be quoted because a plain pattern holds no comma, and the items
+  `AC 1` and `A,1`.
 - **When** the items are judged.
 - **Then** each is an error at its item's line that says the id holds
   whitespace or a comma.
@@ -218,6 +231,19 @@ does.
   of a section are found and it is read again.
 - **Then** `markdown_it` is not there the first time and is there the second.
 
+### **AC-6** Items are found in `wio.formats` and nowhere else
+
+`wio.formats` exposes the finder and the judge of items, and no module outside
+`wio.formats` imports the Markdown parser.
+
+#### The sources
+
+- **Given** the sources of `src/wio` after the change.
+- **When** their syntax trees are searched for the imports of `markdown_it` and
+  for the exports of `wio.formats`.
+- **Then** only modules of `wio.formats` import `markdown_it`, and
+  `wio.formats` exports the finder and the judge.
+
 ## Additional context
 
 - [Item ids](../../../../../docs/concepts.md#item-ids) in the concepts say what
@@ -225,5 +251,4 @@ does.
   found.
 - The check-body leaf calls the finder and the judge with the sections and
   directives of a contract. `wio trailers` will use the ids to check what a
-  record cites. The ban on importing the Markdown parser outside `wio.formats`,
-  which the parent's criteria check, keeps the rule in one place.
+  record cites.

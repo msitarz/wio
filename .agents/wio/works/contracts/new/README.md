@@ -27,11 +27,6 @@ of the block exists.
 - Setting keys in a contract's metadata block is done by one function in
   `wio.formats`, whose behaviour is fixed.
 
-## Glossary
-
-- **Bare contract**: a contract that follows no template, holding only the
-  block with its `id` and a first heading.
-
 ## Non-Goals
 
 - Filling in the body, changing the parent, or running `check`.
@@ -54,11 +49,13 @@ of the block exists.
 
 ## Mechanisms
 
-- A function in `wio.formats` that sets keys in the metadata block of a
-  contract's text, any top-level key or table: the `id` first, after `wio = 1`
-  for `+++` front matter, and any other key in place, or after the last key
-  that holds a value and before the first table when the block has none. The
-  block's form, its other keys and its body are not changed.
+- A function in `wio.formats` that takes the text of a contract and the keys and
+  tables to set, and returns the text with them set in its metadata block: the
+  `id` first, after `wio = 1` for `+++` front matter, and any other key in
+  place, or, when the block has none, a plain key after the last plain key and a
+  table after the last table, or after the plain keys when there is none,
+  preceded by one empty line. The block's form, its other keys, its line endings
+  and its body are not changed.
 - `prepare_skeleton` and `read_outline` of `wio.formats`, the last to find the
   first level-1 heading that `--title` replaces.
 - The decision and the guard of the new-location leaf, and the catalog's `find`
@@ -80,26 +77,30 @@ of the block exists.
 - **The skeleton is the baseline, and three things change.** The text is what
   `prepare_skeleton` gives. On top of it the `id` is added first, `roots` is
   replaced when `--root` is given, and the first level-1 heading is replaced
-  when `--title` is given, or added as the first line of the body when the
-  template has none. Nothing else changes: the block's form, the line endings,
-  the authoring comments and the sections stay as the skeleton has them. A
-  bare contract has `# Title` unless `--title` is given.
+  when `--title` is given, or added as the first line of the body, followed by
+  an empty line in the template's line ending, when the template has none.
+  Nothing else changes: the block's form, the line endings, the authoring
+  comments and the sections stay as the skeleton has them. A bare contract has
+  `# Title` unless `--title` is given.
 - **Roots are a set of declared names.** `--root` is repeatable, each name is a
-  declared root or `@descendants`, and a name given twice counts once. On a bare
-  contract it adds the key `roots`.
+  declared root or `@descendants`, and a name given twice counts once, in the
+  order of its first appearance. On a bare contract it adds the key `roots`.
 - **Everything is checked before anything is written.** A mistake of the user is
   a `ContractsError`, exit 2, and no file is created.
 - **The errors say what to do.** `new <kind>` with no kinds declared says so, an
-  undeclared kind names it and the declared ones, a kind whose entry template is
-  missing or rejected points to `wio templates check`, and a template that no
-  file has points to `wio templates list`.
+  undeclared kind names it and the declared ones, a template that is missing or
+  rejected, whether it is a kind's entry template or comes from `--template`,
+  points to `wio templates check` when it is rejected or is an entry template,
+  and a name that no file has points to `wio templates list`.
 - **One file is written.** It is written once, through the guard, and the report
   follows the write, so a write that fails reports nothing on standard output.
 - **The report is short.** The human form is `Created Work <id>  <title>` and
   the path on the next line, indented two spaces, and `--json` is one object
-  with `id`, `title`, `path`, `template` and `parent`, with `null` for none. The
-  title is the first heading of the text written, `(no title)` in the human form
-  and `null` in JSON when there is none.
+  with `id`, `title`, `path`, `template` and `parent`, with `null` for none, the
+  parent being the new Work's parent in the tree, whether it came from
+  `--parent` or from the place of `--path` under `nesting`. The title is the
+  first heading of the text written, `(no title)` in the human form and `null`
+  in JSON when there is none.
 
 ## Acceptance criteria
 
@@ -148,9 +149,12 @@ is an error.
 #### A template under a parent
 
 - **Given** a config that declares the kinds `feature`, with the entry template
-  `feature.draft`, and `other`, with the entry template `other.note`, the
-  templates of AC-1, a template `feature.leaf` of the kind `feature`, and a Work
-  `p5n2hv` at `p/README.md` under `nesting`.
+  `feature.draft`, and `other`, with the entry template `other.note`, and the
+  root `wio`, the templates of AC-1, a template `feature.leaf` of the kind
+  `feature` whose `[contract]` has `roots = ["wio"]`, a valid template
+  `other.note` of the kind `other`, a Work `p5n2hv` at `p/README.md` under
+  `nesting`, an `Entropy` that gives the bytes 19, 3, 20, 9, 29 and 23, and a
+  tree of its own for each run.
 - **When** `wio contracts new feature --template feature.leaf --parent p5n2hv
   --title Child` runs, `wio contracts new --template feature.leaf --slug a`
   runs, and `wio contracts new feature --template other.note --slug b` runs.
@@ -183,9 +187,11 @@ added, and the form, the keys, the line endings and the body are kept.
 #### Front matter, roots and line endings
 
 - **Given** a config declaring the roots `api` and `web` and the kind `feature`,
-  and templates of it: `t.front` in `+++` form with `wio = 1`, `template` and
-  `roots = ["a"]`; `t.plain` with no `roots` key whose block has a table `[x]`;
-  and `t.crlf` written with CRLF line endings.
+  an `Entropy` that gives the bytes 19, 3, 20, 9, 29 and 23 and a tree of its
+  own for each run, and templates of the kind: `t.front` in `+++` form with
+  `wio = 1`, `template` and `roots = ["a"]`; `t.plain` with no `roots` key whose
+  block has a table `[x]`; and `t.crlf` written with CRLF line endings and with
+  no title heading.
 - **When** `wio contracts new --template t.front --slug a` runs with
   `--root api --root web --root api`, `wio contracts new --template t.plain
   --slug b --root api` runs, and `wio contracts new --template t.crlf --slug c`
@@ -200,10 +206,11 @@ added, and the form, the keys, the line endings and the body are kept.
 - **Given** a template `t.notitle` whose body is `## Purpose` and no level-1
   heading.
 - **When** `wio contracts new --template t.notitle --title Mine --slug d` runs,
-  and then the same without `--title` with `--slug e`.
+  and then the same without `--title` with `--slug e`, and
+  `wio contracts new --template t.crlf --title Mine --slug f` runs.
 - **Then** the first body starts with `# Mine`, an empty line and `## Purpose`,
-  the second is the template's body, reports `(no title)`, and the JSON of
-  either has the title `"Mine"` or `null`.
+  the second is the template's body and reports `(no title)`, and the third has
+  its added heading and empty line with CRLF endings.
 
 ### **AC-5** A mistake creates nothing
 
@@ -227,6 +234,14 @@ Each mistake is an error that says what to do, and no file is written.
   is not declared, no file was written in any case, and the last, which is a
   bare contract, succeeds.
 
+#### A rejected template given by name
+
+- **Given** the config of AC-1 and a template `bad` rejected by
+  `wio templates check`.
+- **When** `wio contracts new feature --template bad --slug a` runs.
+- **Then** it exits 2 with an error that says the template is rejected and
+  points to `wio templates check`, and no file is written.
+
 #### A write that fails
 
 - **Given** a guard that refuses the path because it has appeared since the
@@ -249,7 +264,9 @@ The object has the fields in a fixed order and `null` for what there is none.
 - **Then** the first prints one object with `"id": "k3m9xq"`,
   `"title": "Child"`, `"path": ".agents/wio/works/p/child/README.md"`,
   `"template": "feature.leaf"` and `"parent": "p5n2hv"`, in that order, and the
-  second has `"title": "Title"`, `"template": null` and `"parent": null`.
+  second has `"title": "Title"`, `"template": null` and `"parent": null`, and
+  `wio contracts new feature --template feature.leaf --title Under --path
+  .agents/wio/works/p/under/spec.md --json` has `"parent": "p5n2hv"`.
 
 ### **AC-7** The function that sets keys in a block does what it is fixed to do
 
@@ -259,17 +276,18 @@ and changes nothing else.
 
 #### Cases
 
-- **Given** the block text of a comment block with `template = "t"`,
-  `roots = []` and a table `[x]` with `a = 1`, and the block text of `+++` front
-  matter with `wio = 1` and `template = "t"`.
+- **Given** the text of a contract with a comment block with `template = "t"`,
+  `roots = []` and a table `[x]` with `a = 1` and the body `# T`, and the text
+  of a contract with `+++` front matter with `wio = 1` and `template = "t"` and
+  the body `# T`.
 - **When** the function sets `id = "k3m9xq"`, `roots = ["wio"]` and
   `depends_on = ["a7b2c4"]` on the first, `id = "k3m9xq"` on the second, and
   then the table `[actions]` with `deliver = ["build"]` on the first.
 - **Then** the first block reads `id = "k3m9xq"`, `template = "t"`,
   `roots = ["wio"]`, `depends_on = ["a7b2c4"]`, an empty line, `[x]` with
-  `a = 1`, and then `[actions]` with `deliver = ["build"]`, the second reads
-  `wio = 1`, `id = "k3m9xq"`, `template = "t"`, and the body and the delimiters
-  are as they were.
+  `a = 1`, an empty line, and then `[actions]` with `deliver = ["build"]`, the
+  second reads `wio = 1`, `id = "k3m9xq"`, `template = "t"`, and the body and
+  the delimiters of each are as they were.
 
 ## Additional context
 

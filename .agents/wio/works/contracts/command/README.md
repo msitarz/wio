@@ -19,8 +19,8 @@ owns them.
 
 - `wio contracts` is a command of wio with its own help, which works outside a
   repository.
-- A subcommand is added to the group by one entry, without editing another
-  subcommand.
+- A subcommand is added to the group by its own table entry, module and line of
+  wiring, without editing another subcommand.
 - The template a contract names is found, and a template that
   `wio templates check` rejects is told from one that does not exist.
 - A mistake the user must fix in a contracts command ends in a message and exit
@@ -28,8 +28,7 @@ owns them.
 
 ## Glossary
 
-- **Catalog**: the port through which `wio.contracts` asks for templates, and
-  the object of `wio.templates` that satisfies it.
+- **Catalog**: the port through which `wio.contracts` asks for templates.
 
 ## Non-Goals
 
@@ -48,7 +47,8 @@ owns them.
   and wires only the one that was chosen, as it does for `wio templates`.
 - **A-3**: `discover` and `check_templates` of `wio.templates` give a provider
   everything it needs without being changed, when it is given the `Config`, the
-  repository root and a `FileSystem`.
+  repository root and a `FileSystem`, and a provider that is given `Settings`
+  instead loads the `Config` on its first call.
 
 ## Mechanisms
 
@@ -60,8 +60,9 @@ owns them.
   which says whether `wio templates check` reports an error for the template
   file of that name.
 - A class in `wio.templates` that satisfies the port from `discover` and
-  `check_templates`, built from the `Config`, the repository root and a
-  `FileSystem`, and that imports nothing from `wio.contracts`.
+  `check_templates`, built from `Settings`, `Repository` and a `FileSystem` so
+  that it loads the `Config` on its first call, and that imports nothing from
+  `wio.contracts`.
 - `ContractsError`, which extends `WioError`, in `wio.contracts.errors`.
 - `wio.cli`'s table of commands and its wiring function for `contracts`, the
   one place where the group, the settings, the repository, the file system and
@@ -71,20 +72,21 @@ owns them.
 
 ## Constraints
 
-- **A subcommand is one entry.** Its arguments and its handler are registered in
-  the table of subcommands, so adding one changes that table and a module of its
-  own and nothing of another subcommand.
-- **Bare `wio contracts` reads nothing.** It writes its help, loads no config
-  and finds no repository, so it works anywhere. Describing the command does no
-  I/O and imports neither the config loader nor a codec.
+- **A subcommand is its own entry.** Its arguments and its handler are
+  registered in the table of subcommands and wired by one line in `wio.cli`, so
+  adding one changes that table, that line and a module of its own, and nothing
+  of another subcommand.
+- **Bare `wio contracts` reads nothing.** It writes its help, reads no config
+  file and runs no command of the repository, so it works anywhere. Describing
+  the command does no I/O and imports no codec.
 - **`is_rejected` is keyed by name.** It is true when an error is reported for a
   file whose name without `.md` is the name, also for a template that discovery
   could not build and that `find` therefore does not give. A warning never
   rejects, and a name that no file has is not rejected. When the templates
   directory itself is refused, it is false for every name.
-- **The provider discovers once and checks once.** It runs `discover` once, on
-  the first call of `find` or `is_rejected`, and `check_templates` once, on the
-  first call of `is_rejected`, and keeps what they return.
+- **The provider discovers once and checks once.** `find` runs `discover` once,
+  on its first call, and `is_rejected` runs `check_templates` once, on its first
+  call, and neither runs the other's, and each keeps what it returns.
 - **Neither package imports the other.** `wio.contracts` never imports
   `wio.templates`, `wio.templates` never imports `wio.contracts`, and only
   `wio.cli` builds the catalog and hands it to the group.
@@ -133,8 +135,7 @@ config, and `wio --help` lists the command.
 - **Given** a new Python process.
 - **When** `main(["contracts"], stdio)` of `wio.cli` runs and `sys.modules` is
   read.
-- **Then** none of `tomlkit`, `json`, `markdown_it` and `wio.config.loader` is
-  there.
+- **Then** none of `tomlkit`, `json` and `markdown_it` is there.
 
 ### **AC-2** A subcommand is added by one entry
 
@@ -178,8 +179,8 @@ no built template has.
 - **Given** a config whose `[templates.kinds]` declares the kind `feature` with
   the entry template `good`, and templates of that kind named `good`, `warned`
   with a repeated `##` heading, `badkey` with an unknown key, `unclosed` whose
-  block does not close, `baddirective` with the directive list
-  `<!-- wio: mandatory -->`, and two files named `twin` in different
+  block does not close, `baddirective` with the heading
+  `## A <!-- wio: mandatory -->`, and two files named `twin` in different
   subdirectories.
 - **When** `is_rejected` runs for each of them and for `nosuch`, and `find` runs
   for `unclosed`.
@@ -200,12 +201,15 @@ often it is asked.
 #### Counting the reads
 
 - **Given** a catalog over a file system that counts the reads of each
-  template, and the counts of a reference run of `discover` and of
+  template, and the counts of a reference run of `discover` and of a whole
   `check_templates` on the same templates.
-- **When** `find` runs twice, and then `is_rejected` runs three times.
-- **Then** after `find` the counts are those of the reference `discover`, and
-  after `is_rejected` they exceed them by exactly those of the reference
-  `check_templates`.
+- **When** `find` runs twice and then `is_rejected` runs three times, and, on a
+  fresh catalog, `is_rejected` runs twice and then `find` runs twice.
+- **Then** in the first case the counts are those of the reference `discover`
+  after `find`, and exceed them by exactly those of the reference
+  `check_templates` after `is_rejected`, and in the second they are those of the
+  reference `check_templates` after `is_rejected`, and exceed them by exactly
+  those of the reference `discover` after `find`.
 
 ### **AC-6** A mistake the user must fix exits 2
 
@@ -220,24 +224,25 @@ and a failed check exits 1.
 - **Then** the first writes the message to standard error and exits 2, and the
   second exits 1 with nothing on standard error.
 
-### **AC-7** The two packages do not import each other
+### **AC-7** `wio.templates` does not import `wio.contracts`
 
-`wio.contracts` imports nothing of `wio.templates`, and `wio.templates` imports
-nothing of `wio.contracts`.
+`wio.templates` imports nothing of `wio.contracts`, and the parent's AC-7 checks
+that `wio.contracts` imports nothing of `wio.templates`.
 
 #### An import in each direction
 
-- **Given** a module of `wio.contracts` that imports `wio.templates`, and a
-  module of `wio.templates` that imports `wio.contracts`.
-- **When** the imports of the two packages are read from their syntax trees, and
+- **Given** a module of `wio.templates` that imports `wio.contracts`.
+- **When** the imports of the package are read from the syntax trees, and
   `tach check` runs.
-- **Then** the syntax trees show both imports, and `tach check` reports them,
-  though its pass alone does not prove that there is none.
+- **Then** the syntax trees show the import, and `tach check` reports it, though
+  its pass alone does not prove that there is none. The other direction is the
+  parent's AC-7.
 
 ## Additional context
 
 - The catalog is the pattern of the architecture's ports. The ports that
   `wio.context` and `wio.trailers` declare for what they need of contracts are
   satisfied the same way, and are not built by this Work.
-- Each subcommand's leaf adds its entry to the table and its own wiring to
-  `wio.cli`, and the leaves that read templates use `find` and `is_rejected`.
+- Each subcommand's leaf adds its entry to the table, its module and one line of
+  wiring to `wio.cli`, and the leaves that read templates use `find` and
+  `is_rejected`.

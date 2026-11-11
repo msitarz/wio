@@ -52,7 +52,9 @@ joins them.
   messages and their output, so a move that changes either shows as a failing
   test.
 - **A-2**: A component may import a function from `wio.io`, not only a port,
-  because `wio.io` is a module that every component may depend on.
+  because `tach.toml` lets every component depend on `wio.io`. `walk.py` is the
+  first module of `wio.io` that holds runtime code besides its adapters, so the
+  description of `wio.io` as only ports changes with it.
 - **A-3**: `difflib.get_close_matches(key, known, n=1)` with its default
   cutoff is what both sites of `wio config` use today, and what the new callers
   need.
@@ -88,10 +90,11 @@ joins them.
   of `closest_key`, as the config's own README already requires, and `json`
   loads only when `render_check` renders JSON.
 - **The helpers import only what they need.** `wio.io.walk` imports the
-  `FileSystem` port and the standard library. `closest_key` imports `difflib`
-  and nothing else. `render_check` imports `render_text` and `render_json` of
-  `wio.formats` and `wio.models`. `order_diagnostics` and `has_error` import the
-  standard library, `re` among it, and `wio.models`.
+  `FileSystem` port, `Diagnostic` of `wio.models` and the standard library.
+  `closest_key` imports `difflib` and nothing else. `render_check` imports
+  `render_text` and `render_json` of `wio.formats` and `wio.models`.
+  `order_diagnostics` and `has_error` import only the standard library, `re`
+  among it.
 
 ## Visuals
 
@@ -133,9 +136,11 @@ a directory, and nothing else.
 - **Given** a tree held by a fake `FileSystem`: `a.md`, `B.MD`, `notes.txt`,
   `sub/f.md`, `.hidden/c.md`, a symbolic link to a directory that holds `d.md`,
   and a symbolic link to a file named `e.md`.
-- **When** `walk_markdown` runs on its root.
-- **Then** it yields `a.md` and `sub/f.md`, in the order of the listing, and it
-  has read no file.
+- **When** `walk_markdown` runs on its root, whose fake lists its entries in the
+  order `a.md`, `B.MD`, `notes.txt`, `sub`, `.hidden`, the link to the directory
+  and the link to the file.
+- **Then** it yields `a.md` and `sub/f.md`, in that order, and it has read no
+  file.
 
 ### **AC-2** The directory itself is judged with the caller's noun
 
@@ -190,7 +195,7 @@ before, and `wio config` imports `difflib` nowhere itself.
 #### A mistyped setting and a mistyped key
 
 - **Given** a config with a `[stages]` table, and another whose stage `define`
-  has the key `sessionn`.
+  has a `goal` and the key `sessionn` and no other problem.
 - **When** `wio config show stagez` and `wio config check` run on them.
 - **Then** the first prints an error that names `stagez` and says
   ``Did you mean `stages`?`` and exits 2, and the second reports the unknown key
@@ -212,37 +217,55 @@ there is one, and is as it was when there is none.
 
 #### Close and far
 
-- **Given** two templates, one whose metadata has the key `descriptions` and one
-  that has the key `zzz`.
+- **Given** a config that declares the kind `feature`, and two templates of that
+  kind, one whose metadata has the key `descriptions` and one that has the key
+  `zzz`.
 - **When** `wio templates check` runs.
 - **Then** it reports ``Unknown key `descriptions` in the metadata. Did you mean
   `description`?`` and ``Unknown key `zzz` in the metadata``, each at its file,
-  and exits 1.
+  and no other finding, and exits 1.
 
-### **AC-6** One `has_error`, one ordering, one rendering
+### **AC-6** `has_error` tells an error from the rest
 
-`has_error` tells an error from the rest, `order_diagnostics` orders by file,
-line and column as numbers, and `render_check` prints the sentence it is given
-when there is nothing to report.
+`has_error` is true when a diagnostic is an error, and false for warnings and
+notes alone.
 
-#### The helpers
+#### The helper and `config`
+
+- **Given** the diagnostics `a.md:2: warning` and `a.md: note`, and the same
+  with `b.md: error` added, and a config with a warning and no error and one
+  with an error.
+- **When** `has_error` runs on both sets, and `wio config check` runs on both
+  configs.
+- **Then** `has_error` is false and then true, and `wio config check` exits 0
+  and then 1, with the output it had.
+
+### **AC-7** Diagnostics are ordered by file, line and column as numbers
+
+`order_diagnostics` orders by file, then line and column as numbers, then
+severity and message, and puts a place that is not a file last.
+
+#### The order
 
 - **Given** the diagnostics `a.md:10: error`, `a.md:2: warning`,
   `a.md:2: error`, `a.md: note`, `b.md: error` and `nofile: error`.
-- **When** `order_diagnostics` runs on them, `has_error` runs on them and on the
-  note and the warning alone, and `render_check` runs on none with
-  `passes="The contracts pass."`, in text and as JSON.
+- **When** `order_diagnostics` runs on them.
 - **Then** the order is `a.md`, then `a.md:2` error, `a.md:2` warning,
-  `a.md:10`, then `b.md`, then `nofile`, `has_error` is true, false, and the
-  renderings are `The contracts pass.` and `[]`, each ending in a newline.
+  `a.md:10`, then `b.md`, then `nofile`.
 
-#### The same in `config`
+### **AC-8** A check's result is rendered with the sentence it is given
 
-- **Given** a config with a warning and no error, and one with an error.
-- **When** `wio config check` runs on each.
-- **Then** the first exits 0 and the second exits 1, with the output they had.
+`render_check` prints the sentence it is given when there is nothing to report.
 
-### **AC-7** `wio templates` prints what it printed
+#### Nothing to report
+
+- **Given** no diagnostic.
+- **When** `render_check` runs with `passes="The contracts pass."`, in text and
+  as JSON.
+- **Then** the renderings are `The contracts pass.` and `[]`, each ending in a
+  newline.
+
+### **AC-9** `wio templates` prints what it printed
 
 Apart from a mistyped key, every output of the commands of `wio templates` is
 the same.
@@ -259,7 +282,7 @@ the same.
   not be a symbolic link` and exits 1, and `list` prints that error and the line
   `` `wio templates check` shows every problem. `` and exits 2.
 
-### **AC-8** There is one copy of each helper
+### **AC-10** There is one copy of each helper
 
 After the move, each helper is defined once, in the package named for it, and
 the components use it.
@@ -274,10 +297,11 @@ the components use it.
   `wio.io.walk`, `closest_key` and `render_check` only in `wio.formats`, and
   `order_diagnostics` and `has_error` only in `wio.models.diagnostics`;
   `wio.templates` defines none of `_walk`, `_walk_visible`, `_refuse_directory`,
-  `_has_error`, `_order_key` and `render_check`; `wio.config` has no inline test
-  `severity == "error"` and imports `has_error` and `closest_key`; `difflib` is
-  imported only in `wio.formats`; and each helper module imports only what the
-  Constraints list.
+  `_has_error`, `_order_key` and `render_check`; `wio.config` has no `any(...)`
+  of `severity == "error"`, and imports `has_error` at the sites that asked
+  whether there is an error (`loader.py:82` and `report.py:39`) and
+  `closest_key`; `difflib` is imported only in `wio.formats`; and each helper
+  module imports only what the Constraints list.
 
 ## Additional context
 
@@ -286,5 +310,4 @@ the components use it.
 - The ordering moved here is the one of `wio templates check`. It is replaced
   when `wio config check` gets a line and a column and the three commands share
   one ordering.
-- This leaf changes tests of `wio templates` and `wio config`, and the README of
-  `src/wio/config` where it says that `difflib` is imported lazily.
+- This leaf changes tests of `wio templates` and `wio config`.

@@ -60,8 +60,9 @@ text.
   renders the view as text, with names and signatures that the architecture
   stage decides.
 - The ancestors of the hierarchy leaf, the catalog's `find` and `is_rejected`,
-  the `FileSystem` port, `read_metadata_block`, `read_outline` and
-  `read_directive_heading`.
+  the `FileSystem` port and `Repository` for the root that paths are relative
+  to, `read_metadata_block`, `read_outline`, `read_directive_heading` and
+  `remove_directive_list`.
 
 ## Constraints
 
@@ -73,9 +74,13 @@ text.
   order, each demoted by one level and never below level 6, one blank line
   between them. A section is its heading line and its text without the blank
   lines that end it. The text ends in one line ending. An ancestor with no title
-  is named `Inherited from: <id>`.
-- **Directive comments are never shown.** The directive list is taken off every
-  heading of the view, the Work's and the ancestors', whatever its level.
+  is named `Inherited from: <id>`. An empty own contract leaves the view to
+  begin with the first `## Inherited from:` line.
+- **Directive comments are shown only when they cannot be read.** The directive
+  list is taken off every heading of the view, the Work's and the ancestors',
+  whatever its level, after `read_directive_heading` has read it. A list that it
+  rejects is left in the heading as written, so `remove_directive_list` is not
+  applied to it. The heading line is then right-trimmed.
 - **An ancestor's source decides.** Its template's directives, found through the
   catalog and matched to its `##` sections by text, ignoring case, surrounding
   space and a trailing directive comment, or its own headings' directives when
@@ -83,11 +88,12 @@ text.
   next heading of level 1 or 2, and every section that matches a marked heading
   passes.
 - **Nothing is invented.** An ancestor passes nothing when the catalog has no
-  template of its name, when the template is rejected, or when its file cannot
-  be read, the walk goes on to the ancestors above it, and no error is raised. A
-  section that holds only comments and whitespace is not passed, and a deeper
-  heading is content. A directive list that cannot be read marks nothing and is
-  left in the heading as written.
+  template of its name, when the template is rejected, when the template's file
+  cannot be read, a `UnicodeDecodeError` or an `OSError` of `FileSystem`, or
+  when the ancestor's own file cannot be read, the walk goes on to the ancestors
+  above it, and no error is raised. A section that holds only comments and
+  whitespace is not passed, and a deeper heading is content. A directive list
+  that cannot be read marks nothing.
 - **Own sections stay own.** The Work's own sections are not repeated, and the
   items of an inherited section are not the Work's items.
 - **The output is deterministic.** Line endings are LF and the same Work gives
@@ -147,24 +153,27 @@ none.
 
 #### Three levels
 
-- **Given** `hierarchy = "nesting"`, a grandparent `g/README.md` with an
-  inheritable `## Constraints`, a parent `g/p/README.md` whose source marks
-  nothing, a child `g/p/c/README.md`, and a Work `solo/README.md` with no
+- **Given** `hierarchy = "nesting"`, a stub catalog that has the template
+  `t.marks`, which marks `## Constraints` inherit, and the template `t.plain`,
+  which marks nothing, a grandparent `g/README.md` titled `G` that follows
+  `t.marks` and has a `## Constraints`, a parent `g/p/README.md` that follows
+  `t.plain`, a child `g/p/c/README.md`, and a Work `solo/README.md` with no
   parent.
 - **When** the views of `c` and `solo` are rendered.
-- **Then** the view of `c` has one `## Inherited from:` section, for `g`, and
-  that of `solo` is its own contract only.
+- **Then** the view of `c` has one `## Inherited from:` section, the one for
+  `G`, and that of `solo` is its own contract only.
 
 #### Two ancestors that pass
 
-- **Given** the same tree with `p` marking `## Constraints` inheritable too.
+- **Given** the same tree with `p` following `t.marks` too, and having a
+  `## Constraints`.
 - **When** the view of `c` is rendered.
 - **Then** the section for `p` comes before the one for `g`.
 
 #### Under flat
 
-- **Given** `hierarchy = "flat"` and the same tree, with `g` and `p` marking
-  `## Constraints` inheritable.
+- **Given** `hierarchy = "flat"` and the same tree, with `g` and `p` following
+  `t.marks`.
 - **When** the views of `g`, `p` and `c` are rendered.
 - **Then** each is its own contract only.
 
@@ -198,11 +207,12 @@ be read passes nothing, and the ancestors above it still pass theirs.
 
 #### Three ancestors
 
-- **Given** a grandparent `g` with an inheritable `## Constraints` that has
-  three children, `a` that names a template the catalog does not have, `b` whose
-  template the catalog gives and `is_rejected` rejects, and `c` whose template
-  the catalog gives and does not reject but whose file is not UTF-8, and a child
-  under each of them.
+- **Given** a stub catalog and a grandparent `g` with an inheritable
+  `## Constraints` that has three children, `a` that names a template the stub
+  does not have, `b` whose template the stub gives and `is_rejected` rejects,
+  and `c` whose template the stub gives and does not reject but whose file, read
+  through a fake `FileSystem`, raises a `UnicodeDecodeError`, and a child under
+  each of them.
 - **When** the three views are rendered.
 - **Then** each view is the child's own contract plus one `## Inherited from:`
   section, for `g`, and nothing is raised.
@@ -217,12 +227,14 @@ same on every run, with LF endings.
 
 - **Given** a child with `+++` front matter, in a file with CRLF endings, whose
   body is `# Child`, the comment `<!-- Write ## X here. -->` and
-  `## Goals <!-- wio: required -->` with the line `Goal text.`, and a parent
-  titled `Parent` with the id `p5n2hv` from a template that marks `Glossary` and
-  `Constraints` `inherit`, whose `## Glossary` holds only a comment, whose
-  `## Constraints` holds the line `A line.` and the comment `<!-- c -->` with
-  `### Detail <!-- wio: required -->` and the line `Deep.` under it, and whose
-  `## Purpose` carries a stray `<!-- wio: inherit -->`.
+  `## Goals <!-- wio: required -->` with the line `Goal text.`, each separated
+  from the next by a blank line, and a parent titled `Parent` with the id
+  `p5n2hv` from a template that marks `Glossary` and `Constraints` `inherit`,
+  whose `## Glossary` holds only a comment, whose `## Constraints` holds the
+  line `A line.` and the comment `<!-- c -->` with
+  `### Detail <!-- wio: required -->` and the line `Deep.` under it, each
+  separated from the next by a blank line, and whose `## Purpose` carries a
+  stray `<!-- wio: inherit -->`.
 - **When** the view of the child is rendered, and rendered again.
 - **Then** both results are equal and exactly this text, with LF endings only:
 
@@ -250,12 +262,36 @@ same on every run, with LF endings.
 
 #### A deep heading and a bad list
 
-- **Given** an inheritable section with a heading of level 6 under it, and an
-  ancestor heading `## Rules <!-- wio: mandatory -->` in a source that marks
-  `Rules` inheritable.
+- **Given** an ancestor from a template that marks `Constraints` and `Rules`
+  inheritable, whose `## Constraints` holds a level-6 heading, and which has a
+  heading `## Rules <!-- wio: mandatory -->`.
 - **When** the view of a child is rendered.
-- **Then** the level-6 heading stays at level 6, and the bad directive list
-  marks nothing and stays in the heading as written.
+- **Then** the level-6 heading stays at level 6, and the `Rules` section is
+  passed with its bad directive list left in its heading as written.
+
+### **AC-6** The name of an ancestor and the extent of a section
+
+An ancestor with no title is named by its id, and a section runs to the next
+heading of level 1 or 2, with a deeper heading as content.
+
+#### No title and a section that holds a deeper heading
+
+- **Given** a parent with the id `p5n2hv` and no heading at the top of its body,
+  from a template that marks `Constraints` and `Notes` inheritable, whose
+  `## Constraints` holds only `### Detail` and the line `More.`, then a `# Next`
+  heading that ends it, and whose `## Notes` ends at the next `##`; and a child
+  with an empty own contract.
+- **When** the view of the child is rendered.
+- **Then** it begins with `## Inherited from: p5n2hv`, holds `### Constraints`
+  with `#### Detail` and `More.` and nothing from `# Next`, and the `Notes`
+  section.
+
+#### A trailing space
+
+- **Given** an ancestor whose inheritable section is written `## constraints`
+  with a trailing space.
+- **When** the view of its child is rendered.
+- **Then** the heading is `### constraints` with no trailing space.
 
 ## Additional context
 

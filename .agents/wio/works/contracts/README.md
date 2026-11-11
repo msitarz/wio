@@ -19,15 +19,15 @@ agrees on what a Work is, what it inherits and what it depends on.
 - A person or an agent can create a Work from a kind's entry template, from any
   template, or as a bare contract. It gets a new id and a place that follows the
   hierarchy mode.
-- A stage can rewrite an existing Work in another template's shape and keep its
-  id and dependencies, so the Work keeps its records.
+- A stage can get the skeleton of another template for an existing Work, keeping
+  its id and dependencies, so that the Work keeps its records.
 - A person or an agent can list the Works with their hierarchy and show one
   Work in its resolved form, with inherited sections, actions, roots and
   dependents.
 - A person or an agent that edits a contract is told what is wrong with the
   contracts, all at once.
 - An agent that edits a contract, and a commit that changes one, is told of a
-  problem at once.
+  problem at once, in this repository's `.agents/wio/works/`.
 - The finding of Works, their hierarchy, dependencies, inheritance and items
   live in one place that `wio trailers`, `wio rules` and `wio context` reuse.
 
@@ -94,9 +94,9 @@ agrees on what a Work is, what it inherits and what it depends on.
   `Diagnostic`.
 - `wio.io`, which gains the walk of the Works directory that `wio.templates`
   and `wio.contracts` share, beside the `FileSystem` port it walks.
-- The ports `FileSystem`, `Entropy`, `Settings` and `Repository`, which the
-  component reads files, randomness, the config and the repository root
-  through.
+- The ports `FileSystem`, `Entropy`, `Settings`, `Repository` and `Environment`,
+  which the component reads files, randomness, the config, the repository root
+  and the working directory through.
 - A port in `wio/contracts/ports.pyi` that finds a template by name and says
   whether `wio templates check` rejects it, which `wio.templates` satisfies and
   `wio.cli` wires, so `wio.contracts` never imports it.
@@ -126,6 +126,13 @@ agrees on what a Work is, what it inherits and what it depends on.
   and column key that the shared leaf extracts, and rendering keeps that order.
 - **Output is deterministic.** It is sorted or in a fixed order and has no
   timestamps, and `--json` prints one array or object that parses.
+- **Exit codes are the command line's.** A command that succeeds exits 0, a
+  failed check exits 1, a mistake that the user must fix exits 2, and a bug
+  exits 70.
+- **A template's `shape` is a free string.** No command compares it with the
+  tree.
+- **An id must be fit for a record.** An id that holds whitespace or a comma, or
+  is `none`, is an error; any other non-empty id is allowed.
 - **Ids are 6 lowercase Crockford base32 characters from `Entropy`.** An id is
   unique among the Works of the tree and may be one that a deleted Work had.
 - **Nothing is imported before it is needed.** `list` and `check` without
@@ -136,8 +143,9 @@ agrees on what a Work is, what it inherits and what it depends on.
   `tomllib`, `tomlkit` and `markdown_it`, and ruff's `banned-api` reports any
   other import.
 - **Dependency direction.** `wio.contracts` imports `wio.formats`,
-  `wio.models`, `wio.io` and ports, never another component, and it reaches the
-  templates only through its own port, which `wio.cli` wires. The review of each
+  `wio.models`, `wio.io`, `wio.env`, `wio.errors` and ports, never another
+  component, and it reaches the templates only through its own port, which
+  `wio.cli` wires. The review of each
   child checks the imports of its files, because `tach check` alone can pass a
   forbidden one ([known issues](../../../../docs/known-issues.md)).
 
@@ -218,8 +226,8 @@ passes on.
 
 #### A parent and a child
 
-- **Given** a repository as in AC-1, and a Work `T` whose contract is in the
-  `feature.parent` template, with a Glossary and a Constraints section.
+- **Given** a repository as in AC-1, and a Work `T` whose contract is valid for
+  `template = "feature.parent"`, with a Glossary and a Constraints section.
 - **When** `wio contracts new feature --parent <T> --title "Child"` runs, and
   then `wio contracts check`, `wio contracts list` and
   `wio contracts show <child id>`.
@@ -230,7 +238,7 @@ passes on.
 ### **AC-3** A Work moves to another template and keeps its identity
 
 The skeleton of an existing Work keeps its `id` and `depends_on`, takes the new
-template's roots and actions, and says what it dropped.
+template's roots, and says what it dropped.
 
 #### Moving a leaf to the parent template
 
@@ -239,15 +247,16 @@ template's roots and actions, and says what it dropped.
 - **When** `wio contracts skeleton feature.parent --work <W>` runs.
 - **Then** standard output is the skeleton of `feature.parent` with the `id` of
   `W` and `depends_on = ["a7b2c4"]`, with `roots = ["@descendants"]` and no
-  directive comment, standard error names the roots and the override of `W`
-  that it did not carry, nothing is written, and it exits 0.
+  `<!-- wio: ... -->` directive list on a heading, standard error names the keys
+  `roots` and `actions` of `W` that it did not carry, nothing is written, and it
+  exits 0.
 
 #### Keeping the roots
 
 - **Given** the same Work and template.
 - **When** `wio contracts skeleton feature.parent --work <W> --keep roots` runs.
 - **Then** the skeleton has `roots = ["api"]`, and standard error names only
-  the override.
+  `actions`.
 
 #### A Work or a template that does not exist
 
@@ -293,7 +302,8 @@ no command changes them.
 #### Nothing is written
 
 - **Given** this repository's Works and a hash of each contract.
-- **When** `list`, `show`, `skeleton` and `check` run on them.
+- **When** `list`, `show`, `skeleton feature.parent --work <id of a leaf>` and
+  `check` run on them.
 - **Then** the hash of every contract is unchanged.
 
 #### The same output twice
@@ -320,20 +330,20 @@ and neither does `wio contracts check`.
 No module of `wio.contracts` imports another component, `tomllib`, `tomlkit` or
 `markdown_it`.
 
-#### A module that imports one
+#### The real sources
 
-- **Given** a module of `wio.contracts` that imports `wio.templates`, another
-  that imports `tomlkit` and a third that imports `markdown_it`.
-- **When** the imports of `src/wio/contracts` are read from the syntax trees of
-  its modules, and `tach check` and `ruff check` run on `src/wio`.
-- **Then** the syntax trees show the three imports, `tach` reports the first,
-  though its pass alone does not prove that there is none, and ruff reports
-  `TID251` for the second and the third.
+- **Given** the sources of `src/wio/contracts` once the Work is delivered.
+- **When** the imports of its modules are read from their syntax trees, and
+  `tach check` and `ruff check` run on `src/wio`.
+- **Then** the syntax trees show no import of another component, `tomllib`,
+  `tomlkit` or `markdown_it`, and `tach check` and `ruff check` report none,
+  though a pass of `tach check` alone does not prove that there is none.
 
 ### **AC-8** `wio templates` behaves as before
 
 Once the shared helpers have moved out of `wio.templates`, its commands print
-the same on this repository's templates.
+the same on this repository's templates, except that the error of a mistyped key
+in a template names the closest key.
 
 #### The repository's own templates
 
@@ -341,6 +351,24 @@ the same on this repository's templates.
 - **When** `wio templates list`, `wio templates show feature.parent` and
   `wio templates check` run before and after the helpers move.
 - **Then** each prints the same bytes and exits with the same code.
+
+### **AC-9** A broken contract is reported at once, to an agent and to a commit
+
+An edit of a contract through the real hook, and a commit through the real
+`wio-contracts` hook, fail with the diagnostic when the contracts have an error,
+and are silent when they have none.
+
+#### The real hooks
+
+- **Given** a temporary git repository with this repository's
+  `.claude/settings.json` and `prek.toml`, a minimal config, the templates of
+  AC-1 and a valid Work `a` at `.agents/wio/works/a/README.md`.
+- **When** the `PostToolUse` command receives the input for an edit of the file,
+  and `prek` runs on the staged file, once when the Work lists an id that no
+  Work has in `depends_on` and once when it does not.
+- **Then** with the unknown dependency the command exits 2 with the diagnostic
+  on standard error and the prek hook fails with it, and without it the command
+  prints nothing and exits 0 and the prek hook passes.
 
 ## Additional context
 
@@ -359,5 +387,6 @@ the same on this repository's templates.
 - Each leaf names the documents it touches in its own context.
 - By the driver's decisions in this Work, a template's `shape` is a free
   descriptive string that no command checks, `wio contracts show` prints no
-  action descriptions, and the form of an id is checked. `docs/concepts.md` and
+  action descriptions, and an id with whitespace, a comma or the value `none` is
+  an error. `docs/concepts.md` and
   `docs/v0.1-scope.md` say otherwise until the documents are promoted.

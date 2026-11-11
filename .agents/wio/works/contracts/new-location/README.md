@@ -36,59 +36,66 @@ can give another implementation.
 
 - **A-1**: The discovery leaf is delivered, so the Works of the tree, their
   paths and ids, and the explanation of what makes a path a Work are available.
-- **A-2**: `Entropy.random_bytes` gives uniformly random bytes, and a test can
-  fix them.
+- **A-2**: `Entropy.random_bytes` gives uniformly random bytes, and is the only
+  source of randomness of the id.
 - **A-3**: Two creators racing for one path are not handled, as the parent's A-3
   says, so the guard checks that a path does not exist and then writes.
 
 ## Mechanisms
 
-- A function in `wio.contracts` that, given the arguments of `new`, the Works of
-  the tree and the hierarchy mode, decides the id and the path of the new Work
-  and writes nothing.
+- A function in `wio.contracts` that, given the arguments of `new`, the result
+  of discovery, the Works and the marked files that were left out, and the
+  hierarchy mode, decides the id and the path of the new Work and writes
+  nothing.
 - An interface for an id generator with one implementation, the random one,
   drawing from the `Entropy` port.
 - A guard in `wio.contracts` that writes a new file through `FileSystem` and
   refuses a path that exists.
 - `closest_key` from the shared leaf, for a mistyped parent id, and
-  `ContractsError` from the command leaf for every refusal.
+  `ContractsError` from the command leaf for every refusal, the 100-draw failure
+  included.
 - The names, the signatures and the interface of the generator are provisional,
   for the architecture stage to decide.
 
 ## Constraints
 
-- **The id is six characters of a fixed alphabet.** They are lowercase Crockford
-  base32, `0123456789abcdefghjkmnpqrstvwxyz`, each the low five bits of one
-  random byte. One draw is one `Entropy.random_bytes(6)` call. The id is drawn
+- **An id is six characters of the alphabet
+  `0123456789abcdefghjkmnpqrstvwxyz`.** Each is the low five bits of one random
+  byte, and one draw is one `Entropy.random_bytes(6)` call. The id is drawn
   again until no Work in the tree has it, a Work with a shared id included, and
-  after 100 draws the command gives up with an error.
-- **A slug is derived by one rule.** From a title it is the title in lowercase,
-  with the letters of a fixed table written out (`ł` as `l`, `ø` as `o`, `đ` as
-  `d`, `ð` as `d`, `ħ` as `h`, `ı` as `i`, `æ` as `ae`, `œ` as `oe`, `ß` as `ss`
-  and `þ` as `th`) and the other accents folded to ASCII, with every run of
-  other characters turned into one `-`, with `-` trimmed from both ends, and cut
-  at 48 characters with a trailing `-` trimmed again. A character that is still
-  not ASCII is dropped, and a slug that is empty is an error that asks for
-  `--slug`.
+  after 100 draws the command gives up with a `ContractsError`.
+- **A slug is derived by one rule, in this order.** From a title it is the title
+  in lowercase, with the letters of a fixed table written out (`ł` as `l`, `ø`
+  as `o`, `đ` as `d`, `ð` as `d`, `ħ` as `h`, `ı` as `i`, `æ` as `ae`, `œ` as
+  `oe`, `ß` as `ss` and `þ` as `th`), the other accents folded to ASCII, and
+  every character that is still not ASCII dropped. Then every run of characters
+  outside `a-z0-9` becomes one `-`, `-` is trimmed from both ends, and the slug
+  is cut at 48 characters with a trailing `-` trimmed again. A slug that is
+  empty is an error that asks for `--slug`.
 - **A given slug is used as written.** It must be lowercase letters and digits
   in groups joined by single `-`, so it can never start with `.`, hold `/` or
   `..`, and hide the Work.
 - **One of three names is required.** At least one of `--slug`, `--title` and
   `--path` is given. `--slug` and `--title` may be given together, `--path`
   excludes `--slug`, and under `nesting` it also excludes `--parent`.
+- **One error for each call, the first of these.** A name is missing, options
+  exclude each other, `--parent` is given under `flat`, the slug is not valid or
+  empty, the parent has no Work or is shared, the path is not a Work's path, and
+  the directory or the file exists.
 - **The default place is a directory.** It is
   `<Works directory>/<slug>/README.md`, and with `--parent`, under `nesting`
   only, it is `<the directory of the parent's file>/<slug>/README.md`. Under
   `flat`, `--parent` is an error, and a parent that no Work has, or that two
   Works share, is an error.
 - **A path is a Work's path.** `--path` is relative to the repository root, has
-  no `..` and no segment below the Works directory that starts with `.`, ends in
-  `.md` with that case, lies under the Works directory, runs through no symbolic
-  link, and does not exist. Under `nesting` it is not directly in the Works
-  directory and its directory holds no marked file already, and under `flat`
-  neither applies.
-- **Nothing is overwritten.** The directory of the default place and the file of
-  any place must not exist, an empty directory included, or it is an error that
+  no `..`, ends in `.md` with that case, and does not exist. Whatever else would
+  keep a file from being a Work is judged by the rules of the discovery leaf, as
+  they apply to a path that does not exist yet: it lies under the Works
+  directory, below no hidden directory, runs through no symbolic link, and,
+  under `nesting`, is not directly in the Works directory and its directory
+  holds no marked file already, one that was left out included.
+- **Nothing is overwritten.** The directory of the default place, an empty one
+  included, and the file of any place must not exist, or it is an error that
   names it. An existing directory is no obstacle to a `--path` that names a new
   file in it.
 - **Deciding writes nothing.** Only the guard writes, one new file.
@@ -103,10 +110,11 @@ characters, and a title with no usable letter is an error.
 #### Titles
 
 - **Given** the titles `Read config.toml`, `Łódź café`, `Straße æon`,
-  `  --A  B--  `, forty-seven letters `a`, a space and `b`, and `Привет`.
+  `  --A  B--  `, `aпb`, forty-seven letters `a`, a space and `b`, and `Привет`.
 - **When** the slug of each is derived.
 - **Then** the slugs are `read-config-toml`, `lodz-cafe`, `strasse-aeon`, `a-b`,
-  the forty-seven letters, and an error that asks for `--slug` for the last.
+  `ab`, the forty-seven letters, and an error that asks for `--slug` for the
+  last.
 
 ### **AC-2** A given slug must be lowercase kebab case
 
@@ -139,11 +147,11 @@ the options that cannot be combined, or name what does not exist, are errors.
 
 #### Refusals
 
-- **Given** the same Works, an existing directory `.agents/wio/works/child`, and
-  two Works with the id `a7b2c4`.
+- **Given** the same Works, an empty existing directory
+  `.agents/wio/works/child`, and two Works with the id `a7b2c4`.
 - **When** the place is decided with no name, with `--path` and `--slug`, with
-  `--path` and `--parent`, with `--parent k3m9xr`, with `--parent a7b2c4`, and
-  with the title `Child`.
+  `--path` and `--parent`, with `--parent k3m9xr --title Child`, with
+  `--parent a7b2c4 --title Child`, and with the title `Child`.
 - **Then** each is an error: that a name is required, that the options exclude
   each other, twice, that the parent `k3m9xr` has no Work and the closest is
   `k3m9xq`, that the id is shared, and that the directory `child` exists.
@@ -170,6 +178,16 @@ the options that cannot be combined, or name what does not exist, are errors.
 - **Then** the first is accepted and its directory is created by the writer, and
   each of the others is an error that names the path and says why.
 
+#### A directory that exists and a file that was left out
+
+- **Given** `hierarchy = "nesting"`, a directory `.agents/wio/works/q` that
+  exists, and a marked file `.agents/wio/works/r/one.md` whose block has no
+  `id`.
+- **When** the paths `.agents/wio/works/q/new.md` and
+  `.agents/wio/works/r/two.md` are checked.
+- **Then** the first is accepted, and the second is an error that says the
+  directory holds a marked file already.
+
 #### Flat
 
 - **Given** `hierarchy = "flat"`, the same Work, and the paths
@@ -191,6 +209,13 @@ tries.
 - **When** an id is drawn for each.
 - **Then** the first is `012345`, the second is `6789ab`, and both consist of
   the characters of the alphabet only.
+
+#### Bytes above 31
+
+- **Given** an `Entropy` whose `random_bytes(6)` call gives the bytes 255, 32,
+  33, 250, 128 and 31, and an empty tree.
+- **When** an id is drawn.
+- **Then** it is `z01t0z`.
 
 #### A shared id and no free id
 
@@ -223,4 +248,4 @@ one that exists.
 - The new leaf calls this leaf's decision and writes the contract through the
   guard, with the skeleton of the template.
 - The alphabet has no `i`, `l`, `o` or `u`, so an id cannot be mistaken for a
-  digit and cannot spell `none`.
+  digit.

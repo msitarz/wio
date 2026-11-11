@@ -40,6 +40,9 @@ Works, in the graph or in the metadata of a Work is not hidden by another.
   `docs/v0.1-scope.md` describe is dropped, and those documents change when they
   are promoted.
 - Looking up a removed dependency in the history.
+- A repeated stage in a pipeline that a Work inherits from its template, in a
+  stage preset or in a config default, which `wio templates check` and
+  `wio config check` judge.
 - A form of an id beyond what a record needs. That rule is new here, and the
   concepts do not list it among the invariants.
 
@@ -54,6 +57,9 @@ Works, in the graph or in the metadata of a Work is not hidden by another.
 - **A-3**: A template's `[actions]` can be read from its file, at the path that
   the catalog gives, which is relative to the repository root, with the block
   reader.
+- **A-4**: The unknown-key check reads each Work's block again with
+  `read_metadata_block`, because the `Work` of discovery holds only some of its
+  keys. A file that cannot be read the second time is one error at the file.
 
 ## Mechanisms
 
@@ -63,6 +69,7 @@ Works, in the graph or in the metadata of a Work is not hidden by another.
 - `closest_key`, `render_check`, `has_error` and `order_diagnostics` from the
   shared leaf.
 - The catalog port, whose `find` and `is_rejected` judge a template.
+- The function that resolves a Work's actions, which the show leaf reuses.
 - The `check` entry of the group's table, which renders with `render_check` and
   `has_error` and sets the exit code, and takes `--json`.
 - `Config` for the declared names, `FileSystem` to read a template's actions,
@@ -88,10 +95,11 @@ Works, in the graph or in the metadata of a Work is not hidden by another.
 - **The place is the file.** Each diagnostic of this leaf names the Work's file
   as its place, without a line.
 - **Only an error fails.** An error exits 1, and a warning or a note never does.
-- **The output is deterministic.** It is ordered as `order_diagnostics` orders
-  it, says `The contracts pass.` when there is nothing to report, and with
-  `--json` is one array that parses.
-- **Nothing is written.** The command reads and reports.
+- **The output is `order_diagnostics`' order.** It says `The contracts pass.`
+  when there is nothing to report.
+- **An action entry has a shape.** A value of a Work's `[actions]` is a stage
+  preset, written as a string, or a list of stages, and any other value is an
+  error, ``The action `deliver` must be a stage preset or a list of stages``.
 
 ## Acceptance criteria
 
@@ -102,12 +110,14 @@ fixed order, and exits 1 only when there is an error.
 
 #### Problems of three kinds
 
-- **Given** a tree with two Works that share an id, two Works that list each
-  other, a Work with the unknown key `depend_on`, and a Work that names a
-  template that does not exist.
+- **Given** a project whose defaults have the action `deliver`, and a tree with
+  two Works that share an id, two Works that list each other, a Work with the
+  unknown key `depend_on`, and a Work that names a template that does not
+  exist.
 - **When** `wio contracts check` runs, and then `wio contracts check --json`.
 - **Then** both report the shared id, the cycle, the key and the template, in
-  the same order, the second as one JSON array that parses, and each exits 1.
+  the order of `order_diagnostics`, the second as one JSON array that parses,
+  and each exits 1.
 
 #### A clean tree and a warning
 
@@ -123,8 +133,9 @@ closest known key when there is one.
 
 #### Unknown keys
 
-- **Given** Works with the keys `depend_on`, `zzz`, a plain `x = 1` and the
-  table `[xx]`, and Works with the table `[x]` and the key `tracks`.
+- **Given** a project whose defaults have the action `deliver`, Works with the
+  keys `depend_on`, `zzz`, a plain `x = 1` and the table `[xx]`, and Works with
+  the table `[x]` and the key `tracks`.
 - **When** `wio contracts check` runs.
 - **Then** the first four give ``Unknown key `depend_on` in the metadata. Did
   you mean `depends_on`?`` and ``Unknown key `zzz` in the metadata``, and the
@@ -138,8 +149,9 @@ non-empty id is not.
 
 #### Ids
 
-- **Given** five Works in separate directories with the ids `a b`, `a,b`,
-  `none`, `SPEC-012` and `k3m9xq`.
+- **Given** a project whose defaults have the action `deliver`, and five Works
+  in separate directories with the ids `a b`, `a,b`, `none`, `SPEC-012` and
+  `k3m9xq`.
 - **When** `wio contracts check` runs.
 - **Then** the first two report ``The id `a b` holds whitespace or a comma`` and
   ``The id `a,b` holds whitespace or a comma``, the third reports
@@ -171,19 +183,20 @@ repeats in a pipeline, and the resolved actions are not empty.
 #### Names
 
 - **Given** a config that declares the actions `deliver` and `amend`, the stage
-  preset `integrate` and the stage `implementation`, a template `t.leaf` whose
-  actions are `deliver = ["implementation"]` and `amend = ["implementation"]`,
-  and Works that follow it whose `[actions]` hold
+  preset `integrate`, the stage `implementation` and the kind of `t.leaf`, a
+  template `t.leaf` whose actions are `deliver = ["implementation"]` and
+  `amend = ["implementation"]`, and Works that follow it whose `[actions]` hold
   `shipp = ["implementation"]`, `deliver = "nosuch"`,
-  `deliver = ["implementation", "implementation"]`, `deliver = ["gone"]` and
-  `deliver = []`.
+  `deliver = ["implementation", "implementation"]`, `deliver = ["gone"]`,
+  `deliver = 5` and `deliver = []`.
 - **When** `wio contracts check` runs.
-- **Then** the first four are errors,
+- **Then** the first five are errors,
   ``The action `shipp` is not declared in `[actions]` of the config``,
   ``The stage preset `nosuch` of action `deliver` is not declared``,
   `` The stage `implementation` appears twice in action `deliver` ``, and
-  ``The stage `gone` of action `deliver` is not declared``, and the last is not
-  an error, because `amend` remains.
+  ``The stage `gone` of action `deliver` is not declared``,
+  ``The action `deliver` must be a stage preset or a list of stages``, and the
+  last is not an error, because `amend` remains.
 
 #### No action at all
 
@@ -203,17 +216,33 @@ descendants gets a note for each.
 
 #### Roots
 
-- **Given** `hierarchy = "nesting"`, a config with the roots `api`, `web` and
-  `db`, a Work with `roots = ["nosuch"]`, a leaf with
-  `roots = ["api", "@descendants"]`, and a parent with `roots = ["web"]` whose
-  children have `roots = ["api"]` and `roots = ["db"]`.
+- **Given** `hierarchy = "nesting"`, a project whose defaults have the action
+  `deliver`, a config with the roots `api`, `web` and `db`, a Work `a` with
+  `roots = ["nosuch"]`, a leaf `b` with `roots = ["api", "@descendants"]`, and a
+  parent `c` with `roots = ["web"]` whose children `c/x` and `c/y` have
+  `roots = ["api"]` and `roots = ["db"]`.
 - **When** `wio contracts check` runs.
 - **Then** the first gives
   ``The root `nosuch` is not declared in `[roots]` of the config`` as an error,
   the second gives ``The Work has no children, so `@descendants` adds no root``
   as a warning, the third gives two notes,
   ``Its roots leave out `api`, which a descendant uses`` and the same for `db`,
-  and the command exits 1 for the first only.
+  and the command exits 1 because of the first.
+
+### **AC-7** Every concern is checked for every Work, once
+
+A Work with several problems gets every finding, and a check that depends on a
+finding already reported is skipped.
+
+#### Several problems at once
+
+- **Given** a project whose defaults have the action `deliver`, a Work with an
+  unknown key, an undeclared root and an `[actions]` with an undeclared action,
+  and a Work with `roots = "api"`.
+- **When** `wio contracts check` runs.
+- **Then** the first Work gets a warning for the key and an error for the root
+  and one for the action, each at its file, and the second gets the error of
+  discovery for its `roots` and no finding about its roots.
 
 ## Additional context
 

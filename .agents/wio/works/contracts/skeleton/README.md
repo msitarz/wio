@@ -38,7 +38,8 @@ skeleton for one.
   leaf's `closest_key` with them.
 - **A-2**: The Work's keys, with their values and tables, are read again from
   its file with `read_metadata_block`, because the `Work` of discovery holds
-  only the fields that the other commands use.
+  only the fields that the other commands use. That `depends_on` is carried as
+  the file has it, a wrong type included.
 
 ## Mechanisms
 
@@ -68,13 +69,16 @@ skeleton for one.
   everything else.
 - **`--keep` carries any key the Work has.** A kept key or table replaces the
   template's in its place, and is added when the template has none, a plain key
-  after the last plain key and a table after the plain keys, tables in the order
-  of the Work. `id`, `depends_on`, `template` and `wio` cannot be kept, because
-  they are handled already, and a key the Work does not have is an error that
-  lists the keys that can be kept, in the order of the Work.
+  after the last plain key and a table after the last table, or after the plain
+  keys when there is none, as the setter of the new leaf does, tables in the
+  order of the Work. An inline table counts as a plain key. `id`, `depends_on`,
+  `template` and `wio` cannot be kept, because they are handled already, and
+  that check comes before the one for a key the Work does not have, which is an
+  error that lists the keys that can be kept, in the order of the Work.
 - **Nothing is dropped silently.** When the Work has keys that the skeleton does
   not carry, standard error has one note, ``note: <the Work's file>: Not carried
-  over: `roots`, `actions`. Use `--keep <key>` to carry one.``, naming them in
+  over: `roots`, `actions`. Use `--keep <key>` to carry one.``, the file being
+  relative to the repository root and written with `/`, naming them in
   the order of the Work and giving no values. With nothing dropped there is no
   note.
 - **`--work` is required.** Without it the command is a usage error that points
@@ -83,9 +87,11 @@ skeleton for one.
   one, and a template that no file has points to `wio templates list`, and one
   that is rejected points to `wio templates check`. A shared id refuses a lookup
   of that id with the error of discovery, and any other error of finding the
-  Works, a Work left out, a collision or a directory that cannot be walked,
-  refuses every call, with the pointer to `wio contracts check`, as `list` and
-  `show` do. Each exits 2 with nothing on standard output.
+  Works, a Work left out, a nesting collision or a directory that cannot be
+  walked, refuses every call, with the pointer to `wio contracts check`, as
+  `list` and `show` do. When several apply, the first of these is reported: a
+  usage error, an incomplete tree, the Work, the template, then `--keep`. Each
+  exits 2 with nothing on standard output.
 
 ## Acceptance criteria
 
@@ -99,7 +105,8 @@ standard error names the keys that were not carried.
 - **Given** a Work at `.agents/wio/works/w/README.md` with `id = "k3m9xq"`,
   `template = "feature.leaf"`, `roots = ["api"]`, `depends_on = ["a7b2c4"]`, an
   `[actions]` table with `deliver = ["ship"]` and an `[x]` table with
-  `ticket = "PAY-1"`, and a template `feature.parent` whose `[contract]` has
+  `ticket = "PAY-1"`, a config that declares the kind `feature`, and a template
+  `feature.parent` of that kind whose `[contract]` has
   `roots = ["@descendants"]` and `depends_on = []` and whose body is
   `# <Work name>` and `## Purpose`.
 - **When** `wio contracts skeleton feature.parent --work k3m9xq` runs.
@@ -136,18 +143,59 @@ dropped.
 - **Given** the Work and the template of AC-1.
 - **When** `wio contracts skeleton feature.parent --work k3m9xq --keep roots
   --keep x` runs.
-- **Then** standard output is the text of AC-1 with `roots = ["api"]` in the
-  place of `roots = ["@descendants"]`, and after `depends_on` an empty line, the
-  table `[x]` and `ticket = "PAY-1"`, before the closing `-->`, and standard
-  error names only `actions`.
+- **Then** standard output is exactly the text below, and standard error names
+  only `actions`:
+
+  ```text
+  <!-- wio
+  id = "k3m9xq"
+  template = "feature.parent"
+  roots = ["api"]
+  depends_on = ["a7b2c4"]
+
+  [x]
+  ticket = "PAY-1"
+  -->
+
+  # <Work name>
+
+  ## Purpose
+  ```
 
 #### Keeping everything
 
 - **Given** the same.
 - **When** `--keep roots --keep actions --keep x` is given.
-- **Then** standard output is that text with also `[actions]` and
-  `deliver = ["ship"]`, before `[x]` as the Work has them, standard error is
-  empty.
+- **Then** standard output is exactly the text below, and standard error is
+  empty:
+
+  ```text
+  <!-- wio
+  id = "k3m9xq"
+  template = "feature.parent"
+  roots = ["api"]
+  depends_on = ["a7b2c4"]
+
+  [actions]
+  deliver = ["ship"]
+
+  [x]
+  ticket = "PAY-1"
+  -->
+
+  # <Work name>
+
+  ## Purpose
+  ```
+
+#### A template with a table of its own
+
+- **Given** the Work of AC-1 and a template `t.tabled` of the kind `feature`
+  whose `[contract]` has `[x]` with `ticket = ""`.
+- **When** `wio contracts skeleton t.tabled --work k3m9xq --keep actions` runs.
+- **Then** the metadata has `[x]` with `ticket = ""` and then, after one empty
+  line, `[actions]` with `deliver = ["ship"]`, and standard error names `roots`
+  and `x`.
 
 ### **AC-3** The skeleton differs from `templates show` only by the identity
 
@@ -168,12 +216,13 @@ prints with the `id` added first, and the form is the template's.
 
 #### A template in front matter or with CRLF
 
-- **Given** the Work of AC-1 and templates `t.front` in `+++` form with
-  `wio = 1` and `t.crlf` written with CRLF line endings.
+- **Given** the Work of AC-1 and templates of the kind `feature`: `t.front` in
+  `+++` form with `wio = 1`, and `t.crlf` written with CRLF line endings.
 - **When** `wio contracts skeleton t.front --work k3m9xq` and
-  `wio contracts skeleton t.crlf --work k3m9xq` run.
+  `wio contracts skeleton t.crlf --work k3m9xq --keep x` run.
 - **Then** the first is in `+++` form with `wio = 1`, `id` and `template` in
-  that order, and the second has CRLF endings throughout.
+  that order, and the second has CRLF endings throughout, including the kept
+  table.
 
 ### **AC-4** Mistakes print nothing and say what to do
 
@@ -204,6 +253,15 @@ a shared id refuses only its own lookup.
 - **When** `wio contracts skeleton feature.parent --work k3m9xq` runs.
 - **Then** it exits 2 with the error of finding the Works and the pointer to
   `wio contracts check`, and nothing on standard output.
+
+#### Several mistakes at once
+
+- **Given** the same tree, and a template `bad` that is rejected.
+- **When** `wio contracts skeleton bad` runs, and then
+  `wio contracts skeleton bad --work k3m9xr --keep nosuch`.
+- **Then** the first reports only that `--work` is required, and the second only
+  the error of finding the Works, because a usage error and an incomplete tree
+  come before the Work, the template and `--keep`.
 
 ### **AC-5** Nothing is written and the output is the same every time
 
