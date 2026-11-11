@@ -83,12 +83,13 @@ agrees on what a Work is, what it inherits and what it depends on.
   the hierarchy and dependency graph, the resolved view, the check, `list`,
   `show`, `skeleton`, the id generator and `new`. It imports no other
   component.
-- `wio.formats`, which gains the finder of the items of a section and the
-  unknown-key check with its suggestion, and whose block reader, outline,
-  directive parser, skeleton and TOML writer `wio.contracts` reuses.
+- `wio.formats`, which gains the finder and the judge of the items of a
+  section, `closest_key`, `render_check`, and the function that sets keys in a
+  contract's metadata block, and whose block reader, outline, directive parser,
+  skeleton and TOML writer `wio.contracts` reuses.
 - `wio.models`, which gains `Work`, the item type and the real
-  `ResolvedContract`, and keeps the ordering key of diagnostics and `has_error`
-  beside `Diagnostic`.
+  `ResolvedContract`, and `order_diagnostics` and `has_error` beside
+  `Diagnostic`.
 - `wio.io`, which gains the walk of the Works directory that `wio.templates`
   and `wio.contracts` share, beside the `FileSystem` port it walks.
 - The ports `FileSystem`, `Entropy`, `Settings` and `Repository`, which the
@@ -153,8 +154,8 @@ flowchart LR
     cli["wio.cli: contracts new, list, check, show, skeleton"]:::changed
     contracts["wio.contracts: discovery, hierarchy, resolve, check, list, show, ids, new"]:::new
     templates["wio.templates: uses the shared helpers"]:::changed
-    formats["wio.formats: items, unknown-key check"]:::changed
-    models["wio.models: Work, Item, ResolvedContract, ordering key"]:::changed
+    formats["wio.formats: items, closest_key, render_check, block editing"]:::changed
+    models["wio.models: Work, Item, ResolvedContract, order_diagnostics"]:::changed
     io["wio.io: FileSystem, Works-directory walk"]:::changed
     settings["wio.ports: Settings"]
     entropy["wio.env: Entropy"]
