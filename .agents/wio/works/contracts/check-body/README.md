@@ -21,5 +21,4 @@ its body against its template.
 ## Intent
 
 Match headings to the template, enforce the required, items and pattern
-directives, and warn on stray headings, directive comments and a shape that the
-children do not match.
+directives, and warn on stray headings and on directive comments.
