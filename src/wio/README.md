@@ -37,7 +37,7 @@ flowchart LR
         context
     end
     ioadapters["wio.io.adapters"]
-    io["wio.io (ports)"]
+    io["wio.io (ports and the shared walk)"]
     envadapters["wio.env.adapters"]
     env["wio.env (ports)"]
     sharedports["wio.ports (shared ports)"]
@@ -101,7 +101,9 @@ instead and the package never learns which it got. The
 - `wio.io` and `wio.env` own their ports, an exception to consumer ownership,
   because the filesystem, the standard streams, the repository and the
   environment are shared infrastructure that every component reaches the same
-  way.
+  way. `wio.io` also holds what that infrastructure is used for by more than one
+  component, such as [the walk of a directory of Markdown files](io/walk.py),
+  which a component may import, because every component may depend on `wio.io`.
 - A port that two or more components consume with the same members and
   signatures is declared once, in `src/wio/ports.pyi`, so the components do
   not drift apart on a copy. That stub imports only `wio.models` and the

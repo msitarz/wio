@@ -25,6 +25,7 @@ commit messages.
 | Dependency | A Work id in `depends_on`: that Work must be delivered first. |
 | Action | A named kind of work done on a Work, such as `define` or `deliver`. Declared in the config with a description, the actions it comes after, what invalidates its work, and whether it is on demand; none are built in. Its pipeline is a stage preset or a list of stages. |
 | Config | The `.agents/wio/config.toml` file: kinds, actions, roots, stages, stage presets, rule presets, ruleset aliases, the always fields, gate results, skill directories, the trailer reader, and bundle settings. In memory it is the immutable `Config` that the loader builds from the file. |
+| Closest key | The one known key that `difflib.get_close_matches` ranks first for a mistyped key, with its default cutoff, or none. It is what every command that checks keys suggests, found in one place, `wio.formats`. |
 | Diagnostic | One finding of a check: a severity, a place and a message, in one order wherever it is printed, shared by every `check` command. |
 | Source | Whether a setting's value comes from the config file or is the default. `wio config list` and `show` print it beside each value. |
 | Shape | Whether the config file's keys, types and values fit the schema. Whether the names a value refers to exist is a check, not the shape. It is not a template's `shape`, which is `leaf` or `parent`. |

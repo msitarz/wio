@@ -6,16 +6,12 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast, override
 
 from tests.unit.fakes import ROOT, MemoryFileSystem
+from wio.formats import render_check
 from wio.models.config import Action, Config, Stage, Templates
-from wio.models.diagnostics import Diagnostic
+from wio.models.diagnostics import Diagnostic, order_diagnostics
 from wio.models.frozen import freeze
 from wio.templates import check
-from wio.templates.check import (
-    Reading,
-    check_templates,
-    order_diagnostics,
-    render_check,
-)
+from wio.templates.check import PASSES, Reading, check_templates
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
@@ -206,7 +202,10 @@ def test_an_unknown_key_is_an_error_and_the_contract_keys_are_free() -> None:
             ".agents/wio/templates/a.md",
             "A template has no `name` key: it is named by its file",
         ),
-        (".agents/wio/templates/b.md", "Unknown key `descriptions` in the metadata"),
+        (
+            ".agents/wio/templates/b.md",
+            "Unknown key `descriptions` in the metadata. Did you mean `description`?",
+        ),
         (".agents/wio/templates/c.md", "`contract` must be a table"),
         (".agents/wio/templates/d.md", "`actions` must be a table"),
     ]
@@ -342,8 +341,8 @@ def test_the_text_says_that_the_templates_pass_and_the_json_is_empty() -> None:
     """AC-1: the rendering of no diagnostic, as text and as JSON."""
     # Given no diagnostic
     # When it is rendered as text and as JSON
-    text = render_check([], as_json=False)
-    as_json = render_check([], as_json=True)
+    text = render_check([], as_json=False, passes=PASSES)
+    as_json = render_check([], as_json=True, passes=PASSES)
 
     # Then the text is `The templates pass.` and a newline, and the JSON is `[]`
     # and a newline
@@ -359,8 +358,8 @@ def test_the_diagnostics_are_rendered_in_the_order_given() -> None:
     ]
 
     # When they are rendered as text and as JSON
-    text = render_check(found, as_json=False)
-    data = json.loads(render_check(found, as_json=True))
+    text = render_check(found, as_json=False, passes=PASSES)
+    data = json.loads(render_check(found, as_json=True, passes=PASSES))
 
     # Then the text has a line for each, in that order, and the JSON the same
     assert text == "error: a.md:4: x\nwarning: a.md:12: y\n"

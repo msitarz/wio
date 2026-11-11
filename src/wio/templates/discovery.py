@@ -7,12 +7,13 @@ from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
 from wio.formats.errors import MetadataBlockError
+from wio.io.walk import refuse_directory, walk_markdown
 from wio.models.diagnostics import Diagnostic, sort_diagnostics
 from wio.models.template import Template
 lazy from wio.formats import read_metadata_block
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Mapping
+    from collections.abc import Mapping
     from pathlib import Path
 
     from wio.io.ports import FileSystem
@@ -72,80 +73,22 @@ def discover(root: Path, settings: Templates, files: FileSystem) -> Discovery:
         The templates and the diagnostics.
     """
     directory = root / settings.dir
-    refusal = _refuse_directory(directory, settings.dir, files)
+    refusal = refuse_directory(
+        directory, settings.dir, files, noun="templates", default=_DEFAULT_DIR
+    )
     if refusal is not None:
         return Discovery((), tuple(refusal))
     if not files.is_dir(directory):
         return Discovery((), ())
     built: list[Template] = []
     problems: list[Diagnostic] = []
-    for path in _walk(directory, files):
+    for path in walk_markdown(directory, files):
         found, diagnostics = _read(root, path, settings.kinds, files)
         built.extend(found)
         problems.extend(diagnostics)
     unique, repeats = _split_duplicates(built)
     ordered = sorted(unique, key=lambda template: template.name)
     return Discovery(tuple(ordered), sort_diagnostics([*problems, *repeats]))
-
-
-def _refuse_directory(
-    directory: Path, written: str, files: FileSystem
-) -> list[Diagnostic] | None:
-    """Judge the templates directory itself.
-
-    Args:
-        directory: The directory, joined to the root.
-        written: The directory as the config writes it.
-        files: The port that reports what the path is.
-
-    Returns:
-        The one error when the directory is a symbolic link, is missing and not
-        the default, or is not a directory; `None` when it can be walked or is
-        the missing default, which holds no templates.
-    """
-    if files.is_symlink(directory):
-        return [_error(written, "The templates directory must not be a symbolic link")]
-    if not files.exists(directory):
-        if written == _DEFAULT_DIR:
-            return None
-        return [_error(written, "The templates directory does not exist")]
-    if not files.is_dir(directory):
-        return [_error(written, "The templates directory is not a directory")]
-    return None
-
-
-def _walk(directory: Path, files: FileSystem) -> Iterator[Path]:
-    """List the `.md` files below a directory, in the order of the listing.
-
-    Args:
-        directory: The directory to walk.
-        files: The port that lists directories.
-
-    Yields:
-        Each file whose name ends in `.md` with that case, skipping symbolic
-        links and the directories whose names start with `.`.
-    """
-    for entry in files.list_dir(directory):
-        if files.is_symlink(entry):
-            continue
-        if files.is_dir(entry):
-            yield from _walk_visible(entry, files)
-        elif entry.name.endswith(_SUFFIX) and files.is_file(entry):
-            yield entry
-
-
-def _walk_visible(directory: Path, files: FileSystem) -> Iterator[Path]:
-    """Walk a directory below the templates directory unless it is hidden.
-
-    Args:
-        directory: The directory.
-        files: The port that lists directories.
-
-    Yields:
-        The files below it, none when its name starts with `.`.
-    """
-    if not directory.name.startswith("."):
-        yield from _walk(directory, files)
 
 
 def _read(

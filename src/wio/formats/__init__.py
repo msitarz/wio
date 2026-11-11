@@ -2,7 +2,8 @@
 """Pure codecs between text and the shared types."""
 
 lazy from wio.formats.block import read_metadata_block
-lazy from wio.formats.diagnostics import render_json, render_text
+lazy from wio.formats.closest import closest_key
+lazy from wio.formats.diagnostics import render_check, render_json, render_text
 lazy from wio.formats.directives import (
     COMBINING,
     DIRECTIVES,
@@ -29,6 +30,7 @@ __all__ = [
     "NotATemplateError",
     "TemplateDirectiveError",
     "TomlSyntaxError",
+    "closest_key",
     "decode_toml",
     "encode_toml",
     "find_items",
@@ -37,6 +39,7 @@ __all__ = [
     "read_directive_heading",
     "read_metadata_block",
     "read_outline",
+    "render_check",
     "render_json",
     "render_text",
 ]

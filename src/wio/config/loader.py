@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from wio.config.checks import CHECKS, CheckInputs, run_checks
 from wio.config.shape import read_shape
 from wio.errors import ConfigurationError
-from wio.models.diagnostics import Diagnostic, sort_diagnostics
+from wio.models.diagnostics import Diagnostic, has_error, sort_diagnostics
 lazy from wio.formats import TomlSyntaxError, decode_toml, render_text
 
 if TYPE_CHECKING:
@@ -79,7 +79,7 @@ def load_config(
     shape = read_shape(data)
     checked = run_checks(shape.config, CheckInputs(root, files), checks)
     found = sort_diagnostics((*shape.diagnostics, *checked))
-    blocked = any(item.severity == "error" for item in found)
+    blocked = has_error(found)
     return Loaded(None if blocked else shape.config, found, shape.sources)
 
 

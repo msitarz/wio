@@ -4,9 +4,9 @@
 import datetime
 import re
 from typing import TYPE_CHECKING
-lazy import difflib
 
 from wio.config.schema import Atom, Choice, Open, PresetOrStages, Spec, Strings, Table
+lazy from wio.formats import closest_key
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -204,9 +204,9 @@ def unknown_key(
         The key, the valid keys, the closest match and where the key belongs.
     """
     message = f"unknown key `{key}` in {table.noun}. Valid keys: {quoted(valid)}."
-    close = difflib.get_close_matches(key, valid, n=1)
+    close = closest_key(key, valid)
     if close:
-        message += f" Did you mean `{close[0]}`?"
+        message += f" Did you mean `{close}`?"
     if elsewhere:
         message += f" `{key}` is a key of {and_list(elsewhere)}."
     return message
