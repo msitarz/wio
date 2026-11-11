@@ -3,6 +3,7 @@
 
 from typing import TYPE_CHECKING
 
+lazy from wio.templates.catalog import TemplatesCatalog
 lazy from wio.templates.check import check_templates
 lazy from wio.templates.command import TemplatesCommand
 lazy from wio.templates.discovery import Discovery, discover
@@ -101,6 +102,7 @@ def describe() -> TemplatesSpec:
 
 __all__ = [
     "Discovery",
+    "TemplatesCatalog",
     "TemplatesCommand",
     "TemplatesError",
     "check_templates",
