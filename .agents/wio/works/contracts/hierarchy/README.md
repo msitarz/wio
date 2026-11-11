@@ -156,10 +156,10 @@ middle parent passes up what its own roots resolve to.
 
 #### A chain of parents
 
-- **Given** `top` and `mid` both with `roots = ["@descendants"]` and `deep` with
-  `roots = ["web"]`, in the same tree.
+- **Given** the tree of the previous scenario with `mid` having
+  `roots = ["@descendants"]` and `deep` having `roots = ["web"]`.
 - **When** the roots are resolved.
-- **Then** `mid` and `top` both have `web`.
+- **Then** `mid` has `web`, and `top` has `db`, `e2e` and `web`.
 
 ### **AC-4** Dependencies and dependents are the listed ones
 
@@ -193,6 +193,16 @@ that list its id, and an id that is not in the tree is an error.
 Each group of Works that wait on each other is reported once at the file of its
 first Work, with one cycle through the group and the kind of each edge.
 
+#### A parent that also lists its child
+
+- **Given** `hierarchy = "nesting"`, a parent `p5n2hv` at `p/README.md` that
+  lists its child `k3m9xq` at `p/k/README.md` in `depends_on`, and the child
+  lists `p5n2hv`.
+- **When** the hierarchy is built.
+- **Then** the cycle reads
+  `Dependency cycle: p5n2hv → k3m9xq (listed in depends_on) → p5n2hv (listed in
+  depends_on)`, because a listed edge is called listed.
+
 #### A cycle through a parent
 
 - **Given** `hierarchy = "nesting"`, a parent `p5n2hv` at `p/README.md` and its
@@ -204,23 +214,26 @@ first Work, with one cycle through the group and the kind of each edge.
 
 #### Overlapping cycles and a self-dependency
 
-- **Given** a Work `a7b2c4` at `a/README.md` that lists `b8c3d5` and `c9d4e6`,
-  Works `b8c3d5` at `b/README.md` and `c9d4e6` at `c/README.md` that each list
-  `a7b2c4`, and a Work `s5t3wx` at `s/README.md` that lists its own id.
+- **Given** `hierarchy = "flat"`, a Work `a7b2c4` at `a/README.md` that lists
+  `c9d4e6` and `b8c3d5`, Works `c9d4e6` at `b/README.md` and `b8c3d5` at
+  `c/README.md` that each list `a7b2c4`, and a Work `s5t3wx` at `s/README.md`
+  that lists its own id.
 - **When** the hierarchy is built.
 - **Then** there are two errors: one at `a/README.md` that reads
-  `Dependency cycle: a7b2c4 → b8c3d5 (listed in depends_on) → a7b2c4 (listed in
-  depends_on)`, with no mention of `c9d4e6`, and one at `s/README.md` that reads
+  `Dependency cycle: a7b2c4 → c9d4e6 (listed in depends_on) → a7b2c4 (listed in
+  depends_on)`, because the Work at `b/README.md` has the smaller path, and with
+  no mention of `b8c3d5`, and one at `s/README.md` that reads
   `Dependency cycle: s5t3wx → s5t3wx (listed in depends_on)`.
 
 #### Two separate cycles
 
-- **Given** a Work `e1f2g3` at `e/README.md` and `f4g5h6` at `f/README.md` that
-  list each other, and `t1v2w3` at `t/README.md` and `w4x5y6` at `w/README.md`
-  that list each other.
+- **Given** `hierarchy = "flat"`, a Work `f4g5h6` at `e/README.md` and `e1f2g3`
+  at `f/README.md` that list each other, and `w4x5y6` at `t/README.md` and
+  `t1v2w3` at `w/README.md` that list each other.
 - **When** the hierarchy is built.
-- **Then** there are two errors, one at `e/README.md` and one at `t/README.md`,
-  in that order, each reading `Dependency cycle:` with its own two ids.
+- **Then** there are two errors, one at `e/README.md` that starts
+  `Dependency cycle: f4g5h6 →` and one at `t/README.md` that starts
+  `Dependency cycle: w4x5y6 →`, in that order.
 
 ## Additional context
 
@@ -228,7 +241,7 @@ first Work, with one cycle through the group and the kind of each edge.
   [Roots of a Work](../../../../../docs/concepts.md#roots-of-a-work) and
   [Dependencies](../../../../../docs/concepts.md#dependencies) in the concepts
   say how the relations, the roots and the graph are defined.
-- A dependency on a Work that was deleted is an unknown id here. The note that
-  reads the history belongs to the `wio trailers` Work.
+- A dependency on a Work that was deleted, or that was left out, is an unknown
+  id here. The note that reads the history belongs to the `wio trailers` Work.
 - The resolve leaf uses the ancestors, and the list and show leaves use the
   parent, the dependencies and the dependents.

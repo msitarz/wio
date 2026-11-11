@@ -41,9 +41,9 @@ same run as the problems of the Works' metadata.
 
 ## Assumptions
 
-- **A-1**: The items, discovery, command and check-works leaves are delivered,
-  so the finder and the judge of items, the Works, the catalog and the `check`
-  command exist.
+- **A-1**: The shared, items, discovery, command and check-works leaves are
+  delivered, so the finder and the judge of items, the Works, the catalog and
+  the `check` command exist.
 - **A-2**: `read_outline` and `read_directive_heading` give the headings of a
   body with their lines and the directives of a heading. The directive parser's
   error carries a column, and the line is that of the heading, as
@@ -72,7 +72,9 @@ same run as the problems of the Works' metadata.
 
 - **One source of directives.** A contract that names a template takes them from
   that template, and a directive list in the contract, on a heading of any level
-  and whatever its syntax, is ignored with one warning. A contract that names
+  and whatever its syntax, is ignored with one warning for each list. A list is
+  anything that begins with the opener `<!-- wio:`, and the heading's text for
+  matching is what comes before it. A contract that names
   none takes them from its own `##` headings, and only from those.
 - **Sections are matched by text.** A contract's `##` heading matches the
   template's by its text, ignoring case, surrounding whitespace and a trailing
@@ -167,13 +169,15 @@ so a contract cannot loosen the template's checks.
 
 #### Lists in a contract
 
-- **Given** a template that requires `## Goals`, and a contract that follows it,
-  lacks `## Goals` and has `## Notes <!-- wio: required -->`,
-  `## Bad <!-- wio: mandatory -->` and `### Deep <!-- wio: required -->`.
+- **Given** a template that requires `## Goals` and has `## Notes` and `## Bad`,
+  and a contract that follows it, lacks `## Goals` and has
+  `## Notes <!-- wio: required -->`, `## Bad <!-- wio: mandatory -->` and
+  `### Deep <!-- wio: required -->`.
 - **When** `wio contracts check` runs.
 - **Then** there is one warning at the line of each of the three headings that
   says the directive list is ignored because the contract follows the template,
-  no parser error, and the error for the missing `Goals` is still reported.
+  no parser error and no warning that a section is not in the template, and the
+  error for the missing `Goals` is still reported.
 
 ### **AC-5** A contract without a template is checked by its own headings
 

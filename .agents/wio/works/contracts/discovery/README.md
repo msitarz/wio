@@ -28,7 +28,10 @@ another or break the tree around it.
 - **Marked file**: as
   [Which files are Works](../../../../../docs/concepts.md#which-files-are-works)
   defines it.
-- **Left out**: a marked file that discovery reports and builds no Work from.
+- **Left out**: a file with an error that keeps it from being identified as a
+  Work, one that cannot be read or decoded, a block that cannot be read, a
+  marker of an unknown version, or an id that is missing or wrong. A file that a
+  nesting collision excludes is a separate case.
 
 ## Non-Goals
 
@@ -56,8 +59,8 @@ another or break the tree around it.
 ## Mechanisms
 
 - A function in `wio.contracts` that walks the Works directory and returns the
-  Works found with the diagnostics, and a lookup of a Work by id on that
-  result.
+  Works found, the paths of the marked files that were left out, and the
+  diagnostics, and a lookup of a Work by id on that result.
 - A function in `wio.contracts` that says why a given path is not a Work.
 - `Work` in `wio.models`, the plain type of a Work found, whose `path` is
   relative to the repository root.
@@ -179,14 +182,14 @@ of that id is refused.
 
 #### Two Works with one id
 
-- **Given** Works `a/README.md` and `b/README.md` with the id `k3m9xq` and a
-  Work `c/README.md` with the id `p5n2hv`.
+- **Given** `hierarchy = "flat"` and Works `a/README.md` and `b/README.md` with
+  the id `k3m9xq` and a Work `c/README.md` with the id `p5n2hv`.
 - **When** the Works are discovered, and the ids `k3m9xq` and `p5n2hv` are
   looked up.
 - **Then** all three Works are found, there is one error at
   `works/a/README.md, works/b/README.md` that names the id `k3m9xq`, the lookup
-  of `k3m9xq` is refused with that error, the lookup of `p5n2hv` gives the Work,
-  and the lookup of `zzzzzz` gives none.
+  of `k3m9xq` yields that diagnostic and no Work, the lookup of `p5n2hv` gives
+  the Work, and the lookup of `zzzzzz` gives none.
 
 ### **AC-5** Under nesting a directory holds one Work
 
@@ -234,7 +237,8 @@ be walked is one error and no Work.
 #### Each case
 
 - **Given** the default directory missing, a configured directory that is
-  missing, one that is a file, one that is a symbolic link, and an empty one.
+  missing, one that is a file, one that is a symbolic link to a directory, and
+  an empty one.
 - **When** the Works are discovered for each.
 - **Then** the first and the last find no Work and no diagnostic, and each of
   the others gives one error whose message begins `The Works directory` and
@@ -250,7 +254,7 @@ Works directory, it is under a hidden directory below the Works directory, there
 is no block or it does not start on the first line, the `+++` front matter has
 no `wio` key, the file is in a directory with another marked file, the file is
 directly in the Works directory, and the file is left out for an error of its
-own.
+own, which includes a file that cannot be read or decoded.
 
 #### The reasons
 
@@ -262,10 +266,10 @@ own.
   directory with another marked file, a marked file directly in the Works
   directory, a marked file whose block does not close, and a good Work.
 - **When** the reason each is not a Work is asked for.
-- **Then** each of the first thirteen has a reason, the thirteen are different
-  from one another, each names its subject, which is the other files for the
-  collision, the Works directory for the one directly in it, and the error that
-  discovery reports for the last, and the Work has none.
+- **Then** each of the first thirteen has a reason that names its subject: the
+  path for most, the other files for the collision, the Works directory for the
+  one directly in it, and the error that discovery reports for the last. The
+  Work has none.
 
 ## Additional context
 

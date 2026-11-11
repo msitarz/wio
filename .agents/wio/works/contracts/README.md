@@ -29,7 +29,8 @@ agrees on what a Work is, what it inherits and what it depends on.
 - An agent that edits a contract, and a commit that changes one, is told of a
   problem at once, in this repository's `.agents/wio/works/`.
 - The finding of Works, their hierarchy, dependencies, inheritance and items
-  live in one place that `wio trailers`, `wio rules` and `wio context` reuse.
+  live in one place in `wio.contracts`, behind functions that the ports of
+  `wio trailers`, `wio rules` and `wio context` can wrap.
 
 ## Glossary
 
@@ -211,6 +212,15 @@ in a project that is not this repository.
   Work with that id and title, `show` prints it, and `check` passes; each exits
   0.
 
+#### Any template and a bare contract
+
+- **Given** the same wheel and repository, and the template `feature.leaf`.
+- **When** `wio contracts new feature --template feature.leaf --title "Leaf"`
+  and `wio contracts new --slug note` run there.
+- **Then** the first writes a Work from `feature.leaf`, the second writes a bare
+  contract, each prints its id and path, each exits 0, and `wio contracts list`
+  shows both.
+
 #### A kind or an id that does not exist
 
 - **Given** the same wheel and repository.
@@ -243,7 +253,8 @@ template's roots, and says what it dropped.
 #### Moving a leaf to the parent template
 
 - **Given** a Work `W` from `feature.leaf` with `roots = ["api"]`, an action
-  override and `depends_on = ["a7b2c4"]`, and the template `feature.parent`.
+  override and `depends_on = ["a7b2c4"]`, which no Work has and which does not
+  stop the command, and the template `feature.parent`.
 - **When** `wio contracts skeleton feature.parent --work <W>` runs.
 - **Then** standard output is the skeleton of `feature.parent` with the `id` of
   `W` and `depends_on = ["a7b2c4"]`, with `roots = ["@descendants"]` and no
@@ -333,11 +344,16 @@ No module of `wio.contracts` imports another component, `tomllib`, `tomlkit` or
 #### The real sources
 
 - **Given** the sources of `src/wio/contracts` once the Work is delivered.
-- **When** the imports of its modules are read from their syntax trees, and
-  `tach check` and `ruff check` run on `src/wio`.
-- **Then** the syntax trees show no import of another component, `tomllib`,
-  `tomlkit` or `markdown_it`, and `tach check` and `ruff check` report none,
-  though a pass of `tach check` alone does not prove that there is none.
+- **When** the imports of its modules are read from their syntax trees.
+- **Then** they show no import of another component, `tomllib`, `tomlkit` or
+  `markdown_it`.
+
+#### The tools
+
+- **Given** the same sources.
+- **When** `tach check` and `ruff check` run on `src/wio`.
+- **Then** both report none, and the Constraint on the dependency direction says
+  why a pass of `tach check` alone is not enough.
 
 ### **AC-8** `wio templates` behaves as before
 
@@ -349,7 +365,7 @@ in a template names the closest key.
 
 - **Given** this repository's templates.
 - **When** `wio templates list`, `wio templates show feature.parent` and
-  `wio templates check` run before and after the helpers move.
+  `wio templates check` run on `main` at `929f0d4` and after the helpers move.
 - **Then** each prints the same bytes and exits with the same code.
 
 ### **AC-9** A broken contract is reported at once, to an agent and to a commit
@@ -362,7 +378,8 @@ and are silent when they have none.
 
 - **Given** a temporary git repository with this repository's
   `.claude/settings.json` and `prek.toml`, a minimal config, the templates of
-  AC-1 and a valid Work `a` at `.agents/wio/works/a/README.md`.
+  AC-1, a valid Work `a` at `.agents/wio/works/a/README.md`, and a `uv` shim on
+  the `PATH` that runs the built wheel, as AC-1 does.
 - **When** the `PostToolUse` command receives the input for an edit of the file,
   and `prek` runs on the staged file, once when the Work lists an id that no
   Work has in `depends_on` and once when it does not.

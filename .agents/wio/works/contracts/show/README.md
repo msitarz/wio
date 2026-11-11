@@ -29,7 +29,7 @@ where each comes from, and its contract with what its ancestors pass on.
   `show` does not print it, so the sentence of `docs/concepts.md` that says it
   does changes when the documents are promoted.
 - Judging the Work, which `check` does, and the rules that apply to it.
-- Explaining the fields of a contract, which a later command may do.
+- Explaining the fields of a contract.
 
 ## Assumptions
 
@@ -63,13 +63,14 @@ where each comes from, and its contract with what its ancestors pass on.
 - **The layout is facts, actions, a rule, then the view.** The first line is
   `Work <id>  <title>`, with `(no title)` for a Work with none. The facts
   follow, each line written only when it has something to say and in this order:
-  `Path`, `Template`, `Parent`, `Roots`, `After`, `Needed by`. Each is indented
-  two spaces, its label is padded to a fixed 13 characters, so that every value
-  starts at column 15, and a second dependency or dependent is on the next line,
-  in that column. Then a blank line, `Actions` at column 0, the actions, a blank
-  line, a line of `----` at column 0, a blank line and the resolved view,
-  exactly as the resolve leaf renders it. The text ends in one line ending and
-  is UTF-8.
+  `Path`, `Template`, `Parent`, `Roots`, `After`, `Needed by`. `After` lists the
+  ids of `depends_on` only, in the order listed, and a parent's wait for its
+  children is not shown. Each is indented two spaces, its label is padded to a
+  fixed 13 characters, so that every value starts at column 15, and a second
+  dependency or dependent is on the next line, in that column. Then a blank
+  line, `Actions` at column 0, the actions, a blank line, a line of `----` at
+  column 0, a blank line and the resolved view, exactly as the resolve leaf
+  renders it. The text ends in one line ending and is UTF-8.
 - **Related Works are `<id>  <title>`.** A dependency that no Work has is
   `<id>  (not found)`, a Work with no title is `<id>  (no title)`, and an id
   that two Works share is written once for each of them.
@@ -80,21 +81,23 @@ where each comes from, and its contract with what its ancestors pass on.
   those that the check-works leaf defines: the template's, or the config
   defaults for a Work with no template and only then, with the Work's own
   replacing them. The actions the config declares come first, in its order, then
-  names it does not declare that the Work's own `[actions]` gives, in the Work's
-  order, printed as written. Each line is indented two spaces and has the action
-  padded to the widest action name plus two spaces, the stage preset it names
-  and, in parentheses, where it comes from: `from the template`,
-  `from the contract` or `from the config defaults`, preceded by `on demand,`
-  for an action the config marks on demand. A list of stages has no preset name.
-  The stages follow on a line indented two spaces past the preset's column,
-  joined by a comma and a space, and a preset that the config does not declare
-  is printed with no stages line. An action that the contract empties is
-  `removed (by the contract)` without the on-demand mark, and an action that is
-  empty and that nothing else gives is not shown. A template that is missing
-  from the catalog or rejected gives no actions, so the Work's own are all there
-  is.
+  the names it does not declare, whatever gives them, in the order that the
+  Work's own `[actions]`, the template's and the defaults list them, printed as
+  written. Each line is indented two spaces and has the action padded to the
+  widest action name plus two spaces, the stage preset it names and, in
+  parentheses, where it comes from: `from the template`, `from the contract` or
+  `from the config defaults`, preceded by `on demand,` for an action the config
+  marks on demand. A list of stages has no preset name. The stages follow on a
+  line indented two spaces past the preset's column, joined by a comma and a
+  space, and a preset that the config does not declare is printed with no stages
+  line. An action that the contract empties is `removed (by the contract)`
+  without the on-demand mark, and an action that is empty and that nothing else
+  gives is not shown. A template that is missing from the catalog or rejected
+  gives no actions, so the Work's own are all there is.
 - **A path or an id.** An argument that contains `/` or ends in `.md` is a path,
-  resolved against the working directory, and any other is an id.
+  resolved against the working directory, and any other is an id. An id that
+  contains `/` or ends in `.md` can therefore be shown only by its path, which
+  is a known limit.
 - **The tree is judged first.** An error of finding the Works that leaves the
   tree incomplete, a Work left out, a collision or a directory that cannot be
   walked, writes nothing to standard output, writes the errors and a line that
@@ -103,17 +106,19 @@ where each comes from, and its contract with what its ancestors pass on.
 - **Then the argument is looked up.** An id that no Work has names the id and
   the closest one when there is one, a shared id refuses only its own lookup
   with the error of discovery and the same line, and a file that is not a Work
-  names the reason of the discovery leaf for it. Each exits 2.
+  names the reason of the discovery leaf for it. Each exits 2, with its message
+  on standard error.
 - **JSON is one object on one line.** It is the `json.dumps` of the object with
   its default separators, followed by one line ending. It has `id`, `title`,
-  `path`, `template`, `parent`,
-  `roots`, `resolved_roots`, `depends_on`, `dependents`, `actions` and `view`,
-  in that order. `depends_on` and `dependents` are arrays of ids. Each action
-  has `name`, `source`, `on_demand`, `preset` and `stages`. `source` is
-  `template`, `contract` or `defaults`, `on_demand` is the config's flag, and
-  `view` is the resolved Markdown as one string. `title`, `template`, `parent`
-  and `preset` are `null` when there is none, and a removed action has the
-  source `contract`, no preset and no stages.
+  `path`, `template`, `parent`, `roots`, `resolved_roots`, `depends_on`,
+  `dependents`, `actions` and `view`, in that order. `depends_on` and
+  `dependents` are arrays of ids. Each action has `name`, `source`, `on_demand`,
+  `preset` and `stages`. `source` is `template`, `contract` or `defaults`,
+  `on_demand` is the config's flag, and `view` is the resolved Markdown as one
+  string. `title`, `template`, `parent` and `preset` are `null` when there is
+  none, a removed action has the source `contract`, no preset and no stages, and
+  a preset that the config does not declare has `preset` as written and `stages`
+  empty. `path` is relative to the repository root and written with `/`.
 - **`json` is imported only for `--json`.** A run without it imports neither
   `json` nor `tomlkit`.
 

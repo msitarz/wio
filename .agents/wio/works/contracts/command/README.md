@@ -80,7 +80,8 @@ owns them.
   file and runs no command of the repository, so it works anywhere. Describing
   the command does no I/O and imports no codec.
 - **`is_rejected` is keyed by name.** It is true when an error is reported for a
-  file whose name without `.md` is the name, also for a template that discovery
+  file whose name without `.md` is the name, the `, `-joined places of a
+  duplicate's one error included, also for a template that discovery
   could not build and that `find` therefore does not give. A warning never
   rejects, and a name that no file has is not rejected. When the templates
   directory itself is refused, it is false for every name.
@@ -180,7 +181,8 @@ no built template has.
   the entry template `good`, and templates of that kind named `good`, `warned`
   with a repeated `##` heading, `badkey` with an unknown key, `unclosed` whose
   block does not close, `baddirective` with the heading
-  `## A <!-- wio: mandatory -->`, and two files named `twin` in different
+  `## A <!-- wio: mandatory -->`, whose unknown directive `mandatory` is an
+  error of `wio templates check`, and two files named `twin` in different
   subdirectories.
 - **When** `is_rejected` runs for each of them and for `nosuch`, and `find` runs
   for `unclosed`.
@@ -206,10 +208,12 @@ often it is asked.
 - **When** `find` runs twice and then `is_rejected` runs three times, and, on a
   fresh catalog, `is_rejected` runs twice and then `find` runs twice.
 - **Then** in the first case the counts are those of the reference `discover`
-  after `find`, and exceed them by exactly those of the reference
-  `check_templates` after `is_rejected`, and in the second they are those of the
-  reference `check_templates` after `is_rejected`, and exceed them by exactly
-  those of the reference `discover` after `find`.
+  after `find`, and after `is_rejected` they are those of the reference
+  `discover` plus those of the reference `check_templates`, and in the second
+  they are those of the reference `check_templates` after `is_rejected`, and
+  after `find` those of the reference `check_templates` plus those of the
+  reference `discover`, the reference `check_templates` including its own
+  discovery, and the reads of the config file not counted.
 
 ### **AC-6** A mistake the user must fix exits 2
 
@@ -231,12 +235,12 @@ that `wio.contracts` imports nothing of `wio.templates`.
 
 #### An import in each direction
 
-- **Given** a module of `wio.templates` that imports `wio.contracts`.
-- **When** the imports of the package are read from the syntax trees, and
+- **Given** the sources of `src/wio/templates` once the Work is delivered.
+- **When** the imports of its modules are read from their syntax trees, and
   `tach check` runs.
-- **Then** the syntax trees show the import, and `tach check` reports it, though
-  its pass alone does not prove that there is none. The other direction is the
-  parent's AC-7.
+- **Then** the syntax trees show no import of `wio.contracts`, and `tach check`
+  reports none, though its pass alone does not prove that there is none. The
+  other direction is the parent's AC-7.
 
 ## Additional context
 

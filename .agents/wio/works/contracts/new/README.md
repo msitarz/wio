@@ -2,7 +2,7 @@
 id = "pv47sz"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["h8qpxd", "sz1zsq"]
+depends_on = ["h8qpxd", "sz1zsq", "ces6tf"]
 -->
 
 # Creating a Work
@@ -58,8 +58,10 @@ of the block exists.
   and its body are not changed.
 - `prepare_skeleton` and `read_outline` of `wio.formats`, the last to find the
   first level-1 heading that `--title` replaces.
-- The decision and the guard of the new-location leaf, and the catalog's `find`
-  and `is_rejected`.
+- The decision and the guard of the new-location leaf, the catalog's `find` and
+  `is_rejected`, and the hierarchy of the hierarchy leaf, whose parent of a Work
+  is the Work of the nearest directory above its own that holds one, which gives
+  the parent of a new Work for a `--path` as well as for `--parent`.
 - `Config` for the kinds, their entry templates and the declared roots, the
   `Entropy` port, which `wio.cli` wires into the group for this leaf, and `json`
   for `--json` only.
@@ -77,16 +79,19 @@ of the block exists.
 - **The skeleton is the baseline, and three things change.** The text is what
   `prepare_skeleton` gives. On top of it the `id` is added first, `roots` is
   replaced when `--root` is given, and the first level-1 heading is replaced
-  when `--title` is given, or added as the first line of the body, followed by
-  an empty line in the template's line ending, when the template has none.
-  Nothing else changes: the block's form, the line endings, the authoring
-  comments and the sections stay as the skeleton has them. A bare contract has
-  `# Title` unless `--title` is given.
+  when `--title` is given, or, when the template has none, inserted before the
+  first line of the body that is not empty and followed by one empty line, in
+  the template's line ending. Nothing else changes: the block's form, the line
+  endings, the authoring comments and the sections stay as the skeleton has
+  them. A bare contract has `# Title` unless `--title` is given.
 - **Roots are a set of declared names.** `--root` is repeatable, each name is a
   declared root or `@descendants`, and a name given twice counts once, in the
   order of its first appearance. On a bare contract it adds the key `roots`.
 - **Everything is checked before anything is written.** A mistake of the user is
   a `ContractsError`, exit 2, and no file is created.
+- **One error for each call, the first of these.** No kinds, the kind, the
+  template, a root, then the errors of placement in the order of the
+  new-location leaf.
 - **The errors say what to do.** `new <kind>` with no kinds declared says so, an
   undeclared kind names it and the declared ones, a template that is missing or
   rejected, whether it is a kind's entry template or comes from `--template`,
@@ -97,10 +102,11 @@ of the block exists.
 - **The report is short.** The human form is `Created Work <id>  <title>` and
   the path on the next line, indented two spaces, and `--json` is one object
   with `id`, `title`, `path`, `template` and `parent`, with `null` for none, the
+  `path` being relative to the repository root and written with `/`, and the
   parent being the new Work's parent in the tree, whether it came from
-  `--parent` or from the place of `--path` under `nesting`. The title is the
-  first heading of the text written, `(no title)` in the human form and `null`
-  in JSON when there is none.
+  `--parent` or from the place of `--path` under `nesting`, and `null` under
+  `flat`. The title is the first level-1 heading of the text written,
+  `(no title)` in the human form and `null` in JSON when there is none.
 
 ## Acceptance criteria
 
@@ -203,14 +209,16 @@ added, and the form, the keys, the line endings and the body are kept.
 
 #### A template with no title
 
-- **Given** a template `t.notitle` whose body is `## Purpose` and no level-1
-  heading.
+- **Given** a template `t.notitle` whose text is the block, an empty line and
+  `## Purpose`, with no level-1 heading.
 - **When** `wio contracts new --template t.notitle --title Mine --slug d` runs,
   and then the same without `--title` with `--slug e`, and
   `wio contracts new --template t.crlf --title Mine --slug f` runs.
-- **Then** the first body starts with `# Mine`, an empty line and `## Purpose`,
-  the second is the template's body and reports `(no title)`, and the third has
-  its added heading and empty line with CRLF endings.
+- **Then** the first file ends with the lines `-->`, an empty line, `# Mine`, an
+  empty line and `## Purpose`, so the heading comes after the body's leading
+  empty line and before its first line that is not empty, the second is the
+  template's text with the `id` added and reports `(no title)`, and the third
+  has its added heading and empty line with CRLF endings.
 
 ### **AC-5** A mistake creates nothing
 
@@ -244,8 +252,8 @@ Each mistake is an error that says what to do, and no file is written.
 
 #### A write that fails
 
-- **Given** a guard that refuses the path because it has appeared since the
-  decision.
+- **Given** a `FileSystem` fake that reports the path free to the decision and
+  existing to the guard.
 - **When** `wio contracts new feature --slug a` runs.
 - **Then** it exits 2 with an error that names the path, writes nothing to
   standard output, and creates no file.
@@ -256,7 +264,8 @@ The object has the fields in a fixed order and `null` for what there is none.
 
 #### Objects
 
-- **Given** the config and templates of AC-2, a Work `p5n2hv` at `p/README.md`,
+- **Given** `hierarchy = "nesting"`, the config and templates of AC-2, a Work
+  `p5n2hv` at `p/README.md`,
   no `child` or `note` directory, and an `Entropy` that gives the bytes 19, 3,
   20, 9, 29 and 23, in a tree of its own for each run.
 - **When** `wio contracts new feature --template feature.leaf --parent p5n2hv
@@ -271,15 +280,15 @@ The object has the fields in a fixed order and `null` for what there is none.
 ### **AC-7** The function that sets keys in a block does what it is fixed to do
 
 The one function of `wio.formats` that sets keys in a metadata block puts the
-`id` first, replaces a key in place, adds a missing key before the first table,
-and changes nothing else.
+`id` first, replaces a key in place, adds a missing plain key after the last
+plain key and a missing table after the last table, and changes nothing else.
 
 #### Cases
 
 - **Given** the text of a contract with a comment block with `template = "t"`,
-  `roots = []` and a table `[x]` with `a = 1` and the body `# T`, and the text
-  of a contract with `+++` front matter with `wio = 1` and `template = "t"` and
-  the body `# T`.
+  `roots = []`, an empty line and a table `[x]` with `a = 1` and the body `# T`,
+  and the text of a contract with `+++` front matter with `wio = 1` and
+  `template = "t"` and the body `# T`.
 - **When** the function sets `id = "k3m9xq"`, `roots = ["wio"]` and
   `depends_on = ["a7b2c4"]` on the first, `id = "k3m9xq"` on the second, and
   then the table `[actions]` with `deliver = ["build"]` on the first.

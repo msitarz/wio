@@ -72,8 +72,8 @@ joins them.
   Iterable[Diagnostic], *, as_json: bool, passes: str) -> str`.
 - In `wio.models.diagnostics`, beside `Diagnostic` and `sort_diagnostics`:
   `order_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic,
-  ...]` and `has_error(diagnostics: Iterable[Diagnostic]) -> bool`, reusing that
-  module's rank of severities.
+  ...]`, which reuses that module's rank of severities, and
+  `has_error(diagnostics: Iterable[Diagnostic]) -> bool`.
 - The callers that change: `wio.templates` (discovery, check and command) and
   `wio.config` (`messages.py`, `keypath.py`, `loader.py` and `report.py`).
 - Ruff's `banned-api` table, which gains `difflib`, as it bans `tomllib` and
@@ -85,7 +85,8 @@ joins them.
 
 - **Moved, not changed.** Every output of `wio config` and `wio templates` is
   byte for byte what it was, except the message of a mistyped key in a template,
-  which gains the closest key.
+  which gains the closest key. The existing tests of both components run
+  unchanged to show it, and only the tests that assert that message change.
 - **Nothing is imported before it is needed.** `difflib` loads on the first call
   of `closest_key`, as the config's own README already requires, and `json`
   loads only when `render_check` renders JSON.
@@ -136,7 +137,8 @@ a directory, and nothing else.
 - **Given** a tree held by a fake `FileSystem`: `a.md`, `B.MD`, `notes.txt`,
   `sub/f.md`, `.hidden/c.md`, a symbolic link to a directory that holds `d.md`,
   and a symbolic link to a file named `e.md`.
-- **When** `walk_markdown` runs on its root, whose fake lists its entries in the
+- **When** `walk_markdown` runs on its root over a fake that records every read
+  and lists its entries in the
   order `a.md`, `B.MD`, `notes.txt`, `sub`, `.hidden`, the link to the directory
   and the link to the file.
 - **Then** it yields `a.md` and `sub/f.md`, in that order, and it has read no
@@ -145,7 +147,8 @@ a directory, and nothing else.
 ### **AC-2** The directory itself is judged with the caller's noun
 
 `refuse_directory` returns a list of one error for a directory that cannot be
-walked, and none for one that can, or for a missing default.
+walked, and none for one that can, or for a missing directory whose `written`
+form equals `default` as text.
 
 #### Each case
 
@@ -247,11 +250,12 @@ severity and message, and puts a place that is not a file last.
 
 #### The order
 
-- **Given** the diagnostics `a.md:10: error`, `a.md:2: warning`,
-  `a.md:2: error`, `a.md: note`, `b.md: error` and `nofile: error`.
+- **Given** the diagnostics `a.md:10: error`, `a.md:2:10: error`,
+  `a.md:2:3: error`, `a.md:2: warning`, `a.md:2: error`, `a.md: note`,
+  `b.md: error` and `nofile: error`.
 - **When** `order_diagnostics` runs on them.
 - **Then** the order is `a.md`, then `a.md:2` error, `a.md:2` warning,
-  `a.md:10`, then `b.md`, then `nofile`.
+  `a.md:2:3`, `a.md:2:10`, `a.md:10`, then `b.md`, then `nofile`.
 
 ### **AC-8** A check's result is rendered with the sentence it is given
 
@@ -298,10 +302,11 @@ the components use it.
   `order_diagnostics` and `has_error` only in `wio.models.diagnostics`;
   `wio.templates` defines none of `_walk`, `_walk_visible`, `_refuse_directory`,
   `_has_error`, `_order_key` and `render_check`; `wio.config` has no `any(...)`
-  of `severity == "error"`, and imports `has_error` at the sites that asked
-  whether there is an error (`loader.py:82` and `report.py:39`) and
-  `closest_key`; `difflib` is imported only in `wio.formats`; and each helper
-  module imports only what the Constraints list.
+  of `severity == "error"`, and imports `has_error` where it asks whether there
+  is an error, in the check of the loaded diagnostics of `loader.py` and in the
+  exit code of `report.py`, and `closest_key`, while the filter that selects the
+  errors of the loaded diagnostics stays; `difflib` is imported only in
+  `wio.formats`; and each helper module imports only what the Constraints list.
 
 ## Additional context
 

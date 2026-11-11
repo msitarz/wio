@@ -26,7 +26,8 @@ this Work.
 
 ## Glossary
 
-- **Item text**: the Markdown of an item as written: a heading's text, or the
+- **Item text**: the Markdown of an item as written: a heading's text as
+  `read_outline` gives it, or the
   first line of a list item after its marker. A list item whose first block is
   not a paragraph has an empty text.
 - **Id**: the match of the section's `pattern` at the start of the item text.
@@ -108,8 +109,9 @@ otherwise the top-level list items, each with its text and its line in the file.
   `### **AC-1** First` on line 14, a `#### Scenario` heading,
   `### **AC-2** Second` on line 18, and then `## Next` with a `### X`.
 - **When** the items of `## Acceptance criteria` are found.
-- **Then** they are `**AC-1** First` on line 14 and `**AC-2** Second` on line
-  18, and the intro bullet, the `####` heading and `### X` are not items.
+- **Then** they are returned in the order of the body, `**AC-1** First` on line
+  14 and `**AC-2** Second` on line 18, and the intro bullet, the `####` heading
+  and `### X` are not items.
 
 #### List items
 
@@ -127,6 +129,14 @@ otherwise the top-level list items, each with its text and its line in the file.
 - **When** the items of `## Notes` are found.
 - **Then** the only item is `before`, because `- after` comes after a deeper
   heading.
+
+#### A list item that opens with a block that is not a paragraph
+
+- **Given** a section `## Notes` with a pattern `N-\d+` and the list item `-`
+  followed by a fenced block that holds `- code`.
+- **When** the items are found and judged.
+- **Then** the item has the empty text and no id, and there is one error that it
+  has no id.
 
 #### No items
 
@@ -206,7 +216,8 @@ holds whitespace or a comma, are errors.
 - **Given** the pattern `AC-\d+` on `## Criteria` on line 10, whose items
   `- **AC-1** a` and `- **AC-1** b` are on lines 12 and 14, and on `## Other` on
   line 16, whose item `- **AC-1** c` is on line 18.
-- **When** the items are judged.
+- **When** the items are judged, with the sections given to the judge in the
+  order of the body.
 - **Then** there is one error at line 12 that names `AC-1` and the lines 14 and
   18.
 

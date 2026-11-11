@@ -21,7 +21,7 @@ skeleton for one.
   Work's `id` and `depends_on`.
 - A person or an agent is told which of the Work's keys the skeleton did not
   carry.
-- Any key of the Work can be carried on request.
+- Any other key of the Work can be carried on request.
 - The command writes nothing, so the stage decides where the skeleton goes.
 
 ## Non-Goals
@@ -88,10 +88,12 @@ skeleton for one.
   that is rejected points to `wio templates check`. A shared id refuses a lookup
   of that id with the error of discovery, and any other error of finding the
   Works, a Work left out, a nesting collision or a directory that cannot be
-  walked, refuses every call, with the pointer to `wio contracts check`, as
-  `list` and `show` do. When several apply, the first of these is reported: a
-  usage error, an incomplete tree, the Work, the template, then `--keep`. Each
-  exits 2 with nothing on standard output.
+  walked, refuses every call. A wrong type of an optional field, such as a
+  `depends_on` that is a string, does not refuse, and the field is carried as
+  the file has it. A refusal of the whole tree carries the pointer to
+  `wio contracts check`, as `list` and `show` do. When several apply, the first
+  of these is reported: a usage error, an incomplete tree, the Work, the
+  template, then `--keep`. Each exits 2 with nothing on standard output.
 
 ## Acceptance criteria
 
@@ -193,9 +195,29 @@ dropped.
 - **Given** the Work of AC-1 and a template `t.tabled` of the kind `feature`
   whose `[contract]` has `[x]` with `ticket = ""`.
 - **When** `wio contracts skeleton t.tabled --work k3m9xq --keep actions` runs.
-- **Then** the metadata has `[x]` with `ticket = ""` and then, after one empty
-  line, `[actions]` with `deliver = ["ship"]`, and standard error names `roots`
-  and `x`.
+- **Then** standard output is exactly the text below, and standard error names
+  `roots` and `x`:
+
+  ```text
+  <!-- wio
+  id = "k3m9xq"
+  template = "t.tabled"
+  roots = []
+  depends_on = ["a7b2c4"]
+
+  [x]
+  ticket = ""
+
+  [actions]
+  deliver = ["ship"]
+  -->
+
+  # <Work name>
+
+  ## Purpose
+  ```
+
+  where `t.tabled` has `roots = []` and the same body as `feature.parent`.
 
 ### **AC-3** The skeleton differs from `templates show` only by the identity
 
@@ -253,6 +275,14 @@ a shared id refuses only its own lookup.
 - **When** `wio contracts skeleton feature.parent --work k3m9xq` runs.
 - **Then** it exits 2 with the error of finding the Works and the pointer to
   `wio contracts check`, and nothing on standard output.
+
+#### A wrong type that does not refuse
+
+- **Given** a Work `k3m9xq` whose `depends_on` is the string `"a7b2c4"` and the
+  template of AC-1.
+- **When** `wio contracts skeleton feature.parent --work k3m9xq` runs.
+- **Then** it prints the skeleton with `depends_on = "a7b2c4"` as the file has
+  it, and exits 0.
 
 #### Several mistakes at once
 

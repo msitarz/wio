@@ -35,7 +35,8 @@ can give another implementation.
 ## Assumptions
 
 - **A-1**: The discovery leaf is delivered, so the Works of the tree, their
-  paths and ids, and the explanation of what makes a path a Work are available.
+  paths and ids, and the paths of the marked files that it left out are
+  available.
 - **A-2**: `Entropy.random_bytes` gives uniformly random bytes, and is the only
   source of randomness of the id.
 - **A-3**: Two creators racing for one path are not handled, as the parent's A-3
@@ -88,9 +89,9 @@ can give another implementation.
   `flat`, `--parent` is an error, and a parent that no Work has, or that two
   Works share, is an error.
 - **A path is a Work's path.** `--path` is relative to the repository root, has
-  no `..`, ends in `.md` with that case, and does not exist. Whatever else would
-  keep a file from being a Work is judged by the rules of the discovery leaf, as
-  they apply to a path that does not exist yet: it lies under the Works
+  no `..` and ends in `.md` with that case. Whatever else would keep a file from
+  being a Work is judged by the same rules as the discovery leaf's AC-8 pins,
+  applied here to a new path by this leaf's own code: it lies under the Works
   directory, below no hidden directory, runs through no symbolic link, and,
   under `nesting`, is not directly in the Works directory and its directory
   holds no marked file already, one that was left out included.
@@ -159,7 +160,7 @@ the options that cannot be combined, or name what does not exist, are errors.
 #### Flat
 
 - **Given** `hierarchy = "flat"`.
-- **When** the place is decided with `--parent p5n2hv`.
+- **When** the place is decided with `--parent p5n2hv --title Child`.
 - **Then** it is an error that says `--parent` needs `nesting`.
 
 ### **AC-4** A path must be one that a Work could have
@@ -233,10 +234,11 @@ one that exists.
 
 #### The guard
 
-- **Given** a recording file system, a path that is free, and a path that
-  exists.
-- **When** the place is decided for each, and the guard is asked to write a
-  contract to each.
+- **Given** `hierarchy = "flat"`, a recording file system, the paths
+  `.agents/wio/works/new/spec.md`, which is free, and
+  `.agents/wio/works/old/spec.md`, which exists.
+- **When** the place is decided with `--path` for each, and the guard is asked
+  to write a contract to each.
 - **Then** deciding wrote nothing, the guard wrote the free path with its
   directories, and for the existing path it raised an error that names it and
   changed nothing.

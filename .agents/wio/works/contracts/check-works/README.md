@@ -59,7 +59,9 @@ Works, in the graph or in the metadata of a Work is not hidden by another.
   reader.
 - **A-4**: The unknown-key check reads each Work's block again with
   `read_metadata_block`, because the `Work` of discovery holds only some of its
-  keys. A file that cannot be read the second time is one error at the file.
+  keys. A file that cannot be read the second time is one error at the file, and
+  a template file that cannot be read for its `[actions]` is skipped, because
+  `wio templates check` reports it.
 
 ## Mechanisms
 
@@ -90,16 +92,19 @@ Works, in the graph or in the metadata of a Work is not hidden by another.
   and `actions`. The table `[x]` and the key `tracks` are exempt and never
   suggested, a plain key `x` is unknown, and the `wio` marker is not a key,
   because the block reader takes it out.
-- **A note is one for each omitted root.** A parent whose roots leave out roots
-  that its descendants use gets one note for each.
+- **A note is one for each omitted root.** A parent whose resolved roots leave
+  out a root that its descendants' resolved roots hold gets one note for each,
+  whether or not the config declares the root, and an undeclared root also gets
+  its own error at the Work that names it.
 - **The place is the file.** Each diagnostic of this leaf names the Work's file
   as its place, without a line.
-- **Only an error fails.** An error exits 1, and a warning or a note never does.
+- **A warning or a note never fails the command.**
 - **The output is `order_diagnostics`' order.** It says `The contracts pass.`
   when there is nothing to report.
-- **An action entry has a shape.** A value of a Work's `[actions]` is a stage
-  preset, written as a string, or a list of stages, and any other value is an
-  error, ``The action `deliver` must be a stage preset or a list of stages``.
+- **A Work that discovery reported is not resolved.** The resolved actions of a
+  Work whose `template` or `[actions]` discovery reported as being of the wrong
+  type are not checked, as the roots of a Work whose `roots` was reported are
+  not.
 
 ## Acceptance criteria
 
@@ -144,8 +149,8 @@ closest known key when there is one.
 
 ### **AC-3** An id that would break a record is an error
 
-An id that holds whitespace or a comma, or is `none`, is an error, and any other
-non-empty id is not.
+An id that holds whitespace, as `str.isspace()` tells, or a comma, or is exactly
+`none`, is an error, and any other non-empty id is not.
 
 #### Ids
 
@@ -187,16 +192,15 @@ repeats in a pipeline, and the resolved actions are not empty.
   template `t.leaf` whose actions are `deliver = ["implementation"]` and
   `amend = ["implementation"]`, and Works that follow it whose `[actions]` hold
   `shipp = ["implementation"]`, `deliver = "nosuch"`,
-  `deliver = ["implementation", "implementation"]`, `deliver = ["gone"]`,
-  `deliver = 5` and `deliver = []`.
+  `deliver = ["implementation", "implementation"]`, `deliver = ["gone"]` and
+  `deliver = []`.
 - **When** `wio contracts check` runs.
-- **Then** the first five are errors,
+- **Then** the first four are errors,
   ``The action `shipp` is not declared in `[actions]` of the config``,
   ``The stage preset `nosuch` of action `deliver` is not declared``,
   `` The stage `implementation` appears twice in action `deliver` ``, and
-  ``The stage `gone` of action `deliver` is not declared``,
-  ``The action `deliver` must be a stage preset or a list of stages``, and the
-  last is not an error, because `amend` remains.
+  ``The stage `gone` of action `deliver` is not declared``, and the last is not
+  an error, because `amend` remains.
 
 #### No action at all
 
@@ -243,6 +247,14 @@ finding already reported is skipped.
 - **Then** the first Work gets a warning for the key and an error for the root
   and one for the action, each at its file, and the second gets the error of
   discovery for its `roots` and no finding about its roots.
+
+#### Files that cannot be read
+
+- **Given** a fake `FileSystem` that fails the second read of a Work's file, and
+  a template whose file fails when its `[actions]` is read.
+- **When** `wio contracts check` runs.
+- **Then** the first gives one error at the Work's file, and the Works of the
+  template give no finding about their actions.
 
 ## Additional context
 
