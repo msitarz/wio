@@ -3,13 +3,13 @@
 
 from typing import TYPE_CHECKING
 
-from wio.contracts.table import SUBCOMMANDS
+from wio.contracts import SUBCOMMANDS
 
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Sequence
 
-    from wio.contracts.table import Services, Subcommand
+    from wio.contracts import Services, Subcommand
     from wio.io.ports import Stdio
 
 
@@ -52,5 +52,5 @@ class ContractsCommand:
         if name is None:
             stdio.stdout.write(args.contracts_help())
             return 0
-        entry = {entry.name: entry for entry in self._table}[name]
-        return entry.handler(self._services, args, stdio)
+        chosen = {entry.name: entry for entry in self._table}[name]
+        return chosen.handler(self._services, args, stdio)
