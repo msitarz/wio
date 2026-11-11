@@ -8,14 +8,12 @@ from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
 from wio.formats.errors import DirectiveSyntaxError, MetadataBlockError
-from wio.models.diagnostics import Diagnostic
+from wio.models.diagnostics import Diagnostic, order_diagnostics
 from wio.templates.discovery import discover
 lazy from wio.formats import (
     read_directive_heading,
     read_metadata_block,
     read_outline,
-    render_json,
-    render_text,
 )
 
 if TYPE_CHECKING:
@@ -36,19 +34,14 @@ _OPENER = re.compile(r"<!--\s*wio:\s*")
 """The opener of a directive list, as the directive parser reads it."""
 _LEADING_MARKS = re.compile(r"^#+\s*")
 _CLOSING_MARKS = re.compile(r"\s+#+\s*$")
-_FILE_PLACE = re.compile(
-    r"^(?P<file>[^,]*\.md)(?::(?P<line>\d+))?(?::(?P<column>\d+))?$"
-)
-"""A place that is a file, with the line and the column that may follow it."""
 _KEYS = frozenset({"kind", "shape", "description", "actions", "contract"})
 _TABLES = ("actions", "contract")
-_RANK = {"error": 0, "warning": 1, "note": 2}
 
 DIRECTIVE_LEVEL: HeadingLevel = 2
 """The only heading level on which a directive list is read."""
 
 PASSES = "The templates pass."
-"""What `render_check` says when there is no diagnostic to print."""
+"""What the command says when the check has no diagnostic to print."""
 
 
 @dataclass(frozen=True)
@@ -341,49 +334,6 @@ def check_kinds(
     return problems
 
 
-def order_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ...]:
-    """Put the diagnostics of the check in the order it prints them.
-
-    This is not `sort_diagnostics`, which compares `where` as a plain string.
-
-    Args:
-        diagnostics: The findings, in any order.
-
-    Returns:
-        The findings sorted by file, line and column, the numbers compared as
-        numbers so that line 4 comes before line 12. A place is read as a file, an
-        optional line and an optional column; a file without a line comes before
-        its lines. A place that is not of that form, such as a key path or the
-        two files of a duplicate name joined by `, `, is compared as its text,
-        and all of the places of that form come before it. Ties are broken by
-        error, warning and note, then by message.
-    """
-    keyed = [(_order_key(diagnostic), diagnostic) for diagnostic in diagnostics]
-    keyed.sort(key=lambda pair: pair[0])
-    return tuple(diagnostic for _, diagnostic in keyed)
-
-
-def render_check(diagnostics: Iterable[Diagnostic], *, as_json: bool) -> str:
-    """Render what the check found, in the order given.
-
-    Args:
-        diagnostics: The findings, already in the order of `order_diagnostics`.
-        as_json: Whether to write the JSON array instead of the text.
-
-    Returns:
-        With `as_json`, the array of `severity`, `where` and `message` objects,
-        `[]` for none, ending in a newline. Otherwise `PASSES` and a newline
-        when there is no diagnostic, and the `<severity>: <where>: <message>`
-        lines when there are some, each ending in a newline.
-    """
-    ordered = tuple(diagnostics)
-    if as_json:
-        return render_json(ordered, keep_order=True) + "\n"
-    if not ordered:
-        return PASSES + "\n"
-    return render_text(ordered, keep_order=True) + "\n"
-
-
 def _directive_problems(
     place: str, heading: Heading, level: HeadingLevel
 ) -> list[Diagnostic]:
@@ -517,25 +467,3 @@ def _kind_problems(template: Template, kinds: Mapping[str, str]) -> list[Diagnos
         )
         return [_error(place, message)]
     return []
-
-
-def _order_key(
-    diagnostic: Diagnostic,
-) -> tuple[int, str, int, int, int, str]:
-    """Give the key by which the check orders a diagnostic.
-
-    Args:
-        diagnostic: The finding.
-
-    Returns:
-        Whether its place is not a file, the file or the text of the place, the
-        line and the column as numbers, then the rank of the severity and the
-        message.
-    """
-    match = _FILE_PLACE.match(diagnostic.where)
-    rank = _RANK[diagnostic.severity]
-    if match is None:
-        return (1, diagnostic.where, 0, 0, rank, diagnostic.message)
-    line = int(match["line"] or 0)
-    column = int(match["column"] or 0)
-    return (0, match["file"], line, column, rank, diagnostic.message)

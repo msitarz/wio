@@ -2,6 +2,7 @@
 """The suggestion for a mistyped key, shared by every command that checks keys."""
 
 from typing import TYPE_CHECKING
+lazy import difflib
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -21,4 +22,5 @@ def closest_key(key: str, known: Iterable[str]) -> str | None:
         The one known key that `difflib.get_close_matches` ranks first, with its
         default cutoff, or `None` when none is close or there is no known key.
     """
-    raise NotImplementedError
+    close = difflib.get_close_matches(key, known, n=1)
+    return close[0] if close else None

@@ -7,6 +7,7 @@ as the rules of the command line ask.
 
 from typing import TYPE_CHECKING
 
+from wio.models.diagnostics import has_error
 lazy from wio.formats import render_json, render_text
 
 if TYPE_CHECKING:
@@ -36,7 +37,7 @@ def report(loaded: Loaded, *, as_json: bool) -> tuple[str, int]:
         them and not `PASSED`.
     """
     found = loaded.diagnostics
-    code = int(any(item.severity == "error" for item in found))
+    code = int(has_error(found))
     if as_json:
         return f"{render_json(found)}\n", code
     return f"{render_text(found) or PASSED}\n", code

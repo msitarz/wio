@@ -314,18 +314,21 @@ def _check_run(
         record.check_args = args
         return tuple(found)
 
-    def renders(diagnostics: Iterable[Diagnostic], *, as_json: bool) -> str:
+    def renders(
+        diagnostics: Iterable[Diagnostic], *, as_json: bool, passes: str
+    ) -> str:
         """Say how many findings were rendered, and in which form.
 
         Args:
             diagnostics: The findings.
             as_json: Whether JSON was asked for.
+            passes: The sentence for a check that finds nothing.
 
         Returns:
             A line that tells both.
         """
         record.rendered = tuple(diagnostics)
-        return f"{len(record.rendered)} json={as_json}\n"
+        return f"{len(record.rendered)} json={as_json} passes={passes}\n"
 
     monkeypatch.setattr(command_module, "check_templates", finds)
     monkeypatch.setattr(command_module, "render_check", renders)
@@ -374,7 +377,11 @@ def test_check_exits_1_for_an_error_and_writes_what_it_rendered(
         seen.expected_args[2],
     )
     assert seen.rendered == tuple(found)
-    assert (_text(streams), _stderr(streams), code) == ("2 json=True\n", "", 1)
+    assert (_text(streams), _stderr(streams), code) == (
+        "2 json=True passes=The templates pass.\n",
+        "",
+        1,
+    )
 
 
 def test_check_exits_0_for_a_warning_alone_and_for_nothing(

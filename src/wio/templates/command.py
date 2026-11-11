@@ -3,8 +3,9 @@
 
 from typing import TYPE_CHECKING, Literal, cast
 
-lazy from wio.formats import COMBINING, DIRECTIVES
-lazy from wio.templates.check import check_templates, render_check
+from wio.models.diagnostics import has_error
+lazy from wio.formats import COMBINING, DIRECTIVES, render_check
+lazy from wio.templates.check import PASSES, check_templates
 lazy from wio.templates.discovery import discover
 lazy from wio.templates.errors import TemplatesError, refusal
 lazy from wio.templates.listing import render_list
@@ -21,7 +22,6 @@ if TYPE_CHECKING:
 
     from wio.io.ports import FileSystem, Repository, Stdio
     from wio.models.config import Config, Templates
-    from wio.models.diagnostics import Diagnostic
     from wio.models.template import Template
     from wio.ports import Settings
     from wio.templates.discovery import Discovery
@@ -143,20 +143,8 @@ class TemplatesCommand:
             1 when a diagnostic is an error, otherwise 0.
         """
         found = check_templates(root, config, self._files)
-        stdio.stdout.write(render_check(found, as_json=as_json))
-        return 1 if _has_error(found) else 0
-
-
-def _has_error(diagnostics: Iterable[Diagnostic]) -> bool:
-    """Tell whether a diagnostic is an error, which is what fails the check.
-
-    Args:
-        diagnostics: The findings of the check.
-
-    Returns:
-        Whether any of them is an error; a warning or a note is not.
-    """
-    return any(diagnostic.severity == "error" for diagnostic in diagnostics)
+        stdio.stdout.write(render_check(found, as_json=as_json, passes=PASSES))
+        return 1 if has_error(found) else 0
 
 
 def _refuse_problems(found: Discovery) -> None:

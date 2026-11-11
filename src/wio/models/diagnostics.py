@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The type of a finding, shared by every `check` command."""
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
@@ -28,6 +29,10 @@ class Diagnostic:
 
 
 _RANK: dict[Severity, int] = {"error": 0, "warning": 1, "note": 2}
+_FILE_PLACE = re.compile(
+    r"^(?P<file>[^,]*\.md)(?::(?P<line>\d+))?(?::(?P<column>\d+))?$"
+)
+"""A place that is a file, with the line and the column that may follow it."""
 
 
 def _key(diagnostic: Diagnostic) -> tuple[str, int, str]:
@@ -72,7 +77,30 @@ def order_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ..
         text and follows every place that is a file. Equal places are ordered by
         error, warning and note, then by message.
     """
-    raise NotImplementedError
+    ordered = sorted(diagnostics, key=_order_key)
+    return tuple(ordered)
+
+
+def _order_key(diagnostic: Diagnostic) -> tuple[bool, str, int, int, int, str]:
+    """Give the key by which a check of files orders a diagnostic.
+
+    Args:
+        diagnostic: The finding.
+
+    Returns:
+        Whether its place is not a file, the file or the text of the place, the
+        line and the column as numbers, then the rank of the severity and the
+        message.
+    """
+    match = _FILE_PLACE.match(diagnostic.where)
+    place: tuple[str, int, int] = (
+        (match["file"], int(match["line"] or 0), int(match["column"] or 0))
+        if match
+        else (diagnostic.where, 0, 0)
+    )
+    file, line, column = place
+    rank = _RANK[diagnostic.severity]
+    return (match is None, file, line, column, rank, diagnostic.message)
 
 
 def has_error(diagnostics: Iterable[Diagnostic]) -> bool:
@@ -84,4 +112,4 @@ def has_error(diagnostics: Iterable[Diagnostic]) -> bool:
     Returns:
         Whether any of them is an error; a warning or a note is not.
     """
-    raise NotImplementedError
+    return any(diagnostic.severity == "error" for diagnostic in diagnostics)

@@ -1,14 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
 """The walk of a directory of Markdown files, shared by the commands that read one."""
 
+from functools import partial
 from typing import TYPE_CHECKING
+
+from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
     from wio.io.ports import FileSystem
-    from wio.models.diagnostics import Diagnostic
+
+_SUFFIX = ".md"
+_error = partial(Diagnostic, "error")
+"""Make an error diagnostic from a place and a message."""
 
 
 def walk_markdown(directory: Path, files: FileSystem) -> Iterator[Path]:
@@ -16,7 +22,8 @@ def walk_markdown(directory: Path, files: FileSystem) -> Iterator[Path]:
 
     It reads no file. A file is listed when its name ends in `.md` with that
     case, and a symbolic link, a directory whose name starts with `.` and
-    anything below it are skipped, and so is anything that is not a file.
+    anything below it are skipped, and so is anything that is not a file. The
+    directory itself is walked whatever its name.
 
     Args:
         directory: The directory to walk.
@@ -26,7 +33,27 @@ def walk_markdown(directory: Path, files: FileSystem) -> Iterator[Path]:
         Each file, in the order that the port lists the entries, a directory's
         files where the directory is listed.
     """
-    raise NotImplementedError
+    for entry in files.list_dir(directory):
+        if files.is_symlink(entry):
+            continue
+        if files.is_dir(entry):
+            yield from _walk_visible(entry, files)
+        elif entry.name.endswith(_SUFFIX) and files.is_file(entry):
+            yield entry
+
+
+def _walk_visible(directory: Path, files: FileSystem) -> Iterator[Path]:
+    """Walk a directory below the one being walked unless it is hidden.
+
+    Args:
+        directory: The directory.
+        files: The port that lists directories.
+
+    Yields:
+        The files below it, none when its name starts with `.`.
+    """
+    if not directory.name.startswith("."):
+        yield from walk_markdown(directory, files)
 
 
 def refuse_directory(
@@ -58,4 +85,12 @@ def refuse_directory(
         directory is not a directory`, or `None` when the directory can be
         walked or is the missing default.
     """
-    raise NotImplementedError
+    if files.is_symlink(directory):
+        return [_error(written, f"The {noun} directory must not be a symbolic link")]
+    if not files.exists(directory):
+        if written == default:
+            return None
+        return [_error(written, f"The {noun} directory does not exist")]
+    if not files.is_dir(directory):
+        return [_error(written, f"The {noun} directory is not a directory")]
+    return None

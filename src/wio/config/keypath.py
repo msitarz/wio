@@ -5,10 +5,10 @@ import dataclasses
 import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
-lazy import difflib
 
 from wio.config.messages import and_list, join_path, quoted
 from wio.errors import ConfigurationError
+lazy from wio.formats import closest_key
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -199,9 +199,9 @@ def _unknown(path: str, name: str, names: Sequence[str]) -> ConfigurationError:
     wanted = join_path(path, name)
     where = f"`{path}`" if path else _TOP
     message = f"no setting `{wanted}`."
-    close = difflib.get_close_matches(name, names, n=1)
+    close = closest_key(name, names)
     if close:
-        message += f" Did you mean `{join_path(path, close[0])}`?"
+        message += f" Did you mean `{join_path(path, close)}`?"
     if len(names) == 1:
         message += f" The only key of {where} is {quoted(names)}."
     elif names:

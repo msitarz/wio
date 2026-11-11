@@ -71,4 +71,9 @@ def render_check(
         diagnostic, and the `<severity>: <where>: <message>` lines when there are
         some, each ending in a newline.
     """
-    raise NotImplementedError
+    ordered = tuple(diagnostics)
+    if as_json:
+        return render_json(ordered, keep_order=True) + "\n"
+    if not ordered:
+        return passes + "\n"
+    return render_text(ordered, keep_order=True) + "\n"
