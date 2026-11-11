@@ -54,9 +54,10 @@ of the block exists.
 ## Mechanisms
 
 - A function in `wio.formats` that sets keys in the metadata block of a
-  contract's text: the `id` first, after `wio = 1` for `+++` front matter, and
-  `roots` in place or after `template` when the block has none. The block's
-  form, its other keys and its body are not changed.
+  contract's text, any top-level key or table: the `id` first, after `wio = 1`
+  for `+++` front matter, and any other key in place, or after the last key
+  that holds a value and before the first table when the block has none. The
+  block's form, its other keys and its body are not changed.
 - `prepare_skeleton` and `read_outline` of `wio.formats`, the last to find the
   first heading that `--title` replaces.
 - The decision and the guard of the new-location leaf, and the catalog's `find`
