@@ -202,7 +202,10 @@ def test_an_unknown_key_is_an_error_and_the_contract_keys_are_free() -> None:
             ".agents/wio/templates/a.md",
             "A template has no `name` key: it is named by its file",
         ),
-        (".agents/wio/templates/b.md", "Unknown key `descriptions` in the metadata"),
+        (
+            ".agents/wio/templates/b.md",
+            "Unknown key `descriptions` in the metadata. Did you mean `description`?",
+        ),
         (".agents/wio/templates/c.md", "`contract` must be a table"),
         (".agents/wio/templates/d.md", "`actions` must be a table"),
     ]

@@ -1,0 +1,4 @@
+# Two templates of one kind, one with a mistyped key and one with a far one.
+
+[templates.kinds]
+feature = "feature.draft"

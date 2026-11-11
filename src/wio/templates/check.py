@@ -11,6 +11,7 @@ from wio.formats.errors import DirectiveSyntaxError, MetadataBlockError
 from wio.models.diagnostics import Diagnostic, order_diagnostics
 from wio.templates.discovery import discover
 lazy from wio.formats import (
+    closest_key,
     read_directive_heading,
     read_metadata_block,
     read_outline,
@@ -225,13 +226,28 @@ def check_keys(place: str, data: Mapping[str, object]) -> list[Diagnostic]:
             message = "A template has no `name` key: it is named by its file"
             problems.append(_error(place, message))
         elif key not in _KEYS:
-            problems.append(_error(place, f"Unknown key `{key}` in the metadata"))
+            problems.append(_error(place, _unknown_key(key)))
     problems.extend(
         _error(place, f"`{key}` must be a table")
         for key in _TABLES
         if key in data and not isinstance(data[key], dict)
     )
     return problems
+
+
+def _unknown_key(key: str) -> str:
+    """Build the message of a metadata key that a template cannot have.
+
+    Args:
+        key: The key as written.
+
+    Returns:
+        That the key is unknown in the metadata, and the closest key that a
+        template may have when there is one.
+    """
+    message = f"Unknown key `{key}` in the metadata"
+    close = closest_key(key, sorted(_KEYS))
+    return f"{message}. Did you mean `{close}`?" if close else message
 
 
 def check_headings(

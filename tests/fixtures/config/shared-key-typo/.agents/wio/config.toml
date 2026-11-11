@@ -1,0 +1,5 @@
+# A stage with one mistyped key and no other problem.
+
+[stages.define]
+goal = "Define."
+sessionn = "fresh"

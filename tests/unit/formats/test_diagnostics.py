@@ -3,9 +3,7 @@
 
 import json
 
-import pytest
-
-from wio.formats import render_json, render_text
+from wio.formats import render_check, render_json, render_text
 from wio.models.diagnostics import Diagnostic
 
 LIST = [
@@ -63,9 +61,16 @@ def test_keep_order_prints_the_diagnostics_as_given() -> None:
     assert [item["message"] for item in data] == ["first", "second"]
 
 
-@pytest.mark.skip(reason="Pending the implementation stage.")
 def test_a_check_with_nothing_to_report_prints_the_sentence_it_is_given() -> None:
     """AC-8: text and JSON for no diagnostic."""
     # Given no diagnostic
-    # When `render_check` runs with `passes="The contracts pass."`, in text and as JSON
-    # Then the renderings are `The contracts pass.` and `[]`, each ending in a newline
+    sentence = "The contracts pass."
+
+    # When `render_check` runs with `passes="The contracts pass."`, in text and as
+    # JSON
+    text = render_check([], as_json=False, passes=sentence)
+    as_json = render_check([], as_json=True, passes=sentence)
+
+    # Then the renderings are `The contracts pass.` and `[]`, each ending in a
+    # newline
+    assert (text, as_json) == ("The contracts pass.\n", "[]\n")
