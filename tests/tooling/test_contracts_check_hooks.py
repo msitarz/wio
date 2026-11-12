@@ -7,6 +7,15 @@ stage replaces its body with the scenario.
 
 import pytest
 
+# The implementation stage marks the tests that start a process `slow`, and the
+# four that run the command of the hook also `NEEDS_JQ`, as the tests of the other
+# hooks are. The first four are parametrized with ids, for the two paths of AC-1,
+# the paths and the two quiet checks of AC-2, and the two exit codes of AC-3. The
+# two that run `prek` skip when `git` or `prek` is missing, and take the config
+# and the template of the repository they stage from a fixture of
+# `tests/fixtures/contracts`, because this repository's own config makes the
+# check fail on rulesets that the temporary one lacks.
+
 pytestmark = pytest.mark.skip(
     reason="architecture stub: the implementation stage fills it"
 )
@@ -26,7 +35,8 @@ def test_the_hook_is_silent_when_the_edit_is_not_a_contract() -> None:
     """AC-2: a file that is not a contract prints nothing and calls no check."""
     # Given the hook's command and a fake `uv` for a check that fails
     # When the command receives the input for an edit of a source file, the config,
-    # a template and a file of the Works directory that is not Markdown
+    # a template, a file of the Works directory that is not Markdown, a Markdown
+    # file outside the Works directory and a path that is not absolute
     # Then each exits 0 with no output, and the check was not called
     raise NotImplementedError
 
@@ -54,8 +64,8 @@ def test_prek_runs_the_check_when_a_contract_is_in_the_commit() -> None:
     # Given `prek.toml`
     # When its hook for the contracts is read
     # Then it runs `uv run wio contracts check`, matches a `.md` file in any
-    # subdirectory of the Works directory and no other path, and passes no file
-    # names
+    # subdirectory of the Works directory and no other path, the same directory
+    # inside a fixture included, and passes no file names
     raise NotImplementedError
 
 

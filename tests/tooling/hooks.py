@@ -111,18 +111,26 @@ def run_hook(
 def run_prek(tmp_path: Path, files: dict[str, str], hook: str) -> tuple[int, str]:
     """Run one hook of `prek.toml` on the staged files of a new repository.
 
-    The repository is a new git repository under `tmp_path` that holds a copy of
-    `prek.toml` and `files`, all staged. A shim stands for `uv` and runs this
-    environment's `wio` for `uv run wio`, so the hook runs the real check without
-    a project to resolve.
+    The repository is a new git repository under `tmp_path/repo` that holds
+    `files`, all staged, and a `prek.toml` that is a copy of this repository's with
+    only its `repo = "local"` section: selecting one hook does not keep `prek` from
+    preparing the other repositories, and the remote ones need the network. `prek`
+    gets a home of its own under `tmp_path`, outside the repository, so it touches
+    no cache of the user's and `git add` finds no embedded repository. `prek` is
+    the one that is installed beside this interpreter, `Path(sys.executable).parent
+    / "prek"`, because it is not on the `PATH`, and a shim in front of the `PATH`
+    stands for `uv`: for `uv run wio` it runs the `wio` installed beside this
+    interpreter, so the hook runs the real check without a project to resolve.
 
     Args:
-        tmp_path: A directory for the repository and the shim.
-        files: The files to stage, by path relative to the repository's root.
+        tmp_path: A directory for the repository, the shim and the home of `prek`.
+        files: The files to stage, by path relative to the repository's root,
+            which include the config and the templates that the check needs.
         hook: The id of the hook, such as `wio-contracts`.
 
     Returns:
-        The exit code of `prek` and its output, standard output and standard error
-        together.
+        The exit code of `prek`, which is not 0 when the hook fails, and its output,
+        standard output and standard error together. The caller skips when `git`
+        or `prek` is missing.
     """
     raise NotImplementedError
