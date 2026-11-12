@@ -9,9 +9,11 @@ never called the check.
 """
 
 import json
+import os
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -133,4 +135,40 @@ def run_prek(tmp_path: Path, files: dict[str, str], hook: str) -> tuple[int, str
         standard output and standard error together. The caller skips when `git`
         or `prek` is missing.
     """
-    raise NotImplementedError
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    prek_toml = (ROOT / "prek.toml").read_text()
+    local = prek_toml[prek_toml.index('[[repos]]\nrepo = "local"') :]
+    (repo / "prek.toml").write_text(local)
+    for name, text in files.items():
+        target = repo / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text)
+    bin_dir = Path(sys.executable).parent
+    shim_dir = tmp_path / "shim"
+    shim_dir.mkdir()
+    shim = shim_dir / "uv"
+    shim.write_text(
+        '#!/bin/sh\n[ "$1 $2" = "run wio" ] || exit 70\nshift 2\n'
+        f'exec "{bin_dir / "wio"}" "$@"\n'
+    )
+    shim.chmod(shim.stat().st_mode | stat.S_IXUSR)
+    env = {
+        **os.environ,
+        "PATH": f"{shim_dir}:{os.environ['PATH']}",
+        "HOME": str(tmp_path / "home"),
+        "PREK_HOME": str(tmp_path / "prek-home"),
+        "NO_COLOR": "1",
+    }
+    (tmp_path / "home").mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, env=env, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=repo, env=env, check=True)
+    done = subprocess.run(
+        [str(bin_dir / "prek"), "run", hook],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return done.returncode, done.stdout + done.stderr
