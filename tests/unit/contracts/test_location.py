@@ -204,6 +204,45 @@ def test_a_slug_is_derived_from_a_title_by_one_rule() -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    ("letter", "written"),
+    [
+        ("ł", "l"),
+        ("ø", "o"),
+        ("đ", "d"),
+        ("ð", "d"),
+        ("ħ", "h"),
+        ("ı", "i"),
+        ("æ", "ae"),
+        ("œ", "oe"),
+        ("ß", "ss"),
+        ("þ", "th"),
+    ],
+)
+def test_each_letter_of_the_table_is_written_out(letter: str, written: str) -> None:
+    """A letter that does not fold to ASCII is written out, not dropped."""
+    # Given a title with the letter between two others
+    title = f"x{letter}x"
+
+    # When the slug is derived
+    slug = _slug(title=title)
+
+    # Then the letter is written out as the table says
+    assert slug == f"x{written}x"
+
+
+def test_the_slug_is_cut_at_exactly_48_characters() -> None:
+    """The limit is 48: a longer title gives 48 characters and no more."""
+    # Given a title of 48 letters, a space and another letter
+    title = "a" * 48 + " b"
+
+    # When the slug is derived
+    slug = _slug(title=title)
+
+    # Then it holds the 48 letters
+    assert slug == "a" * 48
+
+
 def test_a_title_with_no_usable_letter_asks_for_a_slug() -> None:
     """A title that leaves nothing is an error that names `--slug`."""
     # Given a title with no ASCII letter or digit
@@ -236,6 +275,17 @@ def test_a_given_slug_must_be_lowercase_kebab_case() -> None:
     assert all(
         "lowercase letters and digits joined by single `-`" in m for m in refused
     )
+
+
+def test_an_empty_slug_counts_as_given_even_with_a_title() -> None:
+    """An empty `--slug` is not replaced by the title."""
+    # Given an empty slug and a title
+    # When the slug is chosen
+    with pytest.raises(ContractsError) as raised:
+        _slug(slug="", title="Child")
+
+    # Then the slug is refused for its form
+    assert "lowercase letters and digits" in str(raised.value)
 
 
 def test_a_slug_wins_over_a_title_when_both_are_given() -> None:
@@ -338,7 +388,7 @@ def test_a_path_must_be_one_that_a_work_could_have() -> None:
     disk = _disk({"p/README.md": "p5n2hv"}, links=["link"])
     refused = {
         "/tmp/x.md": "relative",
-        f"{WORKS}/../x.md": "`..`",
+        f"{WORKS}/../x.md": "with no `..`",
         "docs/x.md": "not under the Works directory",
         f"{WORKS}/.hidden/x.md": "hidden directory `.hidden`",
         f"{WORKS}/q/spec.txt": "`.md`",
@@ -374,6 +424,33 @@ def test_a_directory_that_exists_and_a_file_that_was_left_out() -> None:
     assert accepted == Path(f"{WORKS}/q/new.md")
     assert "holds a marked file already" in message
     assert f"{WORKS}/r/one.md" in message
+
+
+def test_only_a_directory_is_hidden_and_an_empty_directory_is_no_obstacle() -> None:
+    """A file name that starts with a dot is allowed, and so is an empty directory."""
+    # Given an empty directory `e`
+    disk = _disk({"p/README.md": "p5n2hv"}, empty=["e"])
+
+    # When a path with a hidden file name and one in the empty directory are
+    # checked
+    hidden = _place(disk, path=f"{WORKS}/q/.x.md")
+    inside = _place(disk, path=f"{WORKS}/e/new.md")
+
+    # Then both are accepted
+    assert [hidden.name, inside.name] == [".x.md", "new.md"]
+
+
+def test_a_bad_slug_is_refused_before_an_unknown_parent() -> None:
+    """The slug is judged before the parent is looked up."""
+    # Given a Work and a slug that is not valid with a parent that has no Work
+    disk = _disk({"p/README.md": "p5n2hv"})
+
+    # When the place is decided
+    message = _refusal(disk, slug="Bad", parent="zzzzzz")
+
+    # Then the error is about the slug
+    assert "slug" in message
+    assert "zzzzzz" not in message
 
 
 def test_a_directory_whose_files_a_collision_excluded_holds_marked_files() -> None:
