@@ -13,7 +13,7 @@ class Work:
     command that needs another key of the block reads the block again. It lives
     beside `wio.models.work`, a stub of the types of a later Work, and not in it,
     so that a stub and its implementation never share a module name.
-    Provisional: the architecture review may rename its fields.
+    Provisional: the implementation stage may rename its fields.
 
     Attributes:
         id: The `id` of the block, a non-empty string. Two Works may share one,

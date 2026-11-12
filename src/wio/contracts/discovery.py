@@ -28,12 +28,20 @@ class WorkDiscovery:
             the repository root and sorted as the Works are. A file that a
             nesting collision excludes is not one of them.
         diagnostics: Every problem found, each an error that names its place,
-            ordered as `order_diagnostics` orders them.
+            ordered as the shared ordering of diagnostics orders them.
+        incomplete: The diagnostics that leave the tree incomplete or ambiguous,
+            a subset of `diagnostics` in the same order: a Work left out, a
+            shared id, a nesting collision, a marked file directly in the Works
+            directory and a Works directory that cannot be walked. A wrong
+            optional field is not one, because its Work stays in the tree. A
+            command that refuses an incomplete tree tests whether this is empty
+            and reads no message to decide.
     """
 
     works: tuple[Work, ...]
     left_out: tuple[Path, ...]
     diagnostics: tuple[Diagnostic, ...]
+    incomplete: tuple[Diagnostic, ...]
 
 
 def discover_works(
@@ -91,9 +99,9 @@ def find_work(discovery: WorkDiscovery, work_id: str) -> Work | Diagnostic | Non
         work_id: The id to look up, compared as text.
 
     Returns:
-        The Work that has the id, the diagnostic of discovery that names the id
-        when two or more Works share it, so that the lookup is refused and no
-        Work is guessed, or `None` when no Work has the id.
+        The Work that has the id, the error of discovery that names every path of
+        the id when two or more Works share it, so that the lookup is refused and
+        no Work is guessed, or `None` when no Work has the id.
     """
     raise NotImplementedError
 

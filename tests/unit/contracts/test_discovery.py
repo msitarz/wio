@@ -95,7 +95,7 @@ def test_a_directory_with_two_marked_files_holds_no_work_under_nesting() -> None
 
 @pytest.mark.skip(reason="Pending the implementation stage.")
 def test_a_marked_file_that_is_left_out_still_counts_in_its_directory() -> None:
-    """AC-5: a missing `id` gives two errors, and an unreadable file counts for none."""
+    """AC-5: a missing `id` gives two errors, and a file that is not UTF-8 one."""
     # Given a nesting tree with `a/one.md` and `a/two.md` whose block has no
     # `id`, and a directory with a marked file and a file that is not UTF-8
     # When the Works are discovered
@@ -171,3 +171,14 @@ def test_under_flat_a_shared_directory_is_no_reason() -> None:
     # the Works directory
     # When the reason each is not a Work is asked for
     # Then none has a reason
+
+
+@pytest.mark.skip(reason="Pending the implementation stage.")
+def test_only_the_errors_that_leave_the_tree_incomplete_are_marked() -> None:
+    """AC-2 to AC-5, AC-7: a wrong optional field does not make the tree incomplete."""
+    # Given trees with a Work left out, a shared id, a nesting collision, a marked
+    # file directly in the Works directory, a Works directory that cannot be
+    # walked, and one with only a wrong optional field
+    # When the Works are discovered for each
+    # Then the first five have their error in `incomplete` and the last has none
+    # there, though its error is in `diagnostics`
