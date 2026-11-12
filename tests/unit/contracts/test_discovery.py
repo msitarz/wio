@@ -578,6 +578,7 @@ def _reasons_disk() -> MemoryFileSystem:
             "link.md": _marked("linked"),
             "lnk/inner.md": _marked("inner"),
             ".h/m.md": _marked("hidden"),
+            ".h/plain.md": "# Plain\n",
             "plain/README.md": "# Plain\n",
             "late/README.md": "\n" + _marked("late"),
             "fm/README.md": '+++\nid = "fm"\n+++\n',
@@ -600,6 +601,7 @@ REASONS = {
     "lnk/inner.md": ["works/lnk", "symbolic link"],
     "../docs/o.md": ["docs/o.md", "outside the Works directory"],
     ".h/m.md": ["works/.h/m.md", "`.h`", "hidden"],
+    ".h/plain.md": ["works/.h/plain.md", "`.h`", "hidden"],
     "plain/README.md": ["works/plain/README.md", "no metadata block"],
     "late/README.md": ["works/late/README.md", "no metadata block"],
     "fm/README.md": ["works/fm/README.md", "`+++` front matter", "`wio` key"],
@@ -867,3 +869,31 @@ def test_three_works_that_share_an_id_are_one_error_at_all_three_paths() -> None
         "works/a/README.md, works/b/README.md, works/c/README.md"
     ]
     assert found.diagnostics[0].message == "Works share the id `k3m9xq`"
+
+
+def test_each_shared_id_has_its_own_error_in_the_lookup_and_in_order() -> None:
+    """AC-4: two groups of Works sharing an id give two errors, each for its id."""
+    # Given a flat tree where `a` and `b` share `k` and `c` and `d` share `j`
+    disk = _disk(
+        {
+            "a/R.md": _marked("k"),
+            "b/R.md": _marked("k"),
+            "c/R.md": _marked("j"),
+            "d/R.md": _marked("j"),
+        }
+    )
+
+    # When the Works are discovered and each id is looked up
+    found = _find(disk, "flat")
+    first = find_work(found, "k")
+    second = find_work(found, "j")
+
+    # Then each lookup yields the error that names its own paths, and the two
+    # errors are in `ambiguous` in the order of `diagnostics`
+    assert where(found.diagnostics) == [
+        "works/a/R.md, works/b/R.md",
+        "works/c/R.md, works/d/R.md",
+    ]
+    assert first == found.diagnostics[0]
+    assert second == found.diagnostics[1]
+    assert found.ambiguous == found.diagnostics
