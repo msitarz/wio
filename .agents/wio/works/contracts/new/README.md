@@ -43,8 +43,9 @@ of the block exists.
 - **A-2**: `prepare_skeleton` gives a template's skeleton in the template's
   block form, with the `template` key and no `id`, and drops the template's own
   keys, its metadata comments and the directive lists, as it is delivered.
-- **A-3**: The metadata reader uses `tomllib`, and `tomlkit` can edit the block
-  while retaining untouched values and comments.
+- **A-3**: The metadata reader uses `tomllib`. `tomlkit` can drop comments
+  when replacing a table, so preserving untouched comments needs additional
+  handling.
 
 ## Mechanisms
 
