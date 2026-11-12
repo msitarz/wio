@@ -36,10 +36,12 @@ def test_an_inline_table_is_a_plain_key_and_only_an_added_table_has_an_empty_lin
     None
 ):
     """AC-8: scenario of the contract."""
-    # Given a block with an inline table and one with a table and no plain keys
-    # When a plain key and a table are added
-    # Then the key follows the inline table, the table follows the plain keys
-    # when there is none, and only the table is preceded by an empty line
+    # Given a block with an inline table, one with a table directly after its key,
+    # one with a comment directly above its table, and one with a table and no
+    # plain keys
+    # When a plain key is added to each, and a table to the first
+    # Then the key follows the inline table or goes first, the existing tables gain
+    # no empty line, and only the added table is preceded by one
     raise NotImplementedError
 
 
@@ -118,4 +120,24 @@ def test_an_added_table_adds_an_empty_line_only_when_there_is_none() -> None:
     # When a table is added to each
     # Then one empty line is added to the first, none to the others, and the
     # empty block gets the table with no empty line before it
+    raise NotImplementedError
+
+
+def test_a_table_named_like_a_plain_key_is_refused() -> None:
+    """AC-8: a name cannot be a plain key and a table."""
+    # Given a block with the inline table `actions = { a = 1 }` and one with the
+    # table `[x]`
+    # When the table `actions` is set on the first, and the plain key `x` on the
+    # second
+    # Then `ValueError` is raised for each
+    raise NotImplementedError
+
+
+def test_a_block_with_no_final_line_ending_is_given_one() -> None:
+    """AC-8: the last line of the block ends with the line ending."""
+    # Given a front matter block whose last table line has no line ending before
+    # the closing delimiter, and the same with a table to add
+    # When a table is added
+    # Then the table follows after an empty line and every line ends with the
+    # line ending of the block
     raise NotImplementedError
