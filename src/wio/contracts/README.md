@@ -148,9 +148,10 @@ defines the rules for ids, the default place and `--path`.
 - **The id generator is a seam.** `IdGenerator` is the interface and `RandomIds`
   the one implementation, which reads bytes only from the `Entropy` port, so a
   test fixes every id. The loop that draws again until the id is free and gives
-  up after 100 draws is `new_id`, and it knows nothing of where candidates come
-  from. The tree is the only record it checks: an id that a deleted Work had is
-  not avoided, because that needs the history, which `wio trailers` reads.
+  up after a bounded number of draws, `MAX_DRAWS`, is `new_id`, and it knows
+  nothing of where candidates come from. The tree is the only record it checks:
+  an id that a deleted Work had is not avoided, because that needs the history,
+  which `wio trailers` reads.
 - **The alphabet has no `i`, `l`, `o` or `u`.** So an id is never mistaken for a
   digit when it is read aloud or typed.
 - **A slug cannot hide the Work.** A slug that is given must be lowercase
@@ -168,4 +169,5 @@ defines the rules for ids, the default place and `--path`.
   here the file does not exist yet.
 - **One call gives one error, the first that applies.** The order runs from the
   options, through the slug, the parent and the path, to what already exists, so
-  a mistake in the arguments is reported before the file system is asked.
+  a mistake in the arguments is reported before the file system is asked what
+  already exists.
