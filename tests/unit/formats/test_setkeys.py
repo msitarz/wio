@@ -78,12 +78,11 @@ def test_a_text_with_no_block_is_refused() -> None:
     raise NotImplementedError
 
 
-def test_a_table_that_is_there_has_its_keys_set_in_place_or_added() -> None:
-    """AC-8: an existing table is merged and keeps its position."""
-    # Given a block with a table `[actions]` that holds `deliver`
-    # When the table `[actions]` is set with a new `deliver` and an `amend`
-    # Then `deliver` is replaced in place and `amend` follows it, and the table
-    # stays where it was
+def test_a_table_that_is_there_is_replaced_in_place_by_the_one_given() -> None:
+    """AC-8: an existing table keeps its position and is not merged."""
+    # Given a block with a table `[actions]` that holds `deliver` and `ratify`
+    # When the table `[actions]` is set with `deliver` and `amend`
+    # Then the table is where it was and holds `deliver` and `amend` only
     raise NotImplementedError
 
 
@@ -140,4 +139,22 @@ def test_a_block_with_no_final_line_ending_is_given_one() -> None:
     # When a table is added
     # Then the table follows after an empty line and every line ends with the
     # line ending of the block
+    raise NotImplementedError
+
+
+def test_a_mapping_inside_an_array_is_refused() -> None:
+    """AC-8: only a mapping as the value is written, as an inline table."""
+    # Given a block with a plain key
+    # When a key whose value is a list of mappings is set
+    # Then `ValueError` is raised
+    raise NotImplementedError
+
+
+def test_an_empty_line_before_a_plain_key_stays_where_it_is() -> None:
+    """AC-8: a key is added after the last plain key and moves nothing."""
+    # Given blocks with an empty line before the last plain key, a comment line
+    # and an empty line before it, and an empty line at the start of the block
+    # When a plain key is added to each
+    # Then the key follows the last plain key, and every other line, empty or not,
+    # is where it was
     raise NotImplementedError
