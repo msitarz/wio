@@ -1,89 +1,450 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Test stubs of the listing of Works.
+"""Tests of the listing of Works."""
 
-Each stub is a scenario of the Work's acceptance criteria. The implementation
-stage replaces its body with the scenario.
-"""
+import json
+from argparse import Namespace
+from pathlib import Path
+from typing import TYPE_CHECKING, Literal, cast
 
 import pytest
 
-pytestmark = pytest.mark.skip(
-    reason="architecture stub: the implementation stage fills it"
-)
+from tests.unit.fakes import ROOT, FakeRepository, FakeStdio, MemoryFileSystem
+from wio.contracts import ContractsError, Services
+from wio.contracts.hierarchy import build_hierarchy
+from wio.contracts.listing import render_list, run_list
+from wio.models.config import Config, HierarchyMode, Works
+from wio.models.frozen import freeze
+from wio.models.works import Work
+
+if TYPE_CHECKING:
+    import io
+    from collections.abc import Mapping
+
+BASE = ".agents/wio/works"
+
+
+def _work(
+    path: str,
+    work_id: str,
+    title: str | None = None,
+    template: str | None = None,
+    roots: tuple[str, ...] = (),
+    depends_on: tuple[str, ...] = (),
+    actions: Mapping[str, str | tuple[str, ...]] | None = None,
+) -> Work:
+    """Build a Work at `<Works directory>/<path>`.
+
+    Args:
+        path: The file, relative to the Works directory.
+        work_id: The id.
+        title: The title, or `None`.
+        template: The template, or `None`.
+        roots: The roots as written.
+        depends_on: The dependencies as written.
+        actions: The `[actions]` overrides.
+
+    Returns:
+        The Work.
+    """
+    return Work(
+        id=work_id,
+        title=title,
+        path=Path(BASE) / path,
+        template=template,
+        roots=roots,
+        depends_on=depends_on,
+        actions=freeze(actions or {}),
+    )
+
+
+def _text(mode: HierarchyMode, *works: Work) -> str:
+    """Render Works as text.
+
+    Args:
+        mode: The hierarchy mode.
+        *works: The Works.
+
+    Returns:
+        The text.
+    """
+    return render_list(build_hierarchy(works, mode), as_json=False)
 
 
 def test_a_parent_comes_before_its_children_and_each_child_is_indented() -> None:
-    """Check a scenario of AC-1."""
-    # Given nesting Works: a parent and three children, one with overrides, one
-    # with dependencies, one with no heading
-    # When the Works are rendered as text
-    # Then the text is the one AC-1 gives
-    raise NotImplementedError
+    """Children follow their parent, two spaces deeper, in the order of paths."""
+    # Given a parent with two children, one of which has a child, and a Work
+    # whose path sorts between them
+    works = [
+        _work("p/README.md", "p1", "Parent"),
+        _work("p/a/README.md", "c1", "First"),
+        _work("p/a/x/README.md", "g1", "Grandchild"),
+        _work("p/b/README.md", "c2", "Second"),
+        _work("q/README.md", "q1", "Other"),
+    ]
+
+    # When the Works are rendered as text under nesting
+    lines = _text("nesting", *works).splitlines()
+
+    # Then each Work is after its parent and before the next sibling, and is
+    # indented two more spaces than its parent, with its path under the title
+    assert [line for line in lines if not line.lstrip().startswith(BASE)] == [
+        "p1  Parent",
+        "  c1  First",
+        "    g1  Grandchild",
+        "  c2  Second",
+        "q1  Other",
+    ]
+    assert lines[1] == f"    {BASE}/p/README.md"
+    assert lines[3] == f"      {BASE}/p/a/README.md"
+    assert lines[5] == f"        {BASE}/p/a/x/README.md"
+
+
+def test_the_id_column_is_as_wide_as_the_widest_id_of_the_output() -> None:
+    """Every title lines up, whatever the depth of its Work."""
+    # Given a short id at the top and a long one in another branch
+    works = [
+        _work("a/README.md", "a1", "Short"),
+        _work("b/README.md", "b1", "Parent"),
+        _work("b/c/README.md", "longer-id", "Long"),
+    ]
+
+    # When the Works are rendered as text under nesting
+    lines = _text("nesting", *works).splitlines()
+
+    # Then every id is padded to the widest and the details start at the title
+    assert lines[0] == "a1         Short"
+    assert lines[1] == f"           {BASE}/a/README.md"
+    assert lines[4] == "  longer-id  Long"
+    assert lines[5].startswith(" " * 13 + BASE)
 
 
 def test_under_flat_every_work_is_at_the_same_indent() -> None:
-    """Check a scenario of AC-2."""
-    # Given flat Works with ids of different widths
-    # When the Works are rendered as text
-    # Then the ids are padded to the widest and the order is the order of the paths
-    raise NotImplementedError
+    """A path that nests is no hierarchy under flat."""
+    # Given Works whose paths nest
+    works = [
+        _work("p/README.md", "p1", "Parent"),
+        _work("p/a/README.md", "c1", "Child"),
+    ]
 
+    # When the Works are rendered as text under flat
+    lines = _text("flat", *works).splitlines()
 
-def test_json_is_one_array_in_the_order_of_the_paths() -> None:
-    """Check a scenario of AC-3."""
-    # Given the Works of AC-1
-    # When they are rendered as JSON
-    # Then one line parses to the objects of AC-3, with the fields in their order
-    raise NotImplementedError
-
-
-def test_a_tree_with_no_work_renders_nothing() -> None:
-    """Check a scenario of AC-4."""
-    # Given no Work
-    # When it is rendered in each form
-    # Then the text is empty and the JSON is `[]`
-    raise NotImplementedError
+    # Then both are at the left edge, in the order of their paths
+    assert [line for line in lines if not line.startswith(" ")] == [
+        "p1  Parent",
+        "c1  Child",
+    ]
 
 
 def test_only_the_overrides_of_a_work_show() -> None:
-    """Check a scenario of AC-1."""
+    """A preset, a list and an empty list are written as the contract says."""
     # Given a Work whose `[actions]` hold a preset, a list and an empty list
-    # When it is rendered
-    # Then each is written as `name = value` in the order written
-    raise NotImplementedError
+    work = _work(
+        "a/README.md",
+        "k3m9xq",
+        "Title",
+        "feature.leaf",
+        actions={"deliver": ("build", "run"), "define": "define-feature", "x": ()},
+    )
+
+    # When it is rendered as text
+    lines = _text("flat", work).splitlines()
+
+    # Then the line is in the order written, with `none` for the empty list
+    assert lines[0] == "k3m9xq  Title  [feature.leaf]"
+    assert lines[2] == (
+        "        actions: deliver = [build, run], define = define-feature, x = none"
+    )
+    assert len(lines) == 3
 
 
 def test_a_dependency_shows_its_title_or_says_why_not() -> None:
-    """Check a scenario of AC-1."""
-    # Given a Work that lists a Work with a title, one with none and an id that
-    # no Work has
-    # When the Works are rendered as text
-    # Then the `after:` lines read the title, `(no title)` and `(not found)`
-    raise NotImplementedError
+    """The `after:` lines read the title, `(no title)` and `(not found)`."""
+    # Given a Work that lists a Work with a title, one with none, an id that no
+    # Work has, and the first one again
+    works = [
+        _work("a/README.md", "a1", depends_on=("t1", "n1", "zz", "t1")),
+        _work("n/README.md", "n1"),
+        _work("t/README.md", "t1", "Titled"),
+    ]
+
+    # When the Works are rendered as text under flat
+    lines = _text("flat", *works).splitlines()
+
+    # Then each dependency is a line in the order listed, as many times as listed
+    after = [line.strip() for line in lines if line.strip().startswith("after:")]
+    assert after == [
+        "after: t1 Titled",
+        "after: n1 (no title)",
+        "after: zz (not found)",
+        "after: t1 Titled",
+    ]
 
 
-def test_under_flat_every_parent_in_the_json_is_null() -> None:
-    """Check a scenario of AC-3."""
-    # Given the flat Works of AC-2
-    # When they are rendered as JSON
-    # Then each object has `"parent": null` and `"title": null` where there is
-    # no heading
-    raise NotImplementedError
+def test_a_work_with_nothing_to_say_has_its_path_only() -> None:
+    """No roots, dependencies or actions give no line."""
+    # Given a Work with a title and a template and nothing else
+    work = _work("a/README.md", "a1", "Title")
+
+    # When it is rendered
+    text = _text("flat", work)
+
+    # Then it is two lines and no template brackets
+    assert text == f"a1  Title\n    {BASE}/a/README.md\n"
 
 
-def test_an_incomplete_tree_is_refused_with_its_errors_and_the_hint() -> None:
-    """Check a scenario of AC-5."""
-    # Given a file system whose tree has a shared id, and one with a Work left
-    # out
-    # When the listing is run
-    # Then it raises an error that carries the errors and ends with the hint,
-    # and writes nothing to standard output
-    raise NotImplementedError
+def _array(mode: HierarchyMode, *works: Work) -> list[dict[str, object]]:
+    """Render Works as JSON and read it back.
+
+    Args:
+        mode: The hierarchy mode.
+        *works: The Works.
+
+    Returns:
+        The objects of the array.
+    """
+    text = render_list(build_hierarchy(works, mode), as_json=True)
+    assert text.endswith("\n")
+    assert "\n" not in text[:-1]
+    return cast("list[dict[str, object]]", json.loads(text))
+
+
+def test_json_is_one_array_in_the_order_of_the_paths() -> None:
+    """The array is sorted by path alone, so a child can come before its parent."""
+    # Given a parent whose file sorts after the directory of its child
+    works = [
+        _work("p/spec.md", "p1", "Parent"),
+        _work("p/a/README.md", "c1", "Child"),
+    ]
+
+    # When the Works are rendered as JSON and as text under nesting
+    array = _array("nesting", *works)
+    text = _text("nesting", *works)
+
+    # Then the JSON has the child first with its parent's id, and the text has
+    # the parent first
+    assert [obj["id"] for obj in array] == ["c1", "p1"]
+    assert array[0]["parent"] == "p1"
+    assert array[1]["parent"] is None
+    assert text.splitlines()[0] == "p1  Parent"
+
+
+def test_the_fields_of_an_object_are_in_a_fixed_order() -> None:
+    """Each object has the eight fields in the order of the contract."""
+    # Given a Work with every field
+    work = _work(
+        "a/README.md",
+        "a1",
+        "Title",
+        "feature.leaf",
+        ("api",),
+        ("b1",),
+        {"deliver": ("x",), "define": "d"},
+    )
+
+    # When it is rendered as JSON
+    [obj] = _array("flat", work)
+
+    # Then the keys are in order, the lists are lists and the path has `/`
+    assert list(obj) == [
+        "id",
+        "title",
+        "path",
+        "template",
+        "roots",
+        "depends_on",
+        "actions",
+        "parent",
+    ]
+    assert obj["actions"] == {"deliver": ["x"], "define": "d"}
+    assert obj["path"] == f"{BASE}/a/README.md"
+
+
+def test_a_tree_with_no_work_renders_nothing_or_an_empty_array() -> None:
+    """The two forms of an empty tree."""
+    # Given no Work
+    found = build_hierarchy([], "nesting")
+
+    # When it is rendered in each form
+    text = render_list(found, as_json=False)
+    array = render_list(found, as_json=True)
+
+    # Then the text is empty and the JSON is `[]`
+    assert (text, array) == ("", "[]\n")
+
+
+class _Settings:
+    """A `Settings` that gives a config under the default Works directory."""
+
+    def __init__(self, hierarchy: HierarchyMode) -> None:
+        """Keep the mode.
+
+        Args:
+            hierarchy: The hierarchy mode of the config.
+        """
+        self._config = Config(works=Works(hierarchy=hierarchy))
+
+    def load(self) -> Config:
+        """Give the config.
+
+        Returns:
+            The settings.
+        """
+        return self._config
+
+
+class _NoCatalog:
+    """A catalog that is never asked."""
+
+    def find(self, name: str) -> None:
+        """Fail, because the listing needs no template.
+
+        Args:
+            name: The name asked for.
+
+        Raises:
+            AssertionError: Always.
+        """
+        raise AssertionError(name)
+
+    def is_rejected(self, name: str) -> bool:
+        """Fail, because the listing needs no template.
+
+        Args:
+            name: The name asked for.
+
+        Raises:
+            AssertionError: Always.
+        """
+        raise AssertionError(name)
+
+
+def _marked(block: str) -> str:
+    """Write a file with a metadata block.
+
+    Args:
+        block: The lines of the block.
+
+    Returns:
+        The text of the file.
+    """
+    return f"<!-- wio\n{block}\n-->\n\n# Title\n"
+
+
+def _list(
+    files: Mapping[str, str],
+    *,
+    as_json: bool = False,
+    mode: Literal["flat", "nesting"] = "flat",
+) -> tuple[int, str]:
+    """Run the command on files under the Works directory.
+
+    Args:
+        files: The files, by path relative to the Works directory.
+        as_json: Whether `--json` is given.
+        mode: The hierarchy mode.
+
+    Returns:
+        The exit code and what was written to standard output.
+    """
+    disk = MemoryFileSystem({ROOT / BASE / name: text for name, text in files.items()})
+    services = Services(_Settings(mode), FakeRepository(), disk, _NoCatalog())
+    stdio = FakeStdio()
+    code = run_list(services, Namespace(json=as_json), stdio)
+    return code, cast("io.StringIO", stdio.stdout).getvalue()
+
+
+@pytest.mark.parametrize("form", ["text", "json"])
+def test_an_incomplete_tree_is_refused_with_its_errors_and_the_hint(form: str) -> None:
+    """A shared id and a Work left out refuse the listing and say where to look."""
+    # Given a tree with two Works that share an id, and another with a Work
+    # whose block has no id
+    shared = {
+        "s/README.md": _marked('id = "a7b2c4"'),
+        "t/README.md": _marked('id = "a7b2c4"'),
+    }
+    left_out = {"a/README.md": _marked('id = "k3m9xq"'), "b/README.md": _marked("")}
+
+    # When the command runs on each
+    refusals = []
+    for files in (shared, left_out):
+        with pytest.raises(ContractsError) as raised:
+            _list(files, as_json=form == "json")
+        refusals.append(raised.value)
+
+    # Then each carries the errors, which its message renders one to a line, and
+    # ends with the hint
+    assert [e.diagnostics[0].where for e in refusals] == [
+        f"{BASE}/s/README.md, {BASE}/t/README.md",
+        f"{BASE}/b/README.md",
+    ]
+    for error in refusals:
+        lines = str(error).splitlines()
+        assert lines[0].startswith("error: ")
+        assert lines[-1] == "`wio contracts check` shows every problem."
+        assert len(lines) == len(error.diagnostics) + 1
 
 
 def test_errors_that_leave_the_tree_complete_do_not_stop_the_listing() -> None:
-    """Check a scenario of AC-5."""
-    # Given Works with an undeclared root, a root of the wrong type and a cycle
-    # When the listing is run, as text and with `--json`
+    """An undeclared root, a wrong type, an unknown dependency and a cycle list."""
+    # Given Works with each of those
+    files = {
+        "a/README.md": _marked('id = "k3m9xq"\nroots = ["nosuch"]'),
+        "b/README.md": _marked('id = "n5p7qr"\nroots = "api"'),
+        "c/README.md": _marked('id = "a7b2c4"\ndepends_on = ["y4k2mq", "zzzzzz"]'),
+        "d/README.md": _marked('id = "y4k2mq"\ndepends_on = ["a7b2c4"]'),
+    }
+
+    # When the command runs, as text and with `--json`
+    text_code, text = _list(files)
+    json_code, array = _list(files, as_json=True)
+
     # Then every Work is written and the exit code is 0
-    raise NotImplementedError
+    assert (text_code, json_code) == (0, 0)
+    assert [obj["id"] for obj in json.loads(array)] == [
+        "k3m9xq",
+        "n5p7qr",
+        "a7b2c4",
+        "y4k2mq",
+    ]
+    assert "roots: nosuch" in text
+    assert "after: zzzzzz (not found)" in text
+    assert "roots:" not in text.split("n5p7qr")[1].split("a7b2c4")[0]
+
+
+def test_the_hierarchy_mode_of_the_config_decides_the_indent() -> None:
+    """The same files are nested under `nesting` and flat under `flat`."""
+    # Given a parent and a child, and a config for each mode
+    files = {
+        "p/README.md": _marked('id = "p1"'),
+        "p/c/README.md": _marked('id = "c1"'),
+    }
+
+    # When the command runs under each mode
+    _, nested = _list(files, mode="nesting")
+    _, flat = _list(files, mode="flat")
+
+    # Then the child is indented under `nesting` and is not under `flat`
+    assert [line for line in nested.splitlines() if "  c1" in line] == ["  c1  Title"]
+    assert [line for line in flat.splitlines() if "c1" in line] == ["c1  Title"]
+
+
+def test_the_errors_of_a_refusal_are_in_the_order_that_discovery_gives() -> None:
+    """A file comes before an error that names several files, as in `check`."""
+    # Given a shared id whose files sort before a Work that is left out
+    files = {
+        "s/README.md": _marked('id = "a7b2c4"'),
+        "t/README.md": _marked('id = "a7b2c4"'),
+        "z/README.md": _marked(""),
+    }
+
+    # When the command refuses
+    with pytest.raises(ContractsError) as raised:
+        _list(files)
+
+    # Then the file that was left out is first, and the shared id follows
+    assert [d.where for d in raised.value.diagnostics] == [
+        f"{BASE}/z/README.md",
+        f"{BASE}/s/README.md, {BASE}/t/README.md",
+    ]
+    assert str(raised.value).splitlines()[0].startswith(f"error: {BASE}/z/")

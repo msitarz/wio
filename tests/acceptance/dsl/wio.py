@@ -47,6 +47,26 @@ class Wio:
         """
         self.driver.install(name)
 
+    def put(self, path: str, data: bytes) -> None:
+        """Write a file into the repository of the scenario.
+
+        Args:
+            path: The file, relative to the root of the repository.
+            data: Its bytes.
+        """
+        self.driver.put(path, data)
+
+    def fingerprint(self, directory: str) -> dict[str, str]:
+        """Fingerprint the files below a directory of the repository.
+
+        Args:
+            directory: The directory, relative to the root of the repository.
+
+        Returns:
+            The SHA-256 of each file by its path relative to the directory.
+        """
+        return self.driver.fingerprint(directory)
+
     def run(self, args: Sequence[str]) -> Output:
         """Run `wio` with some arguments.
 

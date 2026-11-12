@@ -5,7 +5,13 @@ from typing import TYPE_CHECKING
 lazy import json
 
 from wio.contracts.discovery import discover_works
+from wio.contracts.errors import ContractsError
 from wio.contracts.hierarchy import build_hierarchy
+lazy from wio.formats import render_text
+
+_HINT = "`wio contracts check` shows every problem."
+"""The line that a refusal ends with, so a person knows where to see them all."""
+_NO_TITLE = "(no title)"
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -78,7 +84,15 @@ def _text_order(found: Hierarchy) -> list[tuple[Work, int]]:
         siblings in the order of their paths, with the number of its ancestors.
         Under `flat` it is the Works in the order of their paths, all at 0.
     """
-    raise NotImplementedError
+    order: list[tuple[Work, int]] = []
+    pending = [
+        (work, 0) for work in reversed(found.works) if not found.ancestors[work.path]
+    ]
+    while pending:
+        work, depth = pending.pop()
+        order.append((work, depth))
+        pending.extend((kid, depth + 1) for kid in reversed(found.children[work.path]))
+    return order
 
 
 def _block(
@@ -96,7 +110,49 @@ def _block(
     Returns:
         The first line and the detail lines, none of them ended by a newline.
     """
-    raise NotImplementedError
+    indent = "  " * depth
+    template = f"  [{work.template}]" if work.template else ""
+    first = f"{indent}{work.id.ljust(width)}  {work.title or _NO_TITLE}{template}"
+    details = [work.path.as_posix()]
+    if work.roots:
+        details.append("roots: " + ", ".join(work.roots))
+    details.extend(f"after: {_dependency(id_, titles)}" for id_ in work.depends_on)
+    if work.actions:
+        entries = (f"{name} = {_value(value)}" for name, value in work.actions.items())
+        details.append("actions: " + ", ".join(entries))
+    pad = indent + " " * (width + 2)
+    return [first, *(pad + line for line in details)]
+
+
+def _dependency(work_id: str, titles: Mapping[str, str | None]) -> str:
+    """Write a dependency with the title of the Work it names.
+
+    Args:
+        work_id: The id as listed.
+        titles: The title of each Work by id.
+
+    Returns:
+        The id and its title, `(no title)` for a Work with none, and `(not found)`
+        for an id that no Work has.
+    """
+    if work_id not in titles:
+        return f"{work_id} (not found)"
+    return f"{work_id} {titles[work_id] or _NO_TITLE}"
+
+
+def _value(value: str | tuple[str, ...]) -> str:
+    """Write what an `[actions]` entry says.
+
+    Args:
+        value: A stage preset, or the stages of an action.
+
+    Returns:
+        The preset bare, the stages in brackets joined by `, `, and `none` for no
+        stage.
+    """
+    if isinstance(value, str):
+        return value
+    return "[" + ", ".join(value) + "]" if value else "none"
 
 
 def _as_object(work: Work, found: Hierarchy) -> dict[str, object]:
@@ -110,7 +166,20 @@ def _as_object(work: Work, found: Hierarchy) -> dict[str, object]:
         The fields in the order `render_list` gives, with the path written with
         `/`.
     """
-    raise NotImplementedError
+    parent = found.parent[work.path]
+    return {
+        "id": work.id,
+        "title": work.title,
+        "path": work.path.as_posix(),
+        "template": work.template,
+        "roots": list(work.roots),
+        "depends_on": list(work.depends_on),
+        "actions": {
+            name: value if isinstance(value, str) else list(value)
+            for name, value in work.actions.items()
+        },
+        "parent": parent.id if parent else None,
+    }
 
 
 def run_list(services: Services, args: Namespace, stdio: Stdio) -> int:
@@ -159,4 +228,8 @@ def _refuse_incomplete(discovery: WorkDiscovery) -> None:
             those errors in the order of `diagnostics`, and its message is them
             rendered one to a line and the hint.
     """
-    raise NotImplementedError
+    left = {*discovery.incomplete, *discovery.ambiguous}
+    refused = [error for error in discovery.diagnostics if error in left]
+    if refused:
+        message = f"{render_text(refused, keep_order=True)}\n{_HINT}"
+        raise ContractsError(message, refused)
