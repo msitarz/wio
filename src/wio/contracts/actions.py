@@ -28,12 +28,12 @@ class ResolvedAction:
     """One action of a Work after its own `[actions]` replaced the inherited ones.
 
     It is immutable. It keeps the source of the action and whether the Work
-    removed it, which `wio contracts show` prints and the check uses too: the
-    check judges a repeated stage only for a source of `work` or `template`, and
-    never for `defaults`, and a Work resolves to no action when every entry is
-    removed or there is none. A repeat in the Work's own `[actions]` is reported
-    once, by the check of the names, which runs even when no actions resolve, and
-    not again by the resolved check, which reports the repeats it inherits.
+    removed it, which the check uses: it judges a repeated stage only for a source
+    of `work` or `template`, and never for `defaults`, and a Work resolves to no
+    action when every entry is removed or there is none. A repeat in the Work's
+    own `[actions]` is reported once, by the check of the names, which runs even
+    when no actions resolve, and not again by the resolved check, which reports
+    the repeats it inherits.
 
     Attributes:
         name: The action's name.

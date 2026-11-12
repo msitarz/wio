@@ -231,15 +231,15 @@ graph.
 - **Each Work's file is read again once, and each template's actions at most
   once.** A `Work` holds only some of the keys of its block, so the unknown-key
   check and the test of which fields discovery reported need the block, and the
-  block is shared by every concern so that a later check of the body does not
-  read a third time. A file that cannot be read the second time is the Work's
-  one error, because nothing else about it can be judged.
+  block is shared by every concern, so a file is read twice in all. A file that
+  cannot be read the second time is the Work's one error, because nothing else
+  about it can be judged.
 - **The layering never puts the defaults under a template.** A Work without a
   template follows `[works.defaults.actions]`, and a Work with one follows only
-  that template, so every Work has one source of default actions. `show` needs
-  to say where each action comes from, so the resolution keeps the source of
-  each action and whether the Work removed it, and `actions.py` holds it for
-  both.
+  that template, so every Work has one source of default actions. The
+  resolution keeps the source of each action and whether the Work removed it,
+  because a reader of a Work's actions needs to tell an override from what is
+  inherited, and `actions.py` holds that rule.
 - **A pipeline that a template gives is judged here, a preset or a default is
   not.** No other command judges the stages that a template lists, so a repeat
   among them is reported at each Work that inherits it. `wio config check`
