@@ -30,10 +30,10 @@ def set_block_keys(
     for `+++` front matter, after the line `wio = 1`.
 
     Any other plain key that the block lacks is added as a line after the last
-    plain key, which is the last line before the first table that is not a comment
-    line or an empty line, so before the comment lines and the empty lines that
-    follow it, or at the start of the block when it has no plain key, in the order
-    given. A mapping in `keys` is written as an inline table, which is a plain key.
+    plain key, including all lines of a multiline value, so before the comment
+    lines and empty lines that follow it, or at the start of the block when it has
+    no plain key, in the order given. A mapping in `keys` is written as an inline
+    table, which is a plain key.
     A table that the block lacks is added at the end of the block, after the last
     table or after the plain keys, in the order given, with one empty line before
     it, which is added only when the block does not already end with one and is
@@ -44,16 +44,14 @@ def set_block_keys(
     The block is written with the line ending of the line of its opening
     delimiter: its text is read with line feeds, edited, and written back with that
     ending, so a block that mixed endings is written with one, and the body is not
-    touched. Dotted keys are not supported. The scan for the last plain key takes a
-    comment or empty line that ends a multi-line string for one that ends the key.
+    touched. Dotted keys and multiline values already in the block are preserved.
 
     Args:
         text: The text of a contract, whose first line starts a metadata block of
             the form `<!-- wio` or `+++`.
         keys: The plain keys to set, in order, each with a value that TOML can
-            write: a string, a number, a boolean, an array of them, or a mapping of
-            them, which is written as an inline table. A mapping inside an array is
-            not supported.
+            write, including arrays and mappings; a mapping is written as an
+            inline table.
         tables: The tables to set, in order, each as the name of the table and the
             keys it holds.
 
@@ -64,7 +62,6 @@ def set_block_keys(
         MetadataBlockError: The text has no metadata block, or its block cannot be
             read, as the block reader says.
         ValueError: The function itself refuses a table that is named like a plain
-            key of the block, a plain key named like a table of the block, and a
-            mapping inside an array.
+            key of the block or a plain key named like a table of the block.
     """
     raise NotImplementedError

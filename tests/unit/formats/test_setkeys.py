@@ -142,11 +142,20 @@ def test_a_block_with_no_final_line_ending_is_given_one() -> None:
     raise NotImplementedError
 
 
-def test_a_mapping_inside_an_array_is_refused() -> None:
-    """AC-8: only a mapping as the value is written, as an inline table."""
+def test_a_mapping_inside_an_array_is_written() -> None:
+    """AC-8: an array can contain inline tables."""
     # Given a block with a plain key
     # When a key whose value is a list of mappings is set
-    # Then `ValueError` is raised
+    # Then the key is added with an array containing an inline table
+    raise NotImplementedError
+
+
+def test_multiline_values_and_dotted_keys_are_preserved() -> None:
+    """AC-8: adding a key does not alter a multiline value or dotted key."""
+    # Given a block with a dotted key and a multiline string containing empty and
+    # comment-like lines
+    # When a plain key is added
+    # Then it follows the complete last plain key and the existing text is unchanged
     raise NotImplementedError
 
 
