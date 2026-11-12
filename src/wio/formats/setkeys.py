@@ -16,24 +16,31 @@ def set_block_keys(
 
     It is the one function that edits the block of a contract, so no second editor
     of the block exists. It changes the block and nothing else: the form of the
-    block, its other keys, its comments, the body and a leading byte-order mark
-    stay as they were. It reads no file, and `tomlkit` is imported on the first
+    block, its other keys and their comments, the body and a leading byte-order
+    mark stay as they were. It reads no file, and `tomlkit` is imported on the first
     call, not when `wio.formats` is imported.
 
     A key that the block already has is replaced in place, keeping its position,
-    and so is a table that it already has, whose keys are set in the same way,
-    each in place or added at the end of the table. The `id`, when the block has
-    none, is put first as text, after `<!-- wio` or, for `+++` front matter, after
-    the line `wio = 1`, and an `id` that is there is replaced in place. Any other
-    key that the block lacks is added as a plain key after the last plain key and
-    the comment lines that follow it, before the empty line or the table that ends
-    the plain keys, or at the start of the block when it has none, in the order
-    given. A table that the block lacks is added after the last table, or after
-    the plain keys when there is none, in the order given, and preceded by one
-    empty line, which is the only empty line added: a block that already ends with
-    several keeps them. A value
-    that is a mapping in `keys` is written as an inline table, which is a plain
-    key, and only an added table is preceded by an empty line.
+    and so is a table that it already has, whose keys are set in the same way, each
+    in place or added at the end of the table. The `id`, when the block has none,
+    is put first as text, after `<!-- wio` or, for `+++` front matter, after the
+    line `wio = 1`, and an `id` that is there is replaced in place.
+
+    Any other plain key that the block lacks is added right after the last plain
+    key, before the comment lines and the empty lines that follow it, or at the
+    start of the block when it has no plain key, in the order given. A mapping in
+    `keys` is written as an inline table with `tomlkit.inline_table()`, which is a
+    plain key. A table that the block lacks is added after the last table, or after
+    the plain keys when there is none, in the order given, separated from what
+    precedes it by one empty line, which is added only when the block does not
+    already end with one, and none for a block that is empty. Only these three
+    things add an empty line.
+
+    The key is placed by building the document again from the items of the parsed
+    one with the public `append`, and not with `add`, which puts a new key after
+    the comments and the empty lines that follow the last plain key. A comment
+    that stands directly above a table keeps its text and may be separated from it
+    by an empty line.
 
     The block is written with the line ending of its first line, so what is added
     has it and a block that mixed endings is written with it throughout, because
