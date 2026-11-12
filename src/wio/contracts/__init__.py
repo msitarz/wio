@@ -13,6 +13,15 @@ lazy from wio.contracts.discovery import (
 )
 lazy from wio.contracts.errors import ContractsError
 lazy from wio.contracts.hierarchy import Hierarchy, build_hierarchy
+lazy from wio.contracts.location import (
+    IdGenerator,
+    NameArguments,
+    RandomIds,
+    choose_slug,
+    decide_place,
+    new_id,
+    write_new,
+)
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -132,12 +141,19 @@ __all__ = [
     "ContractsError",
     "ContractsSpec",
     "Hierarchy",
+    "IdGenerator",
+    "NameArguments",
+    "RandomIds",
     "Services",
     "Subcommand",
     "WorkDiscovery",
     "build_hierarchy",
+    "choose_slug",
+    "decide_place",
     "describe",
     "discover_works",
     "explain_not_a_work",
     "find_work",
+    "new_id",
+    "write_new",
 ]

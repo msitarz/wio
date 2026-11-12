@@ -1,6 +1,6 @@
 # Glossary of `src/wio/contracts`
 
-Terms of finding Works and of their hierarchy. They bind to this directory and
+Terms of finding, relating and creating Works. They bind to this directory and
 its descendants, and the nearest `GLOSSARY.md` wins. The terms of the
 architecture are in the [glossary of `src/wio`](../GLOSSARY.md) and those of the
 engine in the [repository glossary](../../../GLOSSARY.md).
@@ -12,3 +12,4 @@ engine in the [repository glossary](../../../GLOSSARY.md).
 | Incomplete tree | A tree in which a Work is left out, a collision excluded files, a marked file sits directly in the Works directory, or the Works directory cannot be walked, so that a command may not trust it to hold every Work. A wrong optional field and a shared id do not make it so. |
 | Implicit dependency | The wait of a parent for each of its children. No `depends_on` lists it, and it counts as an edge of the dependency graph, so a cycle through a parent is found. |
 | Dependents of a Work | The Works that list its id in `depends_on`. A parent that waits for the Work as its child is not one. |
+| Slug | The name of a Work's directory: lowercase letters and digits joined by single `-`, given by `--slug` as written or derived from a title. It is not the Work's id, which is six random characters. |

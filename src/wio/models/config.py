@@ -12,6 +12,9 @@ the contract of the type, and the names of the nested types are provisional.
 from dataclasses import dataclass, field
 from typing import Literal
 
+type HierarchyMode = Literal["flat", "nesting"]
+"""How the hierarchy of Works is derived: from the layout, or not at all."""
+
 
 @dataclass(frozen=True)
 class Defaults:
@@ -37,7 +40,7 @@ class Works:
             "description": "The Works directory; `.agents/wio/works` by default."
         },
     )
-    hierarchy: Literal["flat", "nesting"] = field(
+    hierarchy: HierarchyMode = field(
         default="flat",
         metadata={"description": "How the hierarchy is derived; `flat` by default."},
     )

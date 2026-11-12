@@ -128,3 +128,46 @@ case reads. [Parent and leaf](../../../docs/concepts.md#parent-and-leaf),
 - **The roots are not judged here.** Warnings about a root's name or about
   `@descendants` on a leaf belong to the command that checks Works, which reads
   the tables.
+
+## The id and the place of a new Work
+
+A new Work needs an id that no Work in the tree has and a place that cannot
+clash with another Work or hide the new one from every command. Both are decided
+in [`location.py`](location.py), apart from writing the contract, so that the
+rules are stated and tested once. The docstrings there say what each function
+takes, returns and refuses, and the
+[tests](../../../tests/unit/contracts/test_location.py) say how each case
+reads. [Identity and location](../../../docs/concepts.md#identity-and-location)
+defines the rules for ids, the default place and `--path`.
+
+- **Deciding writes nothing, and one guard writes.** `decide_place` only asks
+  the file system what exists, and `write_new` is the one function that
+  creates a file and refuses one that exists, so a contract is never
+  overwritten. Two creators racing for one path are not handled, because the
+  check and the write are two calls.
+- **The id generator is a seam.** `IdGenerator` is the interface and `RandomIds`
+  the one implementation, which reads bytes only from the `Entropy` port, so a
+  test fixes every id. The loop that draws again until the id is free and gives
+  up after a bounded number of draws, `MAX_DRAWS`, is `new_id`, and it knows
+  nothing of where candidates come from. The tree is the only record it checks:
+  an id that a deleted Work had is not avoided, because that needs the history,
+  which `wio trailers` reads.
+- **The alphabet has no `i`, `l`, `o` or `u`.** So an id is never mistaken for a
+  digit when it is read aloud or typed.
+- **A slug cannot hide the Work.** A slug that is given must be lowercase
+  letters and digits joined by single `-`, so it cannot start with `.`, hold `/`
+  or `..`, or leave the Works directory, and one that is derived from a title
+  follows the same form. An empty `--slug` counts as given, so a typo is
+  reported and not silently replaced by the title.
+- **A path is judged as discovery would judge it.** A new file is accepted only
+  when the next walk of the Works directory would find it as a Work, so it is
+  under the Works directory, below no hidden directory, through no symbolic link
+  and, under `nesting`, in a directory that holds no marked file, one that
+  discovery left out or excluded included, because that file would make the
+  directory a collision. The rules are repeated here from
+  [`explain_not_a_work`](discovery.py)'s list and not shared with it, because
+  here the file does not exist yet.
+- **One call gives one error, the first that applies.** The order runs from the
+  options, through the slug, the parent and the path, to what already exists, so
+  a mistake in the arguments is reported before the file system is asked what
+  already exists.

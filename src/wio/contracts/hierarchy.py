@@ -3,7 +3,7 @@
 
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from wio.models.diagnostics import Diagnostic, order_diagnostics
 from wio.models.frozen import freeze
@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
     from pathlib import Path
 
+    from wio.models.config import HierarchyMode
     from wio.models.works import Work
 
 _DESCENDANTS = "@descendants"
@@ -68,9 +69,7 @@ class Hierarchy:
     diagnostics: tuple[Diagnostic, ...]
 
 
-def build_hierarchy(
-    works: Sequence[Work], mode: Literal["flat", "nesting"]
-) -> Hierarchy:
+def build_hierarchy(works: Sequence[Work], mode: HierarchyMode) -> Hierarchy:
     """Build the hierarchy and check the dependency graph of some Works.
 
     It reads no file and writes none. Under `nesting` the graph holds the listed
@@ -129,7 +128,7 @@ class _Relatives:
     descendants: Mapping[Path, tuple[Work, ...]]
 
 
-def _relatives(works: Sequence[Work], mode: Literal["flat", "nesting"]) -> _Relatives:
+def _relatives(works: Sequence[Work], mode: HierarchyMode) -> _Relatives:
     """Derive the parent, children, ancestors and descendants from the paths.
 
     Args:

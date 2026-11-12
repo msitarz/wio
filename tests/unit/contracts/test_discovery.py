@@ -2,7 +2,7 @@
 """Tests of the discovery of Works in `wio.contracts`."""
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -20,8 +20,8 @@ from wio.models.works import Work
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
 
+    from wio.models.config import HierarchyMode
 
-type Hierarchy = Literal["flat", "nesting"]
 
 WORKS = ROOT / "works"
 BOM = chr(0xFEFF)
@@ -77,7 +77,9 @@ def _disk(
     )
 
 
-def _find(disk: MemoryFileSystem, hierarchy: Hierarchy = "nesting") -> WorkDiscovery:
+def _find(
+    disk: MemoryFileSystem, hierarchy: HierarchyMode = "nesting"
+) -> WorkDiscovery:
     """Discover the Works of the disk under the Works directory `works`.
 
     Args:
