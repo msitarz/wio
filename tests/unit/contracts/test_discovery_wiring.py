@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from wio.io.ports import FileSystem
 
 DIR = ROOT / ".agents" / "wio" / "works"
-FILES = {DIR / name: "" for name in ("b.md", "a.md", "c.md", "d.md")}
+FILES = {DIR / name: "" for name in ("b.md", "a.md", "c.md", "d.md", "notes.md")}
 
 
 def _work(name: str) -> Work:
@@ -90,16 +90,37 @@ def _reading(reads: Mapping[str, module._Read]) -> Mock:
     return Mock(side_effect=read)
 
 
+def _unmarked(name: str) -> module._Read:
+    """Build what a leaf gives for a file that has no block.
+
+    Args:
+        name: The file's name.
+
+    Returns:
+        A read that is not marked, is not left out and has no Work or error.
+    """
+    return module._Read(  # noqa: SLF001
+        path=Path(".agents/wio/works") / name,
+        marked=False,
+        left_out=False,
+        work=None,
+        problems=(),
+    )
+
+
 def test_the_result_is_assembled_from_the_leaves(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The reads, the collisions and the shared ids become one result."""
-    # Given leaves that read `a` and `b` as Works, `c` as left out and `d` as a
-    # file that a collision excludes, and that report a shared id
+    # Given leaves that read `a` and `b` as Works, `c` as left out, `d` as a
+    # file that a collision excludes and `notes` as a file with no block, and
+    # that report a shared id
     reads = {
         n: _read(n, left_out=n == "c.md") for n in ("a.md", "b.md", "c.md", "d.md")
     }
-    monkeypatch.setattr(module, "_read_file", _reading(reads))
+    reads["notes.md"] = _unmarked("notes.md")
+    reader = _reading(reads)
+    monkeypatch.setattr(module, "_read_file", reader)
     collision = Diagnostic("error", "collision", "two files")
     excluded = frozenset({reads["c.md"].path, reads["d.md"].path})
     monkeypatch.setattr(
@@ -108,7 +129,8 @@ def test_the_result_is_assembled_from_the_leaves(
         Mock(return_value=module._Collisions(excluded, (collision,))),  # noqa: SLF001
     )
     shared = Diagnostic("error", "shared", "one id")
-    monkeypatch.setattr(module, "_shared_ids", Mock(return_value=(shared,)))
+    judge = Mock(return_value=(shared,))
+    monkeypatch.setattr(module, "_shared_ids", judge)
 
     # When the Works are discovered
     found = module.discover_works(ROOT, Works(), MemoryFileSystem(FILES))
@@ -116,7 +138,9 @@ def test_the_result_is_assembled_from_the_leaves(
     # Then only `a` and `b` are Works, in the order of their paths, `c` is left
     # out and `d` is excluded and not left out, the errors of the left-out file
     # and the collision are incomplete, the shared id is ambiguous, and the
-    # diagnostics hold all of them and the problem of each file
+    # diagnostics hold all of them and the problem of each file, the file with no
+    # block is in no list, each file was read with the root and its own path, and
+    # the shared ids were looked for among the Works that stay, in order
     assert [work.id for work in found.works] == ["a", "b"]
     assert found.left_out == (reads["c.md"].path,)
     assert found.excluded == (reads["d.md"].path,)
@@ -130,27 +154,34 @@ def test_the_result_is_assembled_from_the_leaves(
         "problem of d.md",
         "two files",
     ]
+    names = ("a.md", "b.md", "c.md", "d.md", "notes.md")
+    assert [c.args[:2] for c in reader.call_args_list] == [
+        (ROOT, DIR / n) for n in names
+    ]
+    assert [w.id for w in judge.call_args.args[0]] == ["a", "b"]
 
 
 def test_the_collisions_are_judged_by_the_hierarchy_mode_and_the_directory(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The leaf that applies the nesting rules gets the config's two settings."""
-    # Given leaves that find nothing wrong and a config with nesting and its
-    # own Works directory
-    monkeypatch.setattr(module, "_read_file", _reading({"a.md": _read("a.md")}))
+    # Given leaves that read a Work and a file that is left out, and a config
+    # with nesting and its own Works directory
+    reads = {"a.md": _read("a.md"), "b.md": _read("b.md", left_out=True)}
+    monkeypatch.setattr(module, "_read_file", _reading(reads))
     judge = Mock(return_value=module._Collisions(frozenset(), ()))  # noqa: SLF001
     monkeypatch.setattr(module, "_find_collisions", judge)
     monkeypatch.setattr(module, "_shared_ids", Mock(return_value=()))
     settings = Works(dir="works", hierarchy="nesting")
-    disk = MemoryFileSystem({ROOT / "works" / "a.md": ""})
+    disk = MemoryFileSystem({ROOT / "works" / n: "" for n in reads})
 
     # When the Works are discovered
     module.discover_works(ROOT, settings, disk)
 
-    # Then the leaf got the reads, `nesting` and the directory as written
+    # Then the leaf got every read, the one left out included, `nesting` and the
+    # directory as written
     assert judge.call_args.args[1:] == ("nesting", "works")
-    assert len(judge.call_args.args[0]) == 1
+    assert list(judge.call_args.args[0]) == list(reads.values())
 
 
 def test_a_directory_that_cannot_be_walked_reads_no_file(
