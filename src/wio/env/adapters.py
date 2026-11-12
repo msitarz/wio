@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The real adapters of the ports of `wio.env`."""
 
+import secrets
 from pathlib import Path
 
 
@@ -34,3 +35,18 @@ class ProcessEnvironment:
             `src/wio` that reads it.
         """
         return Path.cwd()
+
+
+class SystemEntropy:
+    """The operating system's source of randomness, as the `Entropy` port."""
+
+    def random_bytes(self, count: int) -> bytes:
+        """Read cryptographically secure random bytes.
+
+        Args:
+            count: How many bytes to return.
+
+        Returns:
+            Exactly `count` bytes from the operating system.
+        """
+        return secrets.token_bytes(count)

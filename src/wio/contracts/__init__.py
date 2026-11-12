@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from wio.contracts.ports import TemplateCatalog
+    from wio.env.ports import Entropy
     from wio.io.ports import FileSystem, Repository, Stdio
     from wio.ports import Settings
 
@@ -39,19 +40,21 @@ if TYPE_CHECKING:
 class Services:
     """What a subcommand reads the project through.
 
-    Provisional: a leaf that needs another port, such as randomness, adds a field.
+    Provisional: a leaf that needs another port adds a field.
 
     Attributes:
         settings: Loads the config.
         repository: Finds the repository root.
         files: Lists and reads files.
         catalog: Finds the templates of the project.
+        entropy: Gives the random bytes of a new id.
     """
 
     settings: Settings
     repository: Repository
     files: FileSystem
     catalog: TemplateCatalog
+    entropy: Entropy
 
 
 @dataclass(frozen=True)

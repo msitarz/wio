@@ -8,7 +8,13 @@ from typing import TYPE_CHECKING, cast, override
 
 import pytest
 
-from tests.unit.fakes import ROOT, FakeRepository, FakeStdio, MemoryFileSystem
+from tests.unit.fakes import (
+    ROOT,
+    FakeEntropy,
+    FakeRepository,
+    FakeStdio,
+    MemoryFileSystem,
+)
 from wio.contracts import Services
 from wio.contracts.checking import check_works, run_check
 from wio.contracts.discovery import discover_works, wrong_optional_fields
@@ -687,7 +693,7 @@ def test_the_command_exits_0_for_a_warning(
     """A warning is printed and does not fail the command."""
     # Given a Work with an unknown key
     disk = MemoryFileSystem({ROOT / BASE / "a/README.md": _marked("a1", extra)})
-    services = Services(_Settings(), FakeRepository(), disk, _Catalog())
+    services = Services(_Settings(), FakeRepository(), disk, _Catalog(), FakeEntropy())
     stdio = FakeStdio()
 
     # When the command runs
@@ -719,17 +725,17 @@ def test_the_command_exits_1_for_an_error_and_says_when_the_contracts_pass() -> 
 
     # When the command runs on each, and on the good one with `--json`
     failed = run_check(
-        Services(_Settings(), FakeRepository(), bad, _Catalog()),
+        Services(_Settings(), FakeRepository(), bad, _Catalog(), FakeEntropy()),
         Namespace(json=False),
         streams[0],
     )
     passed = run_check(
-        Services(_Settings(), FakeRepository(), good, _Catalog()),
+        Services(_Settings(), FakeRepository(), good, _Catalog(), FakeEntropy()),
         Namespace(json=False),
         streams[1],
     )
     as_json = run_check(
-        Services(_Settings(), FakeRepository(), good, _Catalog()),
+        Services(_Settings(), FakeRepository(), good, _Catalog(), FakeEntropy()),
         Namespace(json=True),
         streams[2],
     )

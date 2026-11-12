@@ -1,0 +1,76 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Test stubs of setting keys in the metadata block of a contract.
+
+Each stub is a scenario of the Work's acceptance criteria. The implementation
+stage replaces its body with the scenario.
+"""
+
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="architecture stub: the implementation stage fills it"
+)
+
+
+def test_the_id_goes_first_and_the_other_keys_are_set_by_the_rules() -> None:
+    """AC-8: scenario of the contract."""
+    # Given a contract with a comment block holding `template`, `roots = []`, an
+    # empty line and a table `[x]`, and one with `+++` front matter
+    # When the id, the roots and the dependencies are set, and then the table
+    # `[actions]`
+    # Then the id is first, `roots` is replaced in place, `depends_on` follows
+    # the last plain key, `[x]` is as it was and `[actions]` comes last after an
+    # empty line, and the front matter has `wio = 1` then the id
+    raise NotImplementedError
+
+
+def test_a_key_that_is_there_is_replaced_in_place() -> None:
+    """AC-8: scenario of the contract."""
+    # Given a block whose `id` and `template` are in the middle of other keys
+    # When they are set again
+    # Then they keep their positions and the rest of the text
+    raise NotImplementedError
+
+
+def test_an_inline_table_is_a_plain_key_and_only_an_added_table_has_an_empty_line() -> (
+    None
+):
+    """AC-8: scenario of the contract."""
+    # Given a block with an inline table and one with a table and no plain keys
+    # When a plain key and a table are added
+    # Then the key follows the inline table, the table follows the plain keys
+    # when there is none, and only the table is preceded by an empty line
+    raise NotImplementedError
+
+
+def test_a_block_with_no_keys_gets_its_keys() -> None:
+    """AC-8: scenario of the contract."""
+    # Given `<!-- wio` and `-->` with nothing between them
+    # When an id and roots are set
+    # Then the block holds them, the id first
+    raise NotImplementedError
+
+
+def test_the_line_ending_and_the_byte_order_mark_are_kept() -> None:
+    """AC-8: scenario of the contract."""
+    # Given a contract written with CRLF and one with a byte-order mark
+    # When keys and a table are set
+    # Then every line ending is CRLF, the mark is there, and the body is as it was
+    raise NotImplementedError
+
+
+def test_nothing_but_the_block_changes() -> None:
+    """AC-8: scenario of the contract."""
+    # Given a contract with comments in its block, a body with lines that look
+    # like keys and a closing delimiter
+    # When keys are set
+    # Then the comments, the body and the delimiters are as they were
+    raise NotImplementedError
+
+
+def test_a_text_with_no_block_is_refused() -> None:
+    """AC-8: scenario of the contract."""
+    # Given a text with no metadata block
+    # When keys are set
+    # Then the error of the block reader is raised
+    raise NotImplementedError
