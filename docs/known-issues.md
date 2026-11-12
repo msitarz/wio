@@ -79,3 +79,50 @@ mistakes.
 **What is being done.** One helper in `wio.models` builds every `frozendict`,
 with a single narrow `# pyrefly: ignore[bad-argument-count]` that names this
 entry. Delete the suppression, and this entry, when a release accepts the call.
+
+## `tomlkit` cannot add a key or a table without moving or adding lines
+
+**What fails.** `tomlkit` keeps the text of a document it parsed, but with
+0.15.2, the locked version, it has no public way to put a new key or table at a
+chosen place, and the ways it does offer change more than they say:
+
+- `doc[key] = value` and `doc.add` replace an existing key in place, comment
+  included, but put a new plain key after the comment lines and the empty lines
+  that follow the last plain key, directly above the first table. Nothing puts
+  the `id` first: `Container` has no public `insert`, only the private
+  `_insert_at`.
+- A table that is added with `doc[name] = table` gets one empty line before it
+  only when the document does not already end with one, but the same table
+  added with `Container.append` doubles an empty line that is there.
+- `Container.append` also gives an empty line to any table whose predecessor is
+  not an empty line, one that was parsed included, so building a document again
+  from `doc.body` adds a line before `[x]` in `template = "t"` then `[x]`.
+- Building a document again moves an empty line that stands before a plain key
+  to after it: `a=1`, an empty line, `b=2` becomes `a=1`, `b=2`, an empty line,
+  and a leading empty line is dropped.
+- Added items are written with `\n` whatever the document used, so a CRLF
+  document comes out with mixed endings.
+- A mapping assigned as a value becomes a table, and a list of mappings an array
+  of tables. An inline table needs `tomlkit.inline_table()`.
+- A dotted key such as `a.b = 1` is parsed as a table.
+- Adding a key or a table whose name is already used raises
+  `tomlkit.exceptions.KeyAlreadyPresent`, which is not a `ValueError`, while
+  `doc["x"] = 1` over a table replaces it without an error. A key added to an
+  existing table lands after the table's trailing comment lines.
+
+**What it puts at risk.** Setting keys in the metadata block of a contract,
+which a person has written and reviewed, would reorder or add lines, or leave
+the line endings mixed, in a file that `wio contracts new` and
+`wio contracts skeleton` are meant to change only where they say.
+
+**Why it is not fixed yet.** The behaviours above are the library's own, and the
+version is the latest. Using the private `_insert_at` would tie the block writer
+to an internal that can change with any release, and `encode_toml`, which writes
+a whole document, cannot edit one.
+
+**What is being done.** `set_block_keys` in `wio.formats` uses `tomlkit` only to
+read the block, to replace a value where it stands and to write a value, and
+places the lines that it adds itself, as text, after normalizing the line
+endings. Its tests pin each case above. Remove this entry, and that workaround
+if the library allows, when a release lets a key or a table be inserted at a
+chosen place without changing the rest.
