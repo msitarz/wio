@@ -281,9 +281,8 @@ says how sections are matched.
 - **The rules are written again here and not shared with `wio.templates`.** A
   component cannot import another, so the reading of a directive on a heading
   and the warning for a repeated heading are repeated, both on the parsers of
-  `wio.formats`. The text of a heading for matching is taken from its line by an
-  expression of this module, because the parser raises for a list that it
-  refuses and a heading whose list is refused still has a text.
+  `wio.formats`. The text of a heading is taken from its line and not from the
+  parser, because the parser raises for a list that it refuses.
 - **A contract whose template cannot be used gets no body check.** A template
   that is missing or rejected has been reported by the check of the Works, one
   that cannot be read is reported by `wio templates check`, and a Work whose
@@ -291,11 +290,12 @@ says how sections are matched.
   checked against a source that is not there. The caller decides the last,
   because such a Work has no template in the same way as one that names none,
   and the body checker alone could not tell them apart.
-- **The catalog is not asked again.** The check of the Works already asked it
-  what each template is, and every question re-reads the templates, so the body
-  checker is given the answer and reads only the template's file, once, however
-  many contracts follow it. A template that cannot be read is remembered, so it
-  is not read again for the next contract.
+- **The template's file is read once, for its directives.** The check of the
+  Works already asked the catalog what each template is, and the `Template` that
+  it gives carries no directives, which are in the template's body, so the body
+  checker is given that answer and reads only the file, once, however many
+  contracts follow it. A template that cannot be read is remembered, so it is
+  not read again for the next contract.
 - **The first heading is the section.** When a `##` heading repeats, in a
   contract or in a template, the first counts, and a repeat in a contract is a
   warning and carries no items.
