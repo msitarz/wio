@@ -234,3 +234,21 @@ def test_a_commit_with_no_contract_does_not_run_the_hook(tmp_path: Path) -> None
     # Then its output marks the hook `(no files to check)Skipped`
     assert code == 0
     assert "(no files to check)Skipped" in output
+
+
+def test_the_workflow_describes_the_contracts_hook() -> None:
+    """The workflow's section 7 shows the entry and the `prek` hook of the contracts."""
+    # Given `docs/workflow.md`
+    text = (ROOT / "docs" / "workflow.md").read_text()
+
+    # When its section 7 is read
+    section = " ".join(text[text.index("\n## 7. ") :].split())
+
+    # Then it shows the entry that runs `wio contracts check` for an `.md` file of
+    # the Works directory, says why the whole tree is checked and that only an
+    # error is reported, and names the `prek` hook of the contracts
+    assert "*/.agents/wio/works/*.md) out=$(uv run wio contracts check" in section
+    assert "a duplicate id, a cycle and a dependency span files" in section
+    assert "a warning or a note is one `wio contracts check` away" in section
+    assert "`wio-contracts` hook of `prek.toml` runs" in section
+    assert "`uv run wio contracts check` when an `.md` file" in section

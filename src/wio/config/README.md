@@ -218,7 +218,7 @@ for it.
 - **A clean text run says so,** so that success is told apart from a command
   that did nothing, while `--json` stays a document.
 - **Hooks run the check after every change of the config.** The recipe is in
-  [the workflow](../../../docs/workflow.md#7-checking-the-config-after-every-edit).
+  [the workflow](../../../docs/workflow.md#7-checking-the-config-the-templates-and-the-contracts-after-every-edit).
 - **`list` and `show` do not list the names of a table or the templates.** The
   keys of a table are in `wio config show <table> --json`, and templates belong
   to `wio templates`.
