@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
+import pytest
+
 from tests.unit.fakes import ROOT, MemoryFileSystem
 from wio.contracts import discovery as module
 from wio.models.config import Works
@@ -14,8 +16,6 @@ from wio.models.works import Work
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
-
-    import pytest
 
     from wio.io.ports import FileSystem
 
@@ -184,24 +184,44 @@ def test_the_collisions_are_judged_by_the_hierarchy_mode_and_the_directory(
     assert list(judge.call_args.args[0]) == list(reads.values())
 
 
+@pytest.mark.parametrize(
+    ("disk", "case"),
+    [
+        (MemoryFileSystem({ROOT / "x": ""}), "does not exist"),
+        (MemoryFileSystem({ROOT / "elsewhere": ""}), "is not a directory"),
+        (
+            MemoryFileSystem(
+                {ROOT / "elsewhere" / "a.md": ""}, links={ROOT / "elsewhere"}
+            ),
+            "must not be a symbolic link",
+        ),
+    ],
+    ids=["missing", "a file", "a symbolic link"],
+)
 def test_a_directory_that_cannot_be_walked_reads_no_file(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, disk: MemoryFileSystem, case: str
 ) -> None:
     """The refusal comes before any file is read, and is incomplete."""
-    # Given a leaf that fails the test if it reads, and a Works directory that
-    # is not there
+    # Given a leaf that fails the test if it reads, and a configured Works
+    # directory that is missing, is a file or is a symbolic link, in a
+    # repository that exists
     leaf = Mock()
     monkeypatch.setattr(module, "_read_file", leaf)
     settings = Works(dir="elsewhere")
 
     # When the Works are discovered
-    found = module.discover_works(ROOT, settings, MemoryFileSystem())
+    found = module.discover_works(ROOT, settings, disk)
 
-    # Then no file was read, and the one error is incomplete and not ambiguous
+    # Then no file was read, and the one error is at the directory as written,
+    # begins `The Works directory`, says what is wrong, and is incomplete and
+    # not ambiguous
     leaf.assert_not_called()
     assert found.works == ()
     assert found.diagnostics == found.incomplete
     assert [d.where for d in found.diagnostics] == ["elsewhere"]
+    message = found.diagnostics[0].message
+    assert message.startswith("The Works directory")
+    assert message.endswith(case)
     assert found.ambiguous == ()
 
 
@@ -257,11 +277,11 @@ def _tree_out_of_order(monkeypatch: pytest.MonkeyPatch) -> MemoryFileSystem:
     Returns:
         The disk that lists the files.
     """
-    names = ("a/x.md", "a.md", "c/y.md", "c.md", "e/z.md", "e.md")
+    names = ("a/0.md", "a.md", "c/y.md", "c.md", "e/z.md", "e.md")
     reads = {
         r.path.name: r
         for r in (
-            _read_at("a/x.md", ":12", ":4"),
+            _read_at("a/0.md", ":12", ":4"),
             _read_at("a.md"),
             _read_at("c/y.md", "", left_out=True),
             _read_at("c.md", "", left_out=True),
@@ -337,12 +357,12 @@ def test_every_list_is_in_the_order_of_its_paths_and_places(
     # of their paths, and the diagnostics by file, then line as a number, then
     # the places that are not a file as text, with `incomplete` and `ambiguous`
     # in the same order inside `diagnostics`
-    assert _paths(w.path for w in found.works) == [f"{base}a.md", f"{base}a/x.md"]
+    assert _paths(w.path for w in found.works) == [f"{base}a.md", f"{base}a/0.md"]
     assert _paths(found.left_out) == [f"{base}c.md", f"{base}c/y.md"]
     assert _paths(found.excluded) == [f"{base}e.md", f"{base}e/z.md"]
     assert _where(found.diagnostics) == [
-        f"{base}a/x.md:4",
-        f"{base}a/x.md:12",
+        f"{base}a/0.md:4",
+        f"{base}a/0.md:12",
         f"{base}c.md",
         f"{base}c/y.md",
         collision,
