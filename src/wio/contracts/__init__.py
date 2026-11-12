@@ -12,6 +12,7 @@ lazy from wio.contracts.discovery import (
     find_work,
 )
 lazy from wio.contracts.errors import ContractsError
+lazy from wio.contracts.hierarchy import Hierarchy, build_hierarchy
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -130,9 +131,11 @@ __all__ = [
     "ContractsCommand",
     "ContractsError",
     "ContractsSpec",
+    "Hierarchy",
     "Services",
     "Subcommand",
     "WorkDiscovery",
+    "build_hierarchy",
     "describe",
     "discover_works",
     "explain_not_a_work",
