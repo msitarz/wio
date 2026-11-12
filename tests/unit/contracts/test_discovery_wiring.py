@@ -13,7 +13,7 @@ from wio.models.frozen import freeze
 from wio.models.works import Work
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Iterable, Mapping
 
     import pytest
 
@@ -188,3 +188,137 @@ def test_a_missing_default_directory_holds_no_work_and_reads_no_file(
     # Then nothing was read and the result is empty
     leaf.assert_not_called()
     assert found == module.WorkDiscovery((), (), (), (), (), ())
+
+
+def _read_at(relative: str, *places: str, left_out: bool = False) -> module._Read:
+    """Build what a leaf gives for a file at a path below the Works directory.
+
+    Args:
+        relative: The path below the Works directory.
+        *places: The places of the file's own errors, in the order given.
+        left_out: Whether the file is left out.
+
+    Returns:
+        The read, with a Work unless the file is left out.
+    """
+    path = Path(".agents/wio/works") / relative
+    return module._Read(  # noqa: SLF001
+        path=path,
+        marked=True,
+        left_out=left_out,
+        work=None if left_out else _work(relative),
+        problems=tuple(
+            Diagnostic("error", f"{path.as_posix()}{p}", "m") for p in places
+        ),
+    )
+
+
+def _tree_out_of_order(monkeypatch: pytest.MonkeyPatch) -> MemoryFileSystem:
+    """Fake the leaves for a tree whose walk is not in the order of its paths.
+
+    Each directory is walked before the file of the same name that sorts first as
+    a string. Two files are left out, two are excluded by a collision, one file
+    has errors out of order, and two shared ids come out of order.
+
+    Args:
+        monkeypatch: The fixture that replaces the leaves.
+
+    Returns:
+        The disk that lists the files.
+    """
+    names = ("a/x.md", "a.md", "c/y.md", "c.md", "e/z.md", "e.md")
+    reads = {
+        r.path.name: r
+        for r in (
+            _read_at("a/x.md", ":12", ":4"),
+            _read_at("a.md"),
+            _read_at("c/y.md", "", left_out=True),
+            _read_at("c.md", "", left_out=True),
+            _read_at("e/z.md"),
+            _read_at("e.md"),
+        )
+    }
+    monkeypatch.setattr(module, "_read_file", _reading(reads))
+    place = f"{reads['e.md'].path}, {reads['z.md'].path}"
+    collisions = module._Collisions(  # noqa: SLF001
+        frozenset({reads["e.md"].path, reads["z.md"].path}),
+        (Diagnostic("error", place, "m"),),
+    )
+    monkeypatch.setattr(module, "_find_collisions", Mock(return_value=collisions))
+    shared = (Diagnostic("error", "s2", "m"), Diagnostic("error", "s1", "m"))
+    monkeypatch.setattr(module, "_shared_ids", Mock(return_value=shared))
+    return MemoryFileSystem({DIR / name: "" for name in names})
+
+
+def _where(diagnostics: Iterable[Diagnostic]) -> list[str]:
+    """List the places of some diagnostics.
+
+    Args:
+        diagnostics: The diagnostics.
+
+    Returns:
+        Their places, in their order.
+    """
+    return [d.where for d in diagnostics]
+
+
+def _paths(paths: Iterable[Path]) -> list[str]:
+    """List some paths written with `/`.
+
+    Args:
+        paths: The paths.
+
+    Returns:
+        Their strings, in their order.
+    """
+    return [p.as_posix() for p in paths]
+
+
+def _in_order(
+    diagnostics: tuple[Diagnostic, ...], subset: tuple[Diagnostic, ...]
+) -> bool:
+    """Tell whether a subset appears in a list in the same order.
+
+    Args:
+        diagnostics: The whole list.
+        subset: Some of its diagnostics.
+
+    Returns:
+        Whether the members of the list that are in the subset are the subset.
+    """
+    return [d for d in diagnostics if d in subset] == list(subset)
+
+
+def test_every_list_is_in_the_order_of_its_paths_and_places(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The walk lists a directory before the file that sorts first as a string."""
+    # Given a tree whose walk is not in the order of its paths, with errors and
+    # shared ids out of order
+    disk = _tree_out_of_order(monkeypatch)
+    base = ".agents/wio/works/"
+    collision = f"{base}e.md, {base}e/z.md"
+
+    # When the Works are discovered
+    found = module.discover_works(ROOT, Works(), disk)
+
+    # Then each list is exactly in order: the Works and the files by the string
+    # of their paths, and the diagnostics by file, then line as a number, then
+    # the places that are not a file as text, with `incomplete` and `ambiguous`
+    # in the same order inside `diagnostics`
+    assert _paths(w.path for w in found.works) == [f"{base}a.md", f"{base}a/x.md"]
+    assert _paths(found.left_out) == [f"{base}c.md", f"{base}c/y.md"]
+    assert _paths(found.excluded) == [f"{base}e.md", f"{base}e/z.md"]
+    assert _where(found.diagnostics) == [
+        f"{base}a/x.md:4",
+        f"{base}a/x.md:12",
+        f"{base}c.md",
+        f"{base}c/y.md",
+        collision,
+        "s1",
+        "s2",
+    ]
+    assert _where(found.incomplete) == [f"{base}c.md", f"{base}c/y.md", collision]
+    assert _where(found.ambiguous) == ["s1", "s2"]
+    assert _in_order(found.diagnostics, found.incomplete)
+    assert _in_order(found.diagnostics, found.ambiguous)

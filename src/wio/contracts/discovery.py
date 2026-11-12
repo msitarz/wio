@@ -280,10 +280,13 @@ def _shared_ids(works: Sequence[Work]) -> tuple[Diagnostic, ...]:
     """Report the ids that two or more Works share: the leaf of AC-4.
 
     Args:
-        works: The Works that stay in the tree.
+        works: The Works that stay in the tree, sorted by their paths. A Work
+            that a nesting collision excludes is not among them and shares an id
+            with none.
 
     Returns:
-        One error for each shared id, at the paths of its Works joined by `, `.
+        One error for each shared id, at the paths of its Works in that order,
+        joined by `, `, which is the place that `find_work` looks for.
     """
     raise NotImplementedError
 
