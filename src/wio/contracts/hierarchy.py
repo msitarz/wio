@@ -1,18 +1,24 @@
 # SPDX-License-Identifier: Apache-2.0
 """The hierarchy and the dependency graph of the Works of a project."""
 
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
-from wio.models.diagnostics import order_diagnostics
+from wio.models.diagnostics import Diagnostic, order_diagnostics
 from wio.models.frozen import freeze
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Mapping, Sequence
     from pathlib import Path
 
-    from wio.models.diagnostics import Diagnostic
     from wio.models.works import Work
+
+_DESCENDANTS = "@descendants"
+_LISTED = "listed in depends_on"
+_CHILD = "a parent waits for its child"
+type _Graph = Mapping[Path, Mapping[Path, str]]
+"""The edges out of each Work by path, each with its kind, sorted by path."""
 
 
 @dataclass(frozen=True)
@@ -133,7 +139,39 @@ def _relatives(works: Sequence[Work], mode: Literal["flat", "nesting"]) -> _Rela
     Returns:
         Each table with a key for every Work.
     """
-    raise NotImplementedError
+    homes = {work.path.parent: work for work in works} if mode == "nesting" else {}
+    ancestors = {
+        work.path: tuple(homes[d] for d in work.path.parent.parents if d in homes)
+        for work in works
+    }
+    children = _grouped(works, lambda work: ancestors[work.path][:1])
+    descendants = _grouped(works, lambda work: ancestors[work.path])
+    return _Relatives(
+        parent={path: above[0] if above else None for path, above in ancestors.items()},
+        children=children,
+        ancestors=ancestors,
+        descendants=descendants,
+    )
+
+
+def _grouped(
+    works: Sequence[Work], owners: Callable[[Work], Sequence[Work]]
+) -> dict[Path, tuple[Work, ...]]:
+    """Collect, for each Work, the Works that name it as an owner.
+
+    Args:
+        works: The Works, sorted by the string of their paths.
+        owners: Gives the Works that a Work is collected under.
+
+    Returns:
+        For each Work, by path, those collected under it, in the order of the
+        Works.
+    """
+    found: dict[Path, list[Work]] = {work.path: [] for work in works}
+    for work in works:
+        for owner in owners(work):
+            found[owner.path].append(work)
+    return {path: tuple(members) for path, members in found.items()}
 
 
 def _resolve_roots(
@@ -148,7 +186,34 @@ def _resolve_roots(
     Returns:
         The resolved roots of each Work, by path.
     """
-    raise NotImplementedError
+    resolved: dict[Path, tuple[str, ...]] = {}
+    for work in works:
+        _roots_of(work, children, resolved)
+    return resolved
+
+
+def _roots_of(
+    work: Work,
+    children: Mapping[Path, tuple[Work, ...]],
+    resolved: dict[Path, tuple[str, ...]],
+) -> tuple[str, ...]:
+    """Resolve the roots of one Work, and of its children as needed.
+
+    Args:
+        work: The Work.
+        children: The children of each Work, by path.
+        resolved: The roots resolved so far, by path, to which it adds.
+
+    Returns:
+        The Work's own entries and, when it lists `@descendants`, what each of
+        its children resolves to, each name once and sorted.
+    """
+    if work.path not in resolved:
+        kids = children[work.path] if _DESCENDANTS in work.roots else ()
+        names = {root for root in work.roots if root != _DESCENDANTS}
+        names.update(*(_roots_of(kid, children, resolved) for kid in kids))
+        resolved[work.path] = tuple(sorted(names))
+    return resolved[work.path]
 
 
 @dataclass(frozen=True)
@@ -174,7 +239,14 @@ def _listed_edges(works: Sequence[Work]) -> _Edges:
     Returns:
         The edges, with a key for every Work.
     """
-    raise NotImplementedError
+    listing: dict[str, list[Work]] = defaultdict(list)
+    for work in works:
+        for dependency in dict.fromkeys(work.depends_on):
+            listing[dependency].append(work)
+    return _Edges(
+        dependencies={work.path: work.depends_on for work in works},
+        dependents={work.path: tuple(listing[work.id]) for work in works},
+    )
 
 
 def _graph_errors(works: Sequence[Work], relatives: _Relatives) -> list[Diagnostic]:
@@ -189,4 +261,172 @@ def _graph_errors(works: Sequence[Work], relatives: _Relatives) -> list[Diagnost
         One error for each unknown id of each Work and one for each group of
         Works that wait on each other, in any order.
     """
-    raise NotImplementedError
+    known = {work.id for work in works}
+    unknown = [
+        Diagnostic(
+            "error", work.path.as_posix(), f"The dependency `{id_}` is not a Work"
+        )
+        for work in works
+        for id_ in dict.fromkeys(work.depends_on)
+        if id_ not in known
+    ]
+    return [*unknown, *_cycle_errors(works, relatives.children)]
+
+
+def _cycle_errors(
+    works: Sequence[Work], children: Mapping[Path, tuple[Work, ...]]
+) -> list[Diagnostic]:
+    """Report each group of Works that wait on each other, once.
+
+    Args:
+        works: The Works, sorted by the string of their paths.
+        children: The children of each Work, by path.
+
+    Returns:
+        One error for each group, at the file of its Work with the smallest
+        path, in the order of those paths.
+    """
+    graph = _graph(works, children)
+    names = {work.path: work.id for work in works}
+    return [
+        Diagnostic("error", start.as_posix(), _cycle_message(start, graph, names))
+        for start in _cycle_starts(graph)
+    ]
+
+
+def _cycle_starts(graph: _Graph) -> list[Path]:
+    """Find the first Work of each group of Works that wait on each other.
+
+    Args:
+        graph: The edges.
+
+    Returns:
+        The Work with the smallest path of each group, in the order of the
+        paths.
+    """
+    reach = {path: _reach(path, graph) for path in graph}
+    return [
+        path
+        for path in sorted(graph, key=str)
+        if path in reach[path] and _is_first(path, reach)
+    ]
+
+
+def _is_first(path: Path, reach: Mapping[Path, set[Path]]) -> bool:
+    """Tell whether a Work on a cycle has the smallest path of its group.
+
+    Args:
+        path: A Work on a cycle.
+        reach: The Works that each Work waits for, through any edges.
+
+    Returns:
+        Whether no Work that waits for it and is waited for by it has a smaller
+        path.
+    """
+    return all(str(path) <= str(node) for node in reach[path] if path in reach[node])
+
+
+def _graph(works: Sequence[Work], children: Mapping[Path, tuple[Work, ...]]) -> _Graph:
+    """Build the edges of the graph.
+
+    A parent waits for its children, and a Work for the ids it lists.
+
+    Args:
+        works: The Works, sorted by the string of their paths.
+        children: The children of each Work, by path.
+
+    Returns:
+        For each Work the Works it waits for, sorted by the string of their
+        paths, each with its kind. A pair with both kinds of edge is listed.
+    """
+    paths: dict[str, list[Path]] = defaultdict(list)
+    for work in works:
+        paths[work.id].append(work.path)
+    graph: dict[Path, dict[Path, str]] = {}
+    for work in works:
+        out = {child.path: _CHILD for child in children[work.path]}
+        for dependency in work.depends_on:
+            out.update(dict.fromkeys(paths.get(dependency, ()), _LISTED))
+        graph[work.path] = dict(sorted(out.items(), key=lambda edge: str(edge[0])))
+    return graph
+
+
+def _reach(start: Path, graph: _Graph) -> set[Path]:
+    """Find the Works that a Work waits for, through any number of edges.
+
+    Args:
+        start: The Work.
+        graph: The edges.
+
+    Returns:
+        The Works reached by one edge or more, so the start only when it is on a
+        cycle.
+    """
+    found: set[Path] = set()
+    frontier = set(graph[start])
+    while frontier:
+        found |= frontier
+        frontier = {after for node in frontier for after in graph[node]} - found
+    return found
+
+
+def _cycle_message(start: Path, graph: _Graph, names: Mapping[Path, str]) -> str:
+    """Write the shortest cycle through a Work.
+
+    Args:
+        start: The Work with the smallest path of its group.
+        graph: The edges.
+        names: The id of each Work, by path.
+
+    Returns:
+        `Dependency cycle: ` and the id of the start, then each step's id and
+        the kind of its edge, joined by arrows.
+    """
+    distance = _distances(start, graph)
+    remaining = 1 + min(distance[node] for node in graph[start] if node in distance)
+    current, steps = start, [names[start]]
+    while remaining:
+        remaining -= 1
+        step = min((n for n in graph[current] if distance.get(n) == remaining), key=str)
+        steps.append(f"{names[step]} ({graph[current][step]})")
+        current = step
+    return "Dependency cycle: " + " → ".join(steps)
+
+
+def _distances(target: Path, graph: _Graph) -> dict[Path, int]:
+    """Count the edges from each Work to a Work that can reach it.
+
+    Args:
+        target: The Work to reach.
+        graph: The edges.
+
+    Returns:
+        The fewest edges from each Work that reaches the target, the target
+        being 0.
+    """
+    waiting = _waiting(graph)
+    distance = {target: 0}
+    queue = deque([target])
+    while queue:
+        node = queue.popleft()
+        for source in waiting[node]:
+            if source not in distance:
+                distance[source] = distance[node] + 1
+                queue.append(source)
+    return distance
+
+
+def _waiting(graph: _Graph) -> dict[Path, list[Path]]:
+    """Turn the edges around.
+
+    Args:
+        graph: The edges.
+
+    Returns:
+        For each Work the Works that wait for it.
+    """
+    waiting: dict[Path, list[Path]] = defaultdict(list)
+    for source, out in graph.items():
+        for node in out:
+            waiting[node].append(source)
+    return waiting

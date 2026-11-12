@@ -57,8 +57,8 @@ def test_the_hierarchy_is_assembled_from_the_leaves(
     edges = module._Edges({a.path: (), b.path: ("a",)}, dependents)  # noqa: SLF001
     find_edges = Mock(return_value=edges)
     monkeypatch.setattr(module, "_listed_edges", find_edges)
-    late = Diagnostic("error", "b/README.md", "late")
-    early = Diagnostic("error", "a/README.md", "early")
+    late = Diagnostic("error", "a/README.md:12", "late")
+    early = Diagnostic("error", "a/README.md:4", "early")
     judge = Mock(return_value=[late, early])
     monkeypatch.setattr(module, "_graph_errors", judge)
 
@@ -70,6 +70,8 @@ def test_the_hierarchy_is_assembled_from_the_leaves(
     # the leaves got the Works in order, the mode, and the relations or children
     assert found.works == (a, b)
     assert found.parent == relatives.parent
+    assert found.children == relatives.children
+    assert found.ancestors == relatives.ancestors
     assert found.descendants == relatives.descendants
     assert found.roots == roots
     assert found.dependents == dependents
