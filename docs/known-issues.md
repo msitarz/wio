@@ -122,7 +122,7 @@ a whole document, cannot edit one.
 
 **What is being done.** `set_block_keys` in `wio.formats` uses `tomlkit` only to
 read the block, to replace a value where it stands and to write a value, and
-places the lines that it adds itself, as text, after normalizing the line
+places the lines that it adds itself, as text, preserving existing line
 endings. Its tests pin each case above. Remove this entry, and that workaround
 if the library allows, when a release lets a key or a table be inserted at a
 chosen place without changing the rest.

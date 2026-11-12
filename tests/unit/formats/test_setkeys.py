@@ -94,12 +94,12 @@ def test_a_mapping_in_the_plain_keys_is_written_as_an_inline_table() -> None:
     raise NotImplementedError
 
 
-def test_a_block_that_mixes_line_endings_is_written_with_the_first_one() -> None:
-    """AC-8: the block is the one place that is rewritten."""
+def test_a_block_that_mixes_line_endings_keeps_them() -> None:
+    """AC-8: existing line endings are preserved."""
     # Given a block whose lines end with LF and CRLF, and a body with CRLF
     # When keys are set
-    # Then every line ending of the block is that of its first line, and the body
-    # is as it was
+    # Then existing line endings and the body are as they were, and the added line
+    # uses the opening delimiter's ending
     raise NotImplementedError
 
 

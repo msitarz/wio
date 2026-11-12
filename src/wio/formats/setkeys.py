@@ -41,10 +41,9 @@ def set_block_keys(
     is given one first. Only an added table adds an empty line, and a table that
     the block already has gains none.
 
-    The block is written with the line ending of the line of its opening
-    delimiter: its text is read with line feeds, edited, and written back with that
-    ending, so a block that mixed endings is written with one, and the body is not
-    touched. Dotted keys and multiline values already in the block are preserved.
+    Added lines use the line ending of the opening delimiter. Existing line endings
+    are preserved, even in a block with mixed endings. Dotted keys and multiline
+    values already in the block are preserved.
 
     Args:
         text: The text of a contract, whose first line starts a metadata block of
