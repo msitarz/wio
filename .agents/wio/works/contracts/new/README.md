@@ -43,9 +43,8 @@ of the block exists.
 - **A-2**: `prepare_skeleton` gives a template's skeleton in the template's
   block form, with the `template` key and no `id`, and drops the template's own
   keys, its metadata comments and the directive lists, as it is delivered.
-- **A-3**: `tomlkit` replaces a value in place and keeps the order of the keys
-  and the rest of the text, and adding a first key is done on the text of the
-  block.
+- **A-3**: `tomlkit` reads the block and writes TOML values; placing keys and
+  preserving the rest of the block require text edits.
 
 ## Mechanisms
 
