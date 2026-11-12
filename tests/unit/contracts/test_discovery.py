@@ -47,7 +47,8 @@ def test_a_file_that_cannot_be_identified_is_left_out_with_one_error() -> None:
     # Then the good Work is found and there is one error for each of the seven at
     # `works/bad/utf.md`, `works/bad/open.md:1`, `works/bad/toml.md:3`,
     # `works/bad/marker.md:2`, `works/bad/noid.md`, `works/bad/empty.md` and
-    # `works/bad/number.md`, and the files are in `left_out`
+    # `works/bad/number.md`, and the seven files are in `left_out` and in no other
+    # list
 
 
 @pytest.mark.skip(reason="Pending the implementation stage.")
@@ -193,5 +194,14 @@ def test_the_marked_files_of_a_collision_are_excluded_and_not_left_out() -> None
     # that is left out
     # When the Works are discovered
     # Then `a/one.md`, `a/two.md` and `top.md` are in `excluded` and not in
-    # `left_out`, and a file that is left out is in `left_out` and not in
-    # `excluded`
+    # `left_out`, and in the second scenario `a/two.md`, which has no `id`, is in
+    # `left_out` and not in `excluded`, so the two lists are disjoint
+
+
+@pytest.mark.skip(reason="Pending the implementation stage.")
+def test_the_works_directory_itself_may_start_with_a_dot() -> None:
+    """AC-1: only a directory below the Works directory is hidden by its name."""
+    # Given the Works directory `.works` with a Work, and a hidden directory
+    # below it with another
+    # When the Works are discovered
+    # Then the first Work is found and the second is not

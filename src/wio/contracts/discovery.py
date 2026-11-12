@@ -24,13 +24,17 @@ class WorkDiscovery:
         works: The Works found, sorted by the string of their paths. A Work with
             a problem of its own that does not keep it from being identified is
             here, so its children and dependents are not orphaned.
-        left_out: The paths of the marked files that were left out, relative to
-            the repository root and sorted as the Works are. A file that a
-            nesting collision excludes is not one of them.
+        left_out: The paths of the files left out for an error of their own,
+            relative to the repository root and sorted as the Works are. It
+            includes a file that cannot be read or decoded, which is not known
+            to be marked, and a marked file that a nesting collision or the
+            Works directory also excludes: `left_out` takes precedence over
+            `excluded`.
         excluded: The paths of the marked files that a nesting collision or the
-            Works directory excludes without being left out, relative to the
-            repository root and sorted as the Works are. With `left_out`, they
-            are every marked file that is not a Work.
+            Works directory excludes and that are not in `left_out`, relative to
+            the repository root and sorted as the Works are. `left_out` and
+            `excluded` are disjoint, and with `works` hold every file that
+            discovery read a block of or failed to read.
         diagnostics: Every problem found, each an error that names its place,
             ordered as the shared ordering of diagnostics orders them.
         incomplete: The diagnostics that leave the tree incomplete, a subset of
@@ -108,8 +112,9 @@ def find_work(discovery: WorkDiscovery, work_id: str) -> Work | Diagnostic | Non
         work_id: The id to look up, compared as text.
 
     Returns:
-        The Work that has the id, the error of discovery that names every path of
-        the id when two or more Works share it, so that the lookup is refused and
+        The Work that has the id, the error of `ambiguous` whose place joins the
+        paths of the Works that share the id, never a message read for the id,
+        when two or more Works share it, so that the lookup is refused and
         no Work is guessed, or `None` when no Work has the id.
     """
     raise NotImplementedError
@@ -130,7 +135,9 @@ def explain_not_a_work(
     the directory; and the file is left out for an error of its own, which
     includes a file that cannot be read or decoded, and names that error. The
     two reasons about a collision apply only under `hierarchy = "nesting"`. It
-    reads files only through `files` and writes none.
+    reads files only through `files` and writes none. It reads the tree again and
+    does not take a `WorkDiscovery`, so a command that has one pays for a second
+    walk.
 
     Args:
         root: The repository root.
