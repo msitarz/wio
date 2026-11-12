@@ -57,8 +57,8 @@ def test_an_overridden_action_keeps_the_place_of_the_one_it_replaces() -> None:
 
 
 def test_a_template_whose_actions_are_not_a_table_of_pipelines_gives_none() -> None:
-    """AC-7: scenario of the contract."""
-    # Given a template whose `[actions]` hold a number
+    """A-4: a template that cannot be read for its actions is skipped."""
+    # Given a template whose `[actions]` hold a number, and one with no block
     # When the actions are read
-    # Then the answer is `None`
+    # Then each answer is `None`
     raise NotImplementedError

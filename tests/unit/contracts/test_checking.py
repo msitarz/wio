@@ -12,24 +12,6 @@ pytestmark = pytest.mark.skip(
 )
 
 
-def test_an_unknown_key_is_a_warning_with_its_closest_known_key() -> None:
-    """AC-2: scenario of the contract."""
-    # Given Works with the keys `depend_on`, `zzz`, a plain `x` and the table
-    # `[xx]`, and Works with the table `[x]` and the key `tracks`
-    # When the Works are checked
-    # Then the first four give a warning at the file, the first with `Did you
-    # mean `depends_on`?`, and the second group gives nothing
-    raise NotImplementedError
-
-
-def test_an_id_that_would_break_a_record_is_an_error() -> None:
-    """AC-3: scenario of the contract."""
-    # Given Works with the ids `a b`, `a,b`, `none`, `SPEC-012` and `k3m9xq`
-    # When the Works are checked
-    # Then the first three are errors with their messages and the last two give nothing
-    raise NotImplementedError
-
-
 def test_a_missing_and_a_rejected_template_are_told_apart() -> None:
     """AC-4: scenario of the contract."""
     # Given Works that name a missing template, a rejected one and none
@@ -142,4 +124,29 @@ def test_a_template_is_read_once_however_many_works_follow_it() -> None:
     # its reads
     # When the Works are checked
     # Then the template's file was read once, and each Work's file once more
+    raise NotImplementedError
+
+
+def test_a_work_whose_actions_discovery_reported_is_not_resolved() -> None:
+    """Constraint: a field that discovery reported is not resolved."""
+    # Given a Work whose `[actions]` is a string, which discovery reported
+    # When the Works are checked
+    # Then the error of discovery is all it gets about its actions
+    raise NotImplementedError
+
+
+def test_a_work_with_a_missing_template_still_has_its_own_names_checked() -> None:
+    """Constraint: only the resolved checks are skipped."""
+    # Given a Work that names a missing template and an undeclared action
+    # When the Works are checked
+    # Then it gets the error for the template and the error for the action, and
+    # none about resolving
+    raise NotImplementedError
+
+
+def test_the_marker_of_the_block_is_not_an_unknown_key() -> None:
+    """Constraint: the `wio` marker is not a key."""
+    # Given Works with a `<!-- wio` block and with a `+++` block
+    # When the Works are checked
+    # Then neither is told that `wio` is an unknown key
     raise NotImplementedError

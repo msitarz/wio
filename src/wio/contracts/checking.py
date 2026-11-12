@@ -1,20 +1,36 @@
 # SPDX-License-Identifier: Apache-2.0
 """What `wio contracts check` reports about the Works."""
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
+
+from wio.contracts.actions import template_actions
+from wio.contracts.discovery import discover_works, wrong_optional_fields
+from wio.contracts.hierarchy import build_hierarchy
+from wio.models.diagnostics import Diagnostic, has_error, order_diagnostics
+lazy from wio.formats import closest_key, render_check
 
 if TYPE_CHECKING:
     from argparse import Namespace
+    from collections.abc import Mapping
     from pathlib import Path
 
     from wio.contracts import Services
+    from wio.contracts.actions import Pipeline
+    from wio.contracts.hierarchy import Hierarchy
     from wio.contracts.ports import TemplateCatalog
     from wio.io.ports import FileSystem, Stdio
+    from wio.models.block import MetadataBlock
     from wio.models.config import Config
-    from wio.models.diagnostics import Diagnostic
+    from wio.models.template import Template
+    from wio.models.works import Work
 
 PASSES: Final = "The contracts pass."
 """What the command says when the check has nothing to report."""
+_KNOWN_KEYS: Final = ("id", "template", "roots", "depends_on", "actions")
+"""The keys of the metadata that wio reads, which an unknown key is compared to."""
+_RESERVED_ID: Final = "none"
+"""The id that stands for no Work in a record."""
 
 
 def check_works(
@@ -85,6 +101,242 @@ def check_works(
     Raises:
         ConfigurationError: The catalog could not load the config.
     """
+    discovery = discover_works(root, config.works, files)
+    found = build_hierarchy(discovery.works, config.works.hierarchy)
+    run = _Run(root, config, files, catalog, found, _Templates(root, files))
+    problems = [*discovery.diagnostics, *found.diagnostics]
+    for work in found.works:
+        problems.extend(_check_work(work, run))
+    return order_diagnostics(problems)
+
+
+class _Templates:
+    """The `[actions]` of the templates, each read at most once."""
+
+    def __init__(self, root: Path, files: FileSystem) -> None:
+        """Keep what a read needs and start with none made.
+
+        Args:
+            root: The repository root.
+            files: The port that reads the templates' files.
+        """
+        self._root = root
+        self._files = files
+        self._read: dict[str, Mapping[str, Pipeline] | None] = {}
+
+    def actions(self, template: Template) -> Mapping[str, Pipeline] | None:
+        """Give the actions of a template, reading its file the first time.
+
+        Args:
+            template: The template.
+
+        Returns:
+            What `template_actions` gave for it, the same for every Work.
+        """
+        if template.name not in self._read:
+            self._read[template.name] = template_actions(
+                template, self._root, self._files
+            )
+        return self._read[template.name]
+
+
+@dataclass(frozen=True)
+class _Run:
+    """What every check of one run reads from.
+
+    Attributes:
+        root: The repository root.
+        config: The settings.
+        files: The port that reads the Works' files and the templates' files.
+        catalog: The port that judges a template.
+        found: The hierarchy of all the Works.
+        templates: The actions of the templates, each read at most once.
+    """
+
+    root: Path
+    config: Config
+    files: FileSystem
+    catalog: TemplateCatalog
+    found: Hierarchy
+    templates: _Templates
+
+
+def _check_work(work: Work, run: _Run) -> list[Diagnostic]:
+    """Run every check on one Work, none stopping another.
+
+    Args:
+        work: The Work.
+        run: What the checks read from.
+
+    Returns:
+        The findings about the Work, in any order. A file that cannot be read the
+        second time is the one error it gives.
+    """
+    block = _reread(run.root, work, run.files)
+    if isinstance(block, Diagnostic):
+        return [block]
+    wrong = wrong_optional_fields(block.data)
+    template, template_problems = _template_errors(work, run.catalog)
+    return [
+        *_key_warnings(work, block),
+        *_id_error(work),
+        *template_problems,
+        *_named_errors(work, run.config),
+        *_resolved_errors(work, template, wrong, run),
+        *_root_errors(work, wrong, run.config, run.found),
+    ]
+
+
+def _reread(root: Path, work: Work, files: FileSystem) -> MetadataBlock | Diagnostic:
+    """Read a Work's block again, once.
+
+    Args:
+        root: The repository root.
+        work: The Work.
+        files: The port that reads the file.
+
+    Returns:
+        The block, or the error at the file for one that cannot be read, decoded
+        or parsed the second time.
+    """
+    raise NotImplementedError
+
+
+def _key_warnings(work: Work, block: MetadataBlock) -> list[Diagnostic]:
+    """Warn of each key of the metadata that wio does not know.
+
+    Args:
+        work: The Work, for the place.
+        block: Its block.
+
+    Returns:
+        A warning for each unknown key with the closest known key when there is
+        one, none for the table `x` and the key `tracks`.
+    """
+    place = work.path.as_posix()
+    return [
+        Diagnostic("warning", place, _unknown_key(key))
+        for key, value in block.data.items()
+        if key not in _KNOWN_KEYS and not _exempt(key, value)
+    ]
+
+
+def _exempt(key: str, value: object) -> bool:
+    """Tell whether a key that wio does not read is left alone.
+
+    Args:
+        key: The key of the block.
+        value: What it holds.
+
+    Returns:
+        Whether it is `tracks`, or `x` as a table.
+    """
+    return key == "tracks" or (key == "x" and isinstance(value, dict))
+
+
+def _unknown_key(key: str) -> str:
+    """Word the warning for an unknown key.
+
+    Args:
+        key: The key.
+
+    Returns:
+        The message, with the closest known key when there is one.
+    """
+    message = f"Unknown key `{key}` in the metadata"
+    close = closest_key(key, _KNOWN_KEYS)
+    return f"{message}. Did you mean `{close}`?" if close else message
+
+
+def _id_error(work: Work) -> list[Diagnostic]:
+    """Refuse an id that would break a record.
+
+    Args:
+        work: The Work.
+
+    Returns:
+        One error for an id that holds whitespace or a comma, one for `none`, and
+        an empty list for another id.
+    """
+    place = work.path.as_posix()
+    if any(char.isspace() or char == "," for char in work.id):
+        message = f"The id `{work.id}` holds whitespace or a comma"
+    elif work.id == _RESERVED_ID:
+        message = f"The id `{work.id}` is reserved for commits that belong to no Work"
+    else:
+        return []
+    return [Diagnostic("error", place, message)]
+
+
+def _template_errors(
+    work: Work, catalog: TemplateCatalog
+) -> tuple[Template | None, list[Diagnostic]]:
+    """Judge the template that a Work names.
+
+    Args:
+        work: The Work.
+        catalog: The port that finds a template and says whether it is rejected.
+
+    Returns:
+        The template when the Work names one that exists and is not rejected, and
+        `None` otherwise, with the error for a template that is missing or
+        rejected and none for a Work that names no template.
+    """
+    raise NotImplementedError
+
+
+def _named_errors(work: Work, config: Config) -> list[Diagnostic]:
+    """Check the names in a Work's own `[actions]` against the config.
+
+    Args:
+        work: The Work.
+        config: The settings, which declare the actions, stage presets and stages.
+
+    Returns:
+        An error for each action, stage preset and stage that is not declared and
+        for a stage that a list gives twice. It runs for every Work, whatever its
+        template.
+    """
+    raise NotImplementedError
+
+
+def _resolved_errors(
+    work: Work, template: Template | None, wrong: frozenset[str], run: _Run
+) -> list[Diagnostic]:
+    """Check what a Work resolves to.
+
+    Args:
+        work: The Work.
+        template: The template that `_template_errors` gave.
+        wrong: The fields that discovery reported.
+        run: What the checks read from, for the defaults and the template's
+            actions.
+
+    Returns:
+        The repeats of a stage that the Work inherits from its template, and the
+        error that the Work resolves to no action. Nothing for a Work that names a
+        template that is not usable, whose template or `[actions]` was reported, or
+        whose template's file cannot be read for its `[actions]`.
+    """
+    raise NotImplementedError
+
+
+def _root_errors(
+    work: Work, wrong: frozenset[str], config: Config, found: Hierarchy
+) -> list[Diagnostic]:
+    """Check the roots a Work names and the roots its descendants use.
+
+    Args:
+        work: The Work.
+        wrong: The fields that discovery reported.
+        config: The settings, which declare the roots.
+        found: The hierarchy, which resolves the roots.
+
+    Returns:
+        An error for each root that is not declared, a warning for `@descendants`
+        in a leaf, and one note for each root of the descendants that the Work's
+        resolved roots leave out, none when its `roots` was reported.
+    """
     raise NotImplementedError
 
 
@@ -109,4 +361,8 @@ def run_check(services: Services, args: Namespace, stdio: Stdio) -> int:
         ConfigurationError: The config has an error, which the command line
             reports and exits 2 for.
     """
-    raise NotImplementedError
+    config = services.settings.load()
+    root = services.repository.root()
+    found = check_works(root, config, services.files, services.catalog)
+    stdio.stdout.write(render_check(found, as_json=args.json, passes=PASSES))
+    return 1 if has_error(found) else 0

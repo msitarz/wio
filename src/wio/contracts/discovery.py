@@ -437,6 +437,32 @@ def _optional_fields(place: str, data: Mapping[str, object]) -> _Optional:
     )
 
 
+def wrong_optional_fields(data: Mapping[str, object]) -> frozenset[str]:
+    """Tell which optional keys of a block discovery reports as being of a wrong type.
+
+    It is the test that `discover_works` applies, so a command that reads a
+    block again knows which of its fields discovery already reported.
+
+    Args:
+        data: The decoded block.
+
+    Returns:
+        The names among `template`, `roots`, `depends_on` and `actions` that are
+        present and not a string, an array of strings, an array of strings, and a
+        table whose values are a string or an array of strings, respectively.
+    """
+    wrong = {
+        key
+        for key in ("roots", "depends_on")
+        if key in data and _strings(data[key]) is None
+    }
+    if "template" in data and not isinstance(data["template"], str):
+        wrong.add("template")
+    if "actions" in data and _actions(data["actions"]) is None:
+        wrong.add("actions")
+    return frozenset(wrong)
+
+
 def _template_field(
     place: str, data: Mapping[str, object]
 ) -> tuple[str | None, tuple[Diagnostic, ...]]:

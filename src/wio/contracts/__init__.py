@@ -2,8 +2,10 @@
 """The `wio contracts` command: creating, checking and showing Work contracts."""
 
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING, Final
 
+lazy from wio.contracts.checking import run_check
 lazy from wio.contracts.command import ContractsCommand
 lazy from wio.contracts.discovery import (
     WorkDiscovery,
@@ -75,17 +77,34 @@ class Subcommand:
     handler: Callable[[Services, Namespace, Stdio], int]
 
 
+_CHECK_HELP = "Report every problem of the Works."
+_CHECK_JSON = "Write one JSON array of the problems instead of the text."
 _LIST_HELP = "List the Works with their hierarchy and their overrides."
 _LIST_JSON = "Write one JSON array of the Works instead of the text."
 
 
-def _configure_list(parser: ArgumentParser) -> None:
-    """Add the arguments of `wio contracts list`.
+def _json_option(parser: ArgumentParser, *, help: str) -> None:  # noqa: A002
+    """Add the `--json` option of a subcommand.
 
     Args:
-        parser: The subparser of `list`.
+        parser: The subparser.
+        help: What `--help` says of it.
     """
-    parser.add_argument("--json", action="store_true", help=_LIST_JSON)
+    parser.add_argument("--json", action="store_true", help=help)
+
+
+def _check(services: Services, args: Namespace, stdio: Stdio) -> int:
+    """Run `wio contracts check`.
+
+    Args:
+        services: What the subcommand reads the project through.
+        args: The parsed arguments.
+        stdio: Where the output goes.
+
+    Returns:
+        The exit code, 1 when the Works have an error.
+    """
+    return run_check(services, args, stdio)
 
 
 def _list(services: Services, args: Namespace, stdio: Stdio) -> int:
@@ -103,7 +122,8 @@ def _list(services: Services, args: Namespace, stdio: Stdio) -> int:
 
 
 SUBCOMMANDS: Final[Sequence[Subcommand]] = (
-    Subcommand("list", _LIST_HELP, _configure_list, _list),
+    Subcommand("check", _CHECK_HELP, partial(_json_option, help=_CHECK_JSON), _check),
+    Subcommand("list", _LIST_HELP, partial(_json_option, help=_LIST_JSON), _list),
 )
 """The subcommands of `wio contracts`, to which each leaf adds its own entry.
 
@@ -185,5 +205,6 @@ __all__ = [
     "explain_not_a_work",
     "find_work",
     "new_id",
+    "run_check",
     "write_new",
 ]

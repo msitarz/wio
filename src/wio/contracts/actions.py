@@ -27,7 +27,9 @@ class ResolvedAction:
     removed it, which `wio contracts show` prints and the check uses too: the
     check judges a repeated stage only for a source of `work` or `template`, and
     never for `defaults`, and a Work resolves to no action when every entry is
-    removed or there is none.
+    removed or there is none. A repeat in the Work's own `[actions]` is reported
+    once, by the check of the names, which runs even when no actions resolve, and
+    not again by the resolved check, which reports the repeats it inherits.
 
     Attributes:
         name: The action's name.
@@ -80,7 +82,7 @@ def resolve_actions(
 
 def template_actions(
     template: Template, root: Path, files: FileSystem
-) -> dict[str, Pipeline] | None:
+) -> Mapping[str, Pipeline] | None:
     """Read the `[actions]` of a template from its file.
 
     Args:
@@ -90,8 +92,9 @@ def template_actions(
 
     Returns:
         The actions in the order written, empty for a template that has none, or
-        `None` when the file cannot be read, decoded or parsed, or when its
-        `[actions]` are not a table of a stage preset or an array of stages each.
+        `None` when the file cannot be read, decoded or parsed, has no metadata
+        block, or when its `[actions]` are not a table of a stage preset or an
+        array of stages each.
         It reports nothing, because `wio templates check` reports a template.
     """
     raise NotImplementedError
