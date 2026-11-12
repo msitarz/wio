@@ -77,6 +77,16 @@ def test_a_missing_and_a_rejected_template_are_told_apart(wio: Wio) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+def test_a_repeat_that_a_work_inherits_is_reported_at_its_own_file(wio: Wio) -> None:
+    """AC-5: scenario of the contract."""
+    # Given the config of the previous scenario, a template whose action repeats
+    # a stage and a Work that follows it and names no action
+    # When `wio contracts check` runs
+    # Then the repeat is an error at the Work's file
+    raise NotImplementedError
+
+
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_the_actions_a_work_names_exist_and_it_has_some(wio: Wio) -> None:
     """AC-5: scenario of the contract."""
     # Given the config of the contract and Works whose `[actions]` hold the

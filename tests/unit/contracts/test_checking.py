@@ -118,3 +118,28 @@ def test_the_command_writes_the_findings_and_exits_by_severity() -> None:
     # Then it exits 1 for an error and 0 for a warning or a note, and says that
     # the contracts pass when there is nothing
     raise NotImplementedError
+
+
+def test_a_note_for_an_omitted_root_is_given_even_when_it_is_not_declared() -> None:
+    """AC-6: constraint of the contract."""
+    # Given a parent whose child names a root that the config does not declare
+    # When the Works are checked
+    # Then the child gets the error for the root and the parent a note for it
+    raise NotImplementedError
+
+
+def test_under_flat_a_work_that_lists_descendants_is_warned() -> None:
+    """AC-6: constraint of the contract."""
+    # Given `flat` and a Work that lists `@descendants`
+    # When the Works are checked
+    # Then it gets the warning that it has no children
+    raise NotImplementedError
+
+
+def test_a_template_is_read_once_however_many_works_follow_it() -> None:
+    """AC-7: scenario of the contract."""
+    # Given three Works that follow one template, and a file system that counts
+    # its reads
+    # When the Works are checked
+    # Then the template's file was read once, and each Work's file once more
+    raise NotImplementedError

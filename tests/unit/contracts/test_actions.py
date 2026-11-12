@@ -35,3 +35,30 @@ def test_the_actions_of_a_template_are_read_from_its_file() -> None:
     # When the actions are read
     # Then the first gives them in order, the second none and the third `None`
     raise NotImplementedError
+
+
+def test_an_empty_list_that_nothing_inherited_gives_no_entry() -> None:
+    """AC-5: scenario of the contract."""
+    # Given a Work whose own `[actions]` empty an action that its template does
+    # not have, and one that empties an action that it has
+    # When the actions are resolved
+    # Then the first gives no entry and the second an entry that is removed
+    raise NotImplementedError
+
+
+def test_an_overridden_action_keeps_the_place_of_the_one_it_replaces() -> None:
+    """AC-5: scenario of the contract."""
+    # Given a template with two actions and a Work that overrides the first and
+    # adds a third
+    # When the actions are resolved
+    # Then the order is the template's two, the first overridden in place, and
+    # then the third
+    raise NotImplementedError
+
+
+def test_a_template_whose_actions_are_not_a_table_of_pipelines_gives_none() -> None:
+    """AC-7: scenario of the contract."""
+    # Given a template whose `[actions]` hold a number
+    # When the actions are read
+    # Then the answer is `None`
+    raise NotImplementedError

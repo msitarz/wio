@@ -24,7 +24,10 @@ class ResolvedAction:
     """One action of a Work after its own `[actions]` replaced the inherited ones.
 
     It is immutable. It keeps the source of the action and whether the Work
-    removed it, which `wio contracts show` prints and the check does not need.
+    removed it, which `wio contracts show` prints and the check uses too: the
+    check judges a repeated stage only for a source of `work` or `template`, and
+    never for `defaults`, and a Work resolves to no action when every entry is
+    removed or there is none.
 
     Attributes:
         name: The action's name.
@@ -32,8 +35,10 @@ class ResolvedAction:
             an action that the Work removed.
         source: The Work, when its own `[actions]` name the action, otherwise the
             template or the config defaults that the Work inherits from.
-        removed: Whether the Work's own `[actions]` give the action an empty list,
-            which removes it from the Work.
+        removed: Whether the Work's own `[actions]` give an empty list to an action
+            that it inherited, which removes it from the Work. An empty list for an
+            action that nothing was inherited under is not a removal and gives no
+            entry.
     """
 
     name: str
@@ -63,10 +68,12 @@ def resolve_actions(
         inherited_from: Which of the two `inherited` is.
 
     Returns:
-        One entry for each action that either names, the inherited ones first in
-        their order and then the Work's own in its order, each with its source.
-        An action that the Work removed is an entry with `removed` set, and an
-        empty inherited list gives no entry.
+        One entry for each action that either names, in this order: the inherited
+        actions in their order, an action that the Work overrides keeping the
+        place of the one it replaces, and then the actions that only the Work
+        names in its order. Each has its source. An inherited action that the Work
+        empties is an entry with `removed` set, an empty list that nothing was
+        inherited under gives no entry, and neither does an empty inherited list.
     """
     raise NotImplementedError
 

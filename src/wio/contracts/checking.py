@@ -25,14 +25,19 @@ def check_works(
     It runs discovery and the hierarchy, and then one check for each concern of
     each Work, and reads and writes nothing else than through `files`. A problem
     found in one Work or by one check stops no other, and a Work with an error
-    still gets the rest. What discovery and the hierarchy report is carried
+    still gets the rest. Each Work's file is read again exactly once, and the
+    block that it gives is shared by every concern, so that a later check of the
+    body reads no third time and a file that cannot be read gives one error. Each
+    template's `[actions]` are read at most once, however many Works follow it.
+    What discovery and the hierarchy report is carried
     through and is not found again, and a check that depends on something already
     reported is skipped: the resolved actions of a Work whose template is missing,
     rejected or unreadable for its `[actions]`, or whose `template` or `[actions]`
     discovery reported as being of a wrong type, and the roots of a Work whose
     `roots` was reported. Which fields discovery reported is told by type-testing
     the block, which each Work's file is read for again; a file that cannot be
-    read the second time is one error at the file, worded as discovery words it.
+    read the second time is one error at the file, `The file cannot be read:
+    <reason>`, or `The file is not valid UTF-8`, as discovery words them.
     Each diagnostic of this function names the Work's file as its place, without a
     line.
 
@@ -74,9 +79,8 @@ def check_works(
         catalog: The port that finds a template and says whether it is rejected.
 
     Returns:
-        Every diagnostic in the order of `order_diagnostics`: the errors of
-        discovery and of the graph first as they come, and then the findings of
-        the checks, all merged in that one order.
+        Every diagnostic, the errors of discovery and of the graph and the
+        findings of the checks together, in the order of `order_diagnostics`.
 
     Raises:
         ConfigurationError: The catalog could not load the config.
