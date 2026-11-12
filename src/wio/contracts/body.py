@@ -1,16 +1,87 @@
 # SPDX-License-Identifier: Apache-2.0
 """What `wio contracts check` reports about the body of a contract."""
 
-from typing import TYPE_CHECKING
+import re
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Final
+
+from wio.models.diagnostics import Diagnostic
+lazy from wio.formats import read_outline
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
     from pathlib import Path
 
     from wio.io.ports import FileSystem
     from wio.models.block import MetadataBlock
-    from wio.models.diagnostics import Diagnostic
+    from wio.models.directives import Directive
+    from wio.models.heading import Heading
     from wio.models.template import Template
     from wio.models.works import Work
+
+
+_OPENER: Final = re.compile(r"<!--\s*wio:\s*")
+"""The opener of a directive list, as the directive parser reads it."""
+_LEADING_MARKS: Final = re.compile(r"^#+\s*")
+_CLOSING_MARKS: Final = re.compile(r"\s+#+\s*$")
+
+
+@dataclass(frozen=True)
+class _Section:
+    """A section of a template: its text as written and its directives.
+
+    Attributes:
+        text: The heading's text before a directive list, as the template writes
+            it, which a message names it by.
+        directives: The directives of the list on the heading.
+    """
+
+    text: str
+    directives: tuple[Directive, ...]
+
+
+@dataclass(frozen=True)
+class _Source:
+    """What a template says about the body of a contract that follows it.
+
+    Attributes:
+        name: The template's name.
+        sections: Its `##` sections, each under the key that sections are matched
+            by, the first of a repeated text only, in the order of the template.
+    """
+
+    name: str
+    sections: Mapping[str, _Section]
+
+
+@dataclass(frozen=True)
+class _Headings:
+    """The `##` headings of a contract, by the section each one is.
+
+    Attributes:
+        firsts: The first heading of each text, under the key that sections are
+            matched by, in the order of the body.
+        repeats: Each later heading of a text, with the line of the first.
+    """
+
+    firsts: Mapping[str, Heading]
+    repeats: Sequence[tuple[Heading, int]]
+
+
+@dataclass(frozen=True)
+class _Directives:
+    """The directives that apply to the sections of a contract, and the problems.
+
+    Attributes:
+        by_key: The directives of each section that the contract has, under the
+            key that sections are matched by: the template's, or the contract's
+            own when it names no template.
+        problems: The errors of the contract's own lists that the parser refuses
+            or that are on a heading that is not level 2, empty with a template.
+    """
+
+    by_key: Mapping[str, tuple[Directive, ...]]
+    problems: list[Diagnostic]
 
 
 class BodyChecker:
@@ -28,7 +99,9 @@ class BodyChecker:
             root: The repository root, which a template's `path` is relative to.
             files: The port that reads a template's file.
         """
-        raise NotImplementedError
+        self._root = root
+        self._files = files
+        self._read: dict[str, _Source | None] = {}
 
     def check(
         self, work: Work, block: MetadataBlock, template: Template | None
@@ -109,4 +182,241 @@ class BodyChecker:
             The findings in any order, none for a contract whose template is
             missing, rejected or unreadable.
         """
-        raise NotImplementedError
+        source = None
+        if work.template is not None:
+            source = self._source(template) if template is not None else None
+            if source is None:
+                return []
+        place = work.path.as_posix()
+        outline = read_outline(block.body, block.body_start_line)
+        headings = _level_two(outline)
+        directives = _directives(place, outline, headings, source)
+        return [
+            *_title_warning(work),
+            *_repeat_warnings(place, headings),
+            *_against_template(place, outline, headings, source),
+            *directives.problems,
+            *_item_errors(place, block, headings, directives.by_key),
+        ]
+
+    def _source(self, template: Template) -> _Source | None:
+        """Give what a template says, reading its file the first time.
+
+        Args:
+            template: The template.
+
+        Returns:
+            What `_read_template` gave for it, which is `None` for a template
+            that cannot be used, the same for every contract that follows it.
+        """
+        if template.name not in self._read:
+            self._read[template.name] = _read_template(
+                template, self._root, self._files
+            )
+        return self._read[template.name]
+
+
+def _read_template(template: Template, root: Path, files: FileSystem) -> _Source | None:
+    """Read the sections of a template and their directives from its file.
+
+    Args:
+        template: The template, whose `path` is relative to the root.
+        root: The repository root.
+        files: The port that reads the file.
+
+    Returns:
+        The sections of its `##` headings, the first of a repeated text only, or
+        `None` when the file cannot be read or decoded, its block cannot be
+        parsed or is missing. A list that the parser refuses gives that section no
+        directives, because `wio templates check` reports it.
+    """
+    del template, root, files
+    # A stub: no template is usable until the implementation stage.
+    return None
+
+
+def _level_two(outline: Sequence[Heading]) -> _Headings:
+    """Split the `##` headings of a body into first ones and repeats.
+
+    Args:
+        outline: The real headings of the body, in order, of every level.
+
+    Returns:
+        The `##` headings by the key of their text, ignoring case, the whitespace
+        around it and a trailing directive list, with each repeat and the line of
+        the first.
+    """
+    del outline
+    # A stub: no `##` heading is found until the implementation stage.
+    return _Headings({}, [])
+
+
+def _directives(
+    place: str, outline: Sequence[Heading], headings: _Headings, source: _Source | None
+) -> _Directives:
+    """Choose the directives of each section, and judge the contract's own lists.
+
+    Args:
+        place: The contract's file.
+        outline: The real headings of the body.
+        headings: The `##` headings.
+        source: What the template says, or `None` for a contract with none.
+
+    Returns:
+        The template's directives for each section that the contract has, or the
+        lists of the contract's own first `##` headings, and with no template the
+        parser's errors and the errors for a list on another level.
+    """
+    del place, outline, headings, source
+    # A stub: no directive applies until the implementation stage.
+    return _Directives({}, [])
+
+
+def _title_warning(work: Work) -> list[Diagnostic]:
+    """Warn of a contract that has no heading.
+
+    Args:
+        work: The Work, whose `title` is the text of its first heading.
+
+    Returns:
+        ``The contract has no title`` as a warning at the file, or an empty list.
+    """
+    if work.title is not None:
+        return []
+    return [Diagnostic("warning", work.path.as_posix(), "The contract has no title")]
+
+
+def _repeat_warnings(place: str, headings: _Headings) -> list[Diagnostic]:
+    """Warn of each `##` heading that repeats an earlier one.
+
+    Args:
+        place: The contract's file.
+        headings: The `##` headings.
+
+    Returns:
+        One warning at each repeat's line that names the section and says that
+        the first one counts.
+    """
+    return [
+        Diagnostic(
+            "warning",
+            f"{place}:{heading.line}",
+            f"The section `{_text_of(heading)}` is repeated; the first one counts",
+        )
+        for heading, _first in headings.repeats
+    ]
+
+
+def _text_of(heading: Heading) -> str:
+    """Give the text of a heading before a directive list, as written.
+
+    It is taken from the line by an expression and not by the parser, which raises
+    for a list that it refuses, so a heading whose list is refused has a text too.
+
+    Args:
+        heading: The heading.
+
+    Returns:
+        The line without its `#` marks, a closing sequence of them, the spaces
+        around it, and a directive list and what follows it.
+    """
+    opener = _OPENER.search(heading.raw)
+    before = heading.raw if opener is None else heading.raw[: opener.start()]
+    return _CLOSING_MARKS.sub("", _LEADING_MARKS.sub("", before.strip())).strip()
+
+
+def _against_template(
+    place: str, outline: Sequence[Heading], headings: _Headings, source: _Source | None
+) -> list[Diagnostic]:
+    """Judge the contract's sections and lists against its template.
+
+    Args:
+        place: The contract's file.
+        outline: The real headings of the body, whose lists are ignored.
+        headings: The `##` headings.
+        source: What the template says, or `None` for a contract with none, which
+            gives nothing.
+
+    Returns:
+        The findings about the sections and the ignored lists.
+    """
+    if source is None:
+        return []
+    return [
+        *_section_findings(place, headings, source),
+        *_ignored_lists(place, outline, source.name),
+    ]
+
+
+def _section_findings(
+    place: str, headings: _Headings, source: _Source
+) -> list[Diagnostic]:
+    """Judge the contract's `##` sections against the template's.
+
+    Args:
+        place: The contract's file.
+        headings: The `##` headings of the contract, of which the first of each
+            text is judged.
+        source: What the template says.
+
+    Returns:
+        An error at the file for each section that the template requires and the
+        contract lacks, ``The section `Goals` is required by the template `t` ``,
+        named as the template writes it, in the template's order, and a warning at
+        the line of each heading that the template does not have, ``The section
+        `Constraint` is not in the template `t` ``, with ``. Did you mean
+        `Constraints`?`` for the closest section by `closest_key` on the texts as
+        written.
+    """
+    del place, headings, source
+    # A stub: nothing is found until the implementation stage.
+    return []
+
+
+def _ignored_lists(
+    place: str, outline: Sequence[Heading], template: str
+) -> list[Diagnostic]:
+    """Warn of each directive list of a contract that follows a template.
+
+    Args:
+        place: The contract's file.
+        outline: The real headings of the body, of every level.
+        template: The template's name.
+
+    Returns:
+        One warning at the line of the heading for each list, however it is
+        written, saying that it is ignored because the contract follows the
+        template.
+    """
+    message = (
+        "The directive list is ignored because the contract follows the template "
+        f"`{template}`"
+    )
+    return [
+        Diagnostic("warning", f"{place}:{heading.line}", message)
+        for heading in outline
+        for _ in _OPENER.finditer(heading.raw)
+    ]
+
+
+def _item_errors(
+    place: str,
+    block: MetadataBlock,
+    headings: _Headings,
+    by_key: Mapping[str, tuple[Directive, ...]],
+) -> list[Diagnostic]:
+    """Find and judge the items of the sections that have `items` or `pattern`.
+
+    Args:
+        place: The contract's file.
+        block: The block, whose body and first line the items are found in.
+        headings: The `##` headings, of which only the first of each text counts.
+        by_key: The directives of each section.
+
+    Returns:
+        What `judge_items` finds for the sections, over the first heading of each
+        text only.
+    """
+    del place, block, headings, by_key
+    # A stub: nothing is found until the implementation stage.
+    return []

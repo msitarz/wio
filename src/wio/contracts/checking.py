@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, Literal
 
 from wio.contracts.actions import resolve_actions, template_actions
+from wio.contracts.body import BodyChecker
 from wio.contracts.discovery import discover_works, wrong_optional_fields
 from wio.contracts.hierarchy import build_hierarchy
 from wio.formats.errors import MetadataBlockError
@@ -106,7 +107,15 @@ def check_works(
     """
     discovery = discover_works(root, config.works, files)
     found = build_hierarchy(discovery.works, config.works.hierarchy)
-    run = _Run(root, config, files, catalog, found, _Templates(root, files))
+    run = _Run(
+        root,
+        config,
+        files,
+        catalog,
+        found,
+        _Templates(root, files),
+        BodyChecker(root, files),
+    )
     problems = [*discovery.diagnostics, *found.diagnostics]
     for work in found.works:
         problems.extend(_check_work(work, run))
@@ -154,6 +163,8 @@ class _Run:
         catalog: The port that judges a template.
         found: The hierarchy of all the Works.
         templates: The actions of the templates, each read at most once.
+        bodies: The check of the bodies, which reads each template's sections at
+            most once.
     """
 
     root: Path
@@ -162,6 +173,7 @@ class _Run:
     catalog: TemplateCatalog
     found: Hierarchy
     templates: _Templates
+    bodies: BodyChecker
 
 
 def _check_work(work: Work, run: _Run) -> list[Diagnostic]:
@@ -180,6 +192,7 @@ def _check_work(work: Work, run: _Run) -> list[Diagnostic]:
         return [block]
     wrong = wrong_optional_fields(block.data)
     template, template_problems = _template_errors(work, run.catalog)
+    body = [] if "template" in wrong else run.bodies.check(work, block, template)
     return [
         *_key_warnings(work, block),
         *_id_error(work),
@@ -187,6 +200,7 @@ def _check_work(work: Work, run: _Run) -> list[Diagnostic]:
         *_named_errors(work, run.config),
         *_resolved_errors(work, template, wrong, run),
         *_root_errors(work, wrong, run.config, run.found),
+        *body,
     ]
 
 
