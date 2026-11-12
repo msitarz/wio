@@ -132,7 +132,7 @@ def test_any_other_id_is_accepted(work_id: str) -> None:
     assert Path(work.path).name == "README.md"
 
 
-def test_discovery_and_the_check_agree_on_which_fields_are_of_a_wrong_type() -> None:
+def test_the_type_test_names_each_optional_field_that_is_of_a_wrong_type() -> None:
     """A field that discovery reports is one that the check does not resolve."""
     # Given blocks with a wrong `template`, `roots`, `depends_on` and `[actions]`
     # and one with every field right

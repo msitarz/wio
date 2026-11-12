@@ -132,6 +132,7 @@ def _config(
 
 
 DEFAULTS = {"deliver": ("implementation",)}
+KEY = "Unknown key `depend_on` in the metadata. Did you mean `depends_on`?"
 REJECTED = (
     "The template `{}` is rejected by `wio templates check`; run it for the findings"
 )
@@ -766,3 +767,137 @@ def test_a_parent_that_lists_descendants_is_not_warned() -> None:
 
     # Then nothing is reported, because the parent passes the root up
     assert found == []
+
+
+@pytest.mark.parametrize(
+    ("extra", "catalog", "expected"),
+    [
+        ('template = "nosuch"\n', _Catalog(), "The template `nosuch` does not exist"),
+        (
+            'template = "bad"\n',
+            _Catalog(rejected=("bad",)),
+            REJECTED.format("bad"),
+        ),
+        ("template = 1\n", _Catalog(), "`template` must be a string"),
+        ("actions = 3\n", _Catalog(), None),
+    ],
+)
+def test_a_work_with_a_reported_template_or_actions_is_not_told_it_has_no_action(
+    extra: str, catalog: _Catalog, expected: str | None
+) -> None:
+    """With no default actions, only what was reported is said."""
+    # Given a project with no default actions and a Work whose template is
+    # missing, rejected or not a string, or whose `[actions]` is not a table
+    files = {"a/README.md": _marked("a1", extra)}
+
+    # When the Work is checked
+    found = [m for _, _, m in _check(files, _config(), catalog)]
+
+    # Then it is not told that it resolves to no action
+    assert "The Work resolves to no action" not in found
+    assert found[0].startswith(expected or "`[actions]` must be")
+
+
+def test_a_root_that_only_a_grandchild_holds_is_noted_at_the_top() -> None:
+    """The notes of a parent look at every descendant, not only its children."""
+    # Given a parent and a child that list no root of the grandchild's
+    files = {
+        "p/README.md": _marked("p1", 'roots = ["web"]\n'),
+        "p/c/README.md": _marked("c1", 'roots = ["web"]\n'),
+        "p/c/g/README.md": _marked("g1", 'roots = ["api"]\n'),
+    }
+
+    # When the Works are checked
+    found = _check(files, _config("nesting", DEFAULTS, ("api", "web")))
+
+    # Then the parent and the child are each noted, for the root of the grandchild
+    assert found == [
+        (
+            "note",
+            _at("p/README.md"),
+            "Its roots leave out `api`, which a descendant uses",
+        ),
+        (
+            "note",
+            _at("p/c/README.md"),
+            "Its roots leave out `api`, which a descendant uses",
+        ),
+    ]
+
+
+def test_an_unreadable_template_skips_only_the_resolved_checks() -> None:
+    """The Work's own names are still checked when its template cannot be read."""
+    # Given a template that the catalog gives and whose file cannot be read, and a
+    # Work that follows it with an undeclared action of its own
+    catalog = _Catalog(names=("t",))
+    files = {
+        "a/README.md": _marked(
+            "a1", "template = 't'\n\n[actions]\nshipp = ['implementation']\n"
+        ),
+        "templates/t.md": TEMPLATE.format(actions='deliver = ["implementation"]'),
+    }
+
+    # When the Work is checked and the template's file fails to read
+    found = _check(files, catalog=catalog, fail={"templates/t.md": 1})
+
+    # Then only the error of the action's name is reported
+    assert [m for _, _, m in found] == [
+        "The action `shipp` is not declared in `[actions]` of the config"
+    ]
+
+
+def test_an_empty_actions_table_is_no_problem_and_falls_back_to_the_defaults() -> None:
+    """A Work with an empty `[actions]` and no template follows the defaults."""
+    # Given a Work with an empty `[actions]` table
+    files = {"a/README.md": _marked("a1", "\n[actions]\n")}
+
+    # When the Work is checked
+    found = _check(files)
+
+    # Then nothing is reported
+    assert found == []
+
+
+def test_an_unknown_key_in_front_matter_is_warned_of() -> None:
+    """The `+++` form is read as the comment form is."""
+    # Given a Work with a `+++` block that holds an unknown key
+    text = '+++\nwio = 1\nid = "f1"\nbogus = 1\n+++\n\n# Title\n'
+
+    # When the Work is checked
+    found = _check({"a/README.md": text})
+
+    # Then the key is warned of and the marker is not
+    assert found == [
+        ("warning", _at("a/README.md"), "Unknown key `bogus` in the metadata")
+    ]
+
+
+def test_descendants_and_an_undeclared_root_in_one_list_each_get_their_say() -> None:
+    """`@descendants` is no root, and the other name is judged as a root."""
+    # Given a leaf that lists `@descendants` and an undeclared root
+    files = {"a/README.md": _marked("a1", 'roots = ["@descendants", "nosuch"]\n')}
+
+    # When the Work is checked
+    found = [(s, m) for s, _, m in _check(files)]
+
+    # Then there is the error for the root and the warning for the leaf
+    assert found == [
+        ("error", "The root `nosuch` is not declared in `[roots]` of the config"),
+        ("warning", "The Work has no children, so `@descendants` adds no root"),
+    ]
+
+
+def test_a_shared_id_does_not_stop_the_other_checks() -> None:
+    """The Works that share an id still get their own findings."""
+    # Given two Works that share an id, one of which has an unknown key
+    files = {
+        "a/README.md": _marked("dup", "depend_on = []\n"),
+        "b/README.md": _marked("dup"),
+    }
+
+    # When the Works are checked
+    found = [(s, m) for s, _, m in _check(files)]
+
+    # Then both the key and the shared id are reported
+    assert ("warning", KEY) in found
+    assert any(m.startswith("Works share the id") for _, m in found)
