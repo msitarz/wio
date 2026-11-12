@@ -7,6 +7,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from tests.unit.contracts.helpers import paths, where
 from tests.unit.fakes import ROOT, MemoryFileSystem
 from wio.contracts import discovery as module
 from wio.models.config import Works
@@ -15,7 +16,7 @@ from wio.models.frozen import freeze
 from wio.models.works import Work
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Mapping
 
     from wio.io.ports import FileSystem
 
@@ -308,30 +309,6 @@ def _tree_out_of_order(monkeypatch: pytest.MonkeyPatch) -> MemoryFileSystem:
     return MemoryFileSystem({DIR / n: "" for n in (*works, *left_out, *excluded)})
 
 
-def _where(diagnostics: Iterable[Diagnostic]) -> list[str]:
-    """List the places of some diagnostics.
-
-    Args:
-        diagnostics: The diagnostics.
-
-    Returns:
-        Their places, in their order.
-    """
-    return [d.where for d in diagnostics]
-
-
-def _paths(paths: Iterable[Path]) -> list[str]:
-    """List some paths written with `/`.
-
-    Args:
-        paths: The paths.
-
-    Returns:
-        Their strings, in their order.
-    """
-    return [p.as_posix() for p in paths]
-
-
 def _in_order(
     diagnostics: tuple[Diagnostic, ...], subset: tuple[Diagnostic, ...]
 ) -> bool:
@@ -367,10 +344,10 @@ def test_every_list_is_in_the_order_of_its_paths_and_places(
     # of their paths, and the diagnostics by file, then line as a number, then
     # the places that are not a file as text, with `incomplete` and `ambiguous`
     # in the same order inside `diagnostics`
-    assert _paths(w.path for w in found.works) == [f"{base}{n}" for n in ordered]
-    assert _paths(found.left_out) == left_out
-    assert _paths(found.excluded) == excluded
-    assert _where(found.diagnostics) == [
+    assert paths(w.path for w in found.works) == [f"{base}{n}" for n in ordered]
+    assert paths(found.left_out) == left_out
+    assert paths(found.excluded) == excluded
+    assert where(found.diagnostics) == [
         f"{base}a/0.md:4",
         f"{base}a/0.md:12",
         *left_out,
@@ -378,7 +355,7 @@ def test_every_list_is_in_the_order_of_its_paths_and_places(
         "s1",
         "s2",
     ]
-    assert _where(found.incomplete) == [*left_out, collision]
-    assert _where(found.ambiguous) == ["s1", "s2"]
+    assert where(found.incomplete) == [*left_out, collision]
+    assert where(found.ambiguous) == ["s1", "s2"]
     assert _in_order(found.diagnostics, found.incomplete)
     assert _in_order(found.diagnostics, found.ambiguous)
