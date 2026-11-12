@@ -39,8 +39,13 @@ _RUN = partial(run_hook, check="contracts check")
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "file_path",
-    [f"{WORKS}/a/README.md", f"{WORKS}/a/b/README.md"],
-    ids=["a Work", "a Work below a Work"],
+    [
+        f"{WORKS}/a/README.md",
+        f"{WORKS}/a/b/README.md",
+        f"{WORKS}/a b/README.md",
+        "/work/tests/fixtures/c/.agents/wio/works/a/README.md",
+    ],
+    ids=["a Work", "a Work below a Work", "a space in the path", "a nested directory"],
 )
 def test_the_hook_returns_the_errors_of_an_edit_of_a_contract(
     tmp_path: Path, file_path: str
@@ -72,8 +77,19 @@ def test_the_hook_returns_the_errors_of_an_edit_of_a_contract(
         f"{WORKS}/a/notes.txt",
         "/work/docs/README.md",
         ".agents/wio/works/a/README.md",
+        f"{WORKS}/a/README.MD",
+        f"{WORKS}/a/notes.md.bak",
     ],
-    ids=["source", "config", "template", "not Markdown", "outside", "relative"],
+    ids=[
+        "source",
+        "config",
+        "template",
+        "not Markdown",
+        "outside",
+        "relative",
+        "upper case",
+        "a suffix after .md",
+    ],
 )
 def test_the_hook_is_silent_when_the_edit_is_not_a_contract(
     tmp_path: Path, file_path: str
