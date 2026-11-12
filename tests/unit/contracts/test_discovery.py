@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 type Hierarchy = Literal["flat", "nesting"]
 
 WORKS = ROOT / "works"
+BOM = chr(0xFEFF)
 NOT_UTF8 = UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
 
 
@@ -659,3 +660,210 @@ def test_under_flat_a_shared_directory_is_no_reason() -> None:
 
     # Then none has a reason
     assert reasons == [None, None, None]
+
+
+def test_the_title_is_the_first_of_several_headings() -> None:
+    """AC-1: the first heading is the title, whatever comes after it."""
+    # Given a Work whose body has `# A` and then `## B`
+    disk = _disk({"a/README.md": _marked("k3m9xq", "# A\n\n## B\n")})
+
+    # When the Works are discovered
+    found = _find(disk)
+
+    # Then its title is `A`
+    assert [w.title for w in found.works] == ["A"]
+
+
+def test_a_block_that_cannot_be_read_counts_in_its_directory() -> None:
+    """AC-5: an unclosed block is marked, so it collides, and is also reported."""
+    # Given a nesting tree with a good `a/one.md` and an `a/two.md` whose block
+    # does not close
+    disk = _disk({"a/one.md": _marked("k3m9xq"), "a/two.md": '<!-- wio\nid = "x"\n'})
+
+    # When the Works are discovered
+    found = _find(disk)
+
+    # Then there is no Work, one error is at both files and one is at the block
+    # of the second, which is left out, and the first is excluded
+    assert found.works == ()
+    assert sorted(where(found.diagnostics)) == [
+        "works/a/one.md, works/a/two.md",
+        "works/a/two.md:1",
+    ]
+    assert paths(found.left_out) == ["works/a/two.md"]
+    assert paths(found.excluded) == ["works/a/one.md"]
+
+
+def test_a_file_that_cannot_be_read_does_not_count_in_its_directory() -> None:
+    """AC-5: a file that fails to read is not known to be marked."""
+    # Given a nesting tree with a good `a/one.md` and an `a/two.md` that the file
+    # system fails to read
+    disk = _disk(
+        {"a/one.md": _marked("k3m9xq"), "a/two.md": ""},
+        broken={"a/two.md": PermissionError(13, "Permission denied")},
+    )
+
+    # When the Works are discovered
+    found = _find(disk)
+
+    # Then `a/one.md` is a Work and the only error is that of the other file
+    assert list(_by_path(found)) == ["a/one.md"]
+    assert where(found.diagnostics) == ["works/a/two.md"]
+
+
+def test_a_file_left_out_directly_in_the_works_directory_is_explained_as_left_out() -> (
+    None
+):
+    """AC-8: a file that cannot be decoded is not marked, so not the direct reason."""
+    # Given a nesting tree with a file that is not UTF-8 directly in the Works
+    # directory, and a marked file with no `id` beside it
+    disk = _disk(
+        {"gone.md": "", "noid.md": _block('title = "t"')}, broken={"gone.md": NOT_UTF8}
+    )
+    settings = Works(dir="works", hierarchy="nesting")
+
+    # When the reason each is not a Work is asked for
+    gone = explain_not_a_work(ROOT, Path("works/gone.md"), settings, disk)
+    noid = explain_not_a_work(ROOT, Path("works/noid.md"), settings, disk)
+
+    # Then the first is left out for its own error and the second is directly in
+    # the Works directory
+    assert gone is not None
+    assert "left out" in gone
+    assert "UTF-8" in gone
+    assert noid is not None
+    assert "directly in the Works directory" in noid
+
+
+def test_a_symbolic_link_outside_the_works_directory_is_a_link_first() -> None:
+    """AC-8: the symbolic link comes before the Works directory in the list."""
+    # Given a symbolic link to a marked file outside the Works directory
+    disk = _disk({"good/README.md": _marked("good")})
+    disk.files[ROOT / "docs" / "l.md"] = _marked("linked")
+    disk.links.add(ROOT / "docs" / "l.md")
+
+    # When the reason it is not a Work is asked for
+    reason = explain_not_a_work(ROOT, Path("docs/l.md"), Works(dir="works"), disk)
+
+    # Then it is a symbolic link and not a file outside the Works directory
+    assert reason is not None
+    assert "symbolic link" in reason
+
+
+def test_a_hidden_file_is_a_work_and_a_link_above_the_root_is_no_reason() -> None:
+    """AC-1, AC-8: only a directory is hidden by its name, and the root's own path."""
+    # Given a tree with a Work in `.h.md` and the repository under a link
+    disk = _disk({".h.md": _marked("hidden"), "a/README.md": _marked("k3m9xq")})
+    disk.links.add(ROOT)
+    settings = Works(dir="works", hierarchy="flat")
+
+    # When the Works are discovered and the reasons are asked for
+    found = discover_works(ROOT, settings, disk)
+    hidden = explain_not_a_work(ROOT, Path("works/.h.md"), settings, disk)
+    other = explain_not_a_work(ROOT, Path("works/a/README.md"), settings, disk)
+
+    # Then `.h.md` is a Work like the other, and neither has a reason
+    assert [w.id for w in found.works] == ["hidden", "k3m9xq"]
+    assert (hidden, other) == (None, None)
+
+
+@pytest.mark.parametrize(
+    "text",
+    ['+++\nid = "x"\n+++\n', BOM + '+++\r\nid = "x"\r\n+++\r\n'],
+    ids=["lf", "bom crlf"],
+)
+def test_front_matter_with_no_wio_key_is_a_reason_in_any_line_ending(text: str) -> None:
+    """AC-8: a BOM and CRLF do not hide the `+++` line."""
+    # Given a file with `+++` front matter and no `wio` key
+    disk = _disk({"a/README.md": text})
+
+    # When the reason it is not a Work is asked for
+    reason = explain_not_a_work(
+        ROOT, Path("works/a/README.md"), Works(dir="works"), disk
+    )
+
+    # Then it names the front matter
+    assert reason is not None
+    assert "front matter" in reason
+
+
+def test_a_name_that_ends_in_an_upper_case_md_is_not_markdown() -> None:
+    """AC-8: the suffix is `.md` with that case, and the reason names the path."""
+    # Given a file `R.MD`
+    disk = _disk({"R.MD": _marked("upper")})
+
+    # When the reason it is not a Work is asked for
+    reason = explain_not_a_work(ROOT, Path("works/R.MD"), Works(dir="works"), disk)
+
+    # Then it is not a Markdown file, and the path is written relative to the root
+    assert reason == "`works/R.MD` is not a Markdown file: its name must end in `.md`"
+
+
+def test_a_file_name_with_a_colon_or_a_comma_has_its_reason() -> None:
+    """AC-8: the reasons come from what was read, not from the text of an error."""
+    # Given a nesting tree with `a/x:y.md` that has no `id`, and `b/p, q.md` and
+    # `b/r.md`, both marked
+    disk = _disk(
+        {
+            "a/x:y.md": _block('title = "t"'),
+            "b/p, q.md": _marked("pq"),
+            "b/r.md": _marked("r"),
+        }
+    )
+    settings = Works(dir="works", hierarchy="nesting")
+
+    # When the reason each is not a Work is asked for
+    colon = explain_not_a_work(ROOT, Path("works/a/x:y.md"), settings, disk)
+    comma = explain_not_a_work(ROOT, Path("works/b/p, q.md"), settings, disk)
+    other = explain_not_a_work(ROOT, Path("works/b/r.md"), settings, disk)
+
+    # Then the first is left out for the missing id, and the other two name each
+    # other
+    assert colon is not None
+    assert "left out" in colon
+    assert "`id`" in colon
+    assert comma == (
+        "`works/b/p, q.md` is in a directory with other marked files: works/b/r.md"
+    )
+    assert other == (
+        "`works/b/r.md` is in a directory with other marked files: works/b/p, q.md"
+    )
+
+
+@pytest.mark.parametrize(
+    ("lines", "token"),
+    [
+        ('title = "t"', "`id`"),
+        ("id = 12", "`id`"),
+        ('id = ""', "`id`"),
+        ('id = "a"\ntemplate = 1', "`template`"),
+        ('id = "a"\nroots = 1', "`roots`"),
+        ('id = "a"\ndepends_on = 1', "`depends_on`"),
+        ('id = "a"\nactions = 1', "`[actions]`"),
+    ],
+)
+def test_each_error_names_the_key_it_is_about(lines: str, token: str) -> None:
+    """AC-2, AC-3: the message says which key is wrong."""
+    # Given a Work with one wrong key
+    disk = _disk({"a/README.md": _block(lines)})
+
+    # When the Works are discovered
+    found = _find(disk)
+
+    # Then its one error names the key
+    assert [token in d.message for d in found.diagnostics] == [True]
+
+
+def test_three_works_that_share_an_id_are_one_error_at_all_three_paths() -> None:
+    """AC-4: the place lists every path and the message does not count them."""
+    # Given three Works with one id
+    disk = _disk({f"{n}/README.md": _marked("k3m9xq") for n in "abc"})
+
+    # When the Works are discovered
+    found = _find(disk, "flat")
+
+    # Then one error is at the three paths and names the id
+    assert where(found.diagnostics) == [
+        "works/a/README.md, works/b/README.md, works/c/README.md"
+    ]
+    assert found.diagnostics[0].message == "Works share the id `k3m9xq`"

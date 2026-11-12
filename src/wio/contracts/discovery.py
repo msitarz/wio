@@ -128,8 +128,25 @@ def discover_works(
         return _refused(refusal)
     if not files.is_dir(directory):
         return _refused([])
+    return _assemble(*_read_tree(root, directory, settings, files))
+
+
+def _read_tree(
+    root: Path, directory: Path, settings: WorksSettings, files: FileSystem
+) -> tuple[list[_Read], _Collisions]:
+    """Read every file of the walk and apply the nesting rules to them.
+
+    Args:
+        root: The repository root.
+        directory: The Works directory, joined to the root, which can be walked.
+        settings: The `[works]` table.
+        files: The port that lists and reads.
+
+    Returns:
+        The reads in the order of the walk, and what the nesting rules exclude.
+    """
     reads = [_read_file(root, path, files) for path in walk_markdown(directory, files)]
-    return _assemble(reads, _find_collisions(reads, settings.hierarchy, settings.dir))
+    return reads, _find_collisions(reads, settings.hierarchy, settings.dir)
 
 
 def _assemble(reads: Sequence[_Read], collisions: _Collisions) -> WorkDiscovery:
@@ -211,10 +228,16 @@ class _Collisions:
             directly in the Works directory, counting a file that is left out.
         diagnostics: The error of each directory and of each such file. Empty
             under `flat`.
+        groups: The marked files of each directory that holds two or more, each
+            group sorted, so that a reason can name the others without reading a
+            message.
+        direct: The marked files directly in the Works directory.
     """
 
     excluded: frozenset[Path]
     diagnostics: tuple[Diagnostic, ...]
+    groups: tuple[tuple[Path, ...], ...] = ()
+    direct: frozenset[Path] = frozenset()
 
 
 def _refused(problems: Sequence[Diagnostic]) -> WorkDiscovery:
@@ -528,7 +551,12 @@ def _find_collisions(
     direct, others = _split_direct(reads, Path(works_dir))
     crowded = _crowded(others)
     shut = frozenset(read.path for read in chain(direct, *crowded.values()))
-    return _Collisions(shut, _collision_errors(direct, crowded, works_dir))
+    return _Collisions(
+        shut,
+        _collision_errors(direct, crowded, works_dir),
+        tuple(tuple(sorted(r.path for r in group)) for group in crowded.values()),
+        frozenset(read.path for read in direct),
+    )
 
 
 def _collision_errors(
@@ -631,7 +659,7 @@ def _shared_ids(works: Sequence[Work]) -> tuple[Diagnostic, ...]:
     for work in works:
         by_id.setdefault(work.id, []).append(work)
     return tuple(
-        _error(_shared_place(group), f"Two Works share the id `{work_id}`")
+        _error(_shared_place(group), f"Works share the id `{work_id}`")
         for work_id, group in by_id.items()
         if len(group) > 1
     )
@@ -838,9 +866,13 @@ def _tree_reason(
 ) -> str | None:
     """Judge a path that is a Markdown file below the Works directory by the tree.
 
+    The reasons come from what was read and from the nesting rules, and no
+    message of a diagnostic is read, so a file name that holds `:` or `, ` is
+    judged like any other.
+
     Args:
         root: The repository root.
-        absolute: The path.
+        absolute: The path, below the Works directory.
         settings: The `[works]` table.
         files: The port.
 
@@ -848,65 +880,69 @@ def _tree_reason(
         The reason a collision, the Works directory or an error of its own gives,
         or `None` for a Work.
     """
-    found = discover_works(root, settings, files)
-    place = _place(root, absolute)
+    reads, collisions = _read_tree(root, root / settings.dir, settings, files)
+    relative = absolute.relative_to(root)
     return (
-        _crowd_reason(found.incomplete, place)
-        or _direct_reason(found.incomplete, place, settings.dir)
-        or _own_reason(found.incomplete, place)
+        _crowd_reason(collisions.groups, relative)
+        or _direct_reason(collisions.direct, relative, settings.dir)
+        or _own_reason(reads, relative)
     )
 
 
-def _crowd_reason(incomplete: Iterable[Diagnostic], place: str) -> str | None:
+def _crowd_reason(groups: Iterable[Sequence[Path]], relative: Path) -> str | None:
     """Say that a file shares its directory with other marked files.
 
     Args:
-        incomplete: The errors that leave the tree incomplete.
-        place: The file's place.
+        groups: The marked files of each directory that holds two or more.
+        relative: The file, relative to the root.
 
     Returns:
-        The reason naming those files, or `None`.
+        The reason naming the other files, or `None`.
     """
-    for error in incomplete:
-        if ", " in error.where and place in error.where.split(", "):
-            return f"`{place}` is in a directory with other marked files: {error.where}"
+    for group in groups:
+        if relative in group:
+            others = ", ".join(p.as_posix() for p in group if p != relative)
+            return (
+                f"`{relative.as_posix()}` is in a directory with other marked "
+                f"files: {others}"
+            )
     return None
 
 
 def _direct_reason(
-    incomplete: Iterable[Diagnostic], place: str, works_dir: str
+    direct: Iterable[Path], relative: Path, works_dir: str
 ) -> str | None:
     """Say that a marked file sits directly in the Works directory.
 
     Args:
-        incomplete: The errors that leave the tree incomplete.
-        place: The file's place.
+        direct: The marked files directly in the Works directory.
+        relative: The file, relative to the root.
         works_dir: The Works directory as written.
 
     Returns:
         The reason naming the directory, or `None`.
     """
-    if any(e.where == place and e.message.startswith(_DIRECT) for e in incomplete):
-        return (
-            f"`{place}` is directly in the Works directory `{works_dir}`, "
-            "where a Work cannot sit"
-        )
-    return None
+    if relative not in direct:
+        return None
+    return (
+        f"`{relative.as_posix()}` is directly in the Works directory "
+        f"`{works_dir}`, where a Work cannot sit"
+    )
 
 
-def _own_reason(incomplete: Iterable[Diagnostic], place: str) -> str | None:
+def _own_reason(reads: Iterable[_Read], relative: Path) -> str | None:
     """Say that a file is left out for an error of its own.
 
     Args:
-        incomplete: The errors that leave the tree incomplete.
-        place: The file's place.
+        reads: Every file of the walk.
+        relative: The file, relative to the root.
 
     Returns:
         The reason naming that error, or `None`.
     """
-    for error in incomplete:
-        if error.where.split(":")[0] == place:
-            return f"`{place}` is left out: {error.message}"
+    for read in reads:
+        if read.path == relative and read.left_out:
+            return f"`{relative.as_posix()}` is left out: {read.problems[0].message}"
     return None
 
 

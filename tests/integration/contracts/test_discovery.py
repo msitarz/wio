@@ -131,3 +131,18 @@ def test_real_symbolic_links_and_hidden_directories_are_reasons(
     assert "symbolic link" in str(reasons[1])
     assert "hidden" in str(reasons[2])
     assert "not a file" in str(reasons[3])
+
+
+def test_a_real_missing_default_works_directory_holds_no_works(
+    tmp_path: Path,
+) -> None:
+    """AC-7: the default directory may be missing on a real disk."""
+    # Given a repository with no Works directory at all
+    (tmp_path / "README.md").write_text("# Repo\n", encoding="utf-8")
+
+    # When the Works are discovered with the default settings through the real
+    # file system
+    found = discover_works(tmp_path, Works(), LocalFileSystem())
+
+    # Then there is no Work and no diagnostic
+    assert (found.works, found.diagnostics) == ((), ())
