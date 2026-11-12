@@ -34,7 +34,7 @@ takes and returns, and the
   the command line prints its message and exits 2, while a handler returns 0, or
   1 for a failed check, and never another code. A refusal can carry diagnostics,
   which the command line then
-  [writes as they are](../cli/README.md#exit-codes-and-errors), as `list` does
+  [writes as they are](../cli/README.md#failures-and-exit-codes), as `list` does
   for an incomplete tree.
 
 ## The template catalog
