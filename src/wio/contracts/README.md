@@ -32,9 +32,10 @@ takes and returns, and the
   they meet the group, and a subcommand that needs another port adds a field.
 - **A mistake the user must fix is a `ContractsError`.** It is a `WioError`, so
   the command line prints its message and exits 2, while a handler returns 0, or
-  1 for a failed check, and never another code. A refusal that is raised with
-  diagnostics keeps them, and the command line then writes its message as it is,
-  without a second `error:`, as `wio templates` does.
+  1 for a failed check, and never another code. A refusal can carry diagnostics,
+  which the command line then
+  [writes as they are](../cli/README.md#exit-codes-and-errors), as `list` does
+  for an incomplete tree.
 
 ## The template catalog
 
@@ -186,8 +187,8 @@ byte for byte on both channels.
 - **Only what a Work states itself shows.** The roots, the dependencies and the
   `[actions]` are written as the Work has them, so an override is never hidden
   and what the template supplies is not repeated. The roots with `@descendants`
-  resolved, the dependents and where each action comes from are `wio contracts
-  show`'s, which resolves.
+  resolved, the dependents and where each action comes from are for a command
+  that resolves, not for `list`.
 - **The text follows the hierarchy and the JSON follows the paths.** A person
   reads a parent above its children, and a script wants an order that does not
   depend on the mode, so the array is sorted by path alone and says each
