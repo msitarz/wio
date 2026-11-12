@@ -831,9 +831,12 @@ the template it names, or its own headings when it names none
   level-2 headings (`##`) to the template's headings by their text, ignoring
   case, surrounding whitespace and a trailing directive comment. Nothing else is
   normalized, so the match stays predictable.
-- A `##` heading that the template does not have is a warning. A misspelled
-  `## Constraint` would otherwise lose its inheritance without any error.
-  Deeper headings are free.
+- A `##` heading that the template does not have is a warning that names the
+  template's closest section when there is one. A misspelled `## Constraint`
+  would otherwise lose its inheritance without any error. Deeper headings are
+  free.
+- When a `##` heading is repeated, the first is the section, and in a contract
+  the repeat is a warning and carries no items.
 - A fresh Work must pass the check too, so what an entry template requires
   decides what a Work needs from its first commit. How strict each template is
   belongs to the workflow; [wio's own](workflow.md#from-draft-to-leaf-or-parent)
