@@ -126,3 +126,46 @@ places the lines that it adds itself, as text, after normalizing the line
 endings. Its tests pin each case above. Remove this entry, and that workaround
 if the library allows, when a release lets a key or a table be inserted at a
 chosen place without changing the rest.
+
+**The two ways of using it that were measured.** Both give the expected text for
+a block with `template`, `roots = []`, an empty line and a table `[x]` when
+`roots` is replaced, `depends_on` is added and the table `[actions]` is added,
+and both replace a key or a whole table in place, keep an empty line that stands
+before a plain key, and add no empty line to a table added after a block that
+ends with one or two. They differ here:
+
+| Case | `doc[key] = value` and `doc[name] = table` | Text edit |
+| --- | --- | --- |
+| An existing table directly after a key or a comment | Gains an empty line before it | Unchanged |
+| A new key, with comment lines after the last plain key | Goes after the comment lines | Goes before them |
+| A block with no final line ending, and a table added | No empty line before the table | One empty line |
+| A table named like an inline plain key, or the reverse | Replaces it without an error | `ValueError` |
+| `id` first, a CRLF block, a mapping as an inline table | Extra code | Extra code |
+
+Replacing the value where it stands is the same in both. The first two rows are
+the only ones that change a file that a person wrote, and a block that
+`encode_toml` wrote already has an empty line before each table, so they matter
+only for a hand-written contract. Using the assignment alone takes about half
+the code of the text edit and accepts those two rows.
+
+**Cases that were run on the text edit.** The expected output is for adding the
+plain key `c = 3`, unless the case says otherwise.
+
+| Block between the delimiters | Result |
+| --- | --- |
+| `a=1`, empty line, `b=2` | `c = 3` after `b=2` |
+| `a=1`, `# c`, empty line, `b=2` | `c = 3` after `b=2` |
+| an empty line, then `a = 1` | the empty line stays first |
+| `template = "t"`, then `[x]` | `c = 3` after `template`, no empty line added |
+| `# about x`, then `[x]` | `c = 3` first, the comment stays above `[x]` |
+| `a = 1`, `# tail`, empty line, `[x]` | `c = 3` after `a = 1`, before `# tail` |
+| `id = "a" # why`, setting `id` | `id = "b" # why` |
+| a multi-line array, then a key | the key follows the closing bracket |
+| `a = 1`, one or two empty lines, a table added | no empty line added |
+| `a = 1` with no empty line, a table added | one empty line added |
+| an empty block, a table added | the table first, no empty line |
+| a CRLF block, keys and a table added | every line of the block ends with CRLF |
+| `+++` front matter, setting `id` | `id` after the line `wio = 1` |
+| `actions = { a = 1 }`, the table `actions` added | `ValueError` |
+| `[x]`, the plain key `x` added | `ValueError` |
+| a list of mappings as a value | `ValueError` |
