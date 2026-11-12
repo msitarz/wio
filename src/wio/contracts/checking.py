@@ -59,9 +59,11 @@ def check_works(
     read: <reason>`, or `The file is not valid UTF-8`, as discovery words them.
     Each diagnostic of this function names the Work's file as its place, without a
     line, except the error of a block that cannot be parsed the second time, which
-    names the line as discovery does.
+    names the line as discovery does. The body of each contract is checked in the
+    same call by `BodyChecker` in `body.py`, which is given the block that was
+    read and the template that was judged.
 
-    The checks are these, each for every Work:
+    The checks of the metadata are these, each for every Work:
 
     - An unknown key of the metadata is a warning, ``Unknown key `k` in the
       metadata``, with ``. Did you mean `depends_on`?`` when `closest_key` finds

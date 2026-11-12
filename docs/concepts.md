@@ -1276,8 +1276,8 @@ mechanically what wio relies on, and they do not judge how a workflow is built:
 - Required sections are present, as the contract's directives say
   ([Directives](#directives)). In a contract that follows a template, a `##`
   heading the template does not have is a warning, and so is a repeated one. A
-  template's `shape` is a
-  free description, so wio does not compare it with the tree.
+  template's `shape` is a free description, so wio does not compare it with the
+  tree.
 
 ## 7. Stage
 
