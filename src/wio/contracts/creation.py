@@ -4,13 +4,16 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.contracts.discovery import discover_works
+from wio.contracts.location import NameArguments, RandomIds, write_new
+
 if TYPE_CHECKING:
     from argparse import Namespace
     from pathlib import Path
 
     from wio.contracts import Services
     from wio.contracts.discovery import WorkDiscovery
-    from wio.contracts.location import IdGenerator, NameArguments
+    from wio.contracts.location import IdGenerator
     from wio.contracts.ports import TemplateCatalog
     from wio.io.ports import FileSystem, Stdio
     from wio.models.config import Config
@@ -162,4 +165,20 @@ def run_new(services: Services, args: Namespace, stdio: Stdio) -> int:
             command line reports and exits 2 for.
         ConfigurationError: The config has an error.
     """
-    raise NotImplementedError
+    config = services.settings.load()
+    root = services.repository.root()
+    discovery = discover_works(root, config.works, services.files)
+    name = NameArguments(args.slug, args.title, args.path, args.parent)
+    arguments = NewArguments(args.kind, args.template, name, tuple(args.root))
+    work = plan_work(
+        arguments,
+        config,
+        discovery,
+        services.catalog,
+        services.files,
+        root,
+        RandomIds(services.entropy),
+    )
+    write_new(services.files, root, work.path, work.text)
+    stdio.stdout.write(render_report(work, as_json=args.json))
+    return 0
