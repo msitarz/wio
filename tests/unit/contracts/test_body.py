@@ -484,3 +484,20 @@ def test_a_deeper_template_heading_is_no_section() -> None:
 
     # Then the contract's heading is not in the template
     assert [m for _, _, m in found] == ["The section `Deep` is not in the template `t`"]
+
+
+def test_a_template_that_cannot_be_read_is_read_once_for_all_its_contracts() -> None:
+    """A failed read is remembered, so it is not retried for the next contract."""
+    # Given a template whose file does not exist and three contracts that follow
+    # it, and a file system that counts reads
+    disk = _Counting({})
+    checker = BodyChecker(ROOT, disk)
+    work, block = _contract(BAD_BODY, title=None)
+    given = Template("t", "feature", None, None, Path(TEMPLATE_FILE), entry=False)
+
+    # When the three are checked
+    found = [checker.check(_named(work, "t"), block, given) for _ in range(3)]
+
+    # Then each gets nothing, and the file was asked for once
+    assert found == [[], [], []]
+    assert disk.reads[ROOT / TEMPLATE_FILE] == 1
