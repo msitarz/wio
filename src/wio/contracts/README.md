@@ -260,3 +260,45 @@ graph.
 - **A warning or a note never fails the command.** Only an error exits 1, and
   the findings are in the order of `order_diagnostics`, so the output is the
   same for the same Works.
+
+## Checking the body of a contract
+
+The same `wio contracts check` run reports what is wrong with a contract's body.
+[`body.py`](body.py) holds the checker, and its docstrings say each message, its
+place and its severity. It uses the finder and the judge of items of
+`wio.formats`, so the items are counted and their ids judged as every other
+command judges them. The [tests](../../../tests/unit/contracts/test_body.py) and
+the [scenarios](../../../tests/acceptance/contracts/test_check_body.py) show
+each case.
+[Checking a contract against its template](../../../docs/concepts.md#checking-a-contract-against-its-template)
+says how sections are matched.
+
+- **There is one source of directives.** A contract that names a template takes
+  them from it and from nothing else, and a directive list in the contract is
+  ignored with a warning for each, so a contract cannot loosen the template's
+  checks. Only a contract that names none reads the lists on its own `##`
+  headings, and it is told where a list cannot be read or is on another level.
+- **The rules are written again here and not shared with `wio.templates`.** A
+  component cannot import another, so the reading of a directive on a heading
+  and the warning for a repeated heading are repeated, both on the parsers of
+  `wio.formats`. The text of a heading is taken from its line and not from the
+  parser, because the parser raises for a list that it refuses.
+- **A contract whose template cannot be used gets no body check.** A template
+  that is missing or rejected has been reported by the check of the Works, one
+  that cannot be read is reported by `wio templates check`, and a Work whose
+  `template` discovery reported has been reported too, so the body is not
+  checked against a source that is not there. The caller decides the last,
+  because such a Work has no template in the same way as one that names none,
+  and the body checker alone could not tell them apart.
+- **The template's file is read once, for its directives.** The check of the
+  Works already asked the catalog what each template is, and the `Template` that
+  it gives carries no directives, which are in the template's body, so the body
+  checker is given that answer and reads only the file, once, however many
+  contracts follow it. A template that cannot be read is remembered, so it is
+  not read again for the next contract.
+- **The first heading is the section.** When a `##` heading repeats, in a
+  contract or in a template, the first counts, and a repeat in a contract is a
+  warning and carries no items.
+- **A fresh Work must pass.** What an entry template requires decides what a
+  Work needs from its first commit, which the scenarios show with a template
+  that requires only headings and one that requires an item.
