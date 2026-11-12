@@ -4,13 +4,19 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.io.walk import refuse_directory, walk_markdown
+from wio.models.diagnostics import order_diagnostics
+
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
     from pathlib import Path
 
     from wio.io.ports import FileSystem
     from wio.models.config import Works as WorksSettings
     from wio.models.diagnostics import Diagnostic
     from wio.models.works import Work
+
+_DEFAULT_DIR = ".agents/wio/works"
 
 
 @dataclass(frozen=True)
@@ -96,10 +102,188 @@ def discover_works(
         files: The port that lists directories and reads files.
 
     Returns:
-        The Works, the marked files left out or excluded, and the diagnostics. A Works
-        directory that is missing and is the default, or is empty, holds no Work
-        and gives no diagnostic; any other that cannot be walked gives one error
-        whose message begins `The Works directory`, and no Work.
+        The Works, `left_out`, `excluded` and the diagnostics. A Works directory
+        that is missing and is the default, or is empty, holds no Work and gives
+        no diagnostic; any other that cannot be walked gives one error whose
+        message begins `The Works directory`, and no Work.
+    """
+    directory = root / settings.dir
+    refusal = refuse_directory(
+        directory, settings.dir, files, noun="Works", default=_DEFAULT_DIR
+    )
+    if refusal is not None:
+        return _refused(refusal)
+    if not files.is_dir(directory):
+        return _refused([])
+    reads = [_read_file(root, path, files) for path in walk_markdown(directory, files)]
+    return _assemble(reads, _find_collisions(reads, settings.hierarchy, settings.dir))
+
+
+def _assemble(reads: Sequence[_Read], collisions: _Collisions) -> WorkDiscovery:
+    """Put what the leaves gave into one result.
+
+    Args:
+        reads: Every file of the walk, in the order of the walk.
+        collisions: What the nesting rules exclude.
+
+    Returns:
+        The Works that stay, `left_out` and `excluded` as disjoint lists, and the
+        diagnostics, those that leave the tree incomplete and those of a shared
+        id, each ordered.
+    """
+    works = _works_of(reads, collisions.excluded)
+    left_out = [read for read in reads if read.left_out]
+    excluded = [
+        read for read in reads if read.path in collisions.excluded and not read.left_out
+    ]
+    ambiguous = order_diagnostics(_shared_ids(works))
+    incomplete = order_diagnostics(
+        [*(d for read in left_out for d in read.problems), *collisions.diagnostics]
+    )
+    every = order_diagnostics(
+        [
+            *(d for read in reads for d in read.problems),
+            *collisions.diagnostics,
+            *ambiguous,
+        ]
+    )
+    return WorkDiscovery(
+        works, _paths(left_out), _paths(excluded), every, incomplete, ambiguous
+    )
+
+
+def _works_of(reads: Sequence[_Read], excluded: frozenset[Path]) -> tuple[Work, ...]:
+    """Pick the Works that stay in the tree.
+
+    Args:
+        reads: Every file of the walk.
+        excluded: The files that the nesting rules exclude.
+
+    Returns:
+        The Works of the reads that are not excluded, sorted by their paths.
+    """
+    kept = (read.work for read in reads if read.path not in excluded)
+    return tuple(sorted((work for work in kept if work), key=_by_path))
+
+
+@dataclass(frozen=True)
+class _Read:
+    """What reading one file gave.
+
+    Attributes:
+        path: The file, relative to the repository root.
+        marked: Whether the file is known to be marked: its block was found,
+            even if it could not be read. A file that cannot be read or decoded
+            is not.
+        left_out: Whether the file is left out, so that it has no `work`.
+        work: The Work built from the file, or `None` when it is not marked or
+            is left out.
+        problems: The errors of this file alone, whether it is left out or its
+            Work stays with a wrong optional field.
+    """
+
+    path: Path
+    marked: bool
+    left_out: bool
+    work: Work | None
+    problems: tuple[Diagnostic, ...]
+
+
+@dataclass(frozen=True)
+class _Collisions:
+    """What the nesting rules exclude.
+
+    Attributes:
+        excluded: The marked files of a directory with two or more, and those
+            directly in the Works directory, counting a file that is left out.
+        diagnostics: The error of each directory and of each such file. Empty
+            under `flat`.
+    """
+
+    excluded: frozenset[Path]
+    diagnostics: tuple[Diagnostic, ...]
+
+
+def _refused(problems: Sequence[Diagnostic]) -> WorkDiscovery:
+    """Build the result of a Works directory that holds no Work.
+
+    Args:
+        problems: The error of a directory that cannot be walked, or none.
+
+    Returns:
+        An empty discovery whose only diagnostics, all of them incomplete, are
+        the problems.
+    """
+    ordered = order_diagnostics(problems)
+    return WorkDiscovery((), (), (), ordered, ordered, ())
+
+
+def _by_path(work: Work) -> str:
+    """Give the key that sorts Works by the string of their paths.
+
+    Args:
+        work: A Work.
+
+    Returns:
+        The string of its path.
+    """
+    return str(work.path)
+
+
+def _paths(reads: Iterable[_Read]) -> tuple[Path, ...]:
+    """List the paths of some reads in the order of their strings.
+
+    Args:
+        reads: The reads.
+
+    Returns:
+        Their paths, sorted as the Works are.
+    """
+    return tuple(sorted((read.path for read in reads), key=str))
+
+
+def _read_file(root: Path, path: Path, files: FileSystem) -> _Read:
+    """Read one file of the walk into a `_Read`: the leaf of AC-1 to AC-3.
+
+    It reads the block, the title and the optional fields, reports a file that
+    cannot be identified once, and an optional field of a wrong type once, and
+    builds the Work with that field empty.
+
+    Args:
+        root: The repository root, which the places and paths are relative to.
+        path: The file.
+        files: The port that reads it.
+
+    Returns:
+        The read.
+    """
+    raise NotImplementedError
+
+
+def _find_collisions(
+    reads: Sequence[_Read], hierarchy: str, works_dir: str
+) -> _Collisions:
+    """Apply the nesting rules to the files that were read: the leaf of AC-5, AC-6.
+
+    Args:
+        reads: Every file of the walk, in the order of the walk.
+        hierarchy: `flat` or `nesting`.
+        works_dir: The Works directory as written, relative to the root.
+
+    Returns:
+        The excluded files and their errors, none under `flat`.
+    """
+    raise NotImplementedError
+
+
+def _shared_ids(works: Sequence[Work]) -> tuple[Diagnostic, ...]:
+    """Report the ids that two or more Works share: the leaf of AC-4.
+
+    Args:
+        works: The Works that stay in the tree.
+
+    Returns:
+        One error for each shared id, at the paths of its Works joined by `, `.
     """
     raise NotImplementedError
 
