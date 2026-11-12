@@ -5,7 +5,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Final, Literal, Protocol
+from typing import TYPE_CHECKING, Final, Protocol
 
 from wio.contracts.discovery import find_work
 from wio.contracts.errors import ContractsError
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from wio.contracts.discovery import WorkDiscovery
     from wio.env.ports import Entropy
     from wio.io.ports import FileSystem
+    from wio.models.config import HierarchyMode
     from wio.models.config import Works as WorksSettings
 
 ID_ALPHABET: Final = "0123456789abcdefghjkmnpqrstvwxyz"
@@ -235,7 +236,7 @@ def decide_place(
     return place
 
 
-def _check_options(arguments: NameArguments, mode: Literal["flat", "nesting"]) -> None:
+def _check_options(arguments: NameArguments, mode: HierarchyMode) -> None:
     """Refuse a call that names nothing or whose options cannot be combined.
 
     Args:

@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, override
+from typing import TYPE_CHECKING, override
 
 import pytest
 
@@ -24,6 +24,8 @@ from wio.models.config import Works as WorksSettings
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, Sequence
+
+    from wio.models.config import HierarchyMode
 
 WORKS = ".agents/wio/works"
 EMPTY = WorkDiscovery((), (), (), (), (), ())
@@ -115,7 +117,7 @@ def _disk(
 
 def _place(
     disk: _Disk,
-    mode: Literal["flat", "nesting"] = "nesting",
+    mode: HierarchyMode = "nesting",
     **given: str | None,
 ) -> Path:
     """Decide the place of a new Work in what a disk holds.
@@ -140,9 +142,7 @@ def _place(
     return decide_place(ROOT, settings, found, disk, NameArguments(**options))
 
 
-def _refusal(
-    disk: _Disk, mode: Literal["flat", "nesting"] = "nesting", **given: str | None
-) -> str:
+def _refusal(disk: _Disk, mode: HierarchyMode = "nesting", **given: str | None) -> str:
     """Decide a place that is refused.
 
     Args:

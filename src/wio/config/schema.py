@@ -175,12 +175,14 @@ def _spec(hint: object, path: str) -> Spec:
     """Derive what a value looks like from an annotation.
 
     Args:
-        hint: The annotation, such as `tuple[str, ...] | None`.
+        hint: The annotation, such as `tuple[str, ...] | None`, or a `type` alias
+            of one, which is read through to what it names.
         path: The key path of the field, for naming a nested table.
 
     Returns:
         The spec of the annotation, without its `None`.
     """
+    hint = _named(hint)
     args = typing.get_args(hint)
     match typing.get_origin(hint):
         case types.UnionType:
@@ -193,6 +195,18 @@ def _spec(hint: object, path: str) -> Spec:
             return Open(_member(args[1], path))
         case _:
             return _plain(hint, path)
+
+
+def _named(hint: object) -> object:
+    """Read a `type` alias through to what it names.
+
+    Args:
+        hint: An annotation.
+
+    Returns:
+        What the alias names, or the annotation itself when it is no alias.
+    """
+    return hint.__value__ if isinstance(hint, typing.TypeAliasType) else hint
 
 
 def _plain(hint: object, path: str) -> Spec:

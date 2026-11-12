@@ -2,7 +2,7 @@
 """Tests of the hierarchy and the dependency graph of the Works."""
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from wio.contracts.hierarchy import build_hierarchy
 from wio.models.frozen import freeze
@@ -10,6 +10,8 @@ from wio.models.works import Work
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+
+    from wio.models.config import HierarchyMode
 
 
 def _work(
@@ -246,9 +248,7 @@ def test_an_unknown_id_is_one_error_for_each_work_and_id_a_shared_id_is_known() 
     assert _ids(found.dependents[_at("s2")]) == ["r"]
 
 
-def _messages(
-    works: list[Work], mode: Literal["flat", "nesting"]
-) -> list[tuple[str, str]]:
+def _messages(works: list[Work], mode: HierarchyMode) -> list[tuple[str, str]]:
     """Build a hierarchy and list its diagnostics.
 
     Args:
