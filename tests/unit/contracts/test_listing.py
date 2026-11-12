@@ -51,3 +51,39 @@ def test_only_the_overrides_of_a_work_show() -> None:
     # When it is rendered
     # Then each is written as `name = value` in the order written
     raise NotImplementedError
+
+
+def test_a_dependency_shows_its_title_or_says_why_not() -> None:
+    """Check a scenario of AC-1."""
+    # Given a Work that lists a Work with a title, one with none and an id that
+    # no Work has
+    # When the Works are rendered as text
+    # Then the `after:` lines read the title, `(no title)` and `(not found)`
+    raise NotImplementedError
+
+
+def test_under_flat_every_parent_in_the_json_is_null() -> None:
+    """Check a scenario of AC-3."""
+    # Given the flat Works of AC-2
+    # When they are rendered as JSON
+    # Then each object has `"parent": null` and `"title": null` where there is
+    # no heading
+    raise NotImplementedError
+
+
+def test_an_incomplete_tree_is_refused_with_its_errors_and_the_hint() -> None:
+    """Check a scenario of AC-5."""
+    # Given a file system whose tree has a shared id, and one with a Work left
+    # out
+    # When the listing is run
+    # Then it raises an error that carries the errors and ends with the hint,
+    # and writes nothing to standard output
+    raise NotImplementedError
+
+
+def test_errors_that_leave_the_tree_complete_do_not_stop_the_listing() -> None:
+    """Check a scenario of AC-5."""
+    # Given Works with an undeclared root, a root of the wrong type and a cycle
+    # When the listing is run, as text and with `--json`
+    # Then every Work is written and the exit code is 0
+    raise NotImplementedError

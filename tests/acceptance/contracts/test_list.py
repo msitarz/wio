@@ -14,6 +14,13 @@ from tests.acceptance.channels import Channel
 if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
 
+# The implementation stage adds the sample repositories under
+# `tests/fixtures/contracts`: `list-nesting` (AC-1, AC-3, AC-6), `list-flat`
+# (AC-2, AC-3), `list-empty` (AC-4), `list-shared-id` and `list-unreadable`
+# (AC-5, the latter with a file that is not UTF-8) and `list-soft-errors` (AC-5).
+# AC-6 needs a DSL verb that fingerprints the contract files of the sandbox,
+# which both drivers answer from the directory they run in.
+
 pytestmark = pytest.mark.skip(
     reason="architecture stub: the implementation stage fills it"
 )

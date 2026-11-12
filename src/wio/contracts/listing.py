@@ -70,10 +70,12 @@ def run_list(services: Services, args: Namespace, stdio: Stdio) -> int:
         0 after the listing, which is empty for a tree with no Work.
 
     Raises:
-        ContractsError: The tree is incomplete or ambiguous. The message is each
-            such error as `error: <where>: <message>` on a line of its own,
-            then the line "`wio contracts check` shows every problem.". The
-            command line exits 2 and writes it to standard error.
+        ContractsError: The tree is incomplete or ambiguous. It carries those
+            errors, and its message is each rendered as
+            `error: <where>: <message>` on a line of its own, then the line
+            "`wio contracts check` shows every problem.". The command line
+            writes the message as it is, with no prefix of its own, to standard
+            error and exits 2.
         ConfigurationError: The config has an error.
     """
     raise NotImplementedError
