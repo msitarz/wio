@@ -448,3 +448,88 @@ def test_the_errors_of_a_refusal_are_in_the_order_that_discovery_gives() -> None
         f"{BASE}/s/README.md, {BASE}/t/README.md",
     ]
     assert str(raised.value).splitlines()[0].startswith(f"error: {BASE}/z/")
+
+
+def test_several_roots_are_written_as_given_and_joined_by_a_comma_and_a_space() -> None:
+    """The roots keep their order and repeats, and a root may hold a comma."""
+    # Given a Work with several roots, one repeated and one with a comma
+    work = _work("a/README.md", "a1", "Title", roots=("web", "api", "web", "a, b"))
+
+    # When it is rendered as text and as JSON
+    text = _text("flat", work).splitlines()
+    [obj] = _array("flat", work)
+
+    # Then the line joins them as written, and the JSON keeps them as a list
+    assert text[2] == "    roots: web, api, web, a, b"
+    assert obj["roots"] == ["web", "api", "web", "a, b"]
+
+
+def test_a_title_is_written_as_it_is_whatever_it_holds() -> None:
+    """Brackets, commas, quotes, accents and a long text are neither cut nor
+    escaped in the text, and are escaped as `json.dumps` escapes them."""
+    # Given titles with brackets, quotes, accents, a backslash and a long text
+    titles = [
+        "[draft] Read config.toml, then `write`",
+        'He said "no" \\ and left',
+        "Łódź café — naïve",
+        "x" * 300,
+    ]
+    works = [
+        _work(f"{n}/README.md", f"id{n}", title, "feature.leaf")
+        for n, title in enumerate(titles)
+    ]
+
+    # When the Works are rendered as text and as JSON
+    lines = _text("flat", *works).splitlines()
+    array = _array("flat", *works)
+    raw = render_list(build_hierarchy(works, "flat"), as_json=True)
+
+    # Then each first line holds its title whole, and the JSON round-trips
+    firsts = [line for line in lines if not line.startswith(" ")]
+    assert firsts == [
+        f"id{n}  {title}  [feature.leaf]" for n, title in enumerate(titles)
+    ]
+    assert [obj["title"] for obj in array] == titles
+    assert raw == json.dumps(array) + "\n"
+    assert "\\u0141" in raw
+
+
+def test_a_path_with_spaces_colons_and_accents_is_written_as_it_is() -> None:
+    """The path is not quoted or escaped, and keeps its `/`."""
+    # Given a Work whose directory holds a space, a colon, an accent and a dot
+    work = _work("my work: ł/v1.2 draft/README.md", "a1", "Title")
+
+    # When it is rendered as text and as JSON
+    text = _text("flat", work).splitlines()
+    [obj] = _array("flat", work)
+
+    # Then the path line and the field hold it as written
+    assert text[1] == f"    {BASE}/my work: ł/v1.2 draft/README.md"
+    assert obj["path"] == f"{BASE}/my work: ł/v1.2 draft/README.md"
+
+
+def test_a_template_with_brackets_or_spaces_is_written_between_brackets() -> None:
+    """The template is the text between the brackets, whatever it holds."""
+    # Given a Work whose template name holds a bracket and a space
+    work = _work("a/README.md", "a1", "Title", "odd [name] x")
+
+    # When it is rendered as text
+    first = _text("flat", work).splitlines()[0]
+
+    # Then the brackets enclose it as it is
+    assert first == "a1  Title  [odd [name] x]"
+
+
+def test_a_dependency_on_a_work_with_an_odd_title_shows_the_title_whole() -> None:
+    """The `after:` line holds the title as it is."""
+    # Given a Work that lists a Work whose title has brackets and a comma
+    works = [
+        _work("a/README.md", "a1", depends_on=("b1",)),
+        _work("b/README.md", "b1", "[x], y"),
+    ]
+
+    # When the Works are rendered as text
+    text = _text("flat", *works)
+
+    # Then the line holds the id and the title
+    assert "    after: b1 [x], y" in text.splitlines()
