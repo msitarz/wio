@@ -171,21 +171,22 @@ def test_the_command_builds_the_hierarchy_of_the_config_and_prints_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The mode of the config and `--json` reach the renderer."""
-    # Given a project under `flat`, a leaf that accepts the tree and a renderer
+    # Given a project under `nesting`, which is not the default, a leaf that
+    # accepts the tree and a renderer
     monkeypatch.setattr(module, "_refuse_incomplete", Mock())
     build = Mock(return_value="the hierarchy")
     monkeypatch.setattr(module, "build_hierarchy", build)
     render = Mock(return_value="listing\n")
     monkeypatch.setattr(module, "render_list", render)
-    services = _services(Config(works=Works(hierarchy="flat")))
+    services = _services(Config(works=Works(hierarchy="nesting")))
     stdio = FakeStdio()
 
     # When the command runs with `--json`
     code = module.run_list(services, Namespace(json=True), stdio)
 
-    # Then the hierarchy was built for `flat`, rendered as JSON and written, and
+    # Then the hierarchy was built for `nesting`, rendered as JSON and written, and
     # the exit code is 0
-    assert build.call_args.args[1] == "flat"
+    assert build.call_args.args[1] == "nesting"
     render.assert_called_once_with("the hierarchy", as_json=True)
     assert _written(stdio) == "listing\n"
     assert code == 0
