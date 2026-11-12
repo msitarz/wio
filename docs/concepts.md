@@ -531,7 +531,7 @@ template reaches every contract that follows it:
 | The default actions | Read live; a contract's own `[actions]` replace them per action |
 | The kind | Read live |
 | The directives: the checks on its sections, item ids and inheritance | Read live; a directive comment in a contract that follows a template is ignored, with a warning |
-| The expected `shape`, leaf or parent | Read live |
+| The expected `shape`, leaf or parent | Read live, and not compared with the tree |
 
 On disk, a template holds instructional comments, directives and a metadata
 block. Its metadata describes the template itself and what the contracts made
@@ -558,11 +558,10 @@ depends_on = []
 - `kind` is the template's kind, one of the kinds the config declares.
 - `description` is what tools show when they list templates.
 - `shape` is optional: `"leaf"` or `"parent"`, the shape of Work the template
-  is for. `wio contracts check` warns when a Work's children do not match it:
-  a Work with children whose template says `leaf`, or a Work without children
-  whose template says `parent`. It is only a warning, because the two disagree
-  for a moment during every split. wio still has no levels: the tree decides
-  what a Work is, and `shape` only states what the template's author expected.
+  is for. It is a free description, so wio does not compare it with the tree:
+  the two disagree for a moment during every split. wio still has no levels:
+  the tree decides what a Work is, and `shape` only states what the template's
+  author expected.
 - `[actions]` holds the default actions of every contract that follows the
   template (see
   [Where the pipeline comes from](#where-the-pipeline-comes-from)).
@@ -579,7 +578,7 @@ without writing one. What a template would supply then comes from elsewhere:
 | The default actions | `[works.defaults.actions]` in the config ([Where the pipeline comes from](#where-the-pipeline-comes-from)) |
 | The kind | None |
 | The directives | Its own `##` headings ([Directives](#directives)) |
-| The expected `shape` | None, so its children are checked against no `shape`, under either mode |
+| The expected `shape` | None, and `shape` is not compared with the tree anyway |
 
 It gets the metadata checks of every contract, and takes its title from its
 first heading. Its `##` headings are checked only by its own directives, so it
@@ -879,8 +878,8 @@ share a directory. What a hierarchy gives therefore gives nothing:
 `@descendants` resolves to nothing, and the config's `@descendants:<action>`
 in `invalidated_by` matches nothing and warns about nothing; no Work inherits a
 section, because no Work has an ancestor; the cycle check sees only
-`depends_on`; and a template's `shape` is not checked, because a `parent` shape
-could never be met. What `shape` means is the workflow's.
+`depends_on`. What a template's `shape` means is the workflow's, and wio does
+not compare it with the tree in either mode.
 
 In both modes, a directory between the Works directory and a Work need not be a
 Work: a plain directory only groups files, so a project can group its spec
@@ -1245,7 +1244,8 @@ mechanically what wio relies on, and they do not judge how a workflow is built:
 - A directive comment in a contract that follows a template is a warning, and
   a contract without a template has directives that parse
   ([Directives](#directives)).
-- No two contracts share an id. `[works] hierarchy` is `"flat"` or
+- No two contracts share an id, and an id holds no whitespace or comma and is
+  not `none`, which a record could not carry. `[works] hierarchy` is `"flat"` or
   `"nesting"`. Under `nesting`, no directory holds two or more marked files,
   and no marked file sits directly in the Works directory
   ([Parent and leaf](#parent-and-leaf)).
@@ -1272,8 +1272,8 @@ mechanically what wio relies on, and they do not judge how a workflow is built:
   and the stage, so two positions of one stage could not be told apart.
 - Required sections are present, as the contract's directives say
   ([Directives](#directives)). In a contract that follows a template, a `##`
-  heading the template does not have is a warning, and so, under `nesting`, is
-  a Work whose children do not match its template's `shape`.
+  heading the template does not have is a warning. A template's `shape` is a
+  free description, so wio does not compare it with the tree.
 
 ## 7. Stage
 
