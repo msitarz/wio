@@ -531,7 +531,7 @@ template reaches every contract that follows it:
 | The default actions | Read live; a contract's own `[actions]` replace them per action |
 | The kind | Read live |
 | The directives: the checks on its sections, item ids and inheritance | Read live; a directive comment in a contract that follows a template is ignored, with a warning |
-| The expected `shape`, leaf or parent | Read live |
+| The expected `shape`, leaf or parent | Read live, and not compared with the tree |
 
 On disk, a template holds instructional comments, directives and a metadata
 block. Its metadata describes the template itself and what the contracts made

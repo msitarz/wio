@@ -45,20 +45,20 @@ def check_works(
     each Work, and reads and writes nothing else than through `files`. A problem
     found in one Work or by one check stops no other, and a Work with an error
     still gets the rest. Each Work's file is read again exactly once, and the
-    block that it gives is shared by every concern, so that a later check of the
-    body reads no third time and a file that cannot be read gives one error. Each
-    template's `[actions]` are read at most once, however many Works follow it.
-    What discovery and the hierarchy report is carried
-    through and is not found again, and a check that depends on something already
-    reported is skipped: the resolved actions of a Work whose template is missing,
-    rejected or unreadable for its `[actions]`, or whose `template` or `[actions]`
-    discovery reported as being of a wrong type, and the roots of a Work whose
-    `roots` was reported. Which fields discovery reported is told by type-testing
-    the block, which each Work's file is read for again; a file that cannot be
-    read the second time is one error at the file, `The file cannot be read:
-    <reason>`, or `The file is not valid UTF-8`, as discovery words them.
+    block that it gives is shared by every concern, so that a file that cannot be
+    read gives one error. Each template's `[actions]` are read at most once,
+    however many Works follow it. What discovery and the hierarchy report is
+    carried through and is not found again, and a check that depends on something
+    already reported is skipped: the resolved actions of a Work whose template is
+    missing, rejected or unreadable for its `[actions]`, or whose `template` or
+    `[actions]` discovery reported as being of a wrong type, and the roots of a
+    Work whose `roots` was reported. Which fields discovery reported is told by
+    type-testing the block, which each Work's file is read for again; a file that
+    cannot be read the second time is one error at the file, `The file cannot be
+    read: <reason>`, or `The file is not valid UTF-8`, as discovery words them.
     Each diagnostic of this function names the Work's file as its place, without a
-    line.
+    line, except the error of a block that cannot be parsed the second time, which
+    names the line as discovery does.
 
     The checks are these, each for every Work:
 
