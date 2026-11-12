@@ -25,10 +25,13 @@ def set_block_keys(
     each in place or added at the end of the table. The `id`, when the block has
     none, is put first as text, after `<!-- wio` or, for `+++` front matter, after
     the line `wio = 1`, and an `id` that is there is replaced in place. Any other
-    key that the block lacks is added as a plain key after the last plain key, or
-    at the start of the block when it has none, in the order given. A table that
-    the block lacks is added after the last table, or after the plain keys when
-    there is none, in the order given, and preceded by one empty line. A value
+    key that the block lacks is added as a plain key after the last plain key and
+    the comment lines that follow it, before the empty line or the table that ends
+    the plain keys, or at the start of the block when it has none, in the order
+    given. A table that the block lacks is added after the last table, or after
+    the plain keys when there is none, in the order given, and preceded by one
+    empty line, which is the only empty line added: a block that already ends with
+    several keeps them. A value
     that is a mapping in `keys` is written as an inline table, which is a plain
     key, and only an added table is preceded by an empty line.
 
@@ -42,7 +45,8 @@ def set_block_keys(
         text: The text of a contract, whose first line starts a metadata block of
             the form `<!-- wio` or `+++`.
         keys: The plain keys to set, in order, each with a value that TOML can
-            write: a string, a number, a boolean, or an array of them.
+            write: a string, a number, a boolean, an array of them, or a mapping,
+            which is written as an inline table.
         tables: The tables to set, in order, each as the name of the table and the
             keys it holds.
 
