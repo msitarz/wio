@@ -174,11 +174,24 @@ def test_under_flat_a_shared_directory_is_no_reason() -> None:
 
 
 @pytest.mark.skip(reason="Pending the implementation stage.")
-def test_only_the_errors_that_leave_the_tree_incomplete_are_marked() -> None:
-    """AC-2 to AC-5, AC-7: a wrong optional field does not make the tree incomplete."""
-    # Given trees with a Work left out, a shared id, a nesting collision, a marked
-    # file directly in the Works directory, a Works directory that cannot be
-    # walked, and one with only a wrong optional field
+def test_the_errors_are_sorted_into_incomplete_and_ambiguous() -> None:
+    """AC-2 to AC-5, AC-7: a wrong optional field is in neither."""
+    # Given trees with a Work left out, a nesting collision, a marked file
+    # directly in the Works directory, a Works directory that cannot be walked,
+    # a shared id, and one with only a wrong optional field
     # When the Works are discovered for each
-    # Then the first five have their error in `incomplete` and the last has none
-    # there, though its error is in `diagnostics`
+    # Then the first four have their error in `incomplete` and not in
+    # `ambiguous`, the shared id has its error in `ambiguous` and not in
+    # `incomplete`, and the last has neither, though its error is in
+    # `diagnostics`
+
+
+@pytest.mark.skip(reason="Pending the implementation stage.")
+def test_the_marked_files_of_a_collision_are_excluded_and_not_left_out() -> None:
+    """AC-5: the files of a collided directory and a top-level file are `excluded`."""
+    # Given the nesting tree of the first collision scenario and one with a file
+    # that is left out
+    # When the Works are discovered
+    # Then `a/one.md`, `a/two.md` and `top.md` are in `excluded` and not in
+    # `left_out`, and a file that is left out is in `left_out` and not in
+    # `excluded`

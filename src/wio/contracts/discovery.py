@@ -27,21 +27,30 @@ class WorkDiscovery:
         left_out: The paths of the marked files that were left out, relative to
             the repository root and sorted as the Works are. A file that a
             nesting collision excludes is not one of them.
+        excluded: The paths of the marked files that a nesting collision or the
+            Works directory excludes without being left out, relative to the
+            repository root and sorted as the Works are. With `left_out`, they
+            are every marked file that is not a Work.
         diagnostics: Every problem found, each an error that names its place,
             ordered as the shared ordering of diagnostics orders them.
-        incomplete: The diagnostics that leave the tree incomplete or ambiguous,
-            a subset of `diagnostics` in the same order: a Work left out, a
-            shared id, a nesting collision, a marked file directly in the Works
-            directory and a Works directory that cannot be walked. A wrong
-            optional field is not one, because its Work stays in the tree. A
-            command that refuses an incomplete tree tests whether this is empty
-            and reads no message to decide.
+        incomplete: The diagnostics that leave the tree incomplete, a subset of
+            `diagnostics` in the same order: a Work left out, a nesting
+            collision, a marked file directly in the Works directory and a Works
+            directory that cannot be walked. A command that refuses every call on
+            an incomplete tree tests whether this is empty and reads no message.
+        ambiguous: The errors of a shared id, a subset of `diagnostics` in the
+            same order. A command that refuses only the lookup of that id uses
+            `find_work`, and one that refuses the whole tree for it tests this
+            as well. A wrong optional field is in neither, because its Work stays
+            in the tree.
     """
 
     works: tuple[Work, ...]
     left_out: tuple[Path, ...]
+    excluded: tuple[Path, ...]
     diagnostics: tuple[Diagnostic, ...]
     incomplete: tuple[Diagnostic, ...]
+    ambiguous: tuple[Diagnostic, ...]
 
 
 def discover_works(
@@ -83,7 +92,7 @@ def discover_works(
         files: The port that lists directories and reads files.
 
     Returns:
-        The Works, the marked files left out and the diagnostics. A Works
+        The Works, the marked files left out or excluded, and the diagnostics. A Works
         directory that is missing and is the default, or is empty, holds no Work
         and gives no diagnostic; any other that cannot be walked gives one error
         whose message begins `The Works directory`, and no Work.
