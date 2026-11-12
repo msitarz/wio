@@ -280,25 +280,32 @@ The contract, amendment and docs gates are marked `judge = "human"`, because
 they ask whether something states what the driver meant. The delivery gates are
 judged by an agent.
 
-## 7. Checking the config and the templates after every edit
+## 7. Checking the config, the templates and the contracts after every edit
 
-A config or a template with an error is refused or misread by the commands that
-need it, so an agent that edits one needs to be told at once. `wio config check`
-and `wio templates check` print the diagnostics and exit 1 on an error, and each
-project decides how its harness runs them. This repository checks the config and
-the templates after every edit and before every commit that changes them:
+A config, a template or a contract with an error is refused or misread by the
+commands that need it, so an agent that edits one needs to be told at once.
+`wio config check`, `wio templates check` and `wio contracts check` print the
+diagnostics and exit 1 on an error, and each project decides how its harness
+runs them. This repository checks the config, the templates and the contracts
+after every edit and before every commit that changes them:
 
-- **When an agent edits the config or a template.** An entry in
+- **When an agent edits the config, a template or a contract.** An entry in
   `.claude/settings.json` for each runs the check after `Edit`, `Write` and
   `MultiEdit`, and exits 2 with the diagnostics on standard error, which Claude
   Code gives back to the model. It reads the edited path with `jq`, which must
   be on the `PATH` as it is for the formatter hook beside it, and runs the check
   only for its own files, so wio holds no knowledge of the harness: the config
-  for `.agents/wio/config.toml`, and the templates for an `.md` file under
-  `.agents/wio/templates/`, in any subdirectory. A check that exits with
-  anything but 1, such as one that is refused for a config with an error, is
-  silent and does not block the edit, and so is a warning, which the hook does
-  not report. The entries sit beside the formatter:
+  for `.agents/wio/config.toml`, the templates for an `.md` file under
+  `.agents/wio/templates/`, in any subdirectory, and the contracts for an `.md`
+  file under `.agents/wio/works/`, at any depth. The contracts' check reads the
+  whole tree and is given no file name, because a duplicate id, a cycle and a
+  dependency span files, so an edit of one contract can break another. The hook
+  reports an error only: a warning or a note is one `wio contracts check` away.
+  It is fixed to `.agents/wio/works/`, so a project with another `[works] dir`
+  writes its own entry. A check that exits with anything but 1, such as one that
+  is refused for a config with an error, is silent and does not block the edit,
+  and so is a warning, which the hook does not report. The entries sit beside
+  the formatter:
 
   ```json
   {
@@ -314,6 +321,10 @@ the templates after every edit and before every commit that changes them:
             {
               "type": "command",
               "command": "jq -r '.tool_input.file_path // empty' | { read -r f; case \"$f\" in */.agents/wio/templates/*.md) out=$(uv run wio templates check 2>/dev/null); [ $? -ne 1 ] || { printf '%s\\n' \"$out\" >&2; exit 2; };; esac; }"
+            },
+            {
+              "type": "command",
+              "command": "jq -r '.tool_input.file_path // empty' | { read -r f; case \"$f\" in */.agents/wio/works/*.md) out=$(uv run wio contracts check 2>/dev/null); [ $? -ne 1 ] || { printf '%s\\n' \"$out\" >&2; exit 2; };; esac; }"
             }
           ]
         }
@@ -322,15 +333,19 @@ the templates after every edit and before every commit that changes them:
   }
   ```
 
-  A project that has `wio` on its `PATH` writes `wio config check` and
-  `wio templates check` where this says `uv run`, and another harness does the
-  same with its own hook. Claude Code runs the hooks of one matcher side by
-  side, so the formatter can rewrite a template while its check reads it; a line
-  in a diagnostic may then be stale for that one edit, and the next edit
-  corrects it.
-- **When a commit changes the config or a template.** The `wio-config` hook of
-  `prek.toml` runs `uv run wio config check` when `.agents/wio/config.toml` is
-  in the commit, and the `wio-templates` hook of `prek.toml` runs
-  `uv run wio templates check` when an `.md` file of `.agents/wio/templates/`
-  is. Neither is passed file names, and neither runs for a commit that changes
-  neither.
+  A project that has `wio` on its `PATH` writes `wio config check`,
+  `wio templates check` and `wio contracts check` where this says `uv run`, and
+  another harness does the same with its own hook. Claude Code runs the hooks of
+  one matcher side by side, so the formatter can rewrite a template or a
+  contract while its check reads it; a line in a diagnostic may then be stale
+  for that one edit, and the next edit corrects it.
+- **When a commit changes the config, a template or a contract.** The
+  `wio-config` hook of `prek.toml` runs `uv run wio config check` when
+  `.agents/wio/config.toml` is in the commit, the `wio-templates` hook of
+  `prek.toml` runs `uv run wio templates check` when an `.md` file of
+  `.agents/wio/templates/` is, and the `wio-contracts` hook of `prek.toml` runs
+  `uv run wio contracts check` when an `.md` file of `.agents/wio/works/` is. No
+  hook is passed file names, and none runs for a commit that changes none of
+  them. A commit that only deletes a Work does not run the contracts hook,
+  because `prek` passes only files that exist, and the abandon procedure also
+  edits the dependents, which does.

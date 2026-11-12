@@ -9,9 +9,11 @@ never called the check.
 """
 
 import json
+import os
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -106,3 +108,67 @@ def run_hook(
         env=env,
     )
     return done.returncode, done.stdout, done.stderr
+
+
+def run_prek(tmp_path: Path, files: dict[str, str], hook: str) -> tuple[int, str]:
+    """Run one hook of `prek.toml` on the staged files of a new repository.
+
+    The repository is a new git repository under `tmp_path/repo` that holds
+    `files`, all staged, and a `prek.toml` that is a copy of this repository's with
+    only its `repo = "local"` section: selecting one hook does not keep `prek` from
+    preparing the other repositories, and the remote ones need the network. `prek`
+    gets a home of its own under `tmp_path`, outside the repository, so it touches
+    no cache of the user's and `git add` finds no embedded repository. `prek` is
+    the one that is installed beside this interpreter, `Path(sys.executable).parent
+    / "prek"`, because it is not on the `PATH`, and a shim in front of the `PATH`
+    stands for `uv`: for `uv run wio` it runs the `wio` installed beside this
+    interpreter, so the hook runs the real check without a project to resolve.
+
+    Args:
+        tmp_path: A directory for the repository, the shim and the home of `prek`.
+        files: The files to stage, by path relative to the repository's root,
+            which include the config and the templates that the check needs.
+        hook: The id of the hook, such as `wio-contracts`.
+
+    Returns:
+        The exit code of `prek`, which is not 0 when the hook fails, and its output,
+        standard output and standard error together. The caller skips when `git`
+        or `prek` is missing.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    prek_toml = (ROOT / "prek.toml").read_text()
+    local = prek_toml[prek_toml.index('[[repos]]\nrepo = "local"') :]
+    (repo / "prek.toml").write_text(local)
+    for name, text in files.items():
+        target = repo / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text)
+    bin_dir = Path(sys.executable).parent
+    shim_dir = tmp_path / "shim"
+    shim_dir.mkdir()
+    shim = shim_dir / "uv"
+    shim.write_text(
+        '#!/bin/sh\n[ "$1 $2" = "run wio" ] || exit 70\nshift 2\n'
+        f'exec "{bin_dir / "wio"}" "$@"\n'
+    )
+    shim.chmod(shim.stat().st_mode | stat.S_IXUSR)
+    env = {
+        **os.environ,
+        "PATH": f"{shim_dir}:{os.environ['PATH']}",
+        "HOME": str(tmp_path / "home"),
+        "PREK_HOME": str(tmp_path / "prek-home"),
+        "NO_COLOR": "1",
+    }
+    (tmp_path / "home").mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, env=env, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=repo, env=env, check=True)
+    done = subprocess.run(
+        [str(bin_dir / "prek"), "run", hook],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return done.returncode, done.stdout + done.stderr

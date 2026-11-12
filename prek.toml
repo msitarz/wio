@@ -45,6 +45,7 @@ hooks = [
     { id = "records", name = "Wio-* records", entry = "uv run python scripts/records.py check", language = "system", stages = ["commit-msg"] },
     { id = "wio-config", name = "wio config check", entry = "uv run wio config check", language = "system", files = '^\.agents/wio/config\.toml$', pass_filenames = false },
     { id = "wio-templates", name = "wio templates check", entry = "uv run wio templates check", language = "system", files = '^\.agents/wio/templates/.*\.md$', pass_filenames = false },
+    { id = "wio-contracts", name = "wio contracts check", entry = "uv run wio contracts check", language = "system", files = '^\.agents/wio/works/.*\.md$', pass_filenames = false },
     { id = "actionlint", name = "actionlint (workflows)", entry = "uv run actionlint", language = "system", files = '^\.github/(workflows|actions)/.*\.ya?ml$' },
     { id = "zizmor", name = "zizmor (workflow security)", entry = "uv run zizmor --offline", language = "system", files = '^\.github/((workflows|actions)/.*|dependabot)\.ya?ml$' },
     { id = "uv-lock", name = "uv lock --check", entry = "uv lock --check", language = "system", files = '^(pyproject\.toml|uv\.lock)$', pass_filenames = false },
