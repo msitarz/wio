@@ -7,37 +7,16 @@ from unittest.mock import Mock
 
 import pytest
 
+from tests.unit.contracts.helpers import work_with_id
 from tests.unit.fakes import ROOT, MemoryFileSystem
 from wio.contracts import ContractsError, WorkDiscovery
 from wio.contracts import location as module
 from wio.models.config import Works as WorksSettings
-from wio.models.frozen import freeze
-from wio.models.works import Work
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
 NONE = WorkDiscovery((), (), (), (), (), ())
-
-
-def _work(work_id: str) -> Work:
-    """Build a Work with an id.
-
-    Args:
-        work_id: The Work's id.
-
-    Returns:
-        A Work at `<id>/README.md`.
-    """
-    return Work(
-        id=work_id,
-        title=None,
-        path=Path(work_id) / "README.md",
-        template=None,
-        roots=(),
-        depends_on=(),
-        actions=freeze({}),
-    )
 
 
 class _Draws:
@@ -115,7 +94,8 @@ def test_a_place_is_decided_by_the_leaves_in_the_order_of_the_errors(
 
         return Mock(side_effect=leaf)
 
-    monkeypatch.setattr(module, "_check_options", record("options"))
+    options = record("options")
+    monkeypatch.setattr(module, "_check_options", options)
     monkeypatch.setattr(module, "choose_slug", record("slug", "child"))
     default = record("place", place)
     monkeypatch.setattr(module, "_default_place", default)
@@ -132,6 +112,7 @@ def test_a_place_is_decided_by_the_leaves_in_the_order_of_the_errors(
     # place, the directory of the place was refused when it exists, and the
     # place is the one the leaf gave
     assert calls == ["options", "slug", "place", "existing"]
+    assert options.call_args.args == (arguments, "nesting")
     assert found == place
     assert default.call_args.args == (settings, NONE, arguments, "child")
     assert taken.call_args.args == (ROOT, place, disk)
@@ -143,7 +124,8 @@ def test_a_given_path_skips_the_slug_and_refuses_only_the_file(
 ) -> None:
     """A `--path` is judged as it is and only its own file must not exist."""
     # Given leaves for a call with `--path`
-    monkeypatch.setattr(module, "_check_options", Mock())
+    check = Mock()
+    monkeypatch.setattr(module, "_check_options", check)
     slug = Mock()
     monkeypatch.setattr(module, "choose_slug", slug)
     place = Path(".agents/wio/works/q/spec.md")
@@ -162,6 +144,7 @@ def test_a_given_path_skips_the_slug_and_refuses_only_the_file(
     # Then no slug was chosen, the path was judged with everything it needs,
     # and only the file was refused
     assert found == place
+    assert check.call_args.args == (_arguments(path="q/spec.md"), "flat")
     slug.assert_not_called()
     assert judge.call_args.args == (ROOT, settings, NONE, disk, "q/spec.md")
     assert taken.call_args.kwargs == {"whole_directory": False}
@@ -194,7 +177,7 @@ def test_the_default_place_is_below_the_works_directory_or_the_parent(
 def test_an_id_is_drawn_until_no_work_has_it() -> None:
     """A taken candidate, a shared one included, is drawn again."""
     # Given a tree where `aaaaaa` is shared by two Works and `bbbbbb` is taken
-    works = [_work("aaaaaa"), _work("aaaaaa"), _work("bbbbbb")]
+    works = [work_with_id("aaaaaa"), work_with_id("aaaaaa"), work_with_id("bbbbbb")]
     draws = _Draws(["aaaaaa", "bbbbbb", "cccccc"])
 
     # When an id is drawn
@@ -212,7 +195,7 @@ def test_the_draw_gives_up_after_the_limit() -> None:
 
     # When an id is drawn
     with pytest.raises(ContractsError) as raised:
-        module.new_id(draws, [_work("aaaaaa")])
+        module.new_id(draws, [work_with_id("aaaaaa")])
 
     # Then the generator was asked exactly 100 times
     assert draws.calls == 100

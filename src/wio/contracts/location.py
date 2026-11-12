@@ -1,11 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 """The id and the place of a new Work."""
 
+import re
+import unicodedata
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Final, Literal, Protocol
 
+from wio.contracts.discovery import find_work
 from wio.contracts.errors import ContractsError
+from wio.models.works import Work
+lazy from wio.formats import closest_key
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -14,7 +19,6 @@ if TYPE_CHECKING:
     from wio.env.ports import Entropy
     from wio.io.ports import FileSystem
     from wio.models.config import Works as WorksSettings
-    from wio.models.works import Work
 
 ID_ALPHABET: Final = "0123456789abcdefghjkmnpqrstvwxyz"
 """The characters of an id: no `i`, `l`, `o` or `u`, so it cannot be mistaken
@@ -25,6 +29,25 @@ MAX_DRAWS: Final = 100
 """How many ids are drawn before the command gives up."""
 SLUG_LIMIT: Final = 48
 """The longest slug that a title gives."""
+_SLUG: Final = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+"""What a slug is: groups of lowercase letters and digits joined by one `-`."""
+_UNUSABLE: Final = re.compile(r"[^a-z0-9]+")
+"""A run of characters that a slug writes as one `-`."""
+_WRITTEN_OUT: Final = str.maketrans(
+    {
+        "ł": "l",
+        "ø": "o",
+        "đ": "d",
+        "ð": "d",
+        "ħ": "h",
+        "ı": "i",
+        "æ": "ae",
+        "œ": "oe",
+        "ß": "ss",
+        "þ": "th",
+    }
+)
+"""The letters that do not fold to ASCII and are written out instead."""
 
 
 @dataclass(frozen=True)
@@ -83,7 +106,7 @@ class RandomIds:
         Returns:
             Six characters of `ID_ALPHABET`.
         """
-        raise NotImplementedError
+        return "".join(ID_ALPHABET[byte & 0b11111] for byte in self._read(ID_LENGTH))
 
 
 def new_id(generator: IdGenerator, works: Iterable[Work]) -> str:
@@ -134,7 +157,34 @@ def choose_slug(arguments: NameArguments) -> str:
             says what a slug is, or a title gives an empty one, with a message
             that asks for `--slug`.
     """
-    raise NotImplementedError
+    if arguments.slug is not None:
+        if _SLUG.fullmatch(arguments.slug) is None:
+            message = (
+                "A slug is lowercase letters and digits joined by single `-`, "
+                f"not `{arguments.slug}`"
+            )
+            raise ContractsError(message)
+        return arguments.slug
+    slug = _slug_of_title(arguments.title or "")
+    if not slug:
+        message = "The title has no letter or digit to name the Work: use `--slug`"
+        raise ContractsError(message)
+    return slug
+
+
+def _slug_of_title(title: str) -> str:
+    """Apply the rule that turns a title into a slug.
+
+    Args:
+        title: The title as typed.
+
+    Returns:
+        The slug, empty when the title has no usable letter or digit.
+    """
+    written = title.lower().translate(_WRITTEN_OUT)
+    folded = unicodedata.normalize("NFKD", written).encode("ascii", "ignore")
+    dashed = _UNUSABLE.sub("-", folded.decode("ascii")).strip("-")
+    return dashed[:SLUG_LIMIT].rstrip("-")
 
 
 def decide_place(
@@ -197,7 +247,25 @@ def _check_options(arguments: NameArguments, mode: Literal["flat", "nesting"]) -
             `--parent` under `nesting`, or `--parent` is given under `flat`; the
             first that applies.
     """
-    raise NotImplementedError
+    path, parent = arguments.path is not None, arguments.parent is not None
+    problems = (
+        (
+            arguments.slug is None and arguments.title is None and not path,
+            "A name is required: give `--slug`, `--title` or `--path`",
+        ),
+        (
+            path and arguments.slug is not None,
+            "`--path` and `--slug` exclude each other",
+        ),
+        (
+            path and parent and mode == "nesting",
+            "`--path` and `--parent` exclude each other under `nesting`",
+        ),
+        (parent and mode == "flat", '`--parent` needs `hierarchy = "nesting"`'),
+    )
+    for applies, message in problems:
+        if applies:
+            raise ContractsError(message)
 
 
 def _default_place(
@@ -239,7 +307,16 @@ def _parent_directory(discovery: WorkDiscovery, parent: str) -> Path:
         ContractsError: No Work has the id, with the closest id when one is
             close, or two Works share it.
     """
-    raise NotImplementedError
+    found = find_work(discovery, parent)
+    if isinstance(found, Work):
+        return found.path.parent
+    if found is None:
+        close = closest_key(parent, (work.id for work in discovery.works))
+        hint = f"; the closest is `{close}`" if close else ""
+        message = f"No Work has the id `{parent}`{hint}"
+    else:
+        message = f"The id `{parent}` is shared by Works: {found.where}"
+    raise ContractsError(message)
 
 
 def _checked_path(
@@ -265,7 +342,89 @@ def _checked_path(
         ContractsError: The path is not one that a Work could have, with the
             reason and the path named.
     """
-    raise NotImplementedError
+    place = PurePosixPath(path)
+    works = PurePosixPath(settings.dir)
+    reason = (
+        _form_problem(place, works)
+        or _link_problem(root, place, files)
+        or (
+            _nesting_problem(place, works, discovery)
+            if settings.hierarchy == "nesting"
+            else None
+        )
+    )
+    if reason:
+        message = f"`{path}` cannot be the path of a Work: {reason}"
+        raise ContractsError(message)
+    return Path(place)
+
+
+def _form_problem(place: PurePosixPath, works: PurePosixPath) -> str | None:
+    """Judge the written form of a path and where it lies.
+
+    Args:
+        place: The path as typed.
+        works: The Works directory.
+
+    Returns:
+        The reason, or `None` for a relative path with no `..` that ends in
+        `.md` and lies under the Works directory and below no hidden directory.
+    """
+    if place.is_absolute() or ".." in place.parts:
+        return "it must be relative to the repository root, with no `..`"
+    if not place.name.endswith(".md"):
+        return "its name must end in `.md`"
+    if works not in place.parents:
+        return f"it is not under the Works directory `{works.as_posix()}`"
+    hidden = [p for p in place.relative_to(works).parts[:-1] if p.startswith(".")]
+    return f"it is under the hidden directory `{hidden[0]}`" if hidden else None
+
+
+def _link_problem(root: Path, place: PurePosixPath, files: FileSystem) -> str | None:
+    """Judge whether a path is or runs through a symbolic link.
+
+    Args:
+        root: The repository root, whose own path is not asked about.
+        place: The path, relative to the root.
+        files: The port.
+
+    Returns:
+        The reason naming the link, or `None`.
+    """
+    for part in (*reversed(place.parents), place):
+        if part.parts and files.is_symlink(root / part):
+            return f"it is or runs through the symbolic link `{part.as_posix()}`"
+    return None
+
+
+def _nesting_problem(
+    place: PurePosixPath, works: PurePosixPath, discovery: WorkDiscovery
+) -> str | None:
+    """Judge a path by the rules of `nesting`.
+
+    Args:
+        place: The path, relative to the root.
+        works: The Works directory.
+        discovery: The Works and the marked files found.
+
+    Returns:
+        The reason when the path is directly in the Works directory, or its
+        directory holds a Work, a file that was left out or a file that was
+        excluded already, and `None` otherwise.
+    """
+    if place.parent == works:
+        return "a Work cannot sit directly in the Works directory"
+    found = (
+        *(work.path for work in discovery.works),
+        *discovery.left_out,
+        *discovery.excluded,
+    )
+    held = next(
+        (p for p in found if p.parent.as_posix() == place.parent.as_posix()), None
+    )
+    if held is None:
+        return None
+    return f"its directory holds a marked file already: `{held.as_posix()}`"
 
 
 def _refuse_existing(
@@ -284,7 +443,12 @@ def _refuse_existing(
         ContractsError: The directory or the file exists, and the message names
             it.
     """
-    raise NotImplementedError
+    if whole_directory and files.exists(root / place.parent):
+        message = f"The directory `{place.parent.as_posix()}` exists already"
+        raise ContractsError(message)
+    if files.exists(root / place):
+        message = f"`{place.as_posix()}` exists already"
+        raise ContractsError(message)
 
 
 def write_new(files: FileSystem, root: Path, path: Path, text: str) -> None:
