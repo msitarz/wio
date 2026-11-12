@@ -99,7 +99,9 @@ def test_a_template_that_cannot_be_used_gets_no_body_check_and_is_read_once() ->
 
 def test_a_template_that_cannot_be_read_is_skipped() -> None:
     """A-3: scenario of the contract."""
-    # Given a template whose file cannot be read, and one with no block
+    # Given a template whose file cannot be read, one that is not text, one whose
+    # block does not close and one with no block, and a file system that counts
+    # reads, which `test_checking.py` already has and moves to `helpers.py`
     # When a contract that follows each is checked
     # Then there is no diagnostic
     raise NotImplementedError
@@ -118,4 +120,31 @@ def test_the_first_of_two_template_headings_is_the_section() -> None:
     # Given a template that has `Goals` twice with different directives
     # When a contract is checked against it
     # Then the first heading's directives apply
+    raise NotImplementedError
+
+
+def test_a_work_whose_template_is_of_a_wrong_type_gets_no_body_check() -> None:
+    """Constraint: nothing is reported twice."""
+    # Given a Work whose `template` is a number, which discovery reported
+    # When the Works are checked
+    # Then the error of discovery is all it gets, and its body is not checked by
+    # its own headings
+    raise NotImplementedError
+
+
+def test_a_directive_list_on_a_repeated_heading_is_warned_of_twice() -> None:
+    """Constraint: every list is judged and a repeat is a warning."""
+    # Given a contract that follows a template and repeats a `##` heading with a
+    # list on the repeat
+    # When the body is checked
+    # Then there are the warning that the list is ignored and the warning that
+    # the heading is repeated
+    raise NotImplementedError
+
+
+def test_a_template_section_that_inherits_and_is_required_is_required() -> None:
+    """Constraint: inheritance does not lift a requirement."""
+    # Given a template section with `inherit` and `required` that a contract lacks
+    # When the body is checked
+    # Then the section is reported as required
     raise NotImplementedError

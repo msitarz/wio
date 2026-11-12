@@ -15,8 +15,13 @@ if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
 
 # The implementation stage adds the sample repositories under
-# `tests/fixtures/contracts`, named `check-body-*`, each with the templates that
-# its Works follow. AC-8 writes an item into a contract with `wio.put`. AC-7
+# `tests/fixtures/contracts`, each with the templates that its Works follow:
+# `check-body-required` (AC-1, also with a Work that has the unknown key
+# `depend_on`), `check-body-items` (AC-2), `check-body-sections` (AC-3, with
+# a second Work that names no template), `check-body-ignored` (AC-4),
+# `check-body-own` (AC-5, and a second one with no directive list),
+# `check-body-repeats` (AC-6) and `check-body-fresh-headings` and
+# `check-body-fresh-items` (AC-8, which writes an item with `wio.put`). AC-7
 # counts the reads of a file system, which no process shows, so it is a unit test.
 
 pytestmark = pytest.mark.skip(

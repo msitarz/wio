@@ -42,17 +42,25 @@ class BodyChecker:
         that names a template that is missing or rejected, which is `template`
         `None` with `work.template` set, gets no diagnostic at all, because the
         check of the Works has reported it. A template whose file cannot be read
-        or has no metadata block is skipped the same way, because `wio templates
-        check` reports it. A section is a `##` heading and what follows it up to
-        the next heading of level 1 or 2, and sections deeper than level 2 are
-        free.
+        or decoded, whose block cannot be parsed or is missing, is skipped the
+        same way, because `wio templates check` reports it, and the failed read is
+        remembered so that it is not retried for the next contract. A Work whose
+        `template` discovery reported as being of a wrong type has `work.template`
+        `None` too, so it would read as one that names none: the caller, which
+        already knows the fields that discovery reported, does not call this for
+        it, and `_check_work` in `checking.py` does, with one shared checker for the
+        run. A section is a `##` heading and what follows it up to the next
+        heading of level 1 or 2, and sections deeper than level 2 are free.
 
         A `##` heading of the contract matches one of the template by its text,
         ignoring case, the whitespace around it and a trailing directive list,
         and nothing else is normalized. When a `##` heading is repeated, in the
         contract or in the template, the first is the section. A directive list is
-        anything that begins with the opener `<!-- wio:`, and the heading's text
-        for matching is what comes before it.
+        anything that begins with the opener `<!-- wio:`, which the parser reads as
+        `<!--`, whitespace, `wio:` and whitespace, and the heading's text for
+        matching is what comes before it. A heading whose list the parser refuses
+        has a text too, so it is taken from the heading's line by an expression of
+        this module and not from the parser, which raises for such a line.
 
         With a template:
 
@@ -69,11 +77,17 @@ class BodyChecker:
           you mean `Constraints`?`` when `closest_key` finds one among the texts of
           the template's sections as written.
 
+        A directive list on a repeated heading gets both the warning that it is
+        ignored and the warning that the heading is repeated. A template section
+        that is `inherit` and `required` is still required, although the sections
+        that a contract inherits are not checked.
+
         Without a template, the directives are those of the contract's own `##`
         headings. A list that the parser refuses is an error at
         `<file>:<line>:<column>` with the parser's column, and a list on a heading
         that is not level 2 is an error at the column of its opener, ``Directives
-        are read on level-2 headings only``.
+        are read on level-2 headings only``, on a repeated heading as on any
+        other, because every list is judged.
 
         In both cases the items of each section that has `items` or `pattern`
         directives are found and judged with `find_items` and `judge_items`, over
