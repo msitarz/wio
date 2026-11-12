@@ -2,13 +2,20 @@
 """What `wio contracts list` prints."""
 
 from typing import TYPE_CHECKING
+lazy import json
+
+from wio.contracts.discovery import discover_works
+from wio.contracts.hierarchy import build_hierarchy
 
 if TYPE_CHECKING:
     from argparse import Namespace
+    from collections.abc import Mapping
 
     from wio.contracts import Services
+    from wio.contracts.discovery import WorkDiscovery
     from wio.contracts.hierarchy import Hierarchy
     from wio.io.ports import Stdio
+    from wio.models.works import Work
 
 
 def render_list(found: Hierarchy, *, as_json: bool) -> str:
@@ -48,6 +55,61 @@ def render_list(found: Hierarchy, *, as_json: bool) -> str:
         The text for standard output, ending in a newline, and empty for no Work
         in the human form, and `[]` and a newline in the JSON form.
     """
+    if as_json:
+        return json.dumps([_as_object(work, found) for work in found.works]) + "\n"
+    order = _text_order(found)
+    width = max((len(work.id) for work, _ in order), default=0)
+    titles = {work.id: work.title for work in found.works}
+    return "".join(
+        f"{line}\n"
+        for work, depth in order
+        for line in _block(work, depth, width, titles)
+    )
+
+
+def _text_order(found: Hierarchy) -> list[tuple[Work, int]]:
+    """Put the Works in the order of the text, each with its depth.
+
+    Args:
+        found: The hierarchy.
+
+    Returns:
+        Each Work after its parent and before the next sibling of its parent,
+        siblings in the order of their paths, with the number of its ancestors.
+        Under `flat` it is the Works in the order of their paths, all at 0.
+    """
+    raise NotImplementedError
+
+
+def _block(
+    work: Work, depth: int, width: int, titles: Mapping[str, str | None]
+) -> list[str]:
+    """Lay out the lines of one Work.
+
+    Args:
+        work: The Work.
+        depth: How many ancestors it has, each of which indents by two spaces.
+        width: The widest id of the output, which the id is padded to.
+        titles: The title of each Work by id, `None` for a Work with no title,
+            and no key for an id that no Work has.
+
+    Returns:
+        The first line and the detail lines, none of them ended by a newline.
+    """
+    raise NotImplementedError
+
+
+def _as_object(work: Work, found: Hierarchy) -> dict[str, object]:
+    """Describe a Work as plain data for JSON.
+
+    Args:
+        work: The Work.
+        found: The hierarchy, for its parent.
+
+    Returns:
+        The fields in the order `render_list` gives, with the path written with
+        `/`.
+    """
     raise NotImplementedError
 
 
@@ -77,5 +139,24 @@ def run_list(services: Services, args: Namespace, stdio: Stdio) -> int:
             writes the message as it is, with no prefix of its own, to standard
             error and exits 2.
         ConfigurationError: The config has an error.
+    """
+    config = services.settings.load()
+    discovery = discover_works(services.repository.root(), config.works, services.files)
+    _refuse_incomplete(discovery)
+    found = build_hierarchy(discovery.works, config.works.hierarchy)
+    stdio.stdout.write(render_list(found, as_json=args.json))
+    return 0
+
+
+def _refuse_incomplete(discovery: WorkDiscovery) -> None:
+    """Refuse a tree that may not hold every Work, or whose ids are shared.
+
+    Args:
+        discovery: What one walk of the Works directory found.
+
+    Raises:
+        ContractsError: `incomplete` or `ambiguous` holds an error. It carries
+            those errors in the order of `diagnostics`, and its message is them
+            rendered one to a line and the hint.
     """
     raise NotImplementedError
