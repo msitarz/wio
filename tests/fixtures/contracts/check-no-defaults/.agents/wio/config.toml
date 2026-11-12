@@ -1,0 +1,7 @@
+# A project with an action and a stage and no default actions.
+
+[actions.deliver]
+description = "Build it."
+
+[stages.implementation]
+goal = "Implement it."

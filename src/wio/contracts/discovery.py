@@ -458,7 +458,7 @@ def wrong_optional_fields(data: Mapping[str, object]) -> frozenset[str]:
     }
     if "template" in data and not isinstance(data["template"], str):
         wrong.add("template")
-    if "actions" in data and _actions(data["actions"]) is None:
+    if "actions" in data and read_actions(data["actions"]) is None:
         wrong.add("actions")
     return frozenset(wrong)
 
@@ -517,7 +517,7 @@ def _actions_field(
         The table, empty when the key is absent or of a wrong shape, and the
         error for a key that is present and of a wrong shape.
     """
-    found = _actions(data.get("actions"))
+    found = read_actions(data.get("actions"))
     if found is not None:
         return freeze(found), ()
     wrong = (_error(place, _ACTIONS),)
@@ -538,8 +538,11 @@ def _strings(value: object) -> tuple[str, ...] | None:
     return tuple(value)
 
 
-def _actions(value: object) -> dict[str, str | tuple[str, ...]] | None:
-    """Read the `[actions]` table.
+def read_actions(value: object) -> dict[str, str | tuple[str, ...]] | None:
+    """Read the `[actions]` table of a block.
+
+    It is the rule that `discover_works` applies, and that a command which reads
+    a template's or a Work's block again applies too.
 
     Args:
         value: What the block holds, or `None` for an absent key.

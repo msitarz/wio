@@ -1,0 +1,19 @@
+# A project that declares two actions, a stage preset and a stage.
+
+[actions.deliver]
+description = "Build it."
+
+[actions.amend]
+description = "Change it."
+
+[stages.implementation]
+goal = "Implement it."
+
+[stage_presets]
+integrate = ["implementation"]
+
+[templates.kinds]
+feature = "t.leaf"
+
+[works.defaults.actions]
+deliver = ["implementation"]

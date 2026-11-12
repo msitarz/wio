@@ -2,13 +2,14 @@
 """What `wio contracts check` reports about the Works."""
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, Literal
 
-from wio.contracts.actions import template_actions
+from wio.contracts.actions import resolve_actions, template_actions
 from wio.contracts.discovery import discover_works, wrong_optional_fields
 from wio.contracts.hierarchy import build_hierarchy
+from wio.formats.errors import MetadataBlockError
 from wio.models.diagnostics import Diagnostic, has_error, order_diagnostics
-lazy from wio.formats import closest_key, render_check
+lazy from wio.formats import closest_key, read_metadata_block, render_check
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from wio.contracts import Services
-    from wio.contracts.actions import Pipeline
+    from wio.contracts.actions import Pipeline, ResolvedAction
     from wio.contracts.hierarchy import Hierarchy
     from wio.contracts.ports import TemplateCatalog
     from wio.io.ports import FileSystem, Stdio
@@ -29,6 +30,8 @@ PASSES: Final = "The contracts pass."
 """What the command says when the check has nothing to report."""
 _KNOWN_KEYS: Final = ("id", "template", "roots", "depends_on", "actions")
 """The keys of the metadata that wio reads, which an unknown key is compared to."""
+_DESCENDANTS: Final = "@descendants"
+"""The root entry that stands for the roots of the descendants."""
 _RESERVED_ID: Final = "none"
 """The id that stands for no Work in a record."""
 
@@ -199,7 +202,19 @@ def _reread(root: Path, work: Work, files: FileSystem) -> MetadataBlock | Diagno
         The block, or the error at the file for one that cannot be read, decoded
         or parsed the second time.
     """
-    raise NotImplementedError
+    place = work.path.as_posix()
+    try:
+        block = read_metadata_block(files.read_text(root / work.path))
+    except UnicodeDecodeError:
+        return Diagnostic("error", place, "The file is not valid UTF-8")
+    except OSError as error:
+        reason = f"The file cannot be read: {error.strerror}"
+        return Diagnostic("error", place, reason)
+    except MetadataBlockError as error:
+        return Diagnostic("error", f"{place}:{error.line}", error.message)
+    if block is None:
+        return Diagnostic("error", place, "The file has no metadata block any more")
+    return block
 
 
 def _key_warnings(work: Work, block: MetadataBlock) -> list[Diagnostic]:
@@ -282,7 +297,20 @@ def _template_errors(
         `None` otherwise, with the error for a template that is missing or
         rejected and none for a Work that names no template.
     """
-    raise NotImplementedError
+    name = work.template
+    if name is None:
+        return None, []
+    if catalog.is_rejected(name):
+        message = (
+            f"The template `{name}` is rejected by `wio templates check`; "
+            "run it for the findings"
+        )
+        return None, [Diagnostic("error", work.path.as_posix(), message)]
+    template = catalog.find(name)
+    if template is None:
+        message = f"The template `{name}` does not exist"
+        return None, [Diagnostic("error", work.path.as_posix(), message)]
+    return template, []
 
 
 def _named_errors(work: Work, config: Config) -> list[Diagnostic]:
@@ -297,7 +325,57 @@ def _named_errors(work: Work, config: Config) -> list[Diagnostic]:
         for a stage that a list gives twice. It runs for every Work, whatever its
         template.
     """
-    raise NotImplementedError
+    place = work.path.as_posix()
+    messages: list[str] = []
+    for name, pipeline in work.actions.items():
+        if name not in config.actions:
+            messages.append(
+                f"The action `{name}` is not declared in `[actions]` of the config"
+            )
+        messages.extend(_pipeline_problems(name, pipeline, config))
+    return [Diagnostic("error", place, message) for message in messages]
+
+
+def _pipeline_problems(action: str, pipeline: Pipeline, config: Config) -> list[str]:
+    """Judge one pipeline that a Work or a template gives.
+
+    Args:
+        action: The action's name.
+        pipeline: A stage preset id, or the stages of the action.
+        config: The settings, which declare the stage presets and stages.
+
+    Returns:
+        The messages: a stage preset that is not declared, a stage that is not
+        declared, each once, and a stage that appears twice, each once.
+    """
+    if isinstance(pipeline, str):
+        if pipeline in config.stage_presets:
+            return []
+        return [f"The stage preset `{pipeline}` of action `{action}` is not declared"]
+    stages = list(dict.fromkeys(pipeline))
+    problems = [
+        f"The stage `{stage}` of action `{action}` is not declared"
+        for stage in stages
+        if stage not in config.stages
+    ]
+    problems.extend(
+        f"The stage `{stage}` appears twice in action `{action}`"
+        for stage in _repeated(pipeline)
+    )
+    return problems
+
+
+def _repeated(stages: tuple[str, ...]) -> list[str]:
+    """Name each stage that a list of stages gives twice.
+
+    Args:
+        stages: The stages.
+
+    Returns:
+        Each repeated stage once, in the order of its first repeat.
+    """
+    seen: set[str] = set()
+    return list(dict.fromkeys(s for s in stages if s in seen or seen.add(s)))
 
 
 def _resolved_errors(
@@ -318,7 +396,54 @@ def _resolved_errors(
         template that is not usable, whose template or `[actions]` was reported, or
         whose template's file cannot be read for its `[actions]`.
     """
-    raise NotImplementedError
+    if {"template", "actions"} & wrong or (work.template and template is None):
+        return []
+    inherited, source = _inherited(template, run)
+    if inherited is None:
+        return []
+    resolved = resolve_actions(work.actions, inherited, source)
+    problems = _inherited_repeats(resolved)
+    if all(entry.removed for entry in resolved):
+        problems.append("The Work resolves to no action")
+    place = work.path.as_posix()
+    return [Diagnostic("error", place, message) for message in problems]
+
+
+def _inherited_repeats(resolved: tuple[ResolvedAction, ...]) -> list[str]:
+    """Name the repeats of a stage that a Work inherits from its template.
+
+    Args:
+        resolved: The actions that the Work resolves to.
+
+    Returns:
+        A message for each stage that a template's list gives twice. A list that
+        the Work gives, and a config default, are not judged here.
+    """
+    return [
+        f"The stage `{stage}` appears twice in action `{entry.name}`"
+        for entry in resolved
+        if entry.source == "template" and isinstance(entry.pipeline, tuple)
+        for stage in _repeated(entry.pipeline)
+    ]
+
+
+def _inherited(
+    template: Template | None, run: _Run
+) -> tuple[Mapping[str, Pipeline] | None, Literal["template", "defaults"]]:
+    """Find the actions that a Work inherits.
+
+    Args:
+        template: The template that the Work names, or `None` for none.
+        run: What the checks read from.
+
+    Returns:
+        The template's actions, or the config defaults for a Work that names no
+        template, and which of the two they are. `None` for a template whose file
+        cannot be read for its `[actions]`.
+    """
+    if template is None:
+        return run.config.works.defaults.actions, "defaults"
+    return run.templates.actions(template), "template"
 
 
 def _root_errors(
@@ -337,7 +462,70 @@ def _root_errors(
         in a leaf, and one note for each root of the descendants that the Work's
         resolved roots leave out, none when its `roots` was reported.
     """
-    raise NotImplementedError
+    place = work.path.as_posix()
+    undeclared = [
+        Diagnostic(
+            "error",
+            place,
+            f"The root `{root}` is not declared in `[roots]` of the config",
+        )
+        for root in dict.fromkeys(work.roots)
+        if root != _DESCENDANTS and root not in config.roots
+    ]
+    notes = [] if "roots" in wrong else _omission_notes(work, found)
+    return [*undeclared, *_leaf_warning(work, found), *notes]
+
+
+def _leaf_warning(work: Work, found: Hierarchy) -> list[Diagnostic]:
+    """Warn of `@descendants` in a Work that has no children.
+
+    Args:
+        work: The Work.
+        found: The hierarchy.
+
+    Returns:
+        The warning, or an empty list.
+    """
+    if _DESCENDANTS not in work.roots or found.children[work.path]:
+        return []
+    message = "The Work has no children, so `@descendants` adds no root"
+    return [Diagnostic("warning", work.path.as_posix(), message)]
+
+
+def _omission_notes(work: Work, found: Hierarchy) -> list[Diagnostic]:
+    """Note each root of the descendants that a Work's roots leave out.
+
+    Args:
+        work: The Work.
+        found: The hierarchy.
+
+    Returns:
+        One note for each, at the Work's file.
+    """
+    place = work.path.as_posix()
+    return [
+        Diagnostic(
+            "note", place, f"Its roots leave out `{root}`, which a descendant uses"
+        )
+        for root in _omitted_roots(work, found)
+    ]
+
+
+def _omitted_roots(work: Work, found: Hierarchy) -> list[str]:
+    """Find the roots of the descendants that a Work's own roots leave out.
+
+    Args:
+        work: The Work.
+        found: The hierarchy, which resolves the roots.
+
+    Returns:
+        The roots that some descendant resolves to and that the Work does not,
+        sorted, whether or not the config declares them.
+    """
+    used = {
+        root for kid in found.descendants[work.path] for root in found.roots[kid.path]
+    }
+    return sorted(used - set(found.roots[work.path]))
 
 
 def run_check(services: Services, args: Namespace, stdio: Stdio) -> int:

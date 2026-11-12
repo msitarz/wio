@@ -4,6 +4,10 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
+from wio.contracts.discovery import read_actions
+from wio.formats import read_metadata_block
+from wio.formats.errors import MetadataBlockError
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
     from pathlib import Path
@@ -77,7 +81,18 @@ def resolve_actions(
         empties is an entry with `removed` set, an empty list that nothing was
         inherited under gives no entry, and neither does an empty inherited list.
     """
-    raise NotImplementedError
+    entries: dict[str, ResolvedAction] = {}
+    for name, pipeline in inherited.items():
+        if pipeline != ():
+            entries[name] = ResolvedAction(
+                name, pipeline, inherited_from, removed=False
+            )
+    for name, pipeline in own.items():
+        if pipeline != ():
+            entries[name] = ResolvedAction(name, pipeline, "work", removed=False)
+        elif name in entries:
+            entries[name] = ResolvedAction(name, (), "work", removed=True)
+    return tuple(entries.values())
 
 
 def template_actions(
@@ -97,4 +112,12 @@ def template_actions(
         array of stages each.
         It reports nothing, because `wio templates check` reports a template.
     """
-    raise NotImplementedError
+    try:
+        block = read_metadata_block(files.read_text(root / template.path))
+    except UnicodeDecodeError, OSError, MetadataBlockError:
+        return None
+    if block is None:
+        return None
+    if "actions" not in block.data:
+        return {}
+    return read_actions(block.data["actions"])

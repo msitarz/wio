@@ -1,0 +1,16 @@
+# A project whose defaults have the action `deliver`.
+
+[works.defaults.actions]
+deliver = ["implementation"]
+
+[actions.deliver]
+description = "Build what the Work says."
+
+[stages.implementation]
+goal = "Implement it."
+
+[works]
+hierarchy = "nesting"
+
+[roots.api]
+paths = ["api"]
