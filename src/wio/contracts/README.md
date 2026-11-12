@@ -60,8 +60,10 @@ each function takes and returns, and the
 reads. [Which files are Works](../../../docs/concepts.md#which-files-are-works)
 defines what a Work is.
 
-- **A problem with one Work hides no other.** Only a file that cannot be
-  identified is left out. A Work with a wrong optional field stays in the tree
+- **A problem with one Work hides no other, and none is raised.** Discovery
+  reports every problem as a diagnostic, and the Works directory that cannot be
+  walked is one error and no Work. Only a file that cannot be identified is left
+  out. A Work with a wrong optional field stays in the tree
   with that field empty, so its children and dependents are not orphaned and a
   later command still sees them. A shared id keeps every Work that has it.
 - **The errors say what they leave.** `incomplete` holds the errors that leave
@@ -78,9 +80,10 @@ defines what a Work is.
 - **Discovery reads and never writes.** It reaches files only through the
   `FileSystem` port, and its output is in a fixed order: the Works by the
   string of their paths and the diagnostics as the shared ordering puts them.
-- **`Work` is in `wio.models.works`.** It sits beside the stub `work.pyi`,
-  which a later Work replaces, so that a stub and its implementation never share
-  a module name.
+- **`Work` is in [`wio.models.works`](../models/works.py).** Its docstring holds
+  its fields and the rule that the title is the first heading, at any level. It
+  sits beside the stub `work.pyi`, which a later Work replaces, so that a stub
+  and its implementation never share a module name.
 
 The walk, the refusal of a Works directory and the ordering of diagnostics are
 the [shared helpers](../io/walk.py) that the templates discovery also uses, so
