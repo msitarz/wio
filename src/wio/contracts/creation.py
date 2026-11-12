@@ -76,7 +76,8 @@ def plan_work(
     file, and there is one error for each call, the first of these: no kind is
     declared for `new <kind>`, the kind is not declared, the template is missing or
     rejected or is of another kind than the kind, a root is not declared, the title
-    is not one non-blank line, then the errors of `decide_place`. The messages say
+    is not one non-blank line, which is ``The title must be one non-blank line``,
+    then the errors of `decide_place`. The messages say
     what to do: a template that is rejected, or is the entry template of a kind,
     points to `wio templates check`, and a name that no file has points to
     `wio templates list`.
@@ -87,8 +88,10 @@ def plan_work(
     catalog's path, or `<!-- wio`, `-->`, an empty line and `# Title` for a bare
     contract. On it `set_block_keys` adds the `id` first, and `roots` replaced or
     added when `--root` was given, a name given twice counting once in the order of
-    its first appearance and each name a declared root or `@descendants`. A title is
-    trimmed and replaces the first level-1 heading, or is inserted before the first
+    its first appearance and each name a declared root or `@descendants`. The first
+    level-1 heading is found by `read_outline` of the body and its first line,
+    which `read_metadata_block` gives for the text. A title is trimmed and replaces
+    that heading, or is inserted before the first
     line of the body that is not empty and followed by one empty line, in the
     template's line ending, or at the end of the body when it has no such line.
     Nothing else of the skeleton changes. The parent is `parent_of` in

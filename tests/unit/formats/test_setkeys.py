@@ -100,3 +100,19 @@ def test_a_block_that_mixes_line_endings_is_written_with_the_first_one() -> None
     # Then every line ending of the block is that of its first line, and the body
     # is as it was
     raise NotImplementedError
+
+
+def test_a_new_plain_key_follows_the_comment_lines_after_the_last_plain_key() -> None:
+    """AC-8: the key goes after the comments that follow the last plain key."""
+    # Given a block with `template`, a comment line, an empty line and a table
+    # When a plain key is added
+    # Then it follows the comment line and comes before the empty line and the table
+    raise NotImplementedError
+
+
+def test_the_empty_lines_a_block_already_has_are_kept_and_only_one_is_added() -> None:
+    """AC-8: an added table adds one empty line, and no key adds any."""
+    # Given a block that ends with two empty lines after its last plain key
+    # When a table is added
+    # Then the two empty lines are kept and no empty line is added before the table
+    raise NotImplementedError
