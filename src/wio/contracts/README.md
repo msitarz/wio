@@ -88,3 +88,43 @@ defines what a Work is.
 The walk, the refusal of a Works directory and the ordering of diagnostics are
 the [shared helpers](../io/walk.py) that the templates discovery also uses, so
 the two read their directories the same way.
+
+## The hierarchy of the Works
+
+The parent, children, ancestors, descendants, resolved roots, dependencies and
+dependents of a Work, and the errors of the dependency graph, come from one
+value, `Hierarchy` in [`hierarchy.py`](hierarchy.py), that `build_hierarchy`
+makes from the Works that discovery found. So every command gets the same
+answer and none computes a relation from the files on its own. The docstrings
+there say what each table holds, how it is ordered and what each error reads,
+and the [tests](../../../tests/unit/contracts/test_hierarchy.py) say how each
+case reads. [Parent and leaf](../../../docs/concepts.md#parent-and-leaf),
+[roots of a Work](../../../docs/concepts.md#roots-of-a-work) and
+[dependencies](../../../docs/concepts.md#dependencies) define the relations.
+
+- **It is computed on each run from what it is given.** It reads no file and
+  writes none, because the Works come from discovery, and nothing is kept
+  between runs that could drift from the files.
+- **The tables are keyed by path, not by id.** Two Works may share an id, and
+  discovery keeps both, so an id would hide one of them. A dependency on a
+  shared id is an edge to each Work that has it, and the duplicate itself is
+  reported once, by discovery.
+- **The parent comes from the layout alone.** A plain directory between two
+  Works, or a directory whose Work was left out, is passed over, so a Work is
+  never orphaned by a problem that discovery already reports. Under `flat` no
+  Work has a relative, and `@descendants` resolves to nothing.
+- **A child passes up what its own roots resolve to.** So a middle parent
+  decides what reaches the top, and a parent that does not list
+  `@descendants` hides the roots of its children from the Work above.
+- **A parent's wait for its children is an edge of the graph and is not a
+  dependency.** It counts when a cycle is searched for, so a child that lists
+  its parent is found, but it adds no id to `dependencies` and makes no parent a
+  dependent of its child. Where a pair has both a listed and an implicit edge,
+  the edge is called listed, because that is the one a person can remove.
+- **A group of Works that wait on each other is one error.** It is placed at the
+  Work of the group with the smallest path and shows the shortest cycle from
+  it, with ties taken by the smallest path, so one mistake gives one message
+  that does not change with the order in which the Works were found.
+- **The roots are not judged here.** Warnings about a root's name or about
+  `@descendants` on a leaf belong to the command that checks Works, which reads
+  the tables.
