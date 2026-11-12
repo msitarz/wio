@@ -4,7 +4,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from wio.contracts.hierarchy import build_hierarchy
+from wio.contracts.hierarchy import build_hierarchy, parent_of
 from wio.models.frozen import freeze
 from wio.models.works import Work
 
@@ -382,3 +382,24 @@ def test_a_longer_cycle_is_found_through_the_smallest_paths() -> None:
             ),
         )
     ]
+
+
+def test_the_parent_of_a_path_is_what_the_hierarchy_gives_for_a_work_there() -> None:
+    """`parent_of` is the rule of the hierarchy, for a file that is not a Work yet."""
+    # Given Works under nesting and a file below one of them and below a plain
+    # directory, a file at the top and a file beside no Work
+    works = _tree()
+    nested = Path("p/c1/new/README.md")
+    plain = Path("p/g/y/README.md")
+    top = Path("z/README.md")
+
+    # When their parents are asked for, under nesting and under flat
+    found = [parent_of(p, works, "nesting") for p in (nested, plain, top)]
+    flat = [parent_of(p, works, "flat") for p in (nested, plain, top)]
+
+    # Then they are the nearest Work above, and none under flat, and each is what
+    # the hierarchy gives for a Work at that path
+    assert _ids(found) == ["c1", "p", "-"]
+    assert flat == [None, None, None]
+    built = build_hierarchy([*works, _work("p/c1/new")], "nesting")
+    assert built.parent[_at("p/c1/new")] == found[0]

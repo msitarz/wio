@@ -91,9 +91,13 @@ def plan_work(
     trimmed and replaces the first level-1 heading, or is inserted before the first
     line of the body that is not empty and followed by one empty line, in the
     template's line ending, or at the end of the body when it has no such line.
-    Nothing else of the skeleton changes. The parent is the Work of the nearest
-    directory above the file that holds a discovered Work, whether the place came
-    from `--parent` or from `--path`, and none under `flat`.
+    Nothing else of the skeleton changes. The parent is `parent_of` in
+    `wio.contracts.hierarchy` of the new file's path, the one definition of the
+    rule, whether the place came from `--parent` or from `--path`, and none under
+    `flat`. An undeclared root is the error ``The root `r` is not declared in
+    `[roots]` of the config``, as the check of the Works words it. `set_block_keys`
+    is called by its name in this module, once, with the `id` and, when roots were
+    given, `roots`.
 
     Args:
         arguments: What was typed.

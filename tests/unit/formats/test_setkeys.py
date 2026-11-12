@@ -74,3 +74,29 @@ def test_a_text_with_no_block_is_refused() -> None:
     # When keys are set
     # Then the error of the block reader is raised
     raise NotImplementedError
+
+
+def test_a_table_that_is_there_has_its_keys_set_in_place_or_added() -> None:
+    """AC-8: an existing table is merged and keeps its position."""
+    # Given a block with a table `[actions]` that holds `deliver`
+    # When the table `[actions]` is set with a new `deliver` and an `amend`
+    # Then `deliver` is replaced in place and `amend` follows it, and the table
+    # stays where it was
+    raise NotImplementedError
+
+
+def test_a_mapping_in_the_plain_keys_is_written_as_an_inline_table() -> None:
+    """AC-8: an inline table counts as a plain key."""
+    # Given a block with a plain key
+    # When a plain key whose value is a mapping is set
+    # Then it is written as an inline table after the last plain key
+    raise NotImplementedError
+
+
+def test_a_block_that_mixes_line_endings_is_written_with_the_first_one() -> None:
+    """AC-8: the block is the one place that is rewritten."""
+    # Given a block whose lines end with LF and CRLF, and a body with CRLF
+    # When keys are set
+    # Then every line ending of the block is that of its first line, and the body
+    # is as it was
+    raise NotImplementedError

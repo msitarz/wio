@@ -13,8 +13,10 @@ import pytest
 # text of a file of the sandbox. The real `Entropy` runs on both channels, so a
 # scenario reads the new id from the report and puts it into the text it expects,
 # and the scenarios that need fixed bytes (the exact id of AC-1) are unit tests.
-# AC-4 and AC-7 are unit tests too, because they name the template's block forms
-# and a stand-in.
+# A scenario that runs `new` more than once starts each run from its own sandbox,
+# by parametrizing the run, and asserts with `wio.fingerprint` that a mistake wrote
+# nothing. AC-4 and AC-7 are unit tests too, because they name the template's
+# block forms and a stand-in.
 
 pytestmark = pytest.mark.skip(
     reason="architecture stub: the implementation stage fills it"

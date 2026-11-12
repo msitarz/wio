@@ -141,3 +141,20 @@ def test_the_parent_is_the_nearest_work_above_the_place() -> None:
     # Then its parent is the Work of the nearest directory above that holds one,
     # and none under flat
     raise NotImplementedError
+
+
+def test_a_bare_contract_still_works_when_no_kinds_are_declared() -> None:
+    """AC-5: only `new <kind>` needs a kind."""
+    # Given a config with no kinds
+    # When `new` runs with a slug and no kind
+    # Then the bare contract is written
+    raise NotImplementedError
+
+
+def test_the_parent_of_a_path_is_the_one_definition_of_the_hierarchy() -> None:
+    """AC-6: `parent_of` gives the Work that `build_hierarchy` would."""
+    # Given Works under nesting and under flat, and a file that is not a Work
+    # When `parent_of` is asked for its parent
+    # Then it is the Work of the nearest directory above that holds one, and none
+    # under flat, as `build_hierarchy` gives for a Work at that path
+    raise NotImplementedError
