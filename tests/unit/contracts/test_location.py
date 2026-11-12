@@ -382,6 +382,20 @@ def test_a_parent_needs_nesting() -> None:
     assert first == message
 
 
+def test_a_path_with_a_parent_under_flat_is_refused_for_the_parent() -> None:
+    """The two options exclude each other only under nesting."""
+    # Given `flat` and a Work
+    disk = _disk({"p/README.md": "p5n2hv"})
+
+    # When the place is decided with a path and a parent
+    message = _refusal(disk, "flat", path=f"{WORKS}/x/y.md", parent="p5n2hv")
+
+    # Then the error says `--parent` needs `nesting`, not that the options exclude
+    # each other
+    assert "`--parent` needs" in message
+    assert "exclude each other" not in message
+
+
 def test_a_path_must_be_one_that_a_work_could_have() -> None:
     """Only a file that would be a Work and does not exist is accepted."""
     # Given a Work under nesting, a symbolic link `link` and the paths
