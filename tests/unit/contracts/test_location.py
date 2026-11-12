@@ -465,7 +465,7 @@ def test_a_directory_whose_files_a_collision_excluded_holds_marked_files() -> No
     assert "holds a marked file already" in message
 
 
-def test_under_flat_a_path_may_be_at_the_top_or_beside_awork_with_id() -> None:
+def test_under_flat_a_path_may_be_at_the_top_or_beside_a_work() -> None:
     """The rules of nesting do not apply under flat."""
     # Given `flat` and a Work in `p`
     disk = _disk({"p/README.md": "p5n2hv"})
