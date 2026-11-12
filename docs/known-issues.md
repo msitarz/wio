@@ -80,92 +80,18 @@ mistakes.
 with a single narrow `# pyrefly: ignore[bad-argument-count]` that names this
 entry. Delete the suppression, and this entry, when a release accepts the call.
 
-## `tomlkit` cannot add a key or a table without moving or adding lines
+## `tomlkit` writes added items with LF line endings
 
-**What fails.** `tomlkit` keeps the text of a document it parsed, but with
-0.15.2, the locked version, it has no public way to put a new key or table at a
-chosen place, and the ways it does offer change more than they say:
+**What fails.** `tomlkit` retains existing line endings but writes added items
+with LF, including in a block that uses CRLF. Its string serializer has no
+public line-ending setting. Its file helper handles uniform CRLF files, but the
+block setter works on a string and must preserve mixed endings too.
 
-- `doc[key] = value` and `doc.add` replace an existing key in place, comment
-  included, but put a new plain key after the comment lines and the empty lines
-  that follow the last plain key, directly above the first table. Nothing puts
-  the `id` first: `Container` has no public `insert`, only the private
-  `_insert_at`.
-- A table that is added with `doc[name] = table` gets one empty line before it
-  only when the document does not already end with one, but the same table
-  added with `Container.append` doubles an empty line that is there.
-- `Container.append` also gives an empty line to any table whose predecessor is
-  not an empty line, one that was parsed included, so building a document again
-  from `doc.body` adds a line before `[x]` in `template = "t"` then `[x]`.
-- Building a document again moves an empty line that stands before a plain key
-  to after it: `a=1`, an empty line, `b=2` becomes `a=1`, `b=2`, an empty line,
-  and a leading empty line is dropped.
-- Added items are written with `\n` whatever the document used, so a CRLF
-  document comes out with mixed endings.
-- A mapping assigned as a value becomes a table, and a list of mappings an array
-  of tables. An inline table needs `tomlkit.inline_table()`.
-- A dotted key such as `a.b = 1` is parsed as a table.
-- Adding a key or a table whose name is already used raises
-  `tomlkit.exceptions.KeyAlreadyPresent`, which is not a `ValueError`, while
-  `doc["x"] = 1` over a table replaces it without an error. A key added to an
-  existing table lands after the table's trailing comment lines.
+**What it puts at risk.** A contract edited by `wio contracts new` or
+`wio contracts skeleton` can gain inconsistent line endings, or its existing
+line endings can change.
 
-**What it puts at risk.** Setting keys in the metadata block of a contract,
-which a person has written and reviewed, would reorder or add lines, or leave
-the line endings mixed, in a file that `wio contracts new` and
-`wio contracts skeleton` are meant to change only where they say.
-
-**Why it is not fixed yet.** The behaviours above are the library's own, and the
-version is the latest. Using the private `_insert_at` would tie the block writer
-to an internal that can change with any release, and `encode_toml`, which writes
-a whole document, cannot edit one.
-
-**What is being done.** `set_block_keys` in `wio.formats` uses `tomlkit` only to
-read the block, to replace a value where it stands and to write a value, and
-places the lines that it adds itself, as text, preserving existing line
-endings. Its tests pin each case above. Remove this entry, and that workaround
-if the library allows, when a release lets a key or a table be inserted at a
-chosen place without changing the rest.
-
-**The two ways of using it that were measured.** Both give the expected text for
-a block with `template`, `roots = []`, an empty line and a table `[x]` when
-`roots` is replaced, `depends_on` is added and the table `[actions]` is added,
-and both replace a key or a whole table in place, keep an empty line that stands
-before a plain key, and add no empty line to a table added after a block that
-ends with one or two. They differ here:
-
-| Case | `doc[key] = value` and `doc[name] = table` | Text edit |
-| --- | --- | --- |
-| An existing table directly after a key or a comment | Gains an empty line before it | Unchanged |
-| A new key, with comment lines after the last plain key | Goes after the comment lines | Goes before them |
-| A block with no final line ending, and a table added | No empty line before the table | One empty line |
-| A table named like an inline plain key, or the reverse | Replaces it without an error | `ValueError` |
-| `id` first, a CRLF block, a mapping as an inline table | Extra code | Extra code |
-
-Replacing the value where it stands is the same in both. The first two rows are
-the only ones that change a file that a person wrote, and a block that
-`encode_toml` wrote already has an empty line before each table, so they matter
-only for a hand-written contract. Using the assignment alone takes about half
-the code of the text edit and accepts those two rows.
-
-**Cases that were run on the text edit.** The expected output is for adding the
-plain key `c = 3`, unless the case says otherwise.
-
-| Block between the delimiters | Result |
-| --- | --- |
-| `a=1`, empty line, `b=2` | `c = 3` after `b=2` |
-| `a=1`, `# c`, empty line, `b=2` | `c = 3` after `b=2` |
-| an empty line, then `a = 1` | the empty line stays first |
-| `template = "t"`, then `[x]` | `c = 3` after `template`, no empty line added |
-| `# about x`, then `[x]` | `c = 3` first, the comment stays above `[x]` |
-| `a = 1`, `# tail`, empty line, `[x]` | `c = 3` after `a = 1`, before `# tail` |
-| `id = "a" # why`, setting `id` | `id = "b" # why` |
-| a multi-line array, then a key | the key follows the closing bracket |
-| `a = 1`, one or two empty lines, a table added | no empty line added |
-| `a = 1` with no empty line, a table added | one empty line added |
-| an empty block, a table added | the table first, no empty line |
-| a CRLF block, keys and a table added | every line of the block ends with CRLF |
-| `+++` front matter, setting `id` | `id` after the line `wio = 1` |
-| `actions = { a = 1 }`, the table `actions` added | `ValueError` |
-| `[x]`, the plain key `x` added | `ValueError` |
-| a list of mappings as a value | `ValueError` |
+**What is being done.** The block setter must preserve existing line endings
+and use the opening delimiter's ending for new lines, without changing TOML
+values. Remove this entry if a release provides the required string editing
+behavior.

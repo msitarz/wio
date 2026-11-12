@@ -86,7 +86,7 @@ def plan_work(
     bare contract; given both a kind and `--template`, its kind must be the kind.
     The text is `prepare_skeleton`'s of the template's file, which is read at the
     catalog's path, or `<!-- wio`, `-->`, an empty line and `# Title` for a bare
-    contract. On it `set_block_keys` adds the `id` first, and `roots` replaced or
+    contract. On it `set_block_keys` adds the `id`, and `roots` replaced or
     added when `--root` was given, a name given twice counting once in the order of
     its first appearance and each name a declared root or `@descendants`. The first
     level-1 heading is found by `read_outline` of the body and its first line,
@@ -94,7 +94,8 @@ def plan_work(
     that heading, or is inserted before the first
     line of the body that is not empty and followed by one empty line, in the
     template's line ending, or at the end of the body when it has no such line.
-    Nothing else of the skeleton changes. The parent is `parent_of` in
+    The block's key placement and spacing may change, but its other values and
+    comments and the rest of the skeleton are retained. The parent is `parent_of` in
     `wio.contracts.hierarchy` of the new file's path, the one definition of the
     rule, whether the place came from `--parent` or from `--path`, and none under
     `flat`. An undeclared root is the error ``The root `r` is not declared in

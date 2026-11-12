@@ -18,8 +18,8 @@ def test_a_work_is_created_from_the_entry_template_of_a_kind() -> None:
     # `[contract]` table, the root `wio`, and an Entropy that gives the bytes
     # 19, 3, 20, 9, 29 and 23
     # When the Work is planned with `--title Read config --root wio` and reported
-    # Then the file is exactly the text of the contract and the report names the
-    # id and the path
+    # Then the file has the values and body of the contract and the report names
+    # the id and the path
     raise NotImplementedError
 
 
@@ -46,8 +46,7 @@ def test_the_block_is_edited_and_nothing_else_is() -> None:
     """AC-4: scenario of the contract."""
     # Given front matter, plain and CRLF templates, with roots given twice
     # When Works are planned from them
-    # Then the keys are in the order of the contract, a table is as it was and
-    # CRLF is kept throughout
+    # Then the keys and table have the requested values and CRLF is kept throughout
     raise NotImplementedError
 
 
