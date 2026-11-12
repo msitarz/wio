@@ -48,3 +48,43 @@ the group. Its docstrings say what `find` and `is_rejected` return.
 - **The templates are read once for each question.** The catalog discovers once
   for `find` and checks once for `is_rejected`, and loads the config once, so a
   command that asks about many contracts pays for one walk and one check.
+
+## Finding the Works
+
+Every command that reads Works takes them from one value, `WorkDiscovery` in
+[`discovery.py`](discovery.py), which one walk of the Works directory builds, so
+no command walks the directory on its own and the commands cannot disagree about
+which files are Works. The docstrings there say what each field holds and what
+each function takes and returns, and the
+[tests](../../../tests/unit/contracts/test_discovery.py) say how each case
+reads. [Which files are Works](../../../docs/concepts.md#which-files-are-works)
+defines what a Work is.
+
+- **A problem with one Work hides no other, and none is raised.** Discovery
+  reports every problem as a diagnostic, and the Works directory that cannot be
+  walked is one error and no Work. Only a file that cannot be identified is left
+  out. A Work with a wrong optional field stays in the tree
+  with that field empty, so its children and dependents are not orphaned and a
+  later command still sees them. A shared id keeps every Work that has it.
+- **The errors say what they leave.** `incomplete` holds the errors that leave
+  the tree incomplete, and `ambiguous` the errors of a shared id, because a
+  command that needs the whole tree refuses on either, while one that looks a
+  Work up refuses only the lookup of a shared id, through `find_work`. A command
+  tests those two fields and never reads a message to decide.
+- **A reason is computed from what was read.** `explain_not_a_work` walks the
+  tree again and names the files of a collision, or the error of a file that was
+  left out, from the files it read and the nesting rules, and never from the
+  text of a diagnostic, so a file name that holds a colon or a comma has its
+  reason. A path has a reason exactly when it is not among the Works found, and
+  the reasons come in the order that the docstring lists.
+- **Discovery reads and never writes.** It reaches files only through the
+  `FileSystem` port, and its output is in a fixed order: the Works by the
+  string of their paths and the diagnostics as the shared ordering puts them.
+- **`Work` is in [`wio.models.works`](../models/works.py).** Its docstring holds
+  its fields and the rule that the title is the first heading, at any level. It
+  sits beside the stub `work.pyi`, which a later Work replaces, so that a stub
+  and its implementation never share a module name.
+
+The walk, the refusal of a Works directory and the ordering of diagnostics are
+the [shared helpers](../io/walk.py) that the templates discovery also uses, so
+the two read their directories the same way.

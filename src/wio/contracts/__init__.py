@@ -5,6 +5,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
 lazy from wio.contracts.command import ContractsCommand
+lazy from wio.contracts.discovery import (
+    WorkDiscovery,
+    discover_works,
+    explain_not_a_work,
+    find_work,
+)
 lazy from wio.contracts.errors import ContractsError
 
 if TYPE_CHECKING:
@@ -126,5 +132,9 @@ __all__ = [
     "ContractsSpec",
     "Services",
     "Subcommand",
+    "WorkDiscovery",
     "describe",
+    "discover_works",
+    "explain_not_a_work",
+    "find_work",
 ]
