@@ -13,3 +13,4 @@ engine in the [repository glossary](../../../GLOSSARY.md).
 | Implicit dependency | The wait of a parent for each of its children. No `depends_on` lists it, and it counts as an edge of the dependency graph, so a cycle through a parent is found. |
 | Dependents of a Work | The Works that list its id in `depends_on`. A parent that waits for the Work as its child is not one. |
 | Slug | The name of a Work's directory: lowercase letters and digits joined by single `-`, given by `--slug` as written or derived from a title. It is not the Work's id, which is six random characters. |
+| Resolved actions of a Work | Its actions after its own `[actions]` replace those of its template, or of the config's `[works.defaults.actions]` when it names no template, an empty list removing the action, as [Where the pipeline comes from](../../../docs/concepts.md#where-the-pipeline-comes-from) says. |

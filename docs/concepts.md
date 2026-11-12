@@ -1245,7 +1245,8 @@ mechanically what wio relies on, and they do not judge how a workflow is built:
 - A directive comment in a contract that follows a template is a warning, and
   a contract without a template has directives that parse
   ([Directives](#directives)).
-- No two contracts share an id. `[works] hierarchy` is `"flat"` or
+- No two contracts share an id, and an id holds no whitespace or comma and is
+  not `none`, which a record could not carry. `[works] hierarchy` is `"flat"` or
   `"nesting"`. Under `nesting`, no directory holds two or more marked files,
   and no marked file sits directly in the Works directory
   ([Parent and leaf](#parent-and-leaf)).
@@ -1272,8 +1273,8 @@ mechanically what wio relies on, and they do not judge how a workflow is built:
   and the stage, so two positions of one stage could not be told apart.
 - Required sections are present, as the contract's directives say
   ([Directives](#directives)). In a contract that follows a template, a `##`
-  heading the template does not have is a warning, and so, under `nesting`, is
-  a Work whose children do not match its template's `shape`.
+  heading the template does not have is a warning. A template's `shape` is a
+  free description, so wio does not compare it with the tree.
 
 ## 7. Stage
 

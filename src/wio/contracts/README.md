@@ -206,3 +206,57 @@ byte for byte on both channels.
 - **Listing reads and never writes, and two runs print the same bytes.** The
   output has no timestamp and nothing is cut or wrapped, so a line is as the
   Work wrote it.
+
+## Checking the Works
+
+`wio contracts check` tells a person or an agent what is wrong with the Works,
+all at once and in one run, so that no problem hides another.
+[`checking.py`](checking.py) finds the problems, and its docstrings say each
+message, its severity and what the check skips. The resolution of a Work's
+actions is in [`actions.py`](actions.py), and the
+[tests](../../../tests/unit/contracts/test_checking.py) and the
+[scenarios](../../../tests/acceptance/contracts/test_check.py) show each case.
+[Invariants wio checks](../../../docs/concepts.md#invariants-wio-checks) lists
+what the command verifies, and this part of it is the Works' metadata and the
+graph.
+
+- **What discovery and the hierarchy report is carried through, not found
+  again.** The shared id, the cycle and the wrong type of an optional key come
+  as those components word them, once. A check that depends on one of them is
+  skipped, so a cause is reported once and not again as its consequences: a Work
+  whose template is missing, rejected or unreadable for its `[actions]` is not
+  also told that it resolves to no action, and nor is a Work whose `template` or
+  `[actions]` discovery reported. Only the resolved checks are skipped; the
+  names in a Work's own `[actions]` are always checked.
+- **Each Work's file is read again once, and each template's actions at most
+  once.** A `Work` holds only some of the keys of its block, so the unknown-key
+  check and the test of which fields discovery reported need the block, and the
+  block is shared by every concern so that a later check of the body does not
+  read a third time. A file that cannot be read the second time is the Work's
+  one error, because nothing else about it can be judged.
+- **The layering never puts the defaults under a template.** A Work without a
+  template follows `[works.defaults.actions]`, and a Work with one follows only
+  that template, so every Work has one source of default actions. `show` needs
+  to say where each action comes from, so the resolution keeps the source of
+  each action and whether the Work removed it, and `actions.py` holds it for
+  both.
+- **A pipeline that a template gives is judged here, a preset or a default is
+  not.** No other command judges the stages that a template lists, so a repeat
+  among them is reported at each Work that inherits it. `wio config check`
+  judges the stage presets and the defaults, and `wio templates check` the
+  template itself, which is why a rejected template is told to run it and not
+  repeated.
+- **The form of an id is judged here because a record needs it.** An id is
+  listed in `Wio-Work` between a comma and a space, and `none` means no Work, so
+  an id that holds whitespace or a comma, or is `none`, would break a record.
+- **A note is for every omitted root, declared or not.** A parent whose roots
+  leave out a root that any descendant uses is told so, and an undeclared root
+  is also an error at the Work that names it, because the roots of a parent
+  decide which rules its stages select. A parent whose own `roots` was reported
+  is not noted.
+- **A template's `shape` is not compared with the tree.** By the driver's
+  decision it is a free description, because a `parent` shape could never be met
+  under `flat`.
+- **A warning or a note never fails the command.** Only an error exits 1, and
+  the findings are in the order of `order_diagnostics`, so the output is the
+  same for the same Works.
