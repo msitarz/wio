@@ -454,6 +454,20 @@ def test_only_a_directory_is_hidden_and_an_empty_directory_is_no_obstacle() -> N
     assert [hidden.name, inside.name] == [".x.md", "new.md"]
 
 
+def test_options_that_exclude_each_other_are_refused_before_the_slug() -> None:
+    """The options are judged before the slug is looked at."""
+    # Given a Work and a call with a path, a slug that is not valid and nothing
+    # else wrong with the options but their combination
+    disk = _disk({"p/README.md": "p5n2hv"})
+
+    # When the place is decided
+    message = _refusal(disk, path=f"{WORKS}/x/y.md", slug="Bad")
+
+    # Then the error is that the options exclude each other, not about the slug
+    assert "exclude each other" in message
+    assert "lowercase letters" not in message
+
+
 def test_a_bad_slug_is_refused_before_an_unknown_parent() -> None:
     """The slug is judged before the parent is looked up."""
     # Given a Work and a slug that is not valid with a parent that has no Work
