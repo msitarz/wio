@@ -21,6 +21,8 @@ if TYPE_CHECKING:
     from wio.models.block import MetadataBlock
 
 FILE = "c/README.md"
+BAD_BODY = "# Title\n\n## Bad <!-- wio: mandatory -->\n"
+"""A body that is reported in the mode of a contract with no template."""
 STRAY_CLOSE = (
     "The section `Constraint` is not in the template `t`. Did you mean `Constraints`?"
 )
@@ -364,7 +366,7 @@ def test_a_template_that_cannot_be_used_gets_no_body_check_and_is_read_once() ->
         {ROOT / TEMPLATE_FILE: _template_text("\n## Goals <!-- wio: required -->\n")}
     )
     checker = BodyChecker(ROOT, disk)
-    work, block = _contract("# Title\n")
+    work, block = _contract(BAD_BODY, title=None)
     good = Template("t", "feature", None, None, Path(TEMPLATE_FILE), entry=False)
 
     # When the bodies are checked on their own
@@ -374,7 +376,7 @@ def test_a_template_that_cannot_be_used_gets_no_body_check_and_is_read_once() ->
 
     # Then the first two have nothing, and the good template's file was read once
     assert (missing, rejected) == ([], [])
-    assert all(len(found) == 1 for found in followers)
+    assert all(len(found) >= 1 for found in followers)
     assert disk.reads[ROOT / TEMPLATE_FILE] == 1
 
 
@@ -388,10 +390,11 @@ def test_a_template_that_cannot_be_read_is_skipped(text: str | None) -> None:
     # Given a template whose file is missing, does not close or has no block
     files = {} if text is None else {ROOT / TEMPLATE_FILE: text}
     checker = BodyChecker(ROOT, MemoryFileSystem(files))
-    work, block = _contract("# Title\n\n## Anything\n")
+    work, block = _contract(BAD_BODY, title=None)
     given = Template("t", "feature", None, None, Path(TEMPLATE_FILE), entry=False)
 
-    # When a contract that follows it is checked
+    # When a contract that follows it, whose body would be reported if it were
+    # checked by its own headings, is checked
     found = checker.check(_named(work, "t"), block, given)
 
     # Then there is no diagnostic
@@ -469,3 +472,15 @@ def test_each_directive_list_of_a_contract_that_follows_a_template_is_ignored() 
         ("warning", "c/README.md:12"),
         ("warning", "c/README.md:12"),
     ]
+
+
+def test_a_deeper_template_heading_is_no_section() -> None:
+    """Only `##` headings of the template are sections."""
+    # Given a template with `### Deep` and a contract with `## Deep`
+    template = "\n# T\n\n### Deep\n"
+
+    # When the body is checked
+    found = _run("# Title\n\n## Deep\n", template)
+
+    # Then the contract's heading is not in the template
+    assert [m for _, _, m in found] == ["The section `Deep` is not in the template `t`"]

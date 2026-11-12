@@ -904,3 +904,19 @@ def test_a_shared_id_does_not_stop_the_other_checks() -> None:
     # Then both the key and the shared id are reported
     assert ("warning", KEY) in found
     assert any(m.startswith("Works share the id") for _, m in found)
+
+
+def test_a_work_with_a_wrong_template_is_not_checked_by_its_own_headings() -> None:
+    """Only the error of discovery is reported, even for a body that would be."""
+    # Given a Work whose `template` is a number and whose body has a list that
+    # the parser refuses and no title
+    files = {
+        "a/README.md": '<!-- wio\nid = "a1"\ntemplate = 5\n-->\n\n'
+        "## Bad <!-- wio: mandatory -->\n"
+    }
+
+    # When the Work is checked
+    found = _check(files)
+
+    # Then there is the error of discovery and nothing about the body
+    assert [m for _, _, m in found] == ["`template` must be a string"]

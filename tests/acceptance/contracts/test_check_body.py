@@ -21,6 +21,9 @@ KEY = (
 )
 IGNORED = "The directive list is ignored because the contract follows the template `t`"
 LEVEL_TWO = "Directives are read on level-2 headings only"
+REJECTED = (
+    "The template `bad` is rejected by `wio templates check`; run it for the findings"
+)
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -235,3 +238,22 @@ def test_a_fresh_work_that_requires_an_item_fails_until_it_has_one(wio: Wio) -> 
     assert [line.split(": ")[1] for line in before.lines] == [f"{A}:8"]
     assert before.exit_code == 1
     assert (after.stdout, after.stderr, after.exit_code) == (PASSES, "", 0)
+
+
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+def test_a_template_that_cannot_be_used_gets_no_body_check(wio: Wio) -> None:
+    """AC-7: nothing is reported twice for a missing or a rejected template."""
+    # Given contracts that name a template that does not exist and one that
+    # `wio templates check` rejects, with bodies that would be reported by their
+    # own headings
+    wio.fixture("contracts/check-body-skipped")
+
+    # When `wio contracts check` runs
+    output = wio.run(["contracts", "check"])
+
+    # Then only the two template errors are reported
+    assert [line.split(": ", 2)[2] for line in output.lines] == [
+        "The template `nosuch` does not exist",
+        REJECTED,
+    ]
+    assert (output.stderr, output.exit_code) == ("", 1)
