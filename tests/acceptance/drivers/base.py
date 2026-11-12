@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The test driver Protocol: how a scenario's facade reaches `wio`."""
 
+import hashlib
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -57,6 +58,27 @@ class WioDriver(Protocol):
         """
         ...
 
+    def put(self, path: str, data: bytes) -> None:
+        """Write a file into the driver's sandbox, with its directories.
+
+        Args:
+            path: The file, relative to the root of the sandbox.
+            data: Its bytes.
+        """
+        ...
+
+    def fingerprint(self, directory: str) -> dict[str, str]:
+        """Fingerprint every file below a directory of the sandbox.
+
+        Args:
+            directory: The directory, relative to the root of the sandbox.
+
+        Returns:
+            The SHA-256 of each file by its path relative to the directory,
+            written with `/`.
+        """
+        ...
+
 
 class SandboxedDriver:
     """The part of a test driver that holds its sandbox.
@@ -80,3 +102,32 @@ class SandboxedDriver:
             fixture: The path of the fixture under `tests/fixtures`.
         """
         shutil.copytree(FIXTURES / fixture, self._sandbox.root, dirs_exist_ok=True)
+
+    def put(self, path: str, data: bytes) -> None:
+        """Create the file below the root of the sandbox, and its directories.
+
+        Args:
+            path: Where the file goes, relative to that root.
+            data: What it holds.
+        """
+        target = self._sandbox.root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+
+    def fingerprint(self, directory: str) -> dict[str, str]:
+        """Hash every file found below a directory of the sandbox.
+
+        Args:
+            directory: The directory to walk, relative to the root.
+
+        Returns:
+            Each file's SHA-256 under its path relative to the directory.
+        """
+        base = self._sandbox.root / directory
+        return {
+            path.relative_to(base).as_posix(): hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+            for path in sorted(base.rglob("*"))
+            if path.is_file()
+        }

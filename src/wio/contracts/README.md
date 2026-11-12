@@ -32,7 +32,10 @@ takes and returns, and the
   they meet the group, and a subcommand that needs another port adds a field.
 - **A mistake the user must fix is a `ContractsError`.** It is a `WioError`, so
   the command line prints its message and exits 2, while a handler returns 0, or
-  1 for a failed check, and never another code.
+  1 for a failed check, and never another code. A refusal can carry diagnostics,
+  which the command line then
+  [writes as they are](../cli/README.md#failures-and-exit-codes), as `list` does
+  for an incomplete tree.
 
 ## The template catalog
 
@@ -171,3 +174,35 @@ defines the rules for ids, the default place and `--path`.
   options, through the slug, the parent and the path, to what already exists, so
   a mistake in the arguments is reported before the file system is asked what
   already exists.
+
+## Listing the Works
+
+`wio contracts list` shows every Work with its hierarchy, and a script reads the
+same facts as JSON. [`listing.py`](listing.py) renders them from a `Hierarchy`,
+and its docstrings say the exact layout of a block and of an object. The format
+mirrors `wio templates list`, and the scenarios of the
+[acceptance tests](../../../tests/acceptance/contracts/test_list.py) show it
+byte for byte on both channels.
+
+- **Only what a Work states itself shows.** The roots, the dependencies and the
+  `[actions]` are written as the Work has them, so an override is never hidden
+  and what the template supplies is not repeated. The roots with `@descendants`
+  resolved, the dependents and where each action comes from are for a command
+  that resolves, not for `list`.
+- **The text follows the hierarchy and the JSON follows the paths.** A person
+  reads a parent above its children, and a script wants an order that does not
+  depend on the mode, so the array is sorted by path alone and says each
+  Work's parent in a field. The two differ when a child's directory sorts before
+  its parent's file.
+- **A tree that may not be complete is not listed.** A Work left out, a shared
+  id, a collision or a Works directory that cannot be walked refuses the
+  listing in both forms, because a list that silently left a Work out would hide
+  it. The refusal carries the errors of discovery and ends with the line that
+  points to `wio contracts check`, which shows every problem. A wrong type of an
+  optional key, an undeclared root, an unknown dependency and a cycle do not
+  stop it, because the listing is how a person finds the Work to fix; a
+  dependency on an id that no Work has is written `(not found)` and is not an
+  error of `list`.
+- **Listing reads and never writes, and two runs print the same bytes.** The
+  output has no timestamp and nothing is cut or wrapped, so a line is as the
+  Work wrote it.

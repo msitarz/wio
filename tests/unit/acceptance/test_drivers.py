@@ -41,6 +41,27 @@ class FakeDriver:
         """
         del fixture
 
+    def put(self, path: str, data: bytes) -> None:
+        """Write nothing.
+
+        Args:
+            path: Ignored.
+            data: Ignored.
+        """
+        del path, data
+
+    def fingerprint(self, directory: str) -> dict[str, str]:
+        """Fingerprint nothing.
+
+        Args:
+            directory: Ignored.
+
+        Returns:
+            An empty fingerprint.
+        """
+        del directory
+        return {}
+
 
 def _spy_on_subprocess(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     """Replace `subprocess.run` with a spy that records each call.
@@ -108,6 +129,7 @@ class RecordingDriver:
         """Start with nothing recorded."""
         self.arguments: list[Sequence[str]] = []
         self.installed: list[str] = []
+        self.written: dict[str, bytes] = {}
 
     def run(self, args: Sequence[str]) -> RunResult:
         """Record the arguments.
@@ -128,6 +150,26 @@ class RecordingDriver:
             fixture: The fixture the facade asked for.
         """
         self.installed.append(fixture)
+
+    def put(self, path: str, data: bytes) -> None:
+        """Record the file.
+
+        Args:
+            path: The file the facade asked to write.
+            data: Its bytes.
+        """
+        self.written[path] = data
+
+    def fingerprint(self, directory: str) -> dict[str, str]:
+        """Answer with a fixed fingerprint.
+
+        Args:
+            directory: The directory the facade asked about.
+
+        Returns:
+            A fingerprint that names the directory.
+        """
+        return {"file": directory}
 
 
 def test_the_facade_runs_any_command_with_its_arguments() -> None:
@@ -184,3 +226,41 @@ def test_the_cli_driver_makes_the_installed_fixture_a_git_repository(
     assert calls[0]["command"] == ["git", "init", "--quiet"]
     assert calls[0]["cwd"] == sandbox.root
     assert (sandbox.root / ".agents" / "wio" / "config.toml").is_file()
+
+
+def test_the_facade_writes_a_file_and_fingerprints_a_directory() -> None:
+    """`put` and `fingerprint` hand their arguments to the driver."""
+    # Given a facade over a recording driver
+    driver = RecordingDriver()
+    wio = Wio(driver)
+
+    # When a scenario writes a file and fingerprints a directory
+    wio.put("a/b.md", b"text")
+    fingerprint = wio.fingerprint("a")
+
+    # Then the driver wrote the bytes and the fingerprint is its answer
+    assert driver.written == {"a/b.md": b"text"}
+    assert fingerprint == {"file": "a"}
+
+
+def test_a_driver_writes_files_and_fingerprints_them(sandbox: Sandbox) -> None:
+    """The fingerprint of a directory changes with a file's bytes, not its time."""
+    # Given the in-process driver and a file written below a directory
+    driver = InProcessDriver(sandbox)
+    driver.put("dir/sub/a.md", b"one")
+
+    # When the directory is fingerprinted, the file is written again with the
+    # same bytes and then with others, and a file outside is added
+    first = driver.fingerprint("dir")
+    driver.put("dir/sub/a.md", b"one")
+    again = driver.fingerprint("dir")
+    driver.put("dir/sub/a.md", b"two")
+    changed = driver.fingerprint("dir")
+    driver.put("elsewhere.md", b"x")
+
+    # Then the first two are equal and name the file by its path below the
+    # directory, the third differs, and a file outside the directory is not in it
+    assert first == again
+    assert list(first) == ["sub/a.md"]
+    assert changed != first
+    assert driver.fingerprint("dir") == changed

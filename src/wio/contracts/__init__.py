@@ -13,6 +13,7 @@ lazy from wio.contracts.discovery import (
 )
 lazy from wio.contracts.errors import ContractsError
 lazy from wio.contracts.hierarchy import Hierarchy, build_hierarchy
+lazy from wio.contracts.listing import run_list
 lazy from wio.contracts.location import (
     IdGenerator,
     NameArguments,
@@ -74,7 +75,36 @@ class Subcommand:
     handler: Callable[[Services, Namespace, Stdio], int]
 
 
-SUBCOMMANDS: Final[Sequence[Subcommand]] = ()
+_LIST_HELP = "List the Works with their hierarchy and their overrides."
+_LIST_JSON = "Write one JSON array of the Works instead of the text."
+
+
+def _configure_list(parser: ArgumentParser) -> None:
+    """Add the arguments of `wio contracts list`.
+
+    Args:
+        parser: The subparser of `list`.
+    """
+    parser.add_argument("--json", action="store_true", help=_LIST_JSON)
+
+
+def _list(services: Services, args: Namespace, stdio: Stdio) -> int:
+    """Run `wio contracts list`.
+
+    Args:
+        services: What the subcommand reads the project through.
+        args: The parsed arguments.
+        stdio: Where the output goes.
+
+    Returns:
+        The exit code.
+    """
+    return run_list(services, args, stdio)
+
+
+SUBCOMMANDS: Final[Sequence[Subcommand]] = (
+    Subcommand("list", _LIST_HELP, _configure_list, _list),
+)
 """The subcommands of `wio contracts`, to which each leaf adds its own entry.
 
 It lives here and not in a module of its own, because describing the command
