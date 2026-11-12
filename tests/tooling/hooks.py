@@ -106,3 +106,23 @@ def run_hook(
         env=env,
     )
     return done.returncode, done.stdout, done.stderr
+
+
+def run_prek(tmp_path: Path, files: dict[str, str], hook: str) -> tuple[int, str]:
+    """Run one hook of `prek.toml` on the staged files of a new repository.
+
+    The repository is a new git repository under `tmp_path` that holds a copy of
+    `prek.toml` and `files`, all staged. A shim stands for `uv` and runs this
+    environment's `wio` for `uv run wio`, so the hook runs the real check without
+    a project to resolve.
+
+    Args:
+        tmp_path: A directory for the repository and the shim.
+        files: The files to stage, by path relative to the repository's root.
+        hook: The id of the hook, such as `wio-contracts`.
+
+    Returns:
+        The exit code of `prek` and its output, standard output and standard error
+        together.
+    """
+    raise NotImplementedError
