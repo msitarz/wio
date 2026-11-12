@@ -5,8 +5,18 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
+from wio.formats.errors import DirectiveSyntaxError, MetadataBlockError
 from wio.models.diagnostics import Diagnostic
-lazy from wio.formats import read_outline
+from wio.models.directives import Items, Pattern, Required
+from wio.models.item import SectionItems
+lazy from wio.formats import (
+    closest_key,
+    find_items,
+    judge_items,
+    read_directive_heading,
+    read_metadata_block,
+    read_outline,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -22,6 +32,8 @@ if TYPE_CHECKING:
 
 _OPENER: Final = re.compile(r"<!--\s*wio:\s*")
 """The opener of a directive list, as the directive parser reads it."""
+_LEVEL: Final = 2
+"""The one heading level whose sections carry directives."""
 _LEADING_MARKS: Final = re.compile(r"^#+\s*")
 _CLOSING_MARKS: Final = re.compile(r"\s+#+\s*$")
 
@@ -230,9 +242,18 @@ def _read_template(template: Template, root: Path, files: FileSystem) -> _Source
         parsed or is missing. A list that the parser refuses gives that section no
         directives, because `wio templates check` reports it.
     """
-    del template, root, files
-    # A stub: no template is usable until the implementation stage.
-    return None
+    try:
+        block = read_metadata_block(files.read_text(root / template.path))
+    except UnicodeDecodeError, OSError, MetadataBlockError:
+        return None
+    if block is None:
+        return None
+    sections: dict[str, _Section] = {}
+    for heading in read_outline(block.body, block.body_start_line):
+        key = _key(heading)
+        if heading.level == _LEVEL and key not in sections:
+            sections[key] = _Section(_text_of(heading), _parsed(heading))
+    return _Source(template.name, sections)
 
 
 def _level_two(outline: Sequence[Heading]) -> _Headings:
@@ -246,9 +267,17 @@ def _level_two(outline: Sequence[Heading]) -> _Headings:
         around it and a trailing directive list, with each repeat and the line of
         the first.
     """
-    del outline
-    # A stub: no `##` heading is found until the implementation stage.
-    return _Headings({}, [])
+    firsts: dict[str, Heading] = {}
+    repeats: list[tuple[Heading, int]] = []
+    for heading in outline:
+        key = _key(heading)
+        if heading.level != _LEVEL:
+            continue
+        if key in firsts:
+            repeats.append((heading, firsts[key].line))
+        else:
+            firsts[key] = heading
+    return _Headings(firsts, repeats)
 
 
 def _directives(
@@ -267,9 +296,86 @@ def _directives(
         lists of the contract's own first `##` headings, and with no template the
         parser's errors and the errors for a list on another level.
     """
-    del place, outline, headings, source
-    # A stub: no directive applies until the implementation stage.
-    return _Directives({}, [])
+    if source is not None:
+        by_key = {
+            key: source.sections[key].directives
+            for key in headings.firsts
+            if key in source.sections
+        }
+        return _Directives(by_key, [])
+    problems = [
+        problem for heading in outline for problem in _list_problems(place, heading)
+    ]
+    by_key = {key: _parsed(heading) for key, heading in headings.firsts.items()}
+    return _Directives(by_key, problems)
+
+
+def _key(heading: Heading) -> str:
+    """Give the key that sections are matched by.
+
+    Args:
+        heading: A heading.
+
+    Returns:
+        Its text before a directive list, without the whitespace around it, in
+        lowercase for comparison, and nothing else normalized.
+    """
+    return _text_of(heading).casefold()
+
+
+def _parsed(heading: Heading) -> tuple[Directive, ...]:
+    """Read the directives of a heading, none for a list that the parser refuses.
+
+    Args:
+        heading: A heading of a template or of a contract.
+
+    Returns:
+        The directives in the order written.
+    """
+    try:
+        parsed = read_directive_heading(heading.raw)
+    except DirectiveSyntaxError:
+        return ()
+    return () if parsed is None else parsed.directives
+
+
+def _list_problems(place: str, heading: Heading) -> list[Diagnostic]:
+    """Judge the directive list of one heading of a contract with no template.
+
+    Args:
+        place: The contract's file.
+        heading: A heading of any level.
+
+    Returns:
+        The error of a list that the parser refuses, at its line and column, or of
+        a list on a heading that is not level 2, at the column of its opener.
+    """
+    where = f"{place}:{heading.line}"
+    try:
+        parsed = read_directive_heading(heading.raw)
+    except DirectiveSyntaxError as error:
+        return [Diagnostic("error", f"{where}:{error.column}", error.message)]
+    opener = _OPENER.search(heading.raw)
+    if parsed is None or not parsed.directives or heading.level == _LEVEL:
+        return []
+    column = 1 if opener is None else opener.start() + 1
+    message = f"Directives are read on level-{_LEVEL} headings only"
+    return [Diagnostic("error", f"{where}:{column}", message)]
+
+
+def _stray(text: str, template: str, close: str | None) -> str:
+    """Word the warning for a section that the template does not have.
+
+    Args:
+        text: The section's text as written.
+        template: The template's name.
+        close: The closest section of the template, or `None`.
+
+    Returns:
+        The message, with the suggestion when there is one.
+    """
+    message = f"The section `{text}` is not in the template `{template}`"
+    return f"{message}. Did you mean `{close}`?" if close else message
 
 
 def _title_warning(work: Work) -> list[Diagnostic]:
@@ -368,9 +474,28 @@ def _section_findings(
         `Constraints`?`` for the closest section by `closest_key` on the texts as
         written.
     """
-    del place, headings, source
-    # A stub: nothing is found until the implementation stage.
-    return []
+    found = [
+        Diagnostic(
+            "error",
+            place,
+            f"The section `{section.text}` is required by the template `{source.name}`",
+        )
+        for key, section in source.sections.items()
+        if Required() in section.directives and key not in headings.firsts
+    ]
+    texts = [section.text for section in source.sections.values()]
+    found.extend(
+        Diagnostic(
+            "warning",
+            f"{place}:{heading.line}",
+            _stray(
+                _text_of(heading), source.name, closest_key(_text_of(heading), texts)
+            ),
+        )
+        for key, heading in headings.firsts.items()
+        if key not in source.sections
+    )
+    return found
 
 
 def _ignored_lists(
@@ -417,6 +542,13 @@ def _item_errors(
         What `judge_items` finds for the sections, over the first heading of each
         text only.
     """
-    del place, block, headings, by_key
-    # A stub: nothing is found until the implementation stage.
-    return []
+    sections = [
+        SectionItems(
+            heading,
+            by_key[key],
+            find_items(block.body, block.body_start_line, heading, by_key[key]),
+        )
+        for key, heading in headings.firsts.items()
+        if any(isinstance(d, Items | Pattern) for d in by_key.get(key, ()))
+    ]
+    return list(judge_items(place, sections))

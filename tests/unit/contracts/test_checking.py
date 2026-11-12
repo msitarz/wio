@@ -595,8 +595,10 @@ def test_a_file_that_is_not_text_the_second_time_is_one_error() -> None:
     ]
 
 
-def test_a_template_is_read_once_however_many_works_follow_it() -> None:
-    """The template's file is read for its actions the first time only."""
+def test_a_template_is_read_once_for_each_purpose_however_many_works_follow_it() -> (
+    None
+):
+    """The template's file is read for its actions, and for its sections, once."""
     # Given three Works that follow one template
     catalog = _Catalog(names=("t",))
     files = {f"{d}/README.md": _marked(f"w{d}", 'template = "t"\n') for d in "abc"}
@@ -610,9 +612,10 @@ def test_a_template_is_read_once_however_many_works_follow_it() -> None:
     # When the Works are checked
     check_works(ROOT, _config(defaults=DEFAULTS), disk, catalog)
 
-    # Then the template's file was read once, and each Work's file twice, once by
-    # discovery and once by the check
-    assert disk.reads[ROOT / "templates/t.md"] == 1
+    # Then the template's file was read twice, once for its actions and once for
+    # its sections, however many Works follow it, and each Work's file twice,
+    # once by discovery and once by the check
+    assert disk.reads[ROOT / "templates/t.md"] == 2
     assert [disk.reads[ROOT / BASE / f"{d}/README.md"] for d in "abc"] == [2, 2, 2]
 
 
