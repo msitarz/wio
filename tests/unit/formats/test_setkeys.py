@@ -1,104 +1,147 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Test stubs of setting keys in the metadata block of a contract.
-
-Each stub is a scenario of the Work's acceptance criteria. The implementation
-stage replaces its body with the scenario.
-"""
+"""Tests of editing metadata blocks without losing their contents."""
 
 import pytest
 
-pytestmark = pytest.mark.skip(
-    reason="architecture stub: the implementation stage fills it"
-)
+from wio.formats import read_metadata_block, set_block_keys
+from wio.formats.errors import MetadataBlockError
 
 
-def test_keys_and_tables_are_set_in_both_block_forms() -> None:
-    """AC-8: the requested values are set in either form."""
-    # Given a comment block with roots and a table, and front matter with a marker
-    # When id, roots, dependencies and a table are set
-    # Then the requested values and the untouched table and marker are present
-    raise NotImplementedError
+def test_sets_values_and_tables_without_losing_existing_data() -> None:
+    """Both forms retain untouched values, comments, delimiters and body."""
+    # Given comment and front matter blocks with a comment and a table
+    texts = (
+        '<!-- wio\ntemplate = "t"\nroots = []\n# keep\n[x]\na = 1\n-->\n\n# T\n',
+        '+++\nwio = 1\ntemplate = "t"\nroots = []\n# keep\n[x]\na = 1\n+++\n\n# T\n',
+    )
 
-
-def test_existing_keys_and_tables_are_replaced() -> None:
-    """AC-8: a replacement is not merged with the old value."""
-    # Given a block with an id and an actions table
-    # When both are set to new values
-    # Then the id and the table have the new values, without the old table keys
-    raise NotImplementedError
-
-
-def test_replacing_a_table_retains_untouched_comments() -> None:
-    """AC-8: table replacement keeps comments outside its replaced values."""
-    # Given a table with comments beside its header and entries, and trailing
-    # comments before another table
-    # When the table is replaced with different entries
-    # Then untouched comments remain, the old values are gone and the new ones
-    # and the other table are present
-    raise NotImplementedError
-
-
-def test_a_block_with_no_keys_gets_its_keys() -> None:
-    """AC-8: an empty block can receive keys."""
-    # Given an empty comment block
-    # When an id and roots are set
-    # Then the block holds both values
-    raise NotImplementedError
-
-
-def test_the_line_endings_and_the_byte_order_mark_are_kept() -> None:
-    """AC-8: CRLF and the byte-order mark survive editing."""
-    # Given a contract written with CRLF and one with a byte-order mark
     # When keys and a table are set
-    # Then every line ending is CRLF, the mark is there, and the body is as it was
-    raise NotImplementedError
+    results = [
+        set_block_keys(
+            text,
+            {"id": "k3m9xq", "roots": ["wio"]},
+            {"actions": {"deliver": ["build"]}},
+        )
+        for text in texts
+    ]
+
+    # Then the values and unchanged contents remain readable in both forms
+    for result in results:
+        block = read_metadata_block(result)
+        assert block is not None
+        assert block.data == {
+            "template": "t",
+            "roots": ["wio"],
+            "id": "k3m9xq",
+            "x": {"a": 1},
+            "actions": {"deliver": ["build"]},
+        }
+        assert "# keep" in result
+        assert block.body == "\n# T\n"
 
 
-def test_a_block_that_mixes_line_endings_keeps_them() -> None:
-    """AC-8: existing line endings are preserved."""
-    # Given a block whose lines end with LF and CRLF, and a body with CRLF
-    # When keys are set
-    # Then existing line endings and the body are as they were, and the added line
-    # uses the opening delimiter's ending
-    raise NotImplementedError
+def test_crlf_and_multiline_values_are_preserved() -> None:
+    """Added lines use CRLF without changing a multiline TOML value."""
+    # Given a CRLF block with a multiline value
+    text = '\ufeff<!-- wio\r\nnote = """one\r\ntwo"""\r\n-->\r\n\r\n# T\r\n'
+    before = read_metadata_block(text)
+    assert before is not None
+
+    # When a key and table are set
+    result = set_block_keys(text, {"id": "k3m9xq"}, {"actions": {"deliver": ["x"]}})
+
+    # Then all endings remain CRLF and the original value and body are retained
+    after = read_metadata_block(result)
+    assert after is not None
+    assert result.startswith("\ufeff")
+    assert "\n" not in result.replace("\r\n", "")
+    assert after.data["note"] == before.data["note"]
+    assert after.body == before.body
 
 
-def test_untouched_values_comments_body_and_delimiters_are_kept() -> None:
-    """AC-8: editing keeps the untouched content."""
-    # Given a block with comments, dotted keys and a multiline string containing
-    # empty and comment-like lines, and a body that looks like metadata
+def test_plain_keys_and_tables_do_not_replace_each_other() -> None:
+    """Conflicting names are refused."""
+    # Given an inline table and a standard table
+    inline = "<!-- wio\nactions = { a = 1 }\n-->\n"
+    table = "<!-- wio\n[x]\na = 1\n-->\n"
+
+    # When the other form is set under the same name
+    # Then both calls are refused
+    with pytest.raises(ValueError, match="plain key"):
+        set_block_keys(inline, {}, {"actions": {"a": 2}})
+    with pytest.raises(ValueError, match="is a table"):
+        set_block_keys(table, {"x": "value"})
+
+
+def test_missing_block_is_refused() -> None:
+    """A file without metadata cannot be edited."""
+    # Given a body without a metadata block
+    text = "# T\n"
+
+    # When a key is set
+    # Then the block reader's error is raised
+    with pytest.raises(MetadataBlockError):
+        set_block_keys(text, {"id": "k3m9xq"})
+
+
+def test_mixed_endings_and_arrays_of_mappings() -> None:
+    """Existing endings survive replacements, and mappings in arrays stay inline."""
+    # Given a block with mixed endings and a value to replace
+    text = '<!-- wio\r\nid = "old"\nother = 1\r\n-->\n'
+
+    # When the id is replaced and an array of mappings is added
+    result = set_block_keys(text, {"id": "new", "items": [{"value": 2}]})
+
+    # Then existing endings and the array's plain-key form are retained
+    assert 'id = "new"\n' in result
+    assert "other = 1\r\n" in result
+    assert "items = [{value = 2}]\r\n" in result
+    assert "[[items]]" not in result
+
+
+def test_replacing_a_table_preserves_comments_and_other_tables() -> None:
+    """Replacing a table keeps its comments and the following table."""
+    # Given a table with header, entry and trailing comments before another table
+    text = "<!-- wio\n[x] # header\na = 1 # entry\n# about y\n[y]\nb = 2\n-->\n\n# T\n"
+
+    # When the first table is replaced
+    result = set_block_keys(text, {}, {"x": {"new": 3}})
+
+    # Then all comments remain and the values reflect the replacement
+    block = read_metadata_block(result)
+    assert block is not None
+    assert block.data == {"x": {"new": 3}, "y": {"b": 2}}
+    assert all(comment in result for comment in ("# header", "# entry", "# about y"))
+    assert block.body == "\n# T\n"
+
+
+def test_inline_mappings_and_empty_blocks() -> None:
+    """An empty block accepts an id and a mapping as an inline value."""
+    # Given an empty metadata block
+    text = "<!-- wio\n-->\n\n# T\n"
+
+    # When a plain key with a mapping and an id are set
+    result = set_block_keys(text, {"id": "k3m9xq", "details": {"a": 1}})
+
+    # Then the id and inline table are readable as plain keys
+    block = read_metadata_block(result)
+    assert block is not None
+    assert block.data == {"id": "k3m9xq", "details": {"a": 1}}
+    assert "details = {" in result
+    assert "[details]" not in result
+
+
+def test_multiline_and_dotted_values_survive_adding_a_key() -> None:
+    """A dotted key and a multiline string are retained when a key is added."""
+    # Given a block with a dotted key and a multiline string containing comments
+    text = '<!-- wio\na.b = 1\n[x]\nnote = """one\n\n# not a comment\nend"""\n-->\n'
+    before = read_metadata_block(text)
+    assert before is not None
+
     # When a key is added
-    # Then the untouched values and comments, body and delimiters are retained
-    raise NotImplementedError
+    result = set_block_keys(text, {"id": "k3m9xq"})
 
-
-def test_a_mapping_in_the_plain_keys_is_written_as_an_inline_table() -> None:
-    """AC-8: an inline table counts as a plain key."""
-    # Given a block with a plain key
-    # When a plain key whose value is a mapping is set
-    # Then its value is written as an inline table
-    raise NotImplementedError
-
-
-def test_a_mapping_inside_an_array_is_written() -> None:
-    """AC-8: an array can contain inline tables."""
-    # Given a block with a plain key
-    # When a key whose value is a list of mappings is set
-    # Then the key is added with an array containing an inline table
-    raise NotImplementedError
-
-
-def test_a_table_named_like_a_plain_key_is_refused() -> None:
-    """AC-8: a name cannot be a plain key and a table."""
-    # Given a block with the inline table `actions = { a = 1 }` and one with `[x]`
-    # When the table `actions` is set on the first, and the plain key `x` on the second
-    # Then `ValueError` is raised for each
-    raise NotImplementedError
-
-
-def test_a_text_with_no_block_is_refused() -> None:
-    """AC-8: the block reader reports an absent block."""
-    # Given a text with no metadata block
-    # When keys are set
-    # Then the error of the block reader is raised
-    raise NotImplementedError
+    # Then the old values and the new id are present
+    after = read_metadata_block(result)
+    assert after is not None
+    assert after.data == {**before.data, "id": "k3m9xq"}

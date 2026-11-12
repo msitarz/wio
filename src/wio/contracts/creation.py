@@ -5,7 +5,22 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from wio.contracts.discovery import discover_works
-from wio.contracts.location import NameArguments, RandomIds, write_new
+from wio.contracts.errors import ContractsError
+from wio.contracts.hierarchy import parent_of
+from wio.contracts.location import (
+    NameArguments,
+    RandomIds,
+    decide_place,
+    new_id,
+    write_new,
+)
+from wio.formats import (
+    prepare_skeleton,
+    read_metadata_block,
+    read_outline,
+    set_block_keys,
+)
+lazy from wio.models.template import Template
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -17,6 +32,7 @@ if TYPE_CHECKING:
     from wio.contracts.ports import TemplateCatalog
     from wio.io.ports import FileSystem, Stdio
     from wio.models.config import Config
+    from wio.models.heading import Heading
 
 
 @dataclass(frozen=True)
@@ -123,7 +139,213 @@ def plan_work(
         ContractsError: One of the mistakes above, or one of `decide_place` and
             `new_id`.
     """
-    raise NotImplementedError
+    template = _choose_template(arguments, config, catalog)
+    roots = _validate_roots(arguments.roots, config)
+    title = _validate_title(arguments.name.title)
+    path = decide_place(root, config.works, discovery, files, arguments.name)
+    identifier = new_id(generator, discovery.works)
+    text = (
+        prepare_skeleton(template.name, files.read_text(root / template.path))
+        if template is not None
+        else "<!-- wio\n-->\n\n# Title\n"
+    )
+    keys: dict[str, object] = {"id": identifier}
+    if roots:
+        keys["roots"] = list(roots)
+    text = set_block_keys(text, keys)
+    if title is not None:
+        text = _set_title(text, title)
+    block = read_metadata_block(text)
+    assert block is not None
+    heading = _first_title(block.body, block.body_start_line)
+    parent = parent_of(path, discovery.works, config.works.hierarchy)
+    return NewWork(
+        identifier,
+        heading.text if heading else None,
+        path,
+        template.name if template else None,
+        parent.id if parent else None,
+        text,
+    )
+
+
+def _choose_template(
+    arguments: NewArguments, config: Config, catalog: TemplateCatalog
+) -> Template | None:
+    """Select a usable template, refusing a kind or template mistake.
+
+    Args:
+        arguments: The requested kind and template.
+        config: The declared kinds.
+        catalog: The template catalog.
+
+    Returns:
+        The chosen template, or none for a bare Work.
+
+    Raises:
+        ContractsError: The kind or template cannot be used.
+    """
+    name = _template_name(arguments, config)
+    if name is None:
+        return None
+    template = _find_template(name, catalog, entry=arguments.template is None)
+    if arguments.kind is not None and template.kind != arguments.kind:
+        msg = (
+            f"The template `{name}` is of kind `{template.kind}`, "
+            f"not `{arguments.kind}`"
+        )
+        raise ContractsError(msg)
+    return template
+
+
+def _template_name(arguments: NewArguments, config: Config) -> str | None:
+    """Validate the requested kind and find the requested template name.
+
+    Args:
+        arguments: The requested kind and template.
+        config: The declared kinds.
+
+    Returns:
+        The requested or entry template name, or none for a bare Work.
+
+    Raises:
+        ContractsError: The requested kind is not declared.
+    """
+    kinds, kind = config.templates.kinds, arguments.kind
+    if kind is not None and not kinds:
+        msg = "No kinds are declared in `[templates.kinds]` of the config"
+        raise ContractsError(msg)
+    if kind is not None and kind not in kinds:
+        msg = f"The kind `{kind}` is not declared; declared kinds: {', '.join(kinds)}"
+        raise ContractsError(msg)
+    return (
+        arguments.template
+        if arguments.template is not None
+        else (kinds[kind] if kind is not None else None)
+    )
+
+
+def _find_template(name: str, catalog: TemplateCatalog, *, entry: bool) -> Template:
+    """Find a template and refuse a missing or rejected one.
+
+    Args:
+        name: The template name.
+        catalog: The template catalog.
+        entry: Whether the kind names this as its entry template.
+
+    Returns:
+        The usable template.
+
+    Raises:
+        ContractsError: The template is missing or rejected.
+    """
+    rejected = catalog.is_rejected(name)
+    template = catalog.find(name)
+    if rejected:
+        msg = f"The template `{name}` is rejected; run `wio templates check`"
+        raise ContractsError(msg)
+    if template is None:
+        hint = "wio templates check" if entry else "wio templates list"
+        msg = f"The template `{name}` was not found; run `{hint}`"
+        raise ContractsError(msg)
+    return template
+
+
+def _validate_roots(roots: tuple[str, ...], config: Config) -> tuple[str, ...]:
+    """Check root names and retain their first appearances.
+
+    Args:
+        roots: The requested root names.
+        config: The declared roots.
+
+    Returns:
+        The names, each once, in order of first appearance.
+
+    Raises:
+        ContractsError: A name is not declared.
+    """
+    for root in roots:
+        if root != "@descendants" and root not in config.roots:
+            msg = f"The root `{root}` is not declared in `[roots]` of the config"
+            raise ContractsError(msg)
+    return tuple(dict.fromkeys(roots))
+
+
+def _validate_title(title: str | None) -> str | None:
+    """Trim a title or refuse one that is blank or spans lines.
+
+    Args:
+        title: The requested title, or none.
+
+    Returns:
+        The trimmed title, or none.
+
+    Raises:
+        ContractsError: The title is blank or spans lines.
+    """
+    if title is None:
+        return None
+    trimmed = title.strip()
+    if not trimmed or "\n" in title or "\r" in title:
+        msg = "The title must be one non-blank line"
+        raise ContractsError(msg)
+    return trimmed
+
+
+def _set_title(text: str, title: str) -> str:
+    """Replace the first level-one heading or insert one in the body.
+
+    Args:
+        text: A contract with a metadata block.
+        title: The validated title.
+
+    Returns:
+        The contract with its title set.
+    """
+    block = read_metadata_block(text)
+    assert block is not None
+    prefix = text[: -len(block.body)] if block.body else text
+    lines = block.body.splitlines(keepends=True)
+    heading = _first_title(block.body, block.body_start_line)
+    ending = "\r\n" if text.split("\n", 1)[0].endswith("\r") else "\n"
+    if heading is not None:
+        index = heading.line - block.body_start_line
+        line = lines[index]
+        suffix = _line_ending(line)
+        lines[index] = f"# {title}{suffix}"
+    else:
+        index = next((i for i, line in enumerate(lines) if line.strip()), len(lines))
+        lines.insert(
+            index, f"# {title}{ending}" + (ending if index < len(lines) else "")
+        )
+    return prefix + "".join(lines)
+
+
+def _first_title(body: str, start: int) -> Heading | None:
+    """Find the first level-one heading of the body.
+
+    Args:
+        body: The body to inspect.
+        start: Its first line number in the file.
+
+    Returns:
+        The first level-one heading, or none.
+    """
+    return next((h for h in read_outline(body, start) if h.level == 1), None)
+
+
+def _line_ending(line: str) -> str:
+    """Return a line's CRLF, LF or absent ending.
+
+    Args:
+        line: The line, including any ending.
+
+    Returns:
+        Its line ending, or an empty string.
+    """
+    if line.endswith("\r\n"):
+        return "\r\n"
+    return "\n" if line.endswith("\n") else ""
 
 
 def render_report(work: NewWork, *, as_json: bool) -> str:
@@ -140,7 +362,23 @@ def render_report(work: NewWork, *, as_json: bool) -> str:
         that order, `null` for none, and the path written with `/`. It ends in a
         newline and imports `json` only for the JSON form.
     """
-    raise NotImplementedError
+    if as_json:
+        import json
+
+        return (
+            json.dumps(
+                {
+                    "id": work.id,
+                    "title": work.title,
+                    "path": work.path.as_posix(),
+                    "template": work.template,
+                    "parent": work.parent,
+                }
+            )
+            + "\n"
+        )
+    title = work.title or "(no title)"
+    return f"Created Work {work.id}  {title}\n  {work.path.as_posix()}\n"
 
 
 def run_new(services: Services, args: Namespace, stdio: Stdio) -> int:

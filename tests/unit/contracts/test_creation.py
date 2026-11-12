@@ -1,159 +1,263 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Test stubs of the creation of a Work.
+"""Tests of planning and reporting a new Work."""
 
-Each stub is a scenario of the Work's acceptance criteria. The implementation
-stage replaces its body with the scenario.
-"""
+import json
+from pathlib import Path
+from typing import TYPE_CHECKING, cast
+from unittest.mock import Mock
 
 import pytest
 
-pytestmark = pytest.mark.skip(
-    reason="architecture stub: the implementation stage fills it"
+from tests.unit.fakes import ROOT, FakeEntropy, MemoryFileSystem
+from wio.contracts.creation import NewArguments, plan_work, render_report
+from wio.contracts.discovery import discover_works
+from wio.contracts.errors import ContractsError
+from wio.contracts.location import NameArguments, RandomIds
+from wio.formats import read_metadata_block
+from wio.models.config import Config, Root, Templates, Works
+from wio.models.frozen import freeze
+from wio.models.template import Template
+
+if TYPE_CHECKING:
+    from wio.contracts.ports import TemplateCatalog
+
+
+def _setup() -> tuple[Config, MemoryFileSystem, TemplateCatalog]:
+    """Build a project with a kind and one template.
+
+    Returns:
+        The settings, in-memory files and catalog.
+    """
+    config = Config(
+        works=Works(hierarchy="nesting"),
+        templates=Templates(kinds=freeze({"feature": "feature.draft"})),
+        roots=freeze({"wio": Root(paths=("src",))}),
+    )
+    path = Path("templates/feature.draft.md")
+    files = MemoryFileSystem(
+        {
+            ROOT / path: '<!-- wio\nkind = "feature"\n[contract]\n'
+            "roots = []\ndepends_on = []\n-->\n\n# Old\n\n## Purpose\n"
+        }
+    )
+    catalog = Mock()
+    catalog.is_rejected.return_value = False
+    catalog.find.return_value = Template(
+        "feature.draft", "feature", None, None, path, entry=True
+    )
+    return config, files, cast("TemplateCatalog", catalog)
+
+
+def test_plan_template_and_report() -> None:
+    """The requested id, roots, title and report come from the composed plan."""
+    # Given a kind with an entry template and a deterministic id source
+    config, files, catalog = _setup()
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments(
+        "feature",
+        None,
+        NameArguments(None, " Read config ", None, None),
+        ("wio", "wio"),
+    )
+
+    # When a Work is planned and reported
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
+    report = json.loads(render_report(work, as_json=True))
+
+    # Then the skeleton has the requested data and the report names the result
+    block = read_metadata_block(work.text)
+    assert block is not None
+    assert block.data == {
+        "id": "k3m9xq",
+        "template": "feature.draft",
+        "roots": ["wio"],
+        "depends_on": [],
+    }
+    assert block.body == "\n# Read config\n\n## Purpose\n"
+    assert report == {
+        "id": "k3m9xq",
+        "title": "Read config",
+        "path": ".agents/wio/works/read-config/README.md",
+        "template": "feature.draft",
+        "parent": None,
+    }
+
+
+@pytest.mark.parametrize(
+    ("kind", "roots", "title", "expected"),
+    [
+        ("missing", ("bad",), " ", "kind"),
+        ("feature", ("bad",), " ", "root"),
+        ("feature", (), " ", "title"),
+    ],
 )
+def test_mistakes_are_reported_in_order(
+    kind: str, roots: tuple[str, ...], title: str, expected: str
+) -> None:
+    """A prior mistake is reported before later mistakes."""
+    # Given a project and arguments with more than one mistake
+    config, files, catalog = _setup()
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments(kind, None, NameArguments("a", title, None, None), roots)
+
+    # When the Work is planned
+    with pytest.raises(ContractsError) as error:
+        plan_work(args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy()))
+
+    # Then the first mistake is named
+    assert expected in str(error.value).lower()
 
 
-def test_a_work_is_created_from_the_entry_template_of_a_kind() -> None:
-    """AC-1: scenario of the contract."""
-    # Given a config with the kind `feature` whose entry template has a
-    # `[contract]` table, the root `wio`, and an Entropy that gives the bytes
-    # 19, 3, 20, 9, 29 and 23
-    # When the Work is planned with `--title Read config --root wio` and reported
-    # Then the file has the values and body of the contract and the report names
-    # the id and the path
-    raise NotImplementedError
+def test_bare_contract_and_human_report() -> None:
+    """A bare contract requires no kinds or templates."""
+    # Given a project without kinds
+    config = Config(works=Works(hierarchy="nesting"))
+    files = MemoryFileSystem()
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments(None, None, NameArguments("note", None, None, None), ())
+
+    # When a bare Work is planned
+    work = plan_work(
+        args,
+        config,
+        found,
+        cast("TemplateCatalog", Mock()),
+        files,
+        ROOT,
+        RandomIds(FakeEntropy()),
+    )
+
+    # Then it has the id, title and human report
+    assert work.text == '<!-- wio\nid = "k3m9xq"\n-->\n\n# Title\n'
+    assert (
+        render_report(work, as_json=False)
+        == "Created Work k3m9xq  Title\n  .agents/wio/works/note/README.md\n"
+    )
 
 
-def test_any_template_can_be_used_and_kind_and_template_must_agree() -> None:
-    """AC-2: scenario of the contract."""
-    # Given two kinds, a leaf template with roots, a parent Work under nesting
-    # When Works are planned with a template and a parent, with a template and
-    # no kind, and with a template of another kind
-    # Then the first is under the parent with the leaf's roots, the second is
-    # from the leaf, and the third is an error naming the other kind
-    raise NotImplementedError
+def test_the_shared_block_editor_receives_id_and_roots(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-7: the planner writes the block through the one editor."""
+    # Given a recording stand-in for the block editor
+    config, files, catalog = _setup()
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments(
+        "feature", None, NameArguments("a", "Title", None, None), ("wio",)
+    )
+    from wio.contracts import creation
+
+    real = creation.set_block_keys
+    editor = Mock(side_effect=real)
+    monkeypatch.setattr(creation, "set_block_keys", editor)
+
+    # When the Work is planned
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
+
+    # Then the editor receives the id and roots, and its result supplies the block
+    editor.assert_called_once()
+    assert editor.call_args.args[1] == {"id": "k3m9xq", "roots": ["wio"]}
+    block = read_metadata_block(work.text)
+    assert block is not None
+    assert block.data["roots"] == ["wio"]
 
 
-def test_a_bare_contract_holds_the_id_and_a_heading() -> None:
-    """AC-3: scenario of the contract."""
-    # Given an empty tree under nesting
-    # When bare contracts are planned with a slug, a title and a path
-    # Then the file holds the block with the id, an empty line and the heading,
-    # one line feed each
-    raise NotImplementedError
+@pytest.mark.parametrize("problem", ["missing", "rejected", "wrong_kind"])
+def test_template_problems_are_refused(problem: str) -> None:
+    """AC-2 and AC-5: unusable templates are refused before placement."""
+    # Given a template catalog that reports the requested problem
+    config, files, catalog = _setup()
+    stub = cast("Mock", catalog)
+    if problem == "missing":
+        stub.find.return_value = None
+    elif problem == "rejected":
+        stub.is_rejected.return_value = True
+    else:
+        stub.find.return_value = Template(
+            "other.note", "other", None, None, Path("other"), entry=False
+        )
+    args = NewArguments(
+        "feature", "other.note", NameArguments("a", None, None, None), ()
+    )
+    found = discover_works(ROOT, config.works, files)
+
+    # When the Work is planned
+    with pytest.raises(ContractsError) as error:
+        plan_work(args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy()))
+
+    # Then the problem is named and the file system is unchanged
+    assert {
+        "missing": "templates list",
+        "rejected": "templates check",
+        "wrong_kind": "other",
+    }[problem] in str(error.value)
+    assert len(files.files) == 1
 
 
-def test_the_block_is_edited_and_nothing_else_is() -> None:
-    """AC-4: scenario of the contract."""
-    # Given front matter, plain and CRLF templates, with roots given twice
-    # When Works are planned from them
-    # Then the keys and table have the requested values and CRLF is kept throughout
-    raise NotImplementedError
+def test_a_title_is_inserted_in_a_crlf_template_without_a_heading() -> None:
+    """AC-4: a missing title is inserted using the template's line ending."""
+    # Given a CRLF template without a level-one heading
+    config, files, catalog = _setup()
+    path = ROOT / "templates/feature.draft.md"
+    files.files[path] = (
+        '<!-- wio\r\nkind = "feature"\r\n[contract]\r\n'
+        "depends_on = []\r\n-->\r\n\r\n## Purpose\r\n"
+    )
+    args = NewArguments(
+        "feature", None, NameArguments("a", "Mine", None, None), ("wio",)
+    )
+    found = discover_works(ROOT, config.works, files)
+
+    # When the Work is planned
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
+
+    # Then its title is inserted and every line ending is CRLF
+    assert "\r\n\r\n# Mine\r\n\r\n## Purpose\r\n" in work.text
+    assert "\n" not in work.text.replace("\r\n", "")
 
 
-def test_a_title_replaces_the_first_heading_or_is_inserted() -> None:
-    """AC-4: scenario of the contract."""
-    # Given templates with a title, with no title and with CRLF and no title
-    # When Works are planned with a title and without
-    # Then the heading is replaced, inserted before the first line of the body
-    # that is not empty, or left out, with the template's line ending
-    raise NotImplementedError
+@pytest.mark.parametrize("title", [" ", "line one\nline two", "line one\rline two"])
+def test_invalid_titles_are_refused_before_placement(title: str) -> None:
+    """AC-5: blank and multiline titles have the title error."""
+    # Given a title that is blank or contains a line ending
+    config = Config()
+    files = MemoryFileSystem()
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments(None, None, NameArguments(None, title, None, None), ())
+
+    # When the Work is planned
+    with pytest.raises(ContractsError, match="The title must be one non-blank line"):
+        plan_work(
+            args,
+            config,
+            found,
+            cast("TemplateCatalog", Mock()),
+            files,
+            ROOT,
+            RandomIds(FakeEntropy()),
+        )
+
+    # Then no file is written
+    assert not files.files
 
 
-def test_roots_are_a_set_of_declared_names() -> None:
-    """AC-4: scenario of the contract."""
-    # Given a config declaring `api` and `web`
-    # When roots are given twice, in another order, and `@descendants`
-    # Then each counts once in the order of its first appearance, and an
-    # undeclared one is an error
-    raise NotImplementedError
+def test_a_missing_entry_template_points_to_check() -> None:
+    """AC-5: a missing entry template gives the check command as its hint."""
+    # Given a declared kind whose entry template is not found
+    config, files, catalog = _setup()
+    cast("Mock", catalog).find.return_value = None
+    args = NewArguments("feature", None, NameArguments("a", None, None, None), ())
+    found = discover_works(ROOT, config.works, files)
 
+    # When the Work is planned
+    with pytest.raises(ContractsError, match="wio templates check"):
+        plan_work(args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy()))
 
-def test_each_mistake_is_one_error_that_says_what_to_do() -> None:
-    """AC-5: scenario of the contract."""
-    # Given a config with no kinds, an entry template that is missing, one that
-    # is rejected, and a name that no file has
-    # When Works are planned
-    # Then each is its own error with its own pointer to `wio templates check`
-    # or `wio templates list`
-    raise NotImplementedError
-
-
-def test_a_rejected_template_given_by_name_is_an_error() -> None:
-    """AC-5: scenario of the contract."""
-    # Given a template that `wio templates check` rejects
-    # When a Work is planned from it by name
-    # Then the error says it is rejected and points to `wio templates check`
-    raise NotImplementedError
-
-
-def test_only_the_first_of_several_mistakes_is_reported() -> None:
-    """AC-5: scenario of the contract."""
-    # Given two mistakes at once: kind and root, root and an existing directory,
-    # a blank title, a title with a line break, and an unknown parent
-    # When Works are planned
-    # Then each reports only its first mistake in the order of the contract
-    raise NotImplementedError
-
-
-def test_a_write_that_fails_reports_nothing() -> None:
-    """AC-5: scenario of the contract."""
-    # Given a file system that reports the path free to the decision and
-    # existing to the guard
-    # When the command runs
-    # Then it is an error that names the path, nothing is written to standard
-    # output and no file is created
-    raise NotImplementedError
-
-
-def test_the_report_is_one_object_with_the_same_facts() -> None:
-    """AC-6: scenario of the contract."""
-    # Given a parent Work, and the config and templates of the contract
-    # When reports are written as JSON for a template under a parent, a bare
-    # contract and a path under nesting
-    # Then each object has the fields in order, with `null` for none and the
-    # parent from the place
-    raise NotImplementedError
-
-
-def test_the_human_report_names_the_id_the_title_and_the_path() -> None:
-    """AC-1: scenario of the contract."""
-    # Given a Work with a title and one with none
-    # When they are reported as text
-    # Then the first line has the id and the title or `(no title)`, and the path
-    # follows indented by two
-    raise NotImplementedError
-
-
-def test_new_sets_the_id_and_the_roots_through_the_one_function() -> None:
-    """AC-7: scenario of the contract."""
-    # Given a stand-in for `set_block_keys` that records its calls
-    # When a Work is planned with `--title` and `--root`
-    # Then the stand-in was called with the id and the roots, and the block is
-    # what it returned
-    raise NotImplementedError
-
-
-def test_the_parent_is_the_nearest_work_above_the_place() -> None:
-    """AC-6: scenario of the contract."""
-    # Given Works under nesting and under flat
-    # When a Work is planned by path
-    # Then its parent is the Work of the nearest directory above that holds one,
-    # and none under flat
-    raise NotImplementedError
-
-
-def test_a_bare_contract_still_works_when_no_kinds_are_declared() -> None:
-    """AC-5: only `new <kind>` needs a kind."""
-    # Given a config with no kinds
-    # When `new` runs with a slug and no kind
-    # Then the bare contract is written
-    raise NotImplementedError
-
-
-def test_the_parent_of_a_path_is_the_one_definition_of_the_hierarchy() -> None:
-    """AC-6: `parent_of` gives the Work that `build_hierarchy` would."""
-    # Given Works under nesting and under flat, and a file that is not a Work
-    # When `parent_of` is asked for its parent
-    # Then it is the Work of the nearest directory above that holds one, and none
-    # under flat, as `build_hierarchy` gives for a Work at that path
-    raise NotImplementedError
+    # Then the template is the only file
+    assert len(files.files) == 1

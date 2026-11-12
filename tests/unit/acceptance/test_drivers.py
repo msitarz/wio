@@ -50,6 +50,18 @@ class FakeDriver:
         """
         del path, data
 
+    def read(self, path: str) -> bytes:
+        """Return an empty file.
+
+        Args:
+            path: Ignored.
+
+        Returns:
+            Empty bytes.
+        """
+        del path
+        return b""
+
     def fingerprint(self, directory: str) -> dict[str, str]:
         """Fingerprint nothing.
 
@@ -159,6 +171,17 @@ class RecordingDriver:
             data: Its bytes.
         """
         self.written[path] = data
+
+    def read(self, path: str) -> bytes:
+        """Return the file that the facade wrote.
+
+        Args:
+            path: The file to read.
+
+        Returns:
+            The recorded bytes.
+        """
+        return self.written[path]
 
     def fingerprint(self, directory: str) -> dict[str, str]:
         """Answer with a fixed fingerprint.

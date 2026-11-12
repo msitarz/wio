@@ -67,6 +67,17 @@ class WioDriver(Protocol):
         """
         ...
 
+    def read(self, path: str) -> bytes:
+        """Read a file of the scenario's repository.
+
+        Args:
+            path: The file relative to the root.
+
+        Returns:
+            The file's bytes.
+        """
+        ...
+
     def fingerprint(self, directory: str) -> dict[str, str]:
         """Fingerprint every file below a directory of the sandbox.
 
@@ -113,6 +124,17 @@ class SandboxedDriver:
         target = self._sandbox.root / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
+
+    def read(self, path: str) -> bytes:
+        """Read a repository file as bytes.
+
+        Args:
+            path: The file relative to the root.
+
+        Returns:
+            The file's bytes.
+        """
+        return (self._sandbox.root / path).read_bytes()
 
     def fingerprint(self, directory: str) -> dict[str, str]:
         """Hash every file found below a directory of the sandbox.
