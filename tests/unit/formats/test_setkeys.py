@@ -28,6 +28,16 @@ def test_existing_keys_and_tables_are_replaced() -> None:
     raise NotImplementedError
 
 
+def test_replacing_a_table_retains_untouched_comments() -> None:
+    """AC-8: table replacement keeps comments outside its replaced values."""
+    # Given a table with comments beside its header and entries, and trailing
+    # comments before another table
+    # When the table is replaced with different entries
+    # Then untouched comments remain, the old values are gone and the new ones
+    # and the other table are present
+    raise NotImplementedError
+
+
 def test_a_block_with_no_keys_gets_its_keys() -> None:
     """AC-8: an empty block can receive keys."""
     # Given an empty comment block
