@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Creating a Work: what `wio contracts new` decides, writes and reports."""
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -306,7 +307,9 @@ def _set_title(text: str, title: str) -> str:
     block = read_metadata_block(text)
     assert block is not None
     prefix = text[: -len(block.body)] if block.body else text
-    lines = block.body.splitlines(keepends=True)
+    lines = re.findall(r"[^\r\n]*(?:\r\n|\r|\n|$)", block.body)
+    if lines and not lines[-1]:
+        lines.pop()
     heading = _first_title(block.body, block.body_start_line)
     ending = "\r\n" if text.split("\n", 1)[0].endswith("\r") else "\n"
     if heading is not None:
@@ -329,9 +332,14 @@ def _heading_comments(line: str) -> list[str]:
     Returns:
         The comments in their original order, excluding code and escaped text.
     """
+    marker = " wio-comment-boundary"
+    while marker in line:
+        marker += "-"
+    terminator = marker + "-->"
+    probe = line.removesuffix(_line_ending(line)) + terminator
     return [
-        child.content
-        for token in parse(line)
+        child.content.removesuffix(terminator)
+        for token in parse(probe)
         for child in token.children or ()
         if child.type == "html_inline" and child.content.startswith("<!--")
     ]
@@ -408,7 +416,9 @@ def _line_ending(line: str) -> str:
     """
     if line.endswith("\r\n"):
         return "\r\n"
-    return "\n" if line.endswith("\n") else ""
+    if line.endswith("\n"):
+        return "\n"
+    return "\r" if line.endswith("\r") else ""
 
 
 def render_report(work: NewWork, *, as_json: bool) -> str:

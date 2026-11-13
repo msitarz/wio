@@ -371,3 +371,32 @@ def test_title_ending_in_hash_is_not_taken_as_heading_markup(
     # Then reading and reporting the heading retain the complete title
     assert work.title == title
     assert f"Created Work k3m9xq  {title}\n" in render_report(work, as_json=False)
+
+
+def test_title_replacement_keeps_a_multiline_authoring_comment() -> None:
+    """An authoring comment begun on the heading keeps its opening and body."""
+    # Given a heading that starts a multiline authoring comment
+    from wio.contracts.creation import _set_title
+
+    text = "<!-- wio\n-->\n\n# Old <!-- multi\ncontinued -->\n\n## Body\n"
+
+    # When the heading is replaced
+    result = _set_title(text, "New")
+
+    # Then the comment and the remaining body are preserved
+    assert result == "<!-- wio\n-->\n\n# New <!-- multi\ncontinued -->\n\n## Body\n"
+
+
+@pytest.mark.parametrize("character", ["\x0c", "\x85", "\u2028"])
+def test_title_replacement_counts_only_markdown_line_endings(character: str) -> None:
+    """A non-newline character in an earlier body line cannot shift the heading."""
+    # Given a body with a non-newline separator before a level-one heading
+    from wio.contracts.creation import _set_title
+
+    text = f"<!-- wio\n-->\nbefore{character}inside\n# Old\n## Purpose\n"
+
+    # When the title is replaced
+    result = _set_title(text, "New")
+
+    # Then the earlier line is unchanged and only the heading is replaced
+    assert result == f"<!-- wio\n-->\nbefore{character}inside\n# New\n## Purpose\n"
