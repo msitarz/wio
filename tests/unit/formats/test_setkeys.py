@@ -145,3 +145,47 @@ def test_multiline_and_dotted_values_survive_adding_a_key() -> None:
     after = read_metadata_block(result)
     assert after is not None
     assert after.data == {**before.data, "id": "k3m9xq"}
+
+
+@pytest.mark.parametrize("replace_table", [False, True])
+def test_replacing_an_array_retains_its_comments(*, replace_table: bool) -> None:
+    """Keep comments inside a replaced array without treating strings as comments."""
+    # Given an array with comments and a hash inside a string
+    prefix = "[x]\n" if replace_table else ""
+    text = (
+        f'<!-- wio\n{prefix}roots = [\n  "# not a comment", # important\n'
+        '  # standalone\n  "old",\n]\n-->\n\n# T\n'
+    )
+
+    # When the array or its containing table is replaced
+    result = (
+        set_block_keys(text, {}, {"x": {"roots": ["new"]}})
+        if replace_table
+        else set_block_keys(text, {"roots": ["new"]})
+    )
+
+    # Then both actual comments and the new values are present
+    block = read_metadata_block(result)
+    assert block is not None
+    assert "# important" in result
+    assert "# standalone" in result
+    assert "# not a comment" not in result
+    assert block.data == (
+        {"x": {"roots": ["new"]}} if replace_table else {"roots": ["new"]}
+    )
+
+
+def test_replacing_out_of_order_tables_retains_their_comments() -> None:
+    """A table split around another can be replaced without losing comments."""
+    # Given a table whose subtables surround another table
+    text = "<!-- wio\n[a.b]\nx = 1 # one\n[c]\ny = 2\n[a.d]\nz = 3 # two\n-->\n"
+
+    # When the split table is replaced
+    result = set_block_keys(text, {}, {"a": {"new": 4}})
+
+    # Then both comments and the other table are retained
+    block = read_metadata_block(result)
+    assert block is not None
+    assert block.data == {"a": {"new": 4}, "c": {"y": 2}}
+    assert "# one" in result
+    assert "# two" in result

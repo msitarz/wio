@@ -7,14 +7,21 @@ from difflib import SequenceMatcher
 from typing import TYPE_CHECKING, cast
 
 lazy import tomlkit
+lazy from tomlkit.container import OutOfOrderTableProxy
 lazy from tomlkit.items import Table
 
 from wio.formats.block import read_metadata_block
 from wio.formats.errors import MetadataBlockError
 
 if TYPE_CHECKING:
-    from tomlkit.items import Comment
+    from tomlkit.items import Comment, Item
     from tomlkit.toml_document import TOMLDocument
+
+_TOML_TOKEN = re.compile(
+    r'''(?s)"""(?:\\.|(?!""").)*"{3,5}|'''
+    r"'''(?:[^']|'(?!'')|''(?!'))*'{3,5}|"
+    r""""(?:\\.|[^"\\])*"|'[^']*'|(?P<comment>\#[^\r\n]*)"""
+)
 
 
 def set_block_keys(
@@ -108,10 +115,40 @@ def _set_keys(document: TOMLDocument, keys: Mapping[str, object]) -> None:
         ValueError: A requested name is already a table.
     """
     for name, value in keys.items():
-        if name in document and isinstance(document.item(name), Table):
-            msg = f"`{name}` is a table"
-            raise ValueError(msg)
-        document[name] = _inline(value)
+        _set_key(document, name, value)
+
+
+def _set_key(document: TOMLDocument, name: str, value: object) -> None:
+    """Replace or add a key, retaining comments inside its old value.
+
+    Args:
+        document: The parsed block to change.
+        name: The key name.
+        value: The new value.
+
+    Raises:
+        ValueError: The name is already a table.
+    """
+    previous = document.item(name) if name in document else None
+    if _is_table(previous):
+        msg = f"`{name}` is a table"
+        raise ValueError(msg)
+    comments = _value_comments(cast("Item", previous)) if previous is not None else []
+    document[name] = _inline(value)
+    for comment in comments:
+        document.add(_comment(comment))
+
+
+def _is_table(value: object) -> bool:
+    """Tell whether a parsed top-level value is a TOML table.
+
+    Args:
+        value: An item from the parsed block, or none.
+
+    Returns:
+        Whether the item is a table or a split table.
+    """
+    return isinstance(value, (Table, OutOfOrderTableProxy))
 
 
 def _set_tables(
@@ -142,7 +179,7 @@ def _set_table(document: TOMLDocument, name: str, values: Mapping[str, object]) 
         ValueError: The name is already a plain key.
     """
     previous = document.item(name) if name in document else None
-    if previous is not None and not isinstance(previous, Table):
+    if previous is not None and not isinstance(previous, (Table, OutOfOrderTableProxy)):
         msg = f"`{name}` is a plain key"
         raise ValueError(msg)
     table = tomlkit.table()
@@ -150,7 +187,37 @@ def _set_table(document: TOMLDocument, name: str, values: Mapping[str, object]) 
         table.add(key, _inline(value))
     if isinstance(previous, Table):
         _preserve_comments(previous, table)
+    elif isinstance(previous, OutOfOrderTableProxy):
+        _preserve_split_comments(document, name, table)
     document[name] = table
+
+
+def _preserve_split_comments(document: TOMLDocument, name: str, table: Table) -> None:
+    """Carry comments from each fragment of an out-of-order table.
+
+    Args:
+        document: The document holding the fragments.
+        name: The table name.
+        table: The replacement table.
+    """
+    for key, item in document.body:
+        if key is None or key.key != name or not isinstance(item, Table):
+            continue
+        for comment in _all_table_comments(item):
+            table.add(_comment(comment))
+
+
+def _all_table_comments(table: Table) -> list[str]:
+    """Collect a table's header and entry comments.
+
+    Args:
+        table: The table whose comments are needed.
+
+    Returns:
+        All comments, in their original order.
+    """
+    header = [table.trivia.comment] if table.trivia.comment else []
+    return header + _table_comments(table)
 
 
 def _preserve_comments(previous: Table, replacement: Table) -> None:
@@ -163,8 +230,19 @@ def _preserve_comments(previous: Table, replacement: Table) -> None:
     replacement.trivia.comment = previous.trivia.comment
     replacement.trivia.comment_ws = previous.trivia.comment_ws
     for comment in _table_comments(previous):
-        item = tomlkit.parse(comment + "\n").body[0][1]
-        replacement.add(cast("Comment", item))
+        replacement.add(_comment(comment))
+
+
+def _comment(text: str) -> Comment:
+    """Build a comment item without changing its text.
+
+    Args:
+        text: The comment including its hash.
+
+    Returns:
+        The parsed comment item.
+    """
+    return cast("Comment", tomlkit.parse(text + "\n").body[0][1])
 
 
 def _table_comments(table: Table) -> list[str]:
@@ -177,12 +255,30 @@ def _table_comments(table: Table) -> list[str]:
         The comment text in its original order.
     """
     comments: list[str] = []
-    for _, item in table.value.body:
+    for key, item in table.value.body:
         if item.trivia.comment:
             comments.append(item.trivia.comment)
         if isinstance(item, Table):
             comments.extend(_table_comments(item))
+        elif key is not None:
+            comments.extend(_value_comments(item))
     return comments
+
+
+def _value_comments(item: Item) -> list[str]:
+    """Find comments inside a value, skipping TOML strings.
+
+    Args:
+        item: The existing value as parsed by tomlkit.
+
+    Returns:
+        Comments inside the value in their original order.
+    """
+    return [
+        comment
+        for token in _TOML_TOKEN.finditer(item.as_string())
+        if (comment := token.group("comment")) is not None
+    ]
 
 
 def _inline(value: object) -> object:
