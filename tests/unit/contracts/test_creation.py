@@ -325,3 +325,24 @@ def test_replacing_title_keeps_inline_authoring_comments() -> None:
 
     # Then the heading changes and its authoring comment remains
     assert "# New <!-- Keep this note. -->\n" in work.text
+
+
+@pytest.mark.parametrize("old", ["# Old `<!--`\n", "# Old \\<!-- text -->\n"])
+def test_title_replacement_does_not_keep_comment_like_text(old: str) -> None:
+    """Comment-like code and escaped text are replaced as part of the title."""
+    # Given a heading containing comment-like text that is not an HTML comment
+    config, files, catalog = _setup()
+    files.files[ROOT / "templates/feature.draft.md"] = (
+        '<!-- wio\nkind = "feature"\n[contract]\n-->\n\n' + old
+    )
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments("feature", None, NameArguments("a", "New", None, None), ())
+
+    # When a new title is set
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
+
+    # Then the heading and reported title contain only the new title
+    assert work.text.endswith("# New\n")
+    assert work.title == "New"

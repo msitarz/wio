@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Creating a Work: what `wio contracts new` decides, writes and reports."""
 
-import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -21,6 +20,7 @@ from wio.formats import (
     read_outline,
     set_block_keys,
 )
+from wio.formats.markdown import parse
 lazy from wio.models.template import Template
 
 if TYPE_CHECKING:
@@ -313,12 +313,29 @@ def _set_title(text: str, title: str) -> str:
         index = heading.line - block.body_start_line
         line = lines[index]
         suffix = _line_ending(line)
-        comments = re.findall(r"<!--(?:.*?-->|.*$)", line.removesuffix(suffix))
+        comments = _heading_comments(line)
         kept = " " + " ".join(comments) if comments else ""
         lines[index] = f"# {title}{kept}{suffix}"
     else:
         _insert_title(lines, title, ending)
     return prefix + "".join(lines)
+
+
+def _heading_comments(line: str) -> list[str]:
+    """Find real inline HTML comments in a Markdown heading.
+
+    Args:
+        line: The original heading line.
+
+    Returns:
+        The comments in their original order, excluding code and escaped text.
+    """
+    return [
+        child.content
+        for token in parse(line)
+        for child in token.children or ()
+        if child.type == "html_inline" and child.content.startswith("<!--")
+    ]
 
 
 def _insert_title(lines: list[str], title: str, ending: str) -> None:
