@@ -346,3 +346,28 @@ def test_title_replacement_does_not_keep_comment_like_text(old: str) -> None:
     # Then the heading and reported title contain only the new title
     assert work.text.endswith("# New\n")
     assert work.title == "New"
+
+
+@pytest.mark.parametrize("title", ["New #", "#", "New ##", "New#"])
+@pytest.mark.parametrize("has_heading", [True, False])
+def test_title_ending_in_hash_is_not_taken_as_heading_markup(
+    title: str, *, has_heading: bool
+) -> None:
+    """A requested title ending in hashes remains the heading and report title."""
+    # Given a template with or without a level-one heading
+    config, files, catalog = _setup()
+    if not has_heading:
+        files.files[ROOT / "templates/feature.draft.md"] = (
+            '<!-- wio\nkind = "feature"\n[contract]\n-->\n\n## Purpose\n'
+        )
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments("feature", None, NameArguments("a", title, None, None), ())
+
+    # When the Work is planned with the requested title
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
+
+    # Then reading and reporting the heading retain the complete title
+    assert work.title == title
+    assert f"Created Work k3m9xq  {title}\n" in render_report(work, as_json=False)

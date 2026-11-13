@@ -314,8 +314,7 @@ def _set_title(text: str, title: str) -> str:
         line = lines[index]
         suffix = _line_ending(line)
         comments = _heading_comments(line)
-        kept = " " + " ".join(comments) if comments else ""
-        lines[index] = f"# {title}{kept}{suffix}"
+        lines[index] = _render_heading(title, comments) + suffix
     else:
         _insert_title(lines, title, ending)
     return prefix + "".join(lines)
@@ -349,7 +348,40 @@ def _insert_title(lines: list[str], title: str, ending: str) -> None:
     index = next((i for i, line in enumerate(lines) if line.strip()), len(lines))
     if index and not _line_ending(lines[index - 1]):
         lines[index - 1] += ending
-    lines.insert(index, f"# {title}{ending}" + (ending if index < len(lines) else ""))
+    lines.insert(
+        index,
+        f"# {_heading_title(title)}{ending}" + (ending if index < len(lines) else ""),
+    )
+
+
+def _heading_title(title: str) -> str:
+    """Protect a title's final hashes from Markdown's closing heading syntax.
+
+    Args:
+        title: The validated title.
+
+    Returns:
+        The title with a closing marker when its hashes need protection.
+    """
+    prefix = title.rstrip("#")
+    if title.endswith("#") and (not prefix or prefix[-1].isspace()):
+        return title + " #"
+    return title
+
+
+def _render_heading(title: str, comments: list[str]) -> str:
+    """Write the heading title and any preserved authoring comments.
+
+    Args:
+        title: The validated title.
+        comments: Inline authoring comments to retain.
+
+    Returns:
+        The heading line without its line ending.
+    """
+    if comments:
+        return f"# {title} {' '.join(comments)}"
+    return f"# {_heading_title(title)}"
 
 
 def _first_title(body: str, start: int) -> Heading | None:
