@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Creating a Work: what `wio contracts new` decides, writes and reports."""
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -286,7 +287,7 @@ def _validate_title(title: str | None) -> str | None:
     if title is None:
         return None
     trimmed = title.strip()
-    if not trimmed or "\n" in title or "\r" in title:
+    if not trimmed or "\n" in trimmed or "\r" in trimmed:
         msg = "The title must be one non-blank line"
         raise ContractsError(msg)
     return trimmed
@@ -312,7 +313,9 @@ def _set_title(text: str, title: str) -> str:
         index = heading.line - block.body_start_line
         line = lines[index]
         suffix = _line_ending(line)
-        lines[index] = f"# {title}{suffix}"
+        comments = re.findall(r"<!--(?:.*?-->|.*$)", line.removesuffix(suffix))
+        kept = " " + " ".join(comments) if comments else ""
+        lines[index] = f"# {title}{kept}{suffix}"
     else:
         _insert_title(lines, title, ending)
     return prefix + "".join(lines)

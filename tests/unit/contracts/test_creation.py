@@ -281,3 +281,47 @@ def test_title_after_unterminated_whitespace_body() -> None:
     # Then the heading is recognized and the whitespace is retained
     assert work.title == "Mine"
     assert "    \n# Mine\n" in work.text
+
+
+def test_title_is_trimmed_before_checking_for_line_breaks() -> None:
+    """Whitespace line breaks at the ends do not make a trimmed title multiline."""
+    # Given a title with line breaks surrounding its only nonblank line
+    config = Config(works=Works(hierarchy="nesting"))
+    files = MemoryFileSystem()
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments(None, None, NameArguments("note", "\n Mine \n", None, None), ())
+
+    # When the Work is planned
+    work = plan_work(
+        args,
+        config,
+        found,
+        cast("TemplateCatalog", Mock()),
+        files,
+        ROOT,
+        RandomIds(FakeEntropy()),
+    )
+
+    # Then the new heading contains the trimmed title
+    assert work.title == "Mine"
+    assert "# Mine\n" in work.text
+
+
+def test_replacing_title_keeps_inline_authoring_comments() -> None:
+    """A title replacement retains authoring comments on the heading."""
+    # Given a template whose heading has an authoring comment
+    config, files, catalog = _setup()
+    files.files[ROOT / "templates/feature.draft.md"] = (
+        '<!-- wio\nkind = "feature"\n[contract]\n-->\n\n'
+        "# Old <!-- Keep this note. -->\n"
+    )
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments("feature", None, NameArguments("a", "New", None, None), ())
+
+    # When the Work is planned with a new title
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
+
+    # Then the heading changes and its authoring comment remains
+    assert "# New <!-- Keep this note. -->\n" in work.text
