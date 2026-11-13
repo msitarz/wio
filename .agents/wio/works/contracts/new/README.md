@@ -101,9 +101,10 @@ of the block exists.
   rejected, whether it is a kind's entry template or comes from `--template`,
   points to `wio templates check` when it is rejected or is an entry template,
   and a name that no file has points to `wio templates list`.
-- **One file is written.** It is written once, through the guard, and ends as
-  the skeleton does, with one line ending. The report follows the write, so a
-  write that fails reports nothing on standard output.
+- **One file is written.** It is written once, through the guard, and keeps
+  the skeleton's final line endings, including none or more than one. The
+  report follows the write, so a write that fails reports nothing on standard
+  output.
 - **The report is short.** The human form is `Created Work <id>  <title>` and
   the path on the next line, indented two spaces, and `--json` is one object
   with `id`, `title`, `path`, `template` and `parent`, with `null` for none, the
