@@ -314,11 +314,22 @@ def _set_title(text: str, title: str) -> str:
         suffix = _line_ending(line)
         lines[index] = f"# {title}{suffix}"
     else:
-        index = next((i for i, line in enumerate(lines) if line.strip()), len(lines))
-        lines.insert(
-            index, f"# {title}{ending}" + (ending if index < len(lines) else "")
-        )
+        _insert_title(lines, title, ending)
     return prefix + "".join(lines)
+
+
+def _insert_title(lines: list[str], title: str, ending: str) -> None:
+    """Insert a title before the first nonempty body line.
+
+    Args:
+        lines: The body lines to update.
+        title: The validated title.
+        ending: The template's line ending.
+    """
+    index = next((i for i, line in enumerate(lines) if line.strip()), len(lines))
+    if index and not _line_ending(lines[index - 1]):
+        lines[index - 1] += ending
+    lines.insert(index, f"# {title}{ending}" + (ending if index < len(lines) else ""))
 
 
 def _first_title(body: str, start: int) -> Heading | None:

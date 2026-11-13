@@ -261,3 +261,23 @@ def test_a_missing_entry_template_points_to_check() -> None:
 
     # Then the template is the only file
     assert len(files.files) == 1
+
+
+def test_title_after_unterminated_whitespace_body() -> None:
+    """A title inserted after an unterminated blank line is a real heading."""
+    # Given a template with an unterminated whitespace-only body
+    config, files, catalog = _setup()
+    files.files[ROOT / "templates/feature.draft.md"] = (
+        '<!-- wio\nkind = "feature"\n[contract]\n-->\n\n    '
+    )
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments("feature", None, NameArguments("a", "Mine", None, None), ())
+
+    # When a Work is planned with a title
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
+
+    # Then the heading is recognized and the whitespace is retained
+    assert work.title == "Mine"
+    assert "    \n# Mine\n" in work.text
