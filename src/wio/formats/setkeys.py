@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, cast
 
 lazy import tomlkit
 lazy from tomlkit.container import OutOfOrderTableProxy
-lazy from tomlkit.items import Table
+lazy from tomlkit.items import AoT, Table
 
 from wio.formats.block import read_metadata_block
 from wio.formats.errors import MetadataBlockError
@@ -190,6 +190,21 @@ def _set_table(document: TOMLDocument, name: str, values: Mapping[str, object]) 
     elif isinstance(previous, OutOfOrderTableProxy):
         _preserve_split_comments(document, name, table)
     document[name] = table
+    _clear_inherited_header(previous, table)
+
+
+def _clear_inherited_header(previous: object, table: Table) -> None:
+    """Remove a synthetic header copied from a split or super table.
+
+    Args:
+        previous: The table being replaced, or none.
+        table: The replacement after insertion.
+    """
+    if isinstance(previous, OutOfOrderTableProxy) or (
+        isinstance(previous, Table) and previous.is_super_table()
+    ):
+        table.trivia.comment = ""
+        table.trivia.comment_ws = ""
 
 
 def _preserve_split_comments(document: TOMLDocument, name: str, table: Table) -> None:
@@ -216,7 +231,11 @@ def _all_table_comments(table: Table) -> list[str]:
     Returns:
         All comments, in their original order.
     """
-    header = [table.trivia.comment] if table.trivia.comment else []
+    header = (
+        [table.trivia.comment]
+        if table.trivia.comment and not table.is_super_table()
+        else []
+    )
     return header + _table_comments(table)
 
 
@@ -227,8 +246,9 @@ def _preserve_comments(previous: Table, replacement: Table) -> None:
         previous: The existing table and its comments.
         replacement: The new table, to which comments are added.
     """
-    replacement.trivia.comment = previous.trivia.comment
-    replacement.trivia.comment_ws = previous.trivia.comment_ws
+    if not previous.is_super_table():
+        replacement.trivia.comment = previous.trivia.comment
+        replacement.trivia.comment_ws = previous.trivia.comment_ws
     for comment in _table_comments(previous):
         replacement.add(_comment(comment))
 
@@ -256,13 +276,28 @@ def _table_comments(table: Table) -> list[str]:
     """
     comments: list[str] = []
     for key, item in table.value.body:
-        if item.trivia.comment:
-            comments.append(item.trivia.comment)
-        if isinstance(item, Table):
-            comments.extend(_table_comments(item))
-        elif key is not None:
-            comments.extend(_value_comments(item))
+        comments.extend(_entry_comments(item, has_key=key is not None))
     return comments
+
+
+def _entry_comments(item: Item, *, has_key: bool) -> list[str]:
+    """Collect comments from one table entry, including nested tables.
+
+    Args:
+        item: The parsed entry.
+        has_key: Whether the entry has a key.
+
+    Returns:
+        Its comments in source order.
+    """
+    if isinstance(item, Table):
+        return _all_table_comments(item)
+    if isinstance(item, AoT):
+        return [
+            comment for table in item.body for comment in _all_table_comments(table)
+        ]
+    comments = [item.trivia.comment] if item.trivia.comment else []
+    return comments + (_value_comments(item) if has_key else [])
 
 
 def _value_comments(item: Item) -> list[str]:

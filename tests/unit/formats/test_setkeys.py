@@ -189,3 +189,29 @@ def test_replacing_out_of_order_tables_retains_their_comments() -> None:
     assert block.data == {"a": {"new": 4}, "c": {"y": 2}}
     assert "# one" in result
     assert "# two" in result
+
+
+def test_replacing_table_keeps_array_table_header_comments() -> None:
+    """Replacing a table preserves comments on its array-of-tables headers."""
+    # Given a table containing an array of tables with comments
+    text = "<!-- wio\n[x]\n[[x.y]] # yh\nv = 2 # vc\n-->\n# T\n"
+
+    # When the outer table is replaced
+    result = set_block_keys(text, {}, {"x": {"q": 1}})
+
+    # Then both comments are retained exactly once
+    assert result.count("# yh") == 1
+    assert result.count("# vc") == 1
+
+
+def test_replacing_split_nested_tables_does_not_duplicate_comments() -> None:
+    """Each comment on split nested tables is preserved once."""
+    # Given split nested tables with comments on their headers and values
+    text = "<!-- wio\n[x.a] # ah\nv=1 # a\n[z]\nz=1\n[x.b] # bh\nv=2 # b\n-->\n# T\n"
+
+    # When their parent table is replaced
+    result = set_block_keys(text, {}, {"x": {"q": 1}})
+
+    # Then each distinct comment is present exactly once
+    for comment in ("# ah", "# bh", "# a\n", "# b\n"):
+        assert result.count(comment) == 1
