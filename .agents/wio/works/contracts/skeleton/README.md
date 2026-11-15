@@ -72,8 +72,9 @@ skeleton for one.
 - **`--keep` carries any key the Work has.** A kept key or table replaces the
   template's, and is added when the template has none. TOML comments and
   formatting within the rewritten block are not carried, as the setter of the
-  new leaf specifies. An inline table counts as a plain key. `id`, `depends_on`,
-  `template` and `wio` cannot be kept, because they are handled already, and
+  new leaf specifies. Inline and standard tables are carried as values without
+  preserving their syntax. `id`, `depends_on`, `template` and `wio` cannot be
+  kept, because they are handled already, and
   that check comes before the one for a key the Work does not have, which is an
   error that lists the keys that can be kept, in the order of the Work.
 - **Nothing is dropped silently.** When the Work has keys that the skeleton does
@@ -140,8 +141,8 @@ were not carried.
 
 ### **AC-2** `--keep` carries any key the Work has
 
-A kept key replaces the template's, and the note names only what is still
-dropped.
+A kept key replaces the template's, inline and standard tables are carried as
+values, and the note names only what is still dropped.
 
 #### Keeping roots and a table
 

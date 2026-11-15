@@ -52,8 +52,9 @@ of the block exists.
   keys and tables to set, and returns the text with them set in its metadata
   block. It reads the block as values and writes it anew with the TOML writer.
   Untouched values are retained, while TOML comments and formatting are not
-  carried. An inline table counts as a plain key. The rewritten block uses the
-  first line ending of the text, and a byte-order mark is kept.
+  carried. Inline and standard tables are read as values without preserving
+  their syntax. The rewritten block uses the first line ending of the text,
+  and a byte-order mark is kept.
 - `prepare_skeleton` and `read_outline` of `wio.formats`, the last to find the
   first level-1 heading that `--title` replaces.
 - The decision and the guard of the new-location leaf, the catalog's `find` and
@@ -333,7 +334,8 @@ requested values and retains the other values, the block's form, the byte-order
 mark and the body, including its comments and line endings. It rewrites the TOML
 without its comments or original formatting, using the text's first line ending,
 or LF when it has none. When setting `id`, it is first, after `wio = 1` in front
-matter.
+matter. Inline and standard tables are values; their original syntax is not
+retained.
 
 #### Cases
 
