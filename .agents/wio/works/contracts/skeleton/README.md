@@ -62,15 +62,17 @@ skeleton for one.
 - **Standard output is the skeleton and nothing else.** Standard error holds
   only the note, and nothing is written to any file.
 - **The skeleton is the template's, with the Work's identity.** It has the form
-  and the line endings of the template, `template` is the requested template,
-  and the `id` of the Work and its `depends_on` are carried exactly: a Work with
-  no `depends_on` leaves the template's as the template has it, and a Work with
-  `depends_on = []` gives `depends_on = []`. The template's defaults supply
-  everything else.
+  of the template, the rewritten block uses its first line ending, and its body,
+  including comments and line endings, stays as the skeleton has it. The `id`
+  is first, after `wio = 1` in front matter, `template` is the requested
+  template, and the `id` of the Work and its `depends_on` are carried exactly:
+  a Work with no `depends_on` leaves the template's as the template has it, and
+  a Work with `depends_on = []` gives `depends_on = []`. The template's
+  defaults supply everything else.
 - **`--keep` carries any key the Work has.** A kept key or table replaces the
-  template's, and is added when the template has none. Key placement and spacing
-  within the block may change, as the setter of the new leaf allows. An inline
-  table counts as a plain key. `id`, `depends_on`,
+  template's, and is added when the template has none. TOML comments and
+  formatting within the rewritten block are not carried, as the setter of the
+  new leaf specifies. An inline table counts as a plain key. `id`, `depends_on`,
   `template` and `wio` cannot be kept, because they are handled already, and
   that check comes before the one for a key the Work does not have, which is an
   error that lists the keys that can be kept, in the order of the Work.
@@ -98,8 +100,9 @@ skeleton for one.
 
 ### **AC-1** The skeleton keeps the Work's identity and says what it dropped
 
-The skeleton has the Work's `id` and `depends_on` in the template's shape, and
-standard error names the keys that were not carried.
+The skeleton has the Work's `id` and `depends_on` in the template's shape, with
+`id` first after a front matter marker, and standard error names the keys that
+were not carried.
 
 #### A leaf moved to the parent template
 
@@ -112,8 +115,8 @@ standard error names the keys that were not carried.
   `# <Work name>` and `## Purpose`.
 - **When** `wio contracts skeleton feature.parent --work k3m9xq` runs.
 - **Then** standard output has the values and body below, with key placement
-  and spacing in the block allowed to differ, standard error is the line below
-  it, nothing is written, and it exits 0:
+  and spacing in the block allowed to differ after `id`, standard error is the
+  line below it, nothing is written, and it exits 0:
 
   ```text
   <!-- wio
@@ -224,8 +227,9 @@ dropped.
 ### **AC-3** The skeleton differs from `templates show` only by the identity
 
 For a Work with nothing but an id, the output is what `wio templates show`
-prints with the `id` added, allowing key placement and spacing in the block to
-change, and the form is the template's.
+prints with the `id` added first after a front matter marker, allowing other
+key placement and spacing in the block to change, and the form is the
+template's.
 
 #### A bare Work and a `+++` Work
 
@@ -236,9 +240,9 @@ change, and the form is the template's.
   `wio contracts skeleton feature.parent --work p5n2hv` and
   `wio templates show feature.parent` run.
 - **Then** each skeleton is the output of `templates show` with
-  `id = "k3m9xq"` or `id = "p5n2hv"`, allowing key placement and spacing in
-  the block to change, in comment form, with `depends_on` as the template has
-  it, and standard error is empty.
+  `id = "k3m9xq"` or `id = "p5n2hv"` first, allowing other key placement and
+  spacing in the block to change, in comment form, with `depends_on` as the
+  template has it, and standard error is empty.
 
 #### A template in front matter or with CRLF
 
@@ -246,8 +250,9 @@ change, and the form is the template's.
   `+++` form with `wio = 1`, and `t.crlf` written with CRLF line endings.
 - **When** `wio contracts skeleton t.front --work k3m9xq` and
   `wio contracts skeleton t.crlf --work k3m9xq --keep x` run.
-- **Then** the first is in `+++` form with `wio = 1`, `id` and `template`, and
-  the second has CRLF endings throughout, including the kept table.
+- **Then** the first is in `+++` form with `wio = 1`, `id` and `template`, in
+  that order, and the second has CRLF endings throughout, including the kept
+  table.
 
 ### **AC-4** Mistakes print nothing and say what to do
 

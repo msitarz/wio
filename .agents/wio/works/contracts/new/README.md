@@ -43,18 +43,17 @@ of the block exists.
 - **A-2**: `prepare_skeleton` gives a template's skeleton in the template's
   block form, with the `template` key and no `id`, and drops the template's own
   keys, its metadata comments and the directive lists, as it is delivered.
-- **A-3**: The metadata reader uses `tomllib`. `tomlkit` can drop comments
-  when replacing a table, so preserving untouched comments needs additional
-  handling.
+- **A-3**: The metadata reader uses `tomllib`, and the TOML writer can encode
+  the values it reads.
 
 ## Mechanisms
 
 - A function in `wio.formats` that takes the text of a contract and the plain
   keys and tables to set, and returns the text with them set in its metadata
-  block. Key placement and spacing within the block may change, but untouched
-  values and comments are retained. An inline table counts as a plain key. An
-  added key or table uses the line ending of the text, and a byte-order mark is
-  kept.
+  block. It reads the block as values and writes it anew with the TOML writer.
+  Untouched values are retained, while TOML comments and formatting are not
+  carried. An inline table counts as a plain key. The rewritten block uses the
+  first line ending of the text, and a byte-order mark is kept.
 - `prepare_skeleton` and `read_outline` of `wio.formats`, the last to find the
   first level-1 heading that `--title` replaces.
 - The decision and the guard of the new-location leaf, the catalog's `find` and
@@ -84,12 +83,13 @@ of the block exists.
   line, or the error is ``The title must be one non-blank line``, or, when the
   template has none, inserted before the first line of the body that is not
   empty and followed by one empty line, or at the
-  end of the body when it has no such line. The block's key placement and
-  spacing may change, but its other values and comments, its form, the line
-  endings, including mixed endings, the authoring comments and the sections
-  stay as the skeleton has them. Added line endings use the template's first
-  line ending, or LF when it has none. A bare contract has `# Title` unless
-  `--title` is given.
+  end of the body when it has no such line. The block is rewritten with its
+  other values and form intact, but its TOML comments and formatting are not
+  carried. The `id` is first, after `wio = 1` in front matter. The rewritten
+  block and added line endings use the template's first line ending, or LF
+  when it has none. The body, including its mixed line endings, authoring
+  comments and sections, stays as the skeleton has it apart from the title
+  change. A bare contract has `# Title` unless `--title` is given.
 - **Roots are a set of declared names.** `--root` is repeatable, each name is a
   declared root or `@descendants`, and a name given twice counts once, in the
   order of its first appearance. On a bare contract it adds the key `roots`.
@@ -133,8 +133,9 @@ were asked for, and the report names the id and the path.
   `[contract]`, so the file has neither.
 - **When** `wio contracts new feature --title "Read config" --root wio` runs.
 - **Then** the file `.agents/wio/works/read-config/README.md` holds the
-  following values and body, with the block's key placement and spacing allowed
-  to differ, and the command prints the two lines below and exits 0:
+  following values and body, with `id` first and the other key placement and
+  spacing allowed to differ, and the command prints the two lines below and
+  exits 0:
 
   ```text
   <!-- wio
@@ -199,7 +200,8 @@ With no kind and no template, the file is the block with the `id` and a heading.
 ### **AC-4** The block is edited and nothing else is
 
 The `id` and roots are set, the title is replaced or added, and the form, the
-other values, comments, line endings and body are kept.
+other values and the body, including its comments and line endings, are kept.
+The block is rewritten without its TOML comments and formatting.
 
 #### Front matter, roots and line endings
 
@@ -327,9 +329,11 @@ The object has the fields in a fixed order and `null` for what there is none.
 ### **AC-8** The function that sets keys in a block does what it is fixed to do
 
 The one function of `wio.formats` that sets keys in a metadata block sets the
-requested values and retains the other values and comments, the block's form,
-the line endings, the byte-order mark and the body. Key placement and spacing
-within the block may change.
+requested values and retains the other values, the block's form, the byte-order
+mark and the body, including its comments and line endings. It rewrites the TOML
+without its comments or original formatting, using the text's first line ending,
+or LF when it has none. When setting `id`, it is first, after `wio = 1` in front
+matter.
 
 #### Cases
 
@@ -343,8 +347,17 @@ within the block may change.
 - **Then** the first block has `id = "k3m9xq"`, `template = "t"`,
   `roots = ["wio"]`, `depends_on = ["a7b2c4"]`, `[x]` with `a = 1`, and
   `[actions]` with `deliver = ["build"]`; the second has `wio = 1`,
-  `id = "k3m9xq"` and `template = "t"`; and the body and the delimiters of
-  each are as they were.
+  `id = "k3m9xq"` and `template = "t"`, in that order; and the body and the
+  delimiters of each are as they were. The first has `id` before `template`.
+
+#### Comments and mixed line endings
+
+- **Given** a contract whose metadata has TOML comments and mixed LF and CRLF
+  line endings, whose first line ends in CRLF, and whose body has an HTML
+  comment and mixed LF and CRLF line endings.
+- **When** the function sets its `id`.
+- **Then** the rewritten metadata has no TOML comments, its lines use CRLF,
+  and the body, including its HTML comment and mixed line endings, is unchanged.
 
 ## Additional context
 
