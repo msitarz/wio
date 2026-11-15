@@ -284,7 +284,9 @@ deliver = ["implementation"]
   defaults (see
   [Where the pipeline comes from](#where-the-pipeline-comes-from)).
 
-Contract metadata carries no comments. Explanations belong to the template.
+TOML comments in metadata are not carried when wio prepares or rewrites a
+block; explanations for the agent belong in the Markdown body of the template.
+Its authoring comments are kept in the contract.
 
 wio knows these keys, and an unknown key is a **warning**, in contracts,
 templates and rules alike, naming the key and the known key it is close to, if
@@ -497,6 +499,22 @@ id = "k3m9xq"
 declared. `--slug`, `--title` and `--root` work as for any Work, and
 `--parent` follows the hierarchy mode
 ([Identity and location](#identity-and-location)).
+
+Creation starts from the template's skeleton. It adds the `id`, applies the
+requested roots and title, and leaves the rest of the body, including its
+authoring comments, as the skeleton has it. The metadata block is written from
+its TOML values: its comments, spacing and inline-table syntax are not carried.
+The `id` comes first, after `wio = 1` in front matter. The block uses the
+template's first line ending; the body's existing endings, even mixed ones, and
+the skeleton's final line endings are kept. Added line endings use the first
+line ending, or LF when there is none. A value containing `-->` in a comment
+block is escaped so it cannot close the block early.
+
+The command checks its inputs before writing and reports the new id and path
+only after the write succeeds. The
+[creation implementation](../src/wio/contracts/creation.py) and its
+[acceptance scenarios](../tests/acceptance/contracts/test_new.py) give the
+options, errors and report forms.
 
 ### Changing a contract
 
