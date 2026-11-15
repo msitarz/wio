@@ -115,8 +115,8 @@ def plan_work(
     that heading, or is inserted before the first
     line of the body that is not empty and followed by one empty line, in the
     template's line ending, or at the end of the body when it has no such line.
-    The block's key placement and spacing may change, but its other values and
-    comments and the rest of the skeleton are retained. The parent is `parent_of` in
+    The block is rewritten without TOML comments, retaining its other values;
+    the rest of the skeleton is retained. The parent is `parent_of` in
     `wio.contracts.hierarchy` of the new file's path, the one definition of the
     rule, whether the place came from `--parent` or from `--path`, and none under
     `flat`. An undeclared root is the error ``The root `r` is not declared in
@@ -319,7 +319,7 @@ def _set_title(text: str, title: str) -> str:
         comments = _heading_comments(line)
         lines[index] = _render_heading(title, comments) + suffix
     else:
-        _insert_title(lines, title, ending)
+        _insert_title(lines, title, ending, text)
     return prefix + "".join(lines)
 
 
@@ -345,21 +345,33 @@ def _heading_comments(line: str) -> list[str]:
     ]
 
 
-def _insert_title(lines: list[str], title: str, ending: str) -> None:
+def _insert_title(lines: list[str], title: str, ending: str, text: str) -> None:
     """Insert a title before the first nonempty body line.
 
     Args:
         lines: The body lines to update.
         title: The validated title.
         ending: The template's line ending.
+        text: The skeleton whose final line endings are retained.
     """
     index = next((i for i, line in enumerate(lines) if line.strip()), len(lines))
     if index and not _line_ending(lines[index - 1]):
         lines[index - 1] += ending
-    lines.insert(
-        index,
-        f"# {_heading_title(title)}{ending}" + (ending if index < len(lines) else ""),
-    )
+    suffix = ending * 2 if index < len(lines) else _final_endings(text)
+    lines.insert(index, f"# {_heading_title(title)}{suffix}")
+
+
+def _final_endings(text: str) -> str:
+    """Return the sequence of line endings at the end of text.
+
+    Args:
+        text: The skeleton text.
+
+    Returns:
+        Its final line endings, or an empty string.
+    """
+    match = re.search(r"(?:(?:\r\n|\n|\r))+$", text)
+    return match.group() if match else ""
 
 
 def _heading_title(title: str) -> str:

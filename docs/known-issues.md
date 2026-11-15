@@ -79,19 +79,3 @@ mistakes.
 **What is being done.** One helper in `wio.models` builds every `frozendict`,
 with a single narrow `# pyrefly: ignore[bad-argument-count]` that names this
 entry. Delete the suppression, and this entry, when a release accepts the call.
-
-## `tomlkit` writes added items with LF line endings
-
-**What fails.** `tomlkit` retains existing line endings but writes added items
-with LF, including in a block that uses CRLF. Its string serializer has no
-public line-ending setting. Its file helper handles uniform CRLF files, but the
-block setter works on a string and must preserve mixed endings too.
-
-**What it puts at risk.** A contract edited by `wio contracts new` or
-`wio contracts skeleton` can gain inconsistent line endings, or its existing
-line endings can change.
-
-**What is being done.** The block setter must preserve existing line endings
-and use the opening delimiter's ending for new lines, without changing TOML
-values. Remove this entry if a release provides the required string editing
-behavior.

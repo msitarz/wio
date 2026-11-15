@@ -280,7 +280,22 @@ def test_title_after_unterminated_whitespace_body() -> None:
 
     # Then the heading is recognized and the whitespace is retained
     assert work.title == "Mine"
-    assert "    \n# Mine\n" in work.text
+    assert work.text.endswith("    \n# Mine")
+
+
+@pytest.mark.parametrize("suffix", ["", "\n", "\n\n", "\r\n\r\n"])
+def test_title_in_empty_body_keeps_final_line_endings(suffix: str) -> None:
+    """A title added after a blank body keeps the skeleton's final endings."""
+    # Given a contract with a whitespace-only body and varied final endings
+    from wio.contracts.creation import _set_title
+
+    text = "<!-- wio\n-->\n    " + suffix
+
+    # When a title is inserted
+    result = _set_title(text, "Mine")
+
+    # Then the title has the same final endings as the original text
+    assert result.endswith("# Mine" + suffix)
 
 
 def test_title_is_trimmed_before_checking_for_line_breaks() -> None:
