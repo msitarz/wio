@@ -83,11 +83,13 @@ of the block exists.
   when `--title` is given. A title is trimmed, and must then be one non-blank
   line, or the error is ``The title must be one non-blank line``, or, when the
   template has none, inserted before the first line of the body that is not
-  empty and followed by one empty line, in the template's line ending, or at the
+  empty and followed by one empty line, or at the
   end of the body when it has no such line. The block's key placement and
   spacing may change, but its other values and comments, its form, the line
-  endings, the authoring comments and the sections stay as the skeleton has
-  them. A bare contract has `# Title` unless `--title` is given.
+  endings, including mixed endings, the authoring comments and the sections
+  stay as the skeleton has them. Added line endings use the template's first
+  line ending, or LF when it has none. A bare contract has `# Title` unless
+  `--title` is given.
 - **Roots are a set of declared names.** `--root` is repeatable, each name is a
   declared root or `@descendants`, and a name given twice counts once, in the
   order of its first appearance. On a bare contract it adds the key `roots`.
