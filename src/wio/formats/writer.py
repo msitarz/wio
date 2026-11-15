@@ -30,3 +30,15 @@ def encode_toml(data: Mapping[str, object]) -> str:
         for an empty mapping.
     """
     return tomlkit.dumps(data)
+
+
+def encode_comment_toml(data: Mapping[str, object]) -> str:
+    """Encode TOML without a literal wio comment terminator.
+
+    Args:
+        data: The document as nested mappings, lists and scalars.
+
+    Returns:
+        TOML with terminators escaped inside strings and quoted keys.
+    """
+    return encode_toml(data).replace("-->", r"--\u003e")

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from wio.formats.block import read_metadata_block
 from wio.formats.errors import MetadataBlockError
-from wio.formats.writer import encode_toml
+from wio.formats.writer import encode_comment_toml, encode_toml
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -50,9 +50,11 @@ def set_block_keys(
         ordered["id"] = values.pop("id")
     ordered.update(values)
     ending = "\r\n" if text[:start].endswith("\r\n") else "\n"
-    encoded = encode_toml(ordered)
-    if block.form == "comment":
-        encoded = encoded.replace("-->", r"--\u003e")
+    encoded = (
+        encode_comment_toml(ordered)
+        if block.form == "comment"
+        else encode_toml(ordered)
+    )
     return text[:start] + encoded.replace("\n", ending) + text[end:]
 
 

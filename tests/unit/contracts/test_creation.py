@@ -85,6 +85,27 @@ def test_plan_template_and_report() -> None:
     }
 
 
+def test_plan_keeps_comment_terminator_in_template_value() -> None:
+    """A template value containing the comment terminator survives creation."""
+    # Given a template whose contract value escapes a comment terminator
+    config, files, catalog = _setup()
+    files.files[ROOT / "templates/feature.draft.md"] = (
+        '<!-- wio\nkind = "feature"\n[contract.x]\nvalue = "--\\u003e"\n-->\n\n# Old\n'
+    )
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments("feature", None, NameArguments("a", None, None, None), ())
+
+    # When a Work is planned from the template
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
+
+    # Then its metadata is readable and retains the original value
+    block = read_metadata_block(work.text)
+    assert block is not None
+    assert block.data["x"] == {"value": "-->"}
+
+
 @pytest.mark.parametrize(
     ("kind", "roots", "title", "expected"),
     [
