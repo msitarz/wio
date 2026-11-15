@@ -70,6 +70,21 @@ def test_missing_block_is_refused() -> None:
         set_block_keys(text, {"id": "k3m9xq"})
 
 
+def test_comment_delimiter_inside_toml_values_is_escaped() -> None:
+    """A TOML string cannot prematurely close the metadata comment."""
+    # Given a valid comment block with an escaped comment delimiter in a value
+    text = '<!-- wio\nnote = "\\u002D\\u002D>"\n-->\n# T\n'
+
+    # When the metadata is rewritten
+    result = set_block_keys(text, {"id": "k3m9xq"})
+
+    # Then the block remains readable with the same value and body
+    block = read_metadata_block(result)
+    assert block is not None
+    assert block.data == {"id": "k3m9xq", "note": "-->"}
+    assert block.body == "# T\n"
+
+
 def test_byte_order_mark_and_crlf() -> None:
     """A byte-order mark and the body survive rewriting with CRLF."""
     # Given a CRLF block with a multiline value

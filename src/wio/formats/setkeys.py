@@ -50,7 +50,10 @@ def set_block_keys(
         ordered["id"] = values.pop("id")
     ordered.update(values)
     ending = "\r\n" if text[:start].endswith("\r\n") else "\n"
-    return text[:start] + encode_toml(ordered).replace("\n", ending) + text[end:]
+    encoded = encode_toml(ordered)
+    if block.form == "comment":
+        encoded = encoded.replace("-->", r"--\u003e")
+    return text[:start] + encoded.replace("\n", ending) + text[end:]
 
 
 def _block_end(text: str, start: int, form: str) -> int:
