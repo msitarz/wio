@@ -42,7 +42,9 @@ of the block exists.
   exist.
 - **A-2**: `prepare_skeleton` gives a template's skeleton in the template's
   block form, with the `template` key and no `id`, and drops the template's own
-  keys, its metadata comments and the directive lists, as it is delivered.
+  keys, its metadata comments and the directive lists. Its comment-form writer
+  needs a correction to retain values containing the comment terminator without
+  closing the block early.
 - **A-3**: The metadata reader uses `tomllib`, and the TOML writer can encode
   the values it reads.
 
