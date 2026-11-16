@@ -2,7 +2,7 @@
 id = "vy01kg"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["pnf585"]
+depends_on = ["pnf585", "eh62g6"]
 -->
 
 # Check a message at commit time
@@ -31,6 +31,8 @@ for, so a wrong record is refused before it enters the history.
 - Checking a pull request body or a range of commits; the later check does
   that.
 - Writing a record; `wio trailers <work> <action> <stage>` does that.
+- Refusing `agent` as the judge of a gate that needs a human; the gate leaf does
+  that when a result is recorded.
 
 ## Assumptions
 
@@ -53,20 +55,24 @@ warning. The driver confirms this at the gate.
   shape leaf, with the reader that `[trailers] reader` names in the config. This
   mode turns a `malformed` or `invisible` finding into an error and an
   `unknown-key` finding into a warning.
-- **`History` port** — gives the Works of `HEAD`, which finds a Work that the
-  commit being made deletes. How the Works of the index are read is for the
-  architecture stage to settle.
+- **Field validator** — the validator of a record's Work, items, names and
+  result against the config and the Works, with the read of a Work that is in
+  `HEAD` and not in the index, which the print leaf builds and this mode
+  reuses. How this mode turns its findings into diagnostics, and how the Works
+  of the index are read, are for the architecture stage to settle.
 
 ## Acceptance criteria
 
 The examples use a Work `k3m9xq` that is in the index and has an item `AC-1`.
 Its `deliver` action lists the stages `architecture`, which is not a gate, and
 `architecture-review`, which is a gate. The config also has the stage `wiring`,
-which `k3m9xq`'s `deliver` does not list, its results are `gates.results =
-["pass", "fail", "unknown"]`, and its reader is `scan` unless a scenario says
-otherwise. R is the paragraph `Wio-Work:
-k3m9xq`, `Wio-Action: deliver` and `Wio-Stage: architecture`, and M is the
-subject `feat: add x`, a blank line and R.
+which is not a gate and which `k3m9xq`'s `deliver` does not list. The
+config's results are `pass`, `fail` and `unknown`, and its reader is `scan`
+unless a scenario says otherwise. R is the paragraph of the three lines
+`Wio-Work: k3m9xq`, `Wio-Action: deliver` and `Wio-Stage: architecture`, and M
+is the subject `feat: add x`, a blank line and R, so R's lines are 3 to 5. A
+diagnostic of a whole record, such as a missing result or no record, reports
+the record's first line, and line 1 when there is no record.
 
 ### **AC-1** The interface
 
@@ -77,7 +83,13 @@ subject `feat: add x`, a blank line and R.
 - **When** `wio trailers check --require <file>` and
   `wio trailers check --require -` read it.
 - **Then** each exits 1 and prints on standard error the same diagnostic, which
-  names the stage and the line number of its `Wio-Stage` line.
+  begins `error: 5:` and names the stage.
+
+#### A message with no path
+
+- **Given** the same message on standard input.
+- **When** `wio trailers check --require` runs with no path.
+- **Then** it exits 1 and prints the same diagnostic.
 
 #### A file that cannot be read
 
@@ -162,9 +174,10 @@ subject `feat: add x`, a blank line and R.
 
 #### A message with no record
 
-- **Given** a message with the subject `feat: add x` and no record.
-- **When** `wio trailers check --require` reads it.
-- **Then** the command exits 1 and reports that no record was found.
+- **Given** a message with the subject `feat: add x` and no record, and an empty
+  message.
+- **When** `wio trailers check --require` reads each.
+- **Then** each exits 1 and reports on line 1 that no record was found.
 
 #### A subject that git writes
 
@@ -190,28 +203,37 @@ subject `feat: add x`, a blank line and R.
 
 #### An exempt subject with a malformed record
 
-- **Given** a message with the subject `Merge branch x` and a record with
+- **Given** a message with the subject `Merge branch x`, a blank line and R with
   `Wio-Work: k3 m9xq`.
 - **When** `wio trailers check --require` reads it.
-- **Then** the command exits 1 and reports the line number of the record's
-  `Wio-Work` line.
+- **Then** the command exits 1 and reports line 3, the record's `Wio-Work`
+  line.
 
 ### **AC-7** The findings of the shape check are judged
 
 #### A malformed or invisible record is an error
 
-- **Given** M with `Wio-Work: k3 m9xq`, and M whose record paragraph also holds
-  a prose line, read by the `scan` reader.
+- **Given** M with `Wio-Work: k3 m9xq`, and M with the prose line `Fixes the
+  login bug` added as line 6 of R's paragraph.
 - **When** `wio trailers check --require` reads each.
-- **Then** each exits 1 and reports the line number of the line concerned.
+- **Then** the first exits 1 and reports line 3. The second exits 1 and reports
+  lines 3, 4 and 5 as records the reader cannot see, and that no record was
+  found.
+
+#### A record outside the last paragraph, under `git`
+
+- **Given** the config's reader is `git`, and a message of M, a blank line and
+  a second record of R's form.
+- **When** `wio trailers check --require` reads it.
+- **Then** the command exits 1 and reports lines 3, 4 and 5 as records the
+  reader cannot see.
 
 #### Any bad record of a message is an error
 
-- **Given** a message holding R and then a second record with
-  `Wio-Stage: nosuch`.
+- **Given** a message of M, a blank line and a second record of R's form with
+  `Wio-Stage: nosuch`, which makes its `Wio-Stage` line 9.
 - **When** `wio trailers check --require` reads it.
-- **Then** the command exits 1 and reports the line number of the second
-  record's `Wio-Stage` line.
+- **Then** the command exits 1 and reports line 9.
 
 #### An unknown key is a warning
 

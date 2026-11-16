@@ -40,8 +40,10 @@ refuses a gate stage without one and a non-gate stage with one.
 - **`wio trailers <work> <action> <stage>`** — prints one record paragraph and
   exits 1 when a field is refused.
 - **Record renderer** — the shared renderer that produces the paragraph.
-- **`History` port** — finds a Work that the commit being made deletes, which is
-  in `HEAD` and no longer in the index.
+- **Field validator** — the validator of a record's Work, items, names and
+  result against the config and the Works, which the commit-time check of
+  `vy01kg` reuses, and which includes the read of a Work that is in `HEAD` and
+  no longer in the index through the `History` port.
 
 ## Acceptance criteria
 
