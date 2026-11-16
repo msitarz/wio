@@ -22,7 +22,7 @@ refuses that judge and records the citations and the reviewed commit.
 ## Non-Goals
 
 - Printing the record with its result and judge; the print leaf does that.
-- Finding the reviewed commit; the lookup of that leaf does that.
+- Finding the reviewed commit; the reviewed-commit leaf does that.
 - Writing one record for a list of Works.
 - The `--reviewed` override, and the warnings that compare the reviewed commit
   with the `context` event.
@@ -57,7 +57,8 @@ its types, because `src/wio/models/events.pyi` declares no fields.
 - **The content of the event** — the Work, the action, the stage, the reviewed
   commit as a full sha, the judge, the result, and each cited result, with the
   file hash of a cited rule.
-- **The reviewed commit** — found by the `reviewed_commit` of the lookup leaf,
+- **The reviewed commit** — found by the `reviewed_commit` of the
+  reviewed-commit leaf, from the action and the stage,
   and when it returns `None` the command exits 1 and reports that no reviewed
   commit was found.
 
