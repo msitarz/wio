@@ -20,31 +20,12 @@ commit to a stage.
   and stage, with each field validated against the live config and the Work's
   own item ids.
 - Commit messages and revision ranges are checkable against the live config at
-  commit time (by file or stdin) and over a range in CI.
+  commit time and over a range in CI.
 - Records of a commit range are foldable into a pull request body that
-  survives a squash merge, retiring `records.py`.
+  survives a squash merge.
 - The reviewed commit of a gate is identifiable from the history, even when
   pure gate commits sit on top of it.
 - A gate's result, judge and cited items are recordable with one command.
-
-## Glossary
-
-### Pure gate commit
-
-A commit whose every record belongs to one gate's action and stage, after
-lists are expanded. Used when walking back from HEAD to find where the
-artifact under review ends.
-
-### Fold
-
-Merging consecutive same-action-and-stage records per Work into one, then
-merging consecutive same-shape records across Works into one list. The result
-is a compact history that survives a squash merge.
-
-### Reviewed commit
-
-The first non-pure-gate commit found by following first parents back from
-HEAD. The commit a gate is judging.
 
 ## Assumptions
 
@@ -96,6 +77,9 @@ builds the real adapter. No child wires a real event sink.
 
 ## Visuals
 
+The Before diagram is drawn from `9bfd62b` on `main`; the After diagram is
+the design this Work delivers.
+
 ### Before
 
 ```mermaid
@@ -126,6 +110,18 @@ Validation covers: the Work exists in the working tree or in `HEAD`, the
 item ids are among the Work's own ids, the result is in the vocabulary, and
 a result is present exactly when the stage is a gate. Any failing field
 exits 1 with a diagnostic.
+
+#### Unknown Work refused
+
+- **Given** a Work id that exists neither in the working tree nor in `HEAD`.
+- **When** `wio trailers <work> <action> <stage>` is called.
+- **Then** the command exits 1, prints no record and names the Work.
+
+#### Item id outside the Work refused
+
+- **Given** a Work that has no item `AC-99`.
+- **When** `wio trailers <work> <action> <stage> --items AC-99` is called.
+- **Then** the command exits 1, prints no record and names `AC-99`.
 
 #### Result required exactly on a gate stage
 
@@ -164,10 +160,18 @@ only in the Work become one list. Records that are not consecutive stay apart.
 - **When** `wio trailers fold block` runs on the range.
 - **Then** it prints one record paragraph whose `Wio-Work` lists `a` and `b`.
 
-### **AC-3** The CI workflow uses `wio trailers` after this Work
+### **AC-3** The hook and CI use `wio trailers` after this Work
 
-The `records.yml` workflow calls `wio trailers check --ref-range` and
-`wio trailers fold body` instead of `records.py`. `records.py` is deleted.
+The `commit-msg` hook of `prek.toml` calls `wio trailers check --require`, and
+the `records.yml` workflow calls `wio trailers check --ref-range` and
+`wio trailers fold body`, instead of `records.py`. `records.py` is deleted.
+
+#### The hook rejects a commit with no record
+
+- **Given** a non-exempt commit message with no `Wio-*` record.
+- **When** the `commit-msg` hook runs after this Work.
+- **Then** the commit is rejected and `records.py` is absent from the
+  repository.
 
 #### CI check passes with the updated workflow
 
@@ -176,16 +180,30 @@ The `records.yml` workflow calls `wio trailers check --ref-range` and
 - **Then** it passes using `wio trailers` commands and `records.py` is
   absent from the repository.
 
-### **AC-4** All subcommands use the same configured reader
+#### CI check fails on a malformed commit in the range
 
-Every `wio trailers` subcommand uses the reader named in the project config,
-whether `scan` or `git`.
+- **Given** a pull request range in which one commit carries a `Wio-Work`
+  value that is not a valid id.
+- **When** `wio trailers check --ref-range` reads the range.
+- **Then** the command exits 1 and names that commit.
 
-#### Reader setting picked up by all subcommands
+### **AC-4** Check uses the configured reader
 
-- **Given** a project configured with `reader = "git"`.
-- **When** `wio trailers write`, `check` and `fold` each process a message.
-- **Then** all three use the git reader and not the paragraph scanner.
+`wio trailers check` finds records with the reader named in the project
+config, whether `scan` or `git`.
+
+#### The git reader ignores a record outside the last paragraph
+
+- **Given** a project configured with `reader = "git"` and a message whose
+  `Wio-*` record is followed by a further trailer paragraph.
+- **When** `wio trailers check --require` reads it.
+- **Then** the command exits 1 and reports that no record was found.
+
+#### The scan reader finds the same record
+
+- **Given** a project configured with `reader = "scan"` and the same message.
+- **When** `wio trailers check --require` reads it.
+- **Then** the command exits 0.
 
 ### **AC-5** All subcommands follow the exit-code contract
 
@@ -200,27 +218,48 @@ Every `wio trailers` subcommand exits 0 on success, 1 on a failed check and
 
 #### Check --require exits 1 when no record is present
 
-- **Given** a non-exempt commit message (subject does not start with
-  `Merge `, `Revert `, `Reapply `, `fixup!` or `squash! `) with no
-  `Wio-*` record.
+- **Given** a commit message with no `Wio-*` record whose subject is not
+  exempt, as [concepts.md](../../../../docs/concepts.md#records) says.
 - **When** `wio trailers check --require` reads it.
 - **Then** the command exits 1 and reports that no record was found.
 
+#### A usage error exits 2
+
+- **Given** a call that gives a Work and no action or stage.
+- **When** `wio trailers <work>` runs.
+- **Then** the command exits 2 and prints no record.
+
 ### **AC-6** `--result` identifies the reviewed commit correctly
 
-The reviewed commit is the first commit reachable from HEAD that is not a
-pure gate commit for this gate.
+The reviewed commit is the first commit reachable from HEAD by first parents
+that is not a pure gate commit of this gate, as
+[concepts.md](../../../../docs/concepts.md#records) defines. The `review`
+event handed to the `EventSink` names it.
 
 #### Walk skips one or more pure gate commits
 
 - **Given** commits on HEAD where one or more of the latest carry only
   records for one gate's action and stage, and the next earlier commit is
   the work commit.
-- **When** `wio trailers --result` runs for that gate.
-- **Then** the reviewed commit is the work commit, not any of the gate
-  commits.
+- **When** `wio trailers <work> <action> <stage> --result pass` runs for that
+  gate with a recording `EventSink`.
+- **Then** the sink receives one `review` event whose reviewed commit is the
+  work commit's sha.
 
-### **AC-7** `--result` prints the gate record with its result, judge and cites
+#### A commit with another record is not skipped
+
+- **Given** the latest commit carries this gate's record together with a
+  record of another action or stage.
+- **When** the same command runs.
+- **Then** the reviewed commit is that latest commit.
+
+#### A commit with no record is not skipped
+
+- **Given** the latest commit carries no record.
+- **When** the same command runs.
+- **Then** the reviewed commit is that latest commit.
+
+### **AC-7** `--result` prints the gate record with its result, judge and items
 
 #### The printed record carries what was passed
 
@@ -230,6 +269,22 @@ pure gate commit for this gate.
 - **Then** the printed record paragraph holds `Wio-Result: pass`,
   `Wio-Judge: human` and `Wio-Items: AC-1`, and `wio trailers check` accepts
   it.
+
+#### A cited item is checked
+
+- **Given** a gate stage and a config that chooses no rule `ZZZ999`.
+- **When** `wio trailers <work> <action> <stage> --result pass --cite
+  ZZZ999=fail` runs.
+- **Then** the command exits 1, prints no record and names `ZZZ999`.
+
+#### A cited item reaches the review event
+
+- **Given** a gate stage, a Work with an item `AC-1` and a recording
+  `EventSink`.
+- **When** `wio trailers <work> <action> <stage> --result pass --cite
+  AC-1=pass` runs.
+- **Then** the sink receives one `review` event citing `AC-1` with the result
+  `pass`.
 
 #### A result outside the vocabulary is refused
 
