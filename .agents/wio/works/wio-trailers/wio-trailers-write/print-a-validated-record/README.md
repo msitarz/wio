@@ -37,9 +37,7 @@ may add the rest.
 ## Mechanisms
 
 - **`wio trailers <work> <action> <stage> [--items IDS] [--result RESULT]
-  [--judge JUDGE] [--cite CITES]`** — prints the record on standard output, and
-  a first argument that names a subcommand, such as `check` or `fold`, goes to
-  that subcommand instead.
+  [--judge JUDGE] [--cite CITES]`** — prints the record on standard output.
 - **The record** — one paragraph of `Key: value` lines in the order `Wio-Work`,
   `Wio-Action`, `Wio-Stage`, `Wio-Items`, `Wio-Result` and `Wio-Judge`, ending
   with one newline, with the `IDS` separated by a comma on the command line and
@@ -48,8 +46,9 @@ may add the rest.
   `agent` by default and `human` or `agent` with `--judge`, as concepts.md says,
   and `--judge` without a result is refused.
 - **`--cite`** — is accepted and ignored here, and the gate leaf handles it.
-- **Checks** — the command applies the shape leaf's form check to the record it
-  builds, and only when that finds nothing the validator of the validator leaf,
+- **Checks** — the command applies `check_shape` of the shape leaf, with either
+  reader, to the record it builds, and only when that finds nothing
+  `validate_record` of the validator leaf,
   with the working tree as its source of Works through the lookup leaf's
   adapter, whose fallback to `HEAD` finds a Work that the commit deletes.
 - **Output of the checks** — each shape finding prints as `error: <key>:
@@ -57,6 +56,8 @@ may add the rest.
   `<severity>: <where>: <message>` with `<where>` the key of the field, on
   standard error in the order they come, and nothing is printed on standard
   output when there is an error.
+- **Other refusals** — `--judge` without a result and an empty or multi-line
+  argument print in the same `error: <key>: <message>` form.
 - **An empty or multi-line argument** — is refused as that field's finding, so
   an argument cannot inject a line into the record.
 - **Exit codes** — 0 on success or a warning, 1 when a field is refused, and 2
@@ -64,8 +65,8 @@ may add the rest.
   cannot be read.
 - **`render(fields: Mapping[str, str]) -> str`** — the record renderer, built
   here in `wio.formats`, which renders the six keys in that order whatever the
-  order of `fields`, refuses a key outside the six, and which the gate leaf
-  reuses.
+  order of `fields`, refuses a key outside the six by raising `ValueError` that
+  names the key, and which the gate leaf reuses.
 
 ## Acceptance criteria
 
@@ -90,10 +91,11 @@ which lists the stages `architecture`, which is not a gate, and
 
 - **Given** the gate stage `architecture-review`.
 - **When** `wio trailers k3m9xq deliver architecture-review --items AC-1
-  --result pass` runs, and again with `--judge human`.
+  --result pass` runs, and again with `--judge human` and with
+  `--judge agent`.
 - **Then** each prints exactly the lines `Wio-Work: k3m9xq`,
-  `Wio-Action: deliver`, `Wio-Stage: architecture-review`, `Wio-Items: AC-1`
-  and `Wio-Result: pass`, then `Wio-Judge: agent` for the first and
+  `Wio-Action: deliver`, `Wio-Stage: architecture-review`, `Wio-Items: AC-1` and
+  `Wio-Result: pass`, then `Wio-Judge: agent` for the first and the third and
   `Wio-Judge: human` for the second, and exits 0.
 
 #### A Work that only `HEAD` has
@@ -108,8 +110,8 @@ which lists the stages `architecture`, which is not a gate, and
 - **Given** the gate stage `architecture-review`.
 - **When** `wio trailers k3m9xq deliver architecture-review --result pass
   --cite AC-1=pass` runs.
-- **Then** it prints the record of the same command without `--cite`, exits 0
-  and sends no event.
+- **Then** its standard output and standard error equal those of the same
+  command without `--cite`, and it exits 0.
 
 ### **AC-2** A refused field prints no record
 
@@ -151,8 +153,8 @@ which lists the stages `architecture`, which is not a gate, and
   `wio trailers k3m9xq deliver architecture-review --result pass --judge robot`
   run.
 - **Then** each exits 1, prints nothing on standard output and prints one
-  `error:` line on standard error that names `Wio-Items`, `Wio-Work` and
-  `Wio-Judge`, and no line from the validator.
+  `error:` line followed by its offending line on standard error that names
+  `Wio-Items`, `Wio-Work` and `Wio-Judge`, and no line from the validator.
 
 #### A judge without a result
 
@@ -164,11 +166,12 @@ which lists the stages `architecture`, which is not a gate, and
 #### An empty or multi-line argument
 
 - **Given** `k3m9xq`.
-- **When** `wio trailers k3m9xq deliver architecture --items ""` and
-  `wio trailers k3m9xq deliver architecture --items $'AC-1\nWio-Result: pass'`
-  run.
+- **When** `wio trailers k3m9xq deliver architecture --items ""`,
+  `wio trailers k3m9xq deliver architecture --items $'AC-1\nWio-Result: pass'`,
+  `wio trailers k3m9xq deliver architecture-review --result
+  $'pass\nWio-Judge: human'` and `wio trailers k3m9xq deliver ""` run.
 - **Then** each exits 1, prints nothing on standard output and names
-  `Wio-Items` on standard error.
+  `Wio-Items`, `Wio-Items`, `Wio-Result` and `Wio-Stage` on standard error.
 
 ### **AC-4** A stage outside the Work's pipeline is a warning
 
@@ -211,4 +214,4 @@ which lists the stages `architecture`, which is not a gate, and
   `Wio-Action: deliver`.
 - **When** `render` runs, and again with a field `Wio-Nope: x` added.
 - **Then** the first returns the six lines in the order of the keys, each ending
-  with a newline, and the second refuses the key `Wio-Nope`.
+  with a newline, and the second raises `ValueError` naming `Wio-Nope`.
