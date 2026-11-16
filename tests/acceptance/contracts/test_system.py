@@ -217,8 +217,8 @@ def _problems(output: Output) -> list[tuple[str, str, str]]:
     Returns:
         One tuple for each line.
     """
-    lines = output.stdout.splitlines()
-    return [tuple(line.split(": ", maxsplit=2)) for line in lines]  # type: ignore[misc]
+    parts = (line.split(": ", maxsplit=2) for line in output.stdout.splitlines())
+    return [(severity, place, message) for severity, place, message in parts]
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -255,6 +255,7 @@ def test_check_reports_every_problem_of_the_tree_in_one_run_and_in_one_order(
     places = " ".join(place for _, place, _ in _problems(text))
     assert f"{WORKS}/s1/README.md" in text.stdout
     assert f"{WORKS}/s2/README.md" in text.stdout
+    assert f"{WORKS}/x/README.md" in text.stdout
     assert "x2x2x2" in text.stdout
     assert "y3y3y3" in text.stdout
     assert f"{WORKS}/r/README.md" in places

@@ -76,15 +76,18 @@ def test_no_command_changes_a_contract() -> None:
     leaf = _leaves()[0]
 
     # When `list`, `show`, `skeleton feature.parent --work <leaf>` and `check` run
-    for arguments in (
-        ("list",),
-        ("show", leaf),
-        ("skeleton", "feature.parent", "--work", leaf),
-        ("check",),
-    ):
-        _wio("contracts", *arguments)
+    codes = [
+        _wio("contracts", *arguments).returncode
+        for arguments in (
+            ("list",),
+            ("show", leaf),
+            ("skeleton", "feature.parent", "--work", leaf),
+            ("check",),
+        )
+    ]
 
-    # Then the hash of every contract is unchanged
+    # Then each succeeded and the hash of every contract is unchanged
+    assert codes == [0, 0, 0, 0]
     assert before
     assert hash_files(WORKS) == before
 

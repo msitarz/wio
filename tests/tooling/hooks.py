@@ -10,6 +10,7 @@ never called the check.
 
 import json
 import os
+import shlex
 import shutil
 import stat
 import subprocess
@@ -181,11 +182,7 @@ def run_prek(
     shim_dir = tmp_path / "shim"
     shim_dir.mkdir()
     shim = shim_dir / "uv"
-    shim.write_text(
-        FORWARDING_UV
-        if wio is not None
-        else FORWARDING_UV.replace("$WIO_COMMAND", f'"{bin_dir / "wio"}"')
-    )
+    shim.write_text(FORWARDING_UV)
     shim.chmod(shim.stat().st_mode | stat.S_IXUSR)
     env = {
         **os.environ,
@@ -193,7 +190,8 @@ def run_prek(
         "HOME": str(tmp_path / "home"),
         "PREK_HOME": str(tmp_path / "prek-home"),
         "NO_COLOR": "1",
-        **({} if wio is None else {"WIO_COMMAND": wio, **_uv_cache()}),
+        "WIO_COMMAND": wio or shlex.quote(str(bin_dir / "wio")),
+        **({} if wio is None else _uv_cache()),
     }
     (tmp_path / "home").mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, env=env, check=True)
