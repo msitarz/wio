@@ -153,6 +153,7 @@ extend-select = [
 ]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
+"json".msg = "Encode JSON with `wio.formats.encode_json`, the one encoder."
 "tomllib".msg = "Decode TOML with `wio.formats.decode_toml`, which reports where a syntax error is."
 "tomlkit".msg = "Write TOML with `wio.formats.encode_toml`, the one writer."
 "difflib".msg = "Suggest the closest key with `wio.formats.closest_key`, the one place that knows `difflib`."
@@ -181,7 +182,7 @@ known-first-party = ["wio"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "D", "PLR2004", "TID251"]
 "scripts/**" = ["TID251"]
-"src/wio/formats/**" = ["TID251"]  # the one place that may import tomllib, tomlkit, markdown_it and difflib
+"src/wio/formats/**" = ["TID251"]  # the one place that may import json, tomllib, tomlkit, markdown_it and difflib
 "src/wio/env/adapters.py" = ["TID251"]  # the one place that may read the working directory
 "*.pyi" = ["PYI048", "PIE790"]  # stubs carry a docstring plus `...`
 

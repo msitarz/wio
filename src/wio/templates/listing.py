@@ -5,7 +5,8 @@ import re
 from itertools import groupby
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
-lazy import json
+
+lazy from wio.formats import encode_json
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -36,7 +37,7 @@ def render_list(templates: Iterable[Template], *, as_json: bool) -> str:
     """
     ordered = sorted(templates, key=lambda template: (template.kind, template.name))
     if as_json:
-        return json.dumps([_as_object(template) for template in ordered]) + "\n"
+        return encode_json([_as_object(template) for template in ordered]) + "\n"
     groups = (
         _group(kind, list(members))
         for kind, members in groupby(ordered, key=lambda template: template.kind)

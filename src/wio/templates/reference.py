@@ -3,7 +3,8 @@
 
 from dataclasses import asdict
 from typing import TYPE_CHECKING
-lazy import json
+
+lazy from wio.formats import encode_json
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -61,7 +62,7 @@ def _as_json(sections: Sequence[tuple[str, Sequence[DirectiveSpec]]]) -> str:
         The object, with an array for each key, ending in a line ending.
     """
     found = {key: [asdict(spec) for spec in specs] for key, specs in sections}
-    return json.dumps(found) + "\n"
+    return encode_json(found) + "\n"
 
 
 def _as_text(sections: Sequence[tuple[str, Sequence[DirectiveSpec]]]) -> str:

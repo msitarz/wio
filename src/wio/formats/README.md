@@ -6,6 +6,12 @@ touches no file and raises a `WioError` when the text is wrong, so a model in
 [v0.1 scope](../../../docs/v0.1-scope.md#wioformats-internal) lists what the
 package holds.
 
+## The JSON encoder
+
+`encode_json` in [`diagnostics.py`](diagnostics.py) is the one JSON encoder. It
+keeps the standard library behind this package and loads it only when JSON is
+needed.
+
 ## The TOML decoder
 
 `decode_toml` in [`toml.py`](toml.py) is the one door for TOML: every file wio
