@@ -2,27 +2,27 @@
 id = "jyhy64"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["eh62g6"]
+depends_on = ["eh62g6", "92xps9"]
 -->
 
 # Record a gate's result
 
 ## Purpose
 
-A gate's review leaves no trace of the items it cited or of the commit it saw,
-and a gate that needs a human can be recorded as judged by an agent, so the
-engine records the citations and the reviewed commit and refuses that judge.
+A gate that needs a human can be recorded as judged by an agent, and a review
+leaves no trace of the items it cited or of the commit it saw, so the engine
+refuses that judge and records the citations and the reviewed commit.
 
 ## Goals
 
 - A gate that needs a human is never recorded as judged by an agent.
-- The items a review cites are checked and sent with the result.
-- The commit a review judged is found from the history, past the pure gate
-  commits above it, and named in the `review` event.
+- The items and rules a review cites are checked and sent with the result.
+- The commit a review judged is named in the `review` event.
 
 ## Non-Goals
 
 - Printing the record with its result and judge; the print leaf does that.
+- Finding the reviewed commit; the lookup of that leaf does that.
 - Writing one record for a list of Works.
 - The `--reviewed` override, and the warnings that compare the reviewed commit
   with the `context` event.
@@ -36,89 +36,100 @@ engine records the citations and the reviewed commit and refuses that judge.
 
 ### A-1
 
-The reviewed commit is the one that concepts.md defines: the first commit
-reachable from `HEAD` by first parents that is not a pure gate commit of this
-gate.
+A key of `--cite` is an item id when the Work has that item, and otherwise it
+must be a qualified `ruleset.CODE` that the stage's rules contain, which settles
+the open point of concepts.md about telling them apart.
+
+### A-2
+
+The `review` event holds what concepts.md lists, and the `wio log` Work fixes
+its types, because `src/wio/models/events.pyi` declares no fields.
 
 ## Mechanisms
 
-- **`wio trailers <work> <action> <stage> --result RESULT --cite ITEM=RESULT`**
-  — extends the print leaf's command: it refuses `agent` for a gate with
-  `judge = "human"`, checks the cited items, and hands the `review` event to the
-  `EventSink`.
-- **`History` port** — gives the commits from `HEAD` for the walk.
-- **`EventSink` port** — receives the `review` event.
+- **`wio trailers <work> <action> <stage> --result RESULT --cite KEY=RESULT`**
+  — extends the print leaf's command, with `--cite` repeatable and refused
+  without `--result` or with a key repeated, and a refusal prints on standard
+  error as `error: <key>: <message>`.
+- **The event** — `EventSink.write(ReviewEvent)`, written once after every check
+  passed, never on a refusal, still after a warning, and whose failure never
+  changes the exit code.
+- **The content of the event** — the Work, the action, the stage, the reviewed
+  commit as a full sha, the judge, the result, and each cited result, with the
+  file hash of a cited rule.
+- **The reviewed commit** — found by the `reviewed_commit` of the lookup leaf,
+  and when it returns `None` the command exits 1 and reports that no reviewed
+  commit was found.
 
 ## Acceptance criteria
+
+The examples use a Work `k3m9xq`, hypothetical, with the items `AC-1` and
+`AC-3`, and the gate `docs-review`, whose config says `judge = "human"`. A
+recording `EventSink` is injected, and the history holds a work commit under a
+pure gate commit.
 
 ### **AC-1** A human gate refuses an agent
 
 #### An agent for a gate with `judge = "human"`
 
-- **Given** a gate stage whose config says `judge = "human"`.
-- **When** `wio trailers <work> <action> <stage> --result pass` runs, and when
-  it runs with `--judge agent`.
-- **Then** each exits 1, prints no record and says the gate needs a human judge.
+- **Given** `k3m9xq` and `docs-review`.
+- **When** `wio trailers k3m9xq deliver docs-review --result pass` runs, and
+  again with `--judge agent`.
+- **Then** each exits 1, prints nothing on standard output, prints
+  `error: Wio-Judge:` on standard error and the sink receives no event.
 
-#### A human for a gate with `judge = "human"`
+#### A human for the same gate
 
-- **Given** the same gate stage.
-- **When** `wio trailers <work> <action> <stage> --result pass --judge human`
-  runs.
-- **Then** the printed record holds `Wio-Judge: human`.
+- **Given** the same gate.
+- **When** the command runs with `--judge human`.
+- **Then** the printed record holds `Wio-Judge: human`, it exits 0 and the sink
+  receives one event.
 
-### **AC-2** The cited items are checked
+### **AC-2** The cited items and rules are checked
 
-#### A rule code the config does not choose
+#### A cite that is refused
 
-- **Given** a gate stage and a config that chooses no rule `ZZZ999`.
-- **When** `wio trailers <work> <action> <stage> --result pass --cite
-  ZZZ999=fail` runs.
-- **Then** the command exits 1, prints no record and names `ZZZ999`.
+- **Given** `k3m9xq`, and a rule `contracts.CON001` that the stage's rules do
+  not contain.
+- **When** the command runs with `--cite contracts.CON001=fail`,
+  `--cite AC-99=pass`, `--cite AC-1=maybe`, `--cite AC-1=pass --cite AC-1=fail`
+  and `--cite AC-1=pass` without `--result`.
+- **Then** each exits 1, prints nothing on standard output, names the key on
+  standard error, and the sink receives no event.
 
-#### An item id outside the Work
+#### A cite that is accepted
 
-- **Given** a Work that has no item `AC-99`.
-- **When** the same command runs with `--cite AC-99=pass`.
-- **Then** the command exits 1, prints no record and names `AC-99`.
+- **Given** `k3m9xq` and a rule `docs.DOC001` that the stage's rules contain.
+- **When** the command runs with `--cite AC-1=pass --cite docs.DOC001=fail`.
+- **Then** it exits 0 and the sink receives one event that cites `AC-1` with
+  `pass` and `docs.DOC001` with `fail` and the file hash of `docs.DOC001`.
 
-#### A cited result outside the vocabulary
+### **AC-3** The event names the reviewed commit and the judgment
 
-- **Given** a Work with an item `AC-1`.
-- **When** the same command runs with `--cite AC-1=maybe`.
-- **Then** the command exits 1, prints no record and names `maybe`.
+#### The event of a cited review
 
-### **AC-3** The reviewed commit is found past the pure gate commits
-
-#### One or more pure gate commits above the work commit
-
-- **Given** commits on `HEAD` where one or more of the latest carry only
-  records for this gate's action and stage, and the next earlier commit is the
-  work commit, and a recording `EventSink`.
-- **When** `wio trailers <work> <action> <stage> --result pass` runs.
-- **Then** the sink receives one `review` event whose reviewed commit is the
-  work commit's sha.
-
-#### A commit with another record is not skipped
-
-- **Given** the latest commit carries this gate's record together with a record
-  of another action or stage.
-- **When** the same command runs.
-- **Then** the reviewed commit is that latest commit.
-
-#### A commit with no record is not skipped
-
-- **Given** the latest commit carries no record.
-- **When** the same command runs.
-- **Then** the reviewed commit is that latest commit.
-
-### **AC-4** The review event carries the judgment
-
-#### The event for a cited review
-
-- **Given** a gate stage, a Work with an item `AC-1` and a recording
-  `EventSink`.
-- **When** `wio trailers <work> <action> <stage> --result pass --judge human
+- **Given** `k3m9xq`, a history of the pure gate commit `c2` above the work
+  commit `c1`, and a recording `EventSink`.
+- **When** `wio trailers k3m9xq deliver docs-review --result pass --judge human
   --cite AC-1=pass` runs.
-- **Then** the sink receives one `review` event naming the Work, action, stage,
-  reviewed commit, the judge `human`, the result `pass` and `AC-1` with `pass`.
+- **Then** the sink receives one event with `k3m9xq`, the action, `docs-review`,
+  the full sha of `c1`, the judge `human`, the result `pass` and `AC-1` with
+  `pass`.
+
+#### A history with no reviewed commit
+
+- **Given** a history of commits that each carry only a gate record.
+- **When** the same command runs.
+- **Then** it exits 1, reports that no reviewed commit was found and the sink
+  receives no event.
+
+### **AC-4** The event is written once and never fails the command
+
+#### A warning, and a sink that fails
+
+- **Given** the gate `system-review`, which `k3m9xq`'s `deliver` does not list,
+  and a sink whose write fails.
+- **When** `wio trailers k3m9xq deliver system-review --result pass` runs with a
+  working sink and with the failing one.
+- **Then** the first prints its warning and the sink receives one event, and the
+  second still exits 0.
