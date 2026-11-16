@@ -95,8 +95,11 @@ where each comes from, and its contract with what its ancestors pass on.
   gives is not shown. A template that is missing from the catalog or rejected
   gives no actions, so the Work's own are all there is. A Work that resolves to
   no action is still shown, because `check` reports it and `show` is how a
-  person finds the Work to fix: `Actions` is followed by the line `none`,
-  indented two spaces, and the JSON `actions` is an empty array.
+  person finds the Work to fix. When there is no action line to print,
+  `Actions` is followed by the line `none`, indented two spaces, and the JSON
+  `actions` is an empty array. A Work whose actions the contract has all
+  removed prints the `removed (by the contract)` lines instead, and its JSON has
+  them.
 - **A path or an id.** An argument that contains `/` or ends in `.md` is a path,
   resolved against the working directory, and any other is an id. An id that
   contains `/` or ends in `.md` can therefore be shown only by its path, which
