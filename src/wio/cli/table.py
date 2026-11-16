@@ -96,17 +96,19 @@ def _templates() -> Command:
 
 
 def _contracts() -> Command:
-    """Wire `wio contracts` to the disk, the repository, the config and the templates.
+    """Wire `wio contracts` to the project's ports and the system's randomness.
 
     Returns:
-        The command, whose subcommands read the project through the adapters and
-        find the templates through the catalog of `wio.templates`.
+        The command, whose subcommands read the project through the adapters, find
+        the templates through the catalog of `wio.templates` and draw ids from the
+        system's randomness.
     """
     repository = io.GitRepository(env.ProcessEnvironment())
     files = io.LocalFileSystem()
     settings = ConfigSettings(repository, files)
     catalog = TemplatesCatalog(settings, repository, files)
-    return ContractsCommand(Services(settings, repository, files, catalog))
+    entropy = env.SystemEntropy()
+    return ContractsCommand(Services(settings, repository, files, catalog, entropy))
 
 
 COMMANDS: Final[Sequence[Entry]] = (

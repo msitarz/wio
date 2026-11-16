@@ -132,6 +132,23 @@ case reads. [Parent and leaf](../../../docs/concepts.md#parent-and-leaf),
   `@descendants` on a leaf belong to the command that checks Works, which reads
   the tables.
 
+## Creating a Work
+
+[`creation.py`](creation.py) composes the template catalog, skeleton, metadata
+editor, location decision and write guard to create a Work. Its docstrings give
+the selection, validation and report rules; the
+[unit tests](../../../tests/unit/contracts/test_creation.py) and
+[acceptance scenarios](../../../tests/acceptance/contracts/test_new.py) show
+the cases. The [metadata editor](../formats/README.md#editing-contract-metadata)
+is shared with the planned skeleton command, so neither command needs its own
+interpretation of a block.
+
+Creation plans before it writes, so an invalid request cannot leave a partial
+Work, and reports only after the guard succeeds. Its parent lookup is shared
+with the hierarchy, so a path under an existing Work and a path chosen by
+`--parent` follow the same nesting rule. The command leaves filling in the body
+and checking the resulting contract to the workflow.
+
 ## The id and the place of a new Work
 
 A new Work needs an id that no Work in the tree has and a place that cannot

@@ -57,7 +57,12 @@ Single tools, for quick feedback:
 - Give every test `# Given`, `# When` and `# Then` comments, in that order, each
   describing its section (see `tests/README.md`).
 - Write a Google-style docstring for every module, class and function, private
-  helpers too. Ruff enforces it only for public names.
+  helpers too. Ruff enforces it only for public names. Describe what a caller
+  or maintainer needs to know: purpose, observable guarantees, important
+  boundaries and failures. Keep details needed to preserve those guarantees,
+  but omit a walkthrough of the implementation and facts evident from the
+  signature; refer to a helper for its own guarantees rather than repeating
+  them. This keeps the contract useful to people and agents as code changes.
 - A `.pyi` stub carries a docstring for each item. Stubs are the architecture
   spec, so say what each item guarantees.
 - Write output with `sys.stdout`, not `print`.

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Final
 
 lazy from wio.contracts.checking import run_check
 lazy from wio.contracts.command import ContractsCommand
+lazy from wio.contracts.creation import run_new
 lazy from wio.contracts.discovery import (
     WorkDiscovery,
     discover_works,
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from wio.contracts.ports import TemplateCatalog
+    from wio.env.ports import Entropy
     from wio.io.ports import FileSystem, Repository, Stdio
     from wio.ports import Settings
 
@@ -39,19 +41,21 @@ if TYPE_CHECKING:
 class Services:
     """What a subcommand reads the project through.
 
-    Provisional: a leaf that needs another port, such as randomness, adds a field.
+    Provisional: a leaf that needs another port adds a field.
 
     Attributes:
         settings: Loads the config.
         repository: Finds the repository root.
         files: Lists and reads files.
         catalog: Finds the templates of the project.
+        entropy: Gives the random bytes of a new id.
     """
 
     settings: Settings
     repository: Repository
     files: FileSystem
     catalog: TemplateCatalog
+    entropy: Entropy
 
 
 @dataclass(frozen=True)
@@ -81,6 +85,8 @@ _CHECK_HELP = "Report every problem of the Works."
 _CHECK_JSON = "Write one JSON array of the problems instead of the text."
 _LIST_HELP = "List the Works with their hierarchy and their overrides."
 _LIST_JSON = "Write one JSON array of the Works instead of the text."
+_NEW_HELP = "Create a Work from a template or as a bare contract."
+_NEW_JSON = "Write one JSON object describing the created Work."
 
 
 def _json_option(parser: ArgumentParser, *, help: str) -> None:  # noqa: A002
@@ -121,9 +127,40 @@ def _list(services: Services, args: Namespace, stdio: Stdio) -> int:
     return run_list(services, args, stdio)
 
 
+def _configure_new(parser: ArgumentParser) -> None:
+    """Add the options that choose and name a new Work.
+
+    Args:
+        parser: The subparser.
+    """
+    parser.add_argument("kind", nargs="?", help="Kind whose entry template to use.")
+    parser.add_argument("--template", help="Template to use.")
+    parser.add_argument("--parent", help="Id of the parent Work.")
+    parser.add_argument("--slug", help="Name of the Work's directory.")
+    parser.add_argument("--title", help="Title of the Work.")
+    parser.add_argument("--path", help="Path of the new contract.")
+    parser.add_argument("--root", action="append", default=[], help="Root to add.")
+    _json_option(parser, help=_NEW_JSON)
+
+
+def _new(services: Services, args: Namespace, stdio: Stdio) -> int:
+    """Run the new Work subcommand through its leaf.
+
+    Args:
+        services: What the subcommand reads the project through.
+        args: The parsed arguments.
+        stdio: Where the output goes.
+
+    Returns:
+        The exit code.
+    """
+    return run_new(services, args, stdio)
+
+
 SUBCOMMANDS: Final[Sequence[Subcommand]] = (
     Subcommand("check", _CHECK_HELP, partial(_json_option, help=_CHECK_JSON), _check),
     Subcommand("list", _LIST_HELP, partial(_json_option, help=_LIST_JSON), _list),
+    Subcommand("new", _NEW_HELP, _configure_new, _new),
 )
 """The subcommands of `wio contracts`, to which each leaf adds its own entry.
 

@@ -13,7 +13,7 @@ from wio.formats.errors import (
     TemplateDirectiveError,
 )
 from wio.formats.outline import read_outline
-from wio.formats.writer import encode_toml
+from wio.formats.writer import encode_comment_toml, encode_toml
 
 if TYPE_CHECKING:
     from wio.models.block import BlockForm, MetadataBlock
@@ -113,9 +113,10 @@ def _write_block(form: BlockForm, data: Mapping[str, object], ending: str) -> st
     Returns:
         The block, ending in a line ending; front matter starts with the marker.
     """
-    toml = encode_toml(data).replace("\n", ending)
     if form == "comment":
+        toml = encode_comment_toml(data).replace("\n", ending)
         return f"<!-- wio{ending}{toml}-->{ending}"
+    toml = encode_toml(data).replace("\n", ending)
     return f"+++{ending}wio = 1{ending}{toml}+++{ending}"
 
 

@@ -5,6 +5,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.contracts.roots import DESCENDANTS
 from wio.models.diagnostics import Diagnostic, order_diagnostics
 from wio.models.frozen import freeze
 
@@ -15,7 +16,6 @@ if TYPE_CHECKING:
     from wio.models.config import HierarchyMode
     from wio.models.works import Work
 
-_DESCENDANTS = "@descendants"
 _LISTED = "listed in depends_on"
 _CHILD = "a parent waits for its child"
 type _Graph = Mapping[Path, Mapping[Path, str]]
@@ -128,6 +128,52 @@ class _Relatives:
     descendants: Mapping[Path, tuple[Work, ...]]
 
 
+def parent_of(path: Path, works: Sequence[Work], mode: HierarchyMode) -> Work | None:
+    """Find the Work that would be the parent of a file.
+
+    It is the rule that `build_hierarchy` applies to every Work, for a file that
+    may not be a Work yet, such as the one that `wio contracts new` is about to
+    write, whether its place came from `--parent` or from `--path`.
+
+    Args:
+        path: The file, relative to the repository root.
+        works: The Works that exist.
+        mode: The hierarchy mode of the config.
+
+    Returns:
+        The Work of the nearest directory above the file's own that holds a Work,
+        or `None` when none does, and always under `flat`.
+    """
+    above = _above(path, _homes(works, mode))
+    return above[0] if above else None
+
+
+def _homes(works: Sequence[Work], mode: HierarchyMode) -> dict[Path, Work]:
+    """Map each directory that holds a Work to the Work.
+
+    Args:
+        works: The Works.
+        mode: The hierarchy mode; under `flat` no directory holds a parent.
+
+    Returns:
+        The map, empty under `flat`.
+    """
+    return {work.path.parent: work for work in works} if mode == "nesting" else {}
+
+
+def _above(path: Path, homes: Mapping[Path, Work]) -> tuple[Work, ...]:
+    """Find the Works whose directory is above a file's own, nearest first.
+
+    Args:
+        path: The file.
+        homes: The directories that hold a Work.
+
+    Returns:
+        The Works of the directories above the file's own that are in `homes`.
+    """
+    return tuple(homes[d] for d in path.parent.parents if d in homes)
+
+
 def _relatives(works: Sequence[Work], mode: HierarchyMode) -> _Relatives:
     """Derive the parent, children, ancestors and descendants from the paths.
 
@@ -138,11 +184,8 @@ def _relatives(works: Sequence[Work], mode: HierarchyMode) -> _Relatives:
     Returns:
         Each table with a key for every Work.
     """
-    homes = {work.path.parent: work for work in works} if mode == "nesting" else {}
-    ancestors = {
-        work.path: tuple(homes[d] for d in work.path.parent.parents if d in homes)
-        for work in works
-    }
+    homes = _homes(works, mode)
+    ancestors = {work.path: _above(work.path, homes) for work in works}
     children = _grouped(works, lambda work: ancestors[work.path][:1])
     descendants = _grouped(works, lambda work: ancestors[work.path])
     return _Relatives(
@@ -208,8 +251,8 @@ def _roots_of(
         its children resolves to, each name once and sorted.
     """
     if work.path not in resolved:
-        kids = children[work.path] if _DESCENDANTS in work.roots else ()
-        names = {root for root in work.roots if root != _DESCENDANTS}
+        kids = children[work.path] if DESCENDANTS in work.roots else ()
+        names = {root for root in work.roots if root != DESCENDANTS}
         names.update(*(_roots_of(kid, children, resolved) for kid in kids))
         resolved[work.path] = tuple(sorted(names))
     return resolved[work.path]

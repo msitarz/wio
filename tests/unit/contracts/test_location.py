@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, override
 import pytest
 
 from tests.unit.contracts.helpers import work_with_id
-from tests.unit.fakes import ROOT, MemoryFileSystem
+from tests.unit.fakes import ROOT, FakeEntropy, MemoryFileSystem
 from wio.contracts import (
     ContractsError,
     NameArguments,
@@ -23,7 +23,7 @@ from wio.contracts import (
 from wio.models.config import Works as WorksSettings
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, Sequence
+    from collections.abc import Iterable, Mapping
 
     from wio.models.config import HierarchyMode
 
@@ -508,34 +508,14 @@ def test_under_flat_a_path_may_be_at_the_top_or_beside_a_work() -> None:
     assert [p.as_posix() for p in found] == [f"{WORKS}/top.md", f"{WORKS}/p/other.md"]
 
 
-@dataclass
-class _Entropy:
-    """An `Entropy` that gives prepared bytes, the last again after them."""
-
-    calls: Sequence[bytes]
-    counts: list[int] = field(default_factory=list)
-
-    def random_bytes(self, count: int) -> bytes:
-        """Give the next prepared bytes.
-
-        Args:
-            count: How many bytes were asked for.
-
-        Returns:
-            The next call's bytes, or the last when none is left.
-        """
-        self.counts.append(count)
-        return self.calls[min(len(self.counts), len(self.calls)) - 1]
-
-
 def test_an_id_is_drawn_from_the_bytes_until_it_is_free() -> None:
     """A candidate that a Work has is drawn again."""
     # Given bytes 0 to 5, then 6 to 11, an empty tree and one with `012345`
     first, second = bytes(range(6)), bytes(range(6, 12))
 
     # When an id is drawn for each
-    free = new_id(RandomIds(_Entropy([first, second])), [])
-    taken = new_id(RandomIds(_Entropy([first, second])), [work_with_id("012345")])
+    free = new_id(RandomIds(FakeEntropy([first, second])), [])
+    taken = new_id(RandomIds(FakeEntropy([first, second])), [work_with_id("012345")])
 
     # Then they are `012345` and `6789ab`, of the alphabet only
     assert (free, taken) == ("012345", "6789ab")
@@ -545,7 +525,7 @@ def test_an_id_is_drawn_from_the_bytes_until_it_is_free() -> None:
 def test_only_the_low_five_bits_of_a_byte_make_a_character() -> None:
     """Bytes above 31 wrap around the alphabet."""
     # Given bytes 255, 32, 33, 250, 128 and 31
-    entropy = _Entropy([bytes([255, 32, 33, 250, 128, 31])])
+    entropy = FakeEntropy([bytes([255, 32, 33, 250, 128, 31])])
 
     # When an id is drawn
     found = new_id(RandomIds(entropy), [])
@@ -561,10 +541,10 @@ def test_a_shared_id_is_taken_and_the_draw_gives_up_after_100_tries() -> None:
     # that repeats its bytes
     first, second = bytes(range(6)), bytes(range(6, 12))
     shared = [work_with_id("012345"), work_with_id("012345")]
-    stuck = _Entropy([first])
+    stuck = FakeEntropy([first])
 
     # When an id is drawn for each
-    drawn = new_id(RandomIds(_Entropy([first, second])), shared)
+    drawn = new_id(RandomIds(FakeEntropy([first, second])), shared)
     with pytest.raises(ContractsError) as raised:
         new_id(RandomIds(stuck), [work_with_id("012345")])
 

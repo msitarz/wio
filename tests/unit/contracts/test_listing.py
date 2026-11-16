@@ -8,7 +8,13 @@ from typing import TYPE_CHECKING, Literal, cast
 
 import pytest
 
-from tests.unit.fakes import ROOT, FakeRepository, FakeStdio, MemoryFileSystem
+from tests.unit.fakes import (
+    ROOT,
+    FakeEntropy,
+    FakeRepository,
+    FakeStdio,
+    MemoryFileSystem,
+)
 from wio.contracts import ContractsError, Services
 from wio.contracts.hierarchy import build_hierarchy
 from wio.contracts.listing import render_list, run_list
@@ -348,7 +354,9 @@ def _list(
         The exit code and what was written to standard output.
     """
     disk = MemoryFileSystem({ROOT / BASE / name: text for name, text in files.items()})
-    services = Services(_Settings(mode), FakeRepository(), disk, _NoCatalog())
+    services = Services(
+        _Settings(mode), FakeRepository(), disk, _NoCatalog(), FakeEntropy()
+    )
     stdio = FakeStdio()
     code = run_list(services, Namespace(json=as_json), stdio)
     return code, cast("io.StringIO", stdio.stdout).getvalue()

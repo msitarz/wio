@@ -8,6 +8,7 @@ from wio.contracts.actions import resolve_actions, template_actions
 from wio.contracts.body import BodyChecker
 from wio.contracts.discovery import discover_works, wrong_optional_fields
 from wio.contracts.hierarchy import build_hierarchy
+from wio.contracts.roots import DESCENDANTS, undeclared_root
 from wio.formats.errors import MetadataBlockError
 from wio.models.diagnostics import Diagnostic, has_error, order_diagnostics
 lazy from wio.formats import closest_key, read_metadata_block, render_check
@@ -31,8 +32,6 @@ PASSES: Final = "The contracts pass."
 """What the command says when the check has nothing to report."""
 _KNOWN_KEYS: Final = ("id", "template", "roots", "depends_on", "actions")
 """The keys of the metadata that wio reads, which an unknown key is compared to."""
-_DESCENDANTS: Final = "@descendants"
-"""The root entry that stands for the roots of the descendants."""
 _RESERVED_ID: Final = "none"
 """The id that stands for no Work in a record."""
 
@@ -486,7 +485,7 @@ def _root_errors(
             f"The root `{root}` is not declared in `[roots]` of the config",
         )
         for root in dict.fromkeys(work.roots)
-        if root != _DESCENDANTS and root not in config.roots
+        if undeclared_root(root, config.roots)
     ]
     notes = [] if "roots" in wrong else _omission_notes(work, found)
     return [*undeclared, *_leaf_warning(work, found), *notes]
@@ -502,7 +501,7 @@ def _leaf_warning(work: Work, found: Hierarchy) -> list[Diagnostic]:
     Returns:
         The warning, or an empty list.
     """
-    if _DESCENDANTS not in work.roots or found.children[work.path]:
+    if DESCENDANTS not in work.roots or found.children[work.path]:
         return []
     message = "The Work has no children, so `@descendants` adds no root"
     return [Diagnostic("warning", work.path.as_posix(), message)]

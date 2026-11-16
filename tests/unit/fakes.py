@@ -197,3 +197,28 @@ class FakeStdio:
     stdin: TextIO = field(default_factory=io.StringIO)
     stdout: TextIO = field(default_factory=io.StringIO)
     stderr: TextIO = field(default_factory=io.StringIO)
+
+
+@dataclass
+class FakeEntropy:
+    """An `Entropy` that gives prepared bytes, the last again after them.
+
+    Attributes:
+        calls: The bytes of each call, in order.
+        counts: How many bytes each call asked for, in order.
+    """
+
+    calls: Sequence[bytes] = (bytes([19, 3, 20, 9, 29, 23]),)
+    counts: list[int] = field(default_factory=list)
+
+    def random_bytes(self, count: int) -> bytes:
+        """Give the next prepared bytes.
+
+        Args:
+            count: How many bytes were asked for.
+
+        Returns:
+            The next call's bytes, or the last when none is left.
+        """
+        self.counts.append(count)
+        return self.calls[min(len(self.counts), len(self.calls)) - 1]

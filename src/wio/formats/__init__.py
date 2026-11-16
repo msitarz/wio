@@ -18,6 +18,7 @@ lazy from wio.formats.errors import (
 )
 lazy from wio.formats.items import find_items, judge_items
 lazy from wio.formats.outline import read_outline
+lazy from wio.formats.setkeys import set_block_keys
 lazy from wio.formats.skeleton import prepare_skeleton
 lazy from wio.formats.toml import decode_toml
 lazy from wio.formats.writer import encode_toml
@@ -42,4 +43,5 @@ __all__ = [
     "render_check",
     "render_json",
     "render_text",
+    "set_block_keys",
 ]

@@ -67,6 +67,17 @@ class Wio:
         """
         return self.driver.fingerprint(directory)
 
+    def read(self, path: str) -> bytes:
+        """Read a file of the scenario's repository.
+
+        Args:
+            path: The file relative to the root.
+
+        Returns:
+            The file's bytes.
+        """
+        return self.driver.read(path)
+
     def run(self, args: Sequence[str]) -> Output:
         """Run `wio` with some arguments.
 

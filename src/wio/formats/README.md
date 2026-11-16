@@ -158,9 +158,9 @@ Their docstrings say what each takes and returns, the types are in
 ## The skeleton
 
 `prepare_skeleton` in [`skeleton.py`](skeleton.py) prepares a template as the
-text of a contract that follows it, so that what `wio templates show` prints is
-what `wio contracts new` writes, apart from the `id` it adds. Its docstring says
-what it takes, returns and raises, and its
+text of a contract that follows it, so that `wio contracts new` starts from what
+`wio templates show` prints. The new command also applies the requested id,
+roots and title. Its docstring says what it takes, returns and raises, and its
 [tests](../../../tests/unit/formats/test_skeleton.py) say how each case reads.
 
 - **It keeps what the author wrote for the agent and drops what is for wio.**
@@ -176,3 +176,14 @@ what it takes, returns and raises, and its
 - **The writer loads on first use.** `encode_toml` in [`writer.py`](writer.py)
   is the one writer of TOML, and `tomlkit` is imported when it is first called,
   so reading a block or a template never loads it.
+
+## Editing contract metadata
+
+`set_block_keys` in [`setkeys.py`](setkeys.py) is the shared editor for a
+contract's metadata block. Its docstring specifies what the rewrite keeps and
+discards, and its [tests](../../../tests/unit/formats/test_setkeys.py) cover
+both block forms and TOML value round trips. It reads values through the common
+metadata reader and writes them through the common TOML writer, so creation and
+the planned existing-Work skeleton use one interpretation of the block. The
+comment-form writer escapes the closing delimiter inside TOML strings, so a
+value cannot end the block before the metadata reader reaches its delimiter.
