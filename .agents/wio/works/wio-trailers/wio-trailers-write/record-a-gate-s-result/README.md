@@ -58,13 +58,18 @@ records, and the rules Work settles how it is computed.
 ## Mechanisms
 
 - **`wio trailers <work> <action> <stage> --result RESULT --cite KEY=RESULT`**
-  — extends the print leaf's command and supersedes its ignoring of `--cite`,
-  with `--cite` repeatable.
+  — extends the print leaf's command, with `--cite` repeatable, and replaces the
+  print leaf's scenario "A cited item is ignored".
+- **The order of refusals** — the print leaf's field errors come first, then the
+  human-gate refusal, then the cite refusals, and the first group that finds
+  something prints and stops.
 - **Cite refusals** — a cite with no `=`, an empty key or result, a key
   repeated, a result outside `gates.results`, an item the Work lacks, a code
   that is not qualified or that the stage does not select, and `--cite` without
-  `--result` are each refused with exit 1 and print `error: <key>: <message>` on
-  standard error, the key being the cite's key or `--cite`.
+  `--result` are each refused with exit 1 and print `error: <name>: <message>`
+  on standard error, the name being `--cite` for a cite with no `=`, an empty
+  name or an empty result and for `--cite` without `--result`, and the cite's
+  own name otherwise.
 - **Human-gate refusal** — read from the stage's `judge = "human"`, an `agent`
   judge, given or by default, is refused with `error: Wio-Judge: <message>`,
   and wins over a cite refusal.
@@ -100,6 +105,14 @@ holds a work commit under a pure gate commit.
 - **Then** each exits 1, prints nothing on standard output, prints
   `error: Wio-Judge:` on standard error and the sink receives no event.
 
+#### The human-gate refusal comes before a cite refusal
+
+- **Given** the same gate.
+- **When** `wio trailers k3m9xq deliver docs-review --result pass --cite
+  AC-99=pass` runs, with no `--judge`.
+- **Then** it exits 1, prints `error: Wio-Judge:` on standard error and no line
+  about `AC-99`.
+
 #### A human for the same gate
 
 - **Given** the same gate.
@@ -114,12 +127,19 @@ holds a work commit under a pure gate commit.
 - **Given** `k3m9xq` and the gate `docs-review`.
 - **When** `wio trailers k3m9xq deliver docs-review --result pass --judge human`
   runs with each of `--cite contracts.CON001=fail`, `--cite AC-99=pass`,
-  `--cite AC-1=maybe`, `--cite AC-1`, `--cite AC-1=pass --cite AC-1=fail` and
-  `--cite DOC001=fail`, and `--cite AC-1=pass` without `--result`.
+  `--cite AC-1=maybe`, `--cite AC-1`, `--cite =pass`, `--cite AC-1=`,
+  `--cite AC-1=pass --cite AC-1=fail` and `--cite DOC001=fail`.
 - **Then** each exits 1, prints nothing on standard output and prints on
   standard error an `error:` line that names, in turn, `contracts.CON001`,
-  `AC-99`, `AC-1`, `--cite`, `AC-1`, `DOC001` and `--cite`, and the sink
-  receives no event.
+  `AC-99`, `AC-1`, `--cite`, `--cite`, `--cite`, `AC-1` and `DOC001`, and the
+  sink receives no event.
+
+#### A cite without a result
+
+- **Given** `k3m9xq` and the stage `architecture`, which is not a gate.
+- **When** `wio trailers k3m9xq deliver architecture --cite AC-1=pass` runs.
+- **Then** it exits 1, prints nothing on standard output and prints
+  `error: --cite:` on standard error.
 
 #### A cite that is accepted
 
@@ -149,13 +169,23 @@ holds a work commit under a pure gate commit.
   `error: Wio-Work: no reviewed commit was found` on standard error and the
   sink receives no event.
 
-### **AC-4** The event is written once and never fails the command
+### **AC-4** A warning does not stop the event
 
-#### A warning, and a sink that fails
+#### A stage outside the Work's pipeline
 
-- **Given** the gate `system-review`, which `k3m9xq`'s `deliver` does not list,
-  and a sink whose write fails.
-- **When** `wio trailers k3m9xq deliver system-review --result pass` runs with a
-  working sink and with the failing one.
-- **Then** the first prints the warning and the sink receives one event, and the
-  second prints a warning about the sink on standard error and still exits 0.
+- **Given** the gate `system-review`, which is outside the `typed-boundary`
+  preset that is `k3m9xq`'s `deliver`.
+- **When** `wio trailers k3m9xq deliver system-review --result pass` runs.
+- **Then** it prints a warning naming `system-review` on standard error, exits 0
+  and the sink receives one event.
+
+### **AC-5** A failing sink never fails the command
+
+#### A sink that reports its failure
+
+- **Given** a sink whose write fails and which reports the failure itself as a
+  warning on standard error, without raising, as the `EventSink` port says.
+- **When** `wio trailers k3m9xq deliver docs-review --result pass --judge human`
+  runs.
+- **Then** the warning of the sink is on standard error, the record is on
+  standard output and the command exits 0.
