@@ -34,21 +34,6 @@ def test_run_skeleton(scenario: str) -> None:
 @pytest.mark.parametrize(
     "scenario",
     [
-        "names the id and the closest one (AC-4)",
-        "refuses a shared id with the error of discovery (AC-4)",
-    ],
-)
-def test_find_work_by_id(scenario: str) -> None:
-    """find_work_by_id: each case is one scenario of the contract."""
-    # Given the inputs of the scenario
-    # When `find_work_by_id` runs
-    # Then it gives what the contract says
-    raise NotImplementedError
-
-
-@pytest.mark.parametrize(
-    "scenario",
-    [
         "points to list for a missing template (AC-4)",
         "points to check for a rejected template (AC-4)",
     ],

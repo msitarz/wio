@@ -174,7 +174,7 @@ def find_target(
     """
     if _is_path(argument):
         return _by_path(discovery, argument, root, directory, settings, files)
-    return _by_id(discovery, argument)
+    return find_by_id(discovery, argument)
 
 
 def shown_actions(
@@ -305,8 +305,11 @@ def _by_path(
     return {root / work.path: work for work in discovery.works}[target]
 
 
-def _by_id(discovery: WorkDiscovery, argument: str) -> Work:
+def find_by_id(discovery: WorkDiscovery, argument: str) -> Work:
     """Find the Work that has an id.
+
+    `wio contracts show` and `wio contracts skeleton` look an id up with it, so
+    they give the same messages.
 
     Args:
         discovery: What discovery found.

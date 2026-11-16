@@ -164,7 +164,7 @@ def test_an_argument_is_a_path_when_it_has_a_slash_or_ends_in_md(
     by_path = Mock(return_value=work)
     by_id = Mock(return_value=work)
     monkeypatch.setattr(module, "_by_path", by_path)
-    monkeypatch.setattr(module, "_by_id", by_id)
+    monkeypatch.setattr(module, "find_by_id", by_id)
 
     # When the argument is looked up
     found = module.find_target(Mock(), argument, ROOT, DIRECTORY, Works(), Mock())

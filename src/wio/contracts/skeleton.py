@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from wio.contracts import Services
-    from wio.contracts.discovery import WorkDiscovery
     from wio.contracts.ports import TemplateCatalog
     from wio.io.ports import FileSystem, Stdio
     from wio.models.template import Template
@@ -30,7 +29,9 @@ class Skeleton:
         text: The whole skeleton: the template's form and body with the Work's
             `id` and `depends_on` and the kept keys in the block.
         dropped: The keys of the Work that `text` does not carry, in the order
-            of the Work and without values, so that the note can name them.
+            of the Work and without values, so that the note can name them. `id`,
+            `depends_on`, `template` and `wio` are never among them, because the
+            skeleton handles them already.
     """
 
     text: str
@@ -59,7 +60,15 @@ def run_skeleton(services: Services, args: Namespace, stdio: Stdio) -> int:
     note to `stdio.stderr`, and writes no file. A mistake is found before
     anything is written, so it prints nothing on standard output. When several
     apply the first of these is reported: a usage error, an incomplete tree, the
-    Work, the template, then `--keep`.
+    Work, the template, then `--keep`. The usage error is a missing `--work`,
+    which points to `wio templates show` and is refused before any file is read.
+    The tree is walked with `discover_works` and judged with
+    `refuse_tree(discovery, shared=False)`, so every error of finding the Works
+    but a shared id refuses the command, with the pointer to
+    `wio contracts check`, and a shared id refuses only its own lookup. The Work
+    is found with `find_by_id` of `wio.contracts.showing`, which gives the
+    messages of `show`: no Work has the id, with the closest one, or two share
+    it.
 
     Args:
         services: What the command reads the project through.
@@ -78,27 +87,6 @@ def run_skeleton(services: Services, args: Namespace, stdio: Stdio) -> int:
         ConfigurationError: The config has an error.
         OSError: The Work's file or the template's cannot be read.
         UnicodeDecodeError: One of them is not UTF-8.
-    """
-    raise NotImplementedError
-
-
-def find_work_by_id(discovery: WorkDiscovery, work_id: str | None) -> Work:
-    """Find the Work that `--work` names, or refuse.
-
-    The tree is judged before, so only the lookup of a shared id is refused here,
-    with the error of discovery.
-
-    Args:
-        discovery: What discovery found, with its tree judged complete.
-        work_id: The `--work` as typed, or `None` when it was not given.
-
-    Returns:
-        The Work.
-
-    Raises:
-        ContractsError: `--work` is missing, which points to
-            `wio templates show`; no Work has the id, which names it and the
-            closest id of the Works; or two Works share it.
     """
     raise NotImplementedError
 
@@ -131,7 +119,8 @@ def check_keep(keep: Sequence[str], keys: Sequence[str]) -> None:
     Raises:
         ContractsError: A name in `CANNOT_KEEP` is refused first, and says that
             it cannot be kept; then a key that the Work does not have, which
-            lists the keys that can be kept in the order of the Work.
+            lists the keys that can be kept, those of the Work without
+            `CANNOT_KEEP`, in the order of the Work.
     """
     raise NotImplementedError
 
@@ -153,7 +142,8 @@ def plan_skeleton(
     template's and is added when the template has none. The Work's keys are read
     again from its file, because the `Work` holds only the fields that the other
     commands use. The block is rewritten with the first line ending of the
-    skeleton, and its body stays as the template has it.
+    skeleton, and its body stays as the template has it. The skeleton comes from
+    `prepare_skeleton` and the keys are set with `set_block_keys`.
 
     Args:
         template: The usable template.
