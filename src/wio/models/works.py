@@ -10,9 +10,7 @@ class Work:
     """A Work as one walk of the Works directory reads it.
 
     It is immutable and holds only what every command needs of a Work, so that a
-    command that needs another key of the block reads the block again. It lives
-    beside `wio.models.work`, a stub of the types of a later Work, and not in it,
-    so that a stub and its implementation never share a module name.
+    command that needs another key of the block reads the block again.
     Provisional: the implementation stage may rename its fields.
 
     Attributes:
