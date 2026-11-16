@@ -17,21 +17,25 @@ commit to a stage.
 ## Goals
 
 - A checked `Wio-*` record paragraph is available for any named Work, action
-  and stage, with each field validated against the live config and the Work's
-  own item ids.
-- Commit messages and revision ranges are checkable against the live config at
-  commit time and over a range in CI.
-- Records of a commit range are foldable into a pull request body that
-  survives a squash merge.
+  and stage, with its fields checked against the config and the Work's own
+  item ids.
+- A commit message is checked against the live config at commit time, and a
+  range of commits is checked in CI for the shape of its records, so an old
+  record never fails later.
+- Records of a commit range are foldable into a pull request body that ends
+  with them.
+- The hook and the pull request workflow of this repository check and fold
+  records with `wio trailers`.
 - The reviewed commit of a gate is identifiable from the history, even when
   pure gate commits sit on top of it.
 - A gate's result, judge and cited items are recordable with one command.
 
 ## Non-Goals
 
-- Writing one record for a list of Works, `wio trailers none`, the `--reviewed`
-  override and the warnings that concepts.md gives `wio trailers` beyond what
-  the criteria state.
+- Writing one record for a list of Works, and `wio trailers none`.
+- The `--reviewed` override and the warnings that
+  [concepts.md](../../../../docs/concepts.md#records) gives `wio trailers`
+  beyond what the criteria state.
 - Writing the `review` event to the event log, which arrives with `wio log`
   (C-4).
 
@@ -48,20 +52,18 @@ The configured reader (`scan` or `git`) matches the project's merge workflow.
 
 ### A-3
 
-The names `check --ref-range` and `fold body|block` are provisional: concepts.md
-names only `--require` and a range of commits, and the driver may rename them.
-
-### A-4
-
-A test of the `review` event injects a recording `EventSink`, because the wired
-sink is a no-op (C-4).
+The names `check --ref-range` and `fold body|block`, which the After diagram
+uses, are provisional, because concepts.md names only `--require` and a range of
+commits.
 
 ## Mechanisms
 
 - **`scan` reader** — reads every record from a message, outside fenced code
-  blocks, as specified in `docs/concepts.md`. Shared by write, check and fold.
+  blocks, as specified in [concepts.md](../../../../docs/concepts.md#records).
+  Shared by write, check and fold.
 - **`git` reader** — delegates to git's own trailer parsing for
-  last-paragraph-only workflows, as specified in `docs/concepts.md`.
+  last-paragraph-only workflows, as specified in
+  [concepts.md](../../../../docs/concepts.md#records).
 - **`History` port and adapter** — gives the first-parent commits from HEAD
   for the reviewed-commit walk and the commits of a range for check and fold,
   each with its sha and message; the adapter arrives with this Work.
@@ -89,7 +91,9 @@ them. `uv run jscpd src tests` and a reviewer's reading verify it.
 ### C-4
 
 The `EventSink` wired to `wio trailers --result` is a no-op until `wio log`
-builds the real adapter. No child wires a real event sink.
+builds the real adapter, so a test of the `review` event injects a recording
+sink. No child wires a real event sink, and a reviewer judges it from the wiring
+in `wio.cli`.
 
 ## Visuals
 
@@ -114,7 +118,7 @@ flowchart LR
   B --> C["wio trailers check --require\n(commit-msg hook)"]
   B --> D["wio trailers check --ref-range\n(CI range)"]
   E["wio trailers fold body and block\n(CI fold)"] --> F[Pull request body]
-  G["wio trailers --result\n(gate review)"] --> H["History:\nreviewed commit"]
+  G["wio trailers --result\n(new)"] --> H["History:\nreviewed commit"]
   G --> I["EventSink: review event"]
 ```
 
@@ -139,7 +143,7 @@ flowchart LR
 - **When** `wio trailers <work> <action> <stage> --items AC-99` runs.
 - **Then** the command exits 1, prints no record and names `AC-99`.
 
-### **AC-2** Check validates a message and a range against the live config
+### **AC-2** Check refuses a wrong message and a malformed commit
 
 #### A stage the config does not have fails at commit time
 
@@ -211,9 +215,10 @@ usage error or `WioError`. A refused field of a record is a failed check.
 
 #### A usage error exits 2
 
-- **Given** a call that gives a Work and no action or stage.
-- **When** `wio trailers <work>` runs.
-- **Then** the command exits 2 and prints no record.
+- **Given** a call to each of `wio trailers check`, `wio trailers fold` and
+  `wio trailers <work>` with an argument missing.
+- **When** each runs.
+- **Then** each command exits 2 and prints no record.
 
 ### **AC-7** The hook and the workflows no longer use `records.py`
 
