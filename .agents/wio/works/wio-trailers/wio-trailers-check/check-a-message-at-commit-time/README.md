@@ -17,8 +17,10 @@ for, so a wrong record is refused before it enters the history.
 - A commit message whose record names something the config does not have, a
   Work or item id that does not exist, or a result that does not fit its stage
   is refused.
-- A commit message with no record is refused unless its subject is one that git
-  writes for a merge, a revert or a squash.
+- A commit message with no record is refused unless its subject, the first line
+  that is not a `#` comment, is one that git writes for a merge, a revert or a
+  squash; such a subject exempts only the requirement for a record, and a
+  malformed record on it is still refused.
 - A problem of a record's own form, or a record the reader cannot see, is
   refused.
 - A key the engine does not define, or a stage outside the Work's actions, is
@@ -43,22 +45,26 @@ warning. The driver confirms this at the gate.
 
 - **`wio trailers check --require [PATH]`** — reads the commit message in the
   file `PATH`, or on standard input when `PATH` is `-` or absent. It prints each
-  error and warning on standard error, exits 1 when there is an error, 2 when
-  `PATH` cannot be read and otherwise 0. A warning never changes the exit code.
+  error and warning on standard error as `<severity>: <where>: <message>`, one
+  to a line and sorted, where `<where>` is the 1-based line number in the
+  message. It exits 1 when there is an error, 2 when `PATH` cannot be read and
+  otherwise 0. A warning never changes the exit code.
 - **`check_shape(message, reader) -> list[Finding]`** — the shape check of the
   shape leaf, with the reader that `[trailers] reader` names in the config. This
   mode turns a `malformed` or `invisible` finding into an error and an
   `unknown-key` finding into a warning.
 - **`History` port** — gives the Works of `HEAD`, which finds a Work that the
-  commit being made deletes. The Works of the index are read from the
-  repository's index.
+  commit being made deletes. How the Works of the index are read is for the
+  architecture stage to settle.
 
 ## Acceptance criteria
 
 The examples use a Work `k3m9xq` that is in the index and has an item `AC-1`.
 Its `deliver` action lists the stages `architecture`, which is not a gate, and
 `architecture-review`, which is a gate. The config also has the stage `wiring`,
-which `k3m9xq`'s `deliver` does not list. R is the paragraph `Wio-Work:
+which `k3m9xq`'s `deliver` does not list, its results are `gates.results =
+["pass", "fail", "unknown"]`, and its reader is `scan` unless a scenario says
+otherwise. R is the paragraph `Wio-Work:
 k3m9xq`, `Wio-Action: deliver` and `Wio-Stage: architecture`, and M is the
 subject `feat: add x`, a blank line and R.
 
@@ -70,8 +76,8 @@ subject `feat: add x`, a blank line and R.
   standard input.
 - **When** `wio trailers check --require <file>` and
   `wio trailers check --require -` read it.
-- **Then** each exits 1 and prints on standard error the same finding naming the
-  stage.
+- **Then** each exits 1 and prints on standard error the same diagnostic, which
+  names the stage and the line number of its `Wio-Stage` line.
 
 #### A file that cannot be read
 
@@ -90,8 +96,8 @@ subject `feat: add x`, a blank line and R.
 
 #### A list of two valid Works
 
-- **Given** a second Work `a7b2c4` in the index with an item `AC-1`, and M with
-  `Wio-Work: k3m9xq, a7b2c4`.
+- **Given** a second Work `a7b2c4` in the index with an item `AC-1` whose
+  `deliver` action lists `architecture`, and M with `Wio-Work: k3m9xq, a7b2c4`.
 - **When** `wio trailers check --require` reads it.
 - **Then** the command exits 0 and prints nothing.
 
@@ -114,15 +120,15 @@ subject `feat: add x`, a blank line and R.
 
 #### A Work that the commit deletes
 
-- **Given** M for a Work `d4e5f6` that is in `HEAD` and not in the index, whose
-  `deliver` action lists `architecture`.
+- **Given** M with `Wio-Work: d4e5f6` in place of `k3m9xq`, a Work that is in
+  `HEAD` and not in the index, whose `deliver` action lists `architecture`.
 - **When** `wio trailers check --require` reads it.
 - **Then** the command exits 0.
 
 #### An item id outside the Work
 
 - **Given** M with `Wio-Items: AC-99`, which `k3m9xq` does not have, and the
-  same for the Work `d4e5f6` that is only in `HEAD`.
+  same for M with `Wio-Work: d4e5f6`, which has no `AC-99` either.
 - **When** `wio trailers check --require` reads each.
 - **Then** each exits 1 and names `AC-99`.
 
@@ -146,6 +152,12 @@ subject `feat: add x`, a blank line and R.
 - **When** `wio trailers check --require` reads it.
 - **Then** the command exits 1 and reports that the stage is not a gate.
 
+#### A result the config does not list
+
+- **Given** M with `Wio-Stage: architecture-review` and `Wio-Result: maybe`.
+- **When** `wio trailers check --require` reads it.
+- **Then** the command exits 1 and names `maybe`.
+
 ### **AC-6** A record is required unless git wrote the subject
 
 #### A message with no record
@@ -156,11 +168,18 @@ subject `feat: add x`, a blank line and R.
 
 #### A subject that git writes
 
-- **Given** messages with no record whose subjects start with `Merge `,
-  `Revert `, `Reapply `, `fixup!` and `squash! `, one of them after a `#`
-  comment line.
+- **Given** messages with no record whose subjects start with `Merge`,
+  `Revert`, `Reapply`, `fixup!` and `squash!`, each followed by a space.
 - **When** `wio trailers check --require` reads each.
 - **Then** each exits 0.
+
+#### A subject after a comment line
+
+- **Given** a message of the line `# comment` and then `Merge branch x`, and a
+  message of the line `# comment` and then `feat: add x`, neither with a record.
+- **When** `wio trailers check --require` reads each.
+- **Then** the first exits 0 and the second exits 1 and reports that no record
+  was found.
 
 #### A subject that only looks like one
 
@@ -174,7 +193,8 @@ subject `feat: add x`, a blank line and R.
 - **Given** a message with the subject `Merge branch x` and a record with
   `Wio-Work: k3 m9xq`.
 - **When** `wio trailers check --require` reads it.
-- **Then** the command exits 1 and names the line.
+- **Then** the command exits 1 and reports the line number of the record's
+  `Wio-Work` line.
 
 ### **AC-7** The findings of the shape check are judged
 
@@ -183,14 +203,15 @@ subject `feat: add x`, a blank line and R.
 - **Given** M with `Wio-Work: k3 m9xq`, and M whose record paragraph also holds
   a prose line, read by the `scan` reader.
 - **When** `wio trailers check --require` reads each.
-- **Then** each exits 1 and names the line.
+- **Then** each exits 1 and reports the line number of the line concerned.
 
 #### Any bad record of a message is an error
 
 - **Given** a message holding R and then a second record with
   `Wio-Stage: nosuch`.
 - **When** `wio trailers check --require` reads it.
-- **Then** the command exits 1 and names the second record's line.
+- **Then** the command exits 1 and reports the line number of the second
+  record's `Wio-Stage` line.
 
 #### An unknown key is a warning
 
