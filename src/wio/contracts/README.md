@@ -16,10 +16,10 @@ and `wio context` can wrap, so none of them needs to read a contract on its own.
 The sections below say how each part works, and these hold for all of them.
 
 - **Only `new` writes, and it never overwrites.** `new` creates one file and
-  refuses a path that exists. `skeleton`, `list`, `show` and `check` write
-  nothing, so a Work changes only when a person or an agent changes it. The
-  [system scenarios](../../../tests/acceptance/contracts/test_system.py) run
-  them together.
+  refuses a path that exists, as
+  [the id and the place of a new Work](#the-id-and-the-place-of-a-new-work)
+  says. `skeleton`, `list`, `show` and `check` write nothing, so a Work changes
+  only when a person or an agent changes it.
 - **The output is the same on every run.** It is sorted or in a fixed order and
   has no timestamp, and `--json` writes one array or object that parses. The
   exit codes are the [command line's](../cli/README.md#failures-and-exit-codes).
@@ -45,12 +45,14 @@ flowchart LR
     formats["wio.formats"]
     models["wio.models"]
     errors["wio.errors"]
-    ports["ports of wio.io, wio.env and wio.ports"]
+    io["wio.io (ports and the shared walk)"]
+    ports["ports of wio.env and wio.ports"]
     cli --> contracts
     cli --> templates
     contracts --> formats
     contracts --> models
     contracts --> errors
+    contracts --> io
     contracts -- "ports" --> ports
     templates -. "satisfies the catalog port" .-> contracts
 ```
