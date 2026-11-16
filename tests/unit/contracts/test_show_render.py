@@ -33,10 +33,10 @@ def test_the_labels_are_padded_to_column_15_and_a_second_value_is_in_that_column
 
 def test_a_line_is_written_only_when_it_has_something_to_say() -> None:
     """AC-1: empty facts."""
-    # Given a Work with no template, no parent, no roots, no dependencies and no
-    # dependents
+    # Given a Work with no title, no template, no parent, no roots, no
+    # dependencies and no dependents
     # When `render_show` runs
-    # Then only the first line and `Path` are written
+    # Then the first line is `Work <id>  (no title)` and only `Path` follows it
     raise NotImplementedError
 
 
@@ -84,7 +84,8 @@ def test_the_json_is_one_object_with_its_fields_in_order() -> None:
     # Given the shown Work of AC-1
     # When `render_show` runs with JSON
     # Then one line that parses, ends in one line ending and has the fields in
-    # the order of the contract
+    # the order of the contract, with `null` for a title, a template, a parent
+    # or a preset that there is none of
     raise NotImplementedError
 
 

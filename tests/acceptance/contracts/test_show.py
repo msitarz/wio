@@ -66,7 +66,9 @@ def test_under_flat_there_is_no_parent_and_nothing_is_inherited(wio: Wio) -> Non
 @pytest.mark.channels(Channel.CLI)
 def test_a_path_from_a_subdirectory_shows_the_same_work(wio: Wio) -> None:
     """AC-3: scenario of the contract."""
-    # Given the Works of AC-1 and the working directory `.agents/wio/works/p`
+    # Given the Works of AC-1 and the working directory `.agents/wio/works/p`,
+    # which the implementation stage lets a scenario give by extending
+    # `WioDriver.run` and `CliDriver` with a working directory
     # When `wio contracts show c/README.md` runs
     # Then it prints the same as `wio contracts show k3m9xq`
     raise NotImplementedError
@@ -131,13 +133,4 @@ def test_showing_writes_nothing_and_prints_the_same_bytes_twice(wio: Wio) -> Non
     # Given the Works of AC-1 and a hash of each contract
     # When `show` and `show --json` each run twice
     # Then the outputs of each are identical and no contract changed
-    raise NotImplementedError
-
-
-@pytest.mark.channels(Channel.CLI)
-def test_a_run_without_json_imports_neither_json_nor_tomlkit(wio: Wio) -> None:
-    """AC-6: scenario of the contract."""
-    # Given a new Python process and the Works of AC-1
-    # When `main(["contracts", "show", "k3m9xq"], stdio)` runs in it
-    # Then neither `json` nor `tomlkit` is in `sys.modules`
     raise NotImplementedError

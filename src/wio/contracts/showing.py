@@ -46,8 +46,8 @@ class ShownAction:
         name: The action's name.
         source: Where the action comes from. A removed action has `contract`.
         on_demand: Whether the config marks the action on demand.
-        preset: The stage preset the action names, or `None` for a list of
-            stages, for a removed action.
+        preset: The stage preset the action names, or `None` for an action given
+            as a list of stages and for a removed action.
         stages: The stages of the preset when the config declares it, or the
             listed stages; empty for a removed action and for a preset the
             config does not declare.
@@ -109,6 +109,8 @@ def run_show(services: Services, args: Namespace, stdio: Stdio) -> int:
             and a shared id the line "`wio contracts check` shows every
             problem.". The command line writes it to standard error and exits 2.
         ConfigurationError: The config has an error.
+        OSError: The Work's own file cannot be read, as `resolve_work` raises it.
+        UnicodeDecodeError: The Work's own file is not UTF-8.
     """
     raise NotImplementedError
 
@@ -191,5 +193,9 @@ def gather_work(
 
     Returns:
         The Work with its related Works, its actions and its view.
+
+    Raises:
+        OSError: The Work's own file cannot be read, as `resolve_work` raises it.
+        UnicodeDecodeError: The Work's own file is not UTF-8.
     """
     raise NotImplementedError
