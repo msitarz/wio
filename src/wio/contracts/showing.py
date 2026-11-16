@@ -174,7 +174,11 @@ def shown_actions(
         files: The port that reads the template's file.
 
     Returns:
-        The actions in the order above.
+        The actions in the order above, none for a Work that resolves to no
+        action.
+
+    Raises:
+        ConfigurationError: The config cannot be loaded, which `catalog` raises.
     """
     raise NotImplementedError
 
@@ -197,5 +201,6 @@ def gather_work(
     Raises:
         OSError: The Work's own file cannot be read, as `resolve_work` raises it.
         UnicodeDecodeError: The Work's own file is not UTF-8.
+        ConfigurationError: The config cannot be loaded, which `catalog` raises.
     """
     raise NotImplementedError

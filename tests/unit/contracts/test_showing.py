@@ -60,11 +60,12 @@ def test_a_file_that_is_not_a_work_gives_the_reason_of_discovery() -> None:
 
 def test_the_actions_follow_the_config_then_the_names_it_does_not_declare() -> None:
     """AC-1: actions in the order of the config."""
-    # Given a config declaring `define`, `deliver` and `amend` and a Work that
-    # also has an undeclared `ratify`
+    # Given a config declaring `define`, `deliver` and `amend`, a template that
+    # gives an undeclared `ratify` and a Work whose own `[actions]` give an
+    # undeclared `deploy`
     # When `shown_actions` runs
-    # Then the declared actions come first in the config's order and `ratify`
-    # last, as written
+    # Then the declared actions come first in the config's order, then `deploy`,
+    # which the Work lists, and then `ratify`, as written
     raise NotImplementedError
 
 
@@ -85,6 +86,15 @@ def test_an_emptied_action_is_removed_and_an_empty_one_is_not_shown() -> None:
     # When `shown_actions` runs
     # Then `amend` is removed with the source `contract` and `ratify` is not
     # shown
+    raise NotImplementedError
+
+
+def test_a_work_with_nothing_to_resolve_has_no_action() -> None:
+    """AC-1: a Work that resolves to no action."""
+    # Given a config with no defaults and a Work with no template and no
+    # `[actions]`
+    # When `shown_actions` runs
+    # Then it gives no action
     raise NotImplementedError
 
 

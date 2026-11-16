@@ -44,6 +44,17 @@ def test_the_defaults_an_on_demand_action_and_an_undeclared_name_are_shown(
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+def test_a_work_that_resolves_to_no_action_shows_none_and_exits_0(wio: Wio) -> None:
+    """AC-1: scenario of the contract."""
+    # Given a config with no defaults and a Work with no template and no
+    # `[actions]`
+    # When `wio contracts show k3m9xq` and the same with `--json` run
+    # Then the first prints `Actions` and `  none`, the second has
+    # `"actions": []`, and each exits 0
+    raise NotImplementedError
+
+
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_roots_resolve_and_dependents_are_listed(wio: Wio) -> None:
     """AC-2: scenario of the contract."""
     # Given the Works of AC-1 with a parent that lists `@descendants` and two
@@ -68,7 +79,8 @@ def test_a_path_from_a_subdirectory_shows_the_same_work(wio: Wio) -> None:
     """AC-3: scenario of the contract."""
     # Given the Works of AC-1 and the working directory `.agents/wio/works/p`,
     # which the implementation stage lets a scenario give by extending
-    # `WioDriver.run` and `CliDriver` with a working directory
+    # `WioDriver.run`, `CliDriver.run`, `InProcessDriver.run` and `Wio.run` with
+    # a working directory
     # When `wio contracts show c/README.md` runs
     # Then it prints the same as `wio contracts show k3m9xq`
     raise NotImplementedError

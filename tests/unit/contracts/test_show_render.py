@@ -60,6 +60,23 @@ def test_an_action_line_has_its_preset_its_source_and_the_on_demand_mark() -> No
     raise NotImplementedError
 
 
+def test_a_work_with_no_action_has_none_under_actions_and_an_empty_json_array() -> None:
+    """AC-1: a Work that resolves to no action."""
+    # Given a shown Work with no action
+    # When `render_show` runs, as text and with JSON
+    # Then the text has `Actions` and the line `  none`, and the JSON `actions`
+    # is `[]`
+    raise NotImplementedError
+
+
+def test_a_work_whose_actions_are_all_removed_prints_them_and_not_none() -> None:
+    """AC-1: all actions removed."""
+    # Given a shown Work whose actions are all removed by the contract
+    # When `render_show` runs
+    # Then each is `removed (by the contract)` and there is no `none` line
+    raise NotImplementedError
+
+
 def test_a_removed_action_has_no_on_demand_mark_and_a_list_has_no_preset_name() -> None:
     """AC-1: removed and listed."""
     # Given a removed on-demand action, an action given as a list and a preset

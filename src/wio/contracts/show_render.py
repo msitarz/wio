@@ -23,7 +23,9 @@ def render_show(shown: ShownWork, *, as_json: bool) -> str:
     Work is `<id>  <title>`, with `(not found)` and `(no title)` where they
     apply. An action is its name, its preset, where it comes from and `on demand`
     when the config marks it, with its stages on the next line, or `removed (by
-    the contract)` with no mark, although the JSON keeps the config's flag.
+    the contract)` with no mark, although the JSON keeps the config's flag. With
+    no action line to print, `Actions` is followed by the line `none`, and the
+    JSON `actions` is an empty array.
 
     The JSON is one object on one line, written by `json.dumps` with its default
     separators, with `id`, `title`, `path`, `template`, `parent`, `roots`,
