@@ -34,21 +34,6 @@ def test_run_skeleton(scenario: str) -> None:
 @pytest.mark.parametrize(
     "scenario",
     [
-        "points to list for a missing template (AC-4)",
-        "points to check for a rejected template (AC-4)",
-    ],
-)
-def test_usable_template(scenario: str) -> None:
-    """usable_template: each case is one scenario of the contract."""
-    # Given the inputs of the scenario
-    # When `usable_template` runs
-    # Then it gives what the contract says
-    raise NotImplementedError
-
-
-@pytest.mark.parametrize(
-    "scenario",
-    [
         "refuses each key that cannot be kept (AC-4)",
         "refuses those before a key the Work lacks (AC-4)",
         "lists the keys that can be kept in the order of the Work (AC-4)",
@@ -75,10 +60,10 @@ def test_check_keep(scenario: str) -> None:
         "keeps the form, the endings and the body of the template (AC-3)",
     ],
 )
-def test_plan_skeleton(scenario: str) -> None:
-    """plan_skeleton: each case is one scenario of the contract."""
+def test_carry_keys(scenario: str) -> None:
+    """carry_keys: each case is one scenario of the contract."""
     # Given the inputs of the scenario
-    # When `plan_skeleton` runs
+    # When `carry_keys` runs
     # Then it gives what the contract says
     raise NotImplementedError
 

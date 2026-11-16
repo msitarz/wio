@@ -8,7 +8,13 @@ from unittest.mock import Mock
 
 import pytest
 
-from tests.unit.contracts.helpers import BASE, services, work_under_works
+from tests.unit.contracts.helpers import (
+    BASE,
+    marked,
+    services,
+    work_under_works,
+    works_tree,
+)
 from tests.unit.fakes import ROOT, FakeStdio, MemoryFileSystem
 from wio.contracts import ContractsCommand, ContractsError, describe
 from wio.contracts import showing as module
@@ -27,30 +33,6 @@ if TYPE_CHECKING:
     from wio.models.works import Work
 
 DIRECTORY = ROOT / BASE / "p"
-
-
-def _marked(block: str) -> str:
-    """Write a file with a metadata block.
-
-    Args:
-        block: The lines of the block.
-
-    Returns:
-        The text of the file.
-    """
-    return f"<!-- wio\n{block}\n-->\n\n# Title\n"
-
-
-def _tree(files: dict[str, str]) -> MemoryFileSystem:
-    """Put files under the Works directory.
-
-    Args:
-        files: The files, by path relative to the Works directory.
-
-    Returns:
-        The file system.
-    """
-    return MemoryFileSystem({ROOT / BASE / name: text for name, text in files.items()})
 
 
 def _show_args(*arguments: str) -> Namespace:
@@ -72,7 +54,9 @@ def test_show_judges_the_tree_before_it_looks_the_argument_up(
 ) -> None:
     """A Work left out refuses the command, and nothing is written."""
     # Given a tree with a Work left out and a lookup that must not run
-    files = _tree({"a/README.md": _marked('id = "k3m9xq"'), "b/README.md": _marked("")})
+    files = works_tree(
+        {"a/README.md": marked('id = "k3m9xq"'), "b/README.md": marked("")}
+    )
     find = Mock()
     monkeypatch.setattr(module, "find_target", find)
     stdio = FakeStdio()
@@ -97,10 +81,10 @@ def test_show_composes_the_lookup_the_gathering_and_the_rendering(
     """The leaves get the argument, directory and mode, and the text is written."""
     # Given a tree with a shared id, which does not refuse the tree, and leaves
     # that give a Work, what is shown of it and the text
-    files = _tree(
+    files = works_tree(
         {
-            "a/README.md": _marked('id = "a7b2c4"'),
-            "b/README.md": _marked('id = "a7b2c4"'),
+            "a/README.md": marked('id = "a7b2c4"'),
+            "b/README.md": marked('id = "a7b2c4"'),
         }
     )
     config = Config(works=Works(hierarchy=mode))
@@ -186,9 +170,9 @@ def test_the_view_the_parent_and_the_relations_come_from_the_hierarchy(
     )
     sibling = work_under_works("p/s/README.md", "a7b2c4", title=None)
     other = work_under_works("p/o/README.md", "k5m8ps", depends_on=("k3m9xq",))
-    files = _tree(
-        {"p/c/README.md": _marked('id = "k3m9xq"') + "\nOwn.\n"}
-        | {"p/README.md": _marked('id = "p5n2hv"')}
+    files = works_tree(
+        {"p/c/README.md": marked('id = "k3m9xq"') + "\nOwn.\n"}
+        | {"p/README.md": marked('id = "p5n2hv"')}
     )
     found = build_hierarchy([parent, child, sibling, other], "nesting")
     related = (module.Related("a7b2c4", None, found=True),)
@@ -218,11 +202,11 @@ def test_under_flat_a_nested_work_has_no_parent_and_no_inherited_view(
     # Given a parent and a child that is nested under it, in a flat tree
     parent = work_under_works("p/README.md", "p5n2hv")
     work = work_under_works("p/c/README.md", "k3m9xq")
-    files = _tree(
+    files = works_tree(
         {
-            "p/README.md": _marked('id = "p5n2hv"')
+            "p/README.md": marked('id = "p5n2hv"')
             + "\n## Glossary <!-- wio: inherit -->\n\nT.\n",
-            "p/c/README.md": _marked('id = "k3m9xq"'),
+            "p/c/README.md": marked('id = "k3m9xq"'),
         }
     )
     found = build_hierarchy([parent, work], "flat")
@@ -298,7 +282,7 @@ def test_a_work_with_a_template_takes_its_actions_and_never_the_defaults(
 def test_an_error_of_the_config_reaches_the_caller_before_anything_is_read() -> None:
     """The command does not swallow the error of loading the config."""
     # Given settings whose load fails
-    files = _tree({"a/README.md": _marked('id = "k3m9xq"')})
+    files = works_tree({"a/README.md": marked('id = "k3m9xq"')})
     wired = services(files, directory=DIRECTORY)
     failing = Mock()
     failing.load.side_effect = ConfigurationError("bad config")

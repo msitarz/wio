@@ -4,17 +4,24 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.contracts.creation import find_template
+from wio.contracts.discovery import discover_works
+from wio.contracts.errors import ContractsError
+from wio.contracts.refusal import refuse_tree
+from wio.contracts.showing import find_by_id
+from wio.formats import prepare_skeleton, read_metadata_block
+
 if TYPE_CHECKING:
     from argparse import Namespace
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
     from pathlib import Path
 
     from wio.contracts import Services
-    from wio.contracts.ports import TemplateCatalog
     from wio.io.ports import FileSystem, Stdio
     from wio.models.template import Template
     from wio.models.works import Work
 
+_NO_WORK = "`--work` is required; `wio templates show` prints a template alone"
 CANNOT_KEEP = ("id", "template", "depends_on", "wio")
 """The keys that `--keep` refuses, because the skeleton handles them already."""
 
@@ -88,25 +95,18 @@ def run_skeleton(services: Services, args: Namespace, stdio: Stdio) -> int:
         OSError: The Work's file or the template's cannot be read.
         UnicodeDecodeError: One of them is not UTF-8.
     """
-    raise NotImplementedError
-
-
-def usable_template(name: str, catalog: TemplateCatalog) -> Template:
-    """Find the template to prepare the skeleton from, or refuse.
-
-    Args:
-        name: The template's name as typed.
-        catalog: Finds templates and says which are rejected.
-
-    Returns:
-        The template.
-
-    Raises:
-        ContractsError: The template is rejected, which points to
-            `wio templates check`, or no file has it, which points to
-            `wio templates list`. A rejected template is reported first.
-    """
-    raise NotImplementedError
+    if args.work is None:
+        raise ContractsError(_NO_WORK)
+    config = services.settings.load()
+    root = services.repository.root()
+    discovery = discover_works(root, config.works, services.files)
+    refuse_tree(discovery, shared=False)
+    work = find_by_id(discovery, args.work)
+    template = find_template(args.template, services.catalog, entry=False)
+    skeleton = plan_skeleton(template, work, args.keep, root, services.files)
+    stdio.stdout.write(skeleton.text)
+    stdio.stderr.write(skeleton.note(work.path))
+    return 0
 
 
 def check_keep(keep: Sequence[str], keys: Sequence[str]) -> None:
@@ -159,5 +159,30 @@ def plan_skeleton(
         ContractsError: `check_keep` refuses `keep`.
         OSError: A file cannot be read.
         UnicodeDecodeError: A file is not UTF-8.
+    """
+    prepared = prepare_skeleton(template.name, files.read_text(root / template.path))
+    block = read_metadata_block(files.read_text(root / work.path))
+    assert block is not None
+    check_keep(keep, tuple(block.data))
+    return carry_keys(prepared, block.data, keep)
+
+
+def carry_keys(
+    prepared: str, data: Mapping[str, object], keep: Sequence[str]
+) -> Skeleton:
+    """Put the identity and the kept keys of a Work into a prepared skeleton.
+
+    `id` goes first and `depends_on` is the Work's when it has one. Each kept key
+    replaces the skeleton's, or is added, and a key that is a table is carried as
+    a value. The keys that the Work has and the skeleton did not take, besides
+    `CANNOT_KEEP`, are `dropped`, in the order of the Work.
+
+    Args:
+        prepared: The skeleton that `prepare_skeleton` gives for the template.
+        data: The keys of the Work as its block holds them, without `wio`.
+        keep: The keys to carry, already checked by `check_keep`.
+
+    Returns:
+        The skeleton and the keys that were not carried.
     """
     raise NotImplementedError
