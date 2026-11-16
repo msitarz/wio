@@ -7,7 +7,6 @@ given, a config with an error is refused before anything is printed, and the
 """
 
 from typing import TYPE_CHECKING, Literal, cast
-lazy import json
 
 from wio.config.keypath import resolve
 from wio.config.listing import as_object, full_line, settings_of, short_line
@@ -16,6 +15,7 @@ from wio.config.loader import config_or_raise, load_config
 # Bound lazily, so a run that does not check, such as `list`, loads neither.
 lazy import wio.config as package
 lazy from wio.config.report import report
+lazy from wio.formats import encode_json
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -167,4 +167,4 @@ def _as_json(settings: tuple[Setting, ...]) -> str:
     Returns:
         The object that `as_object` describes, serialized.
     """
-    return json.dumps(as_object(settings), indent=2, ensure_ascii=False) + "\n"
+    return encode_json(as_object(settings), indent=2, ensure_ascii=False) + "\n"

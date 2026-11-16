@@ -17,6 +17,7 @@ from wio.contracts.location import (
 )
 from wio.contracts.roots import undeclared_root
 from wio.formats import (
+    encode_json,
     prepare_skeleton,
     read_metadata_block,
     read_outline,
@@ -434,10 +435,8 @@ def render_report(work: NewWork, *, as_json: bool) -> str:
         newline and imports `json` only for the JSON form.
     """
     if as_json:
-        import json
-
         return (
-            json.dumps(
+            encode_json(
                 {
                     "id": work.id,
                     "title": work.title,

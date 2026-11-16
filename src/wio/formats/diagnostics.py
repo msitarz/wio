@@ -3,6 +3,7 @@
 
 from dataclasses import asdict
 from typing import TYPE_CHECKING
+lazy import json
 
 from wio.models.diagnostics import sort_diagnostics
 
@@ -10,6 +11,22 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from wio.models.diagnostics import Diagnostic
+
+
+def encode_json(
+    value: object, *, indent: int | None = None, ensure_ascii: bool = True
+) -> str:
+    """Encode a value as JSON, loading the encoder on first use.
+
+    Args:
+        value: The JSON-serializable value.
+        indent: The indentation width, or none for a single line.
+        ensure_ascii: Escape non-ASCII characters when true.
+
+    Returns:
+        JSON text without a trailing newline.
+    """
+    return json.dumps(value, indent=indent, ensure_ascii=ensure_ascii)
 
 
 def render_text(diagnostics: Iterable[Diagnostic], *, keep_order: bool = False) -> str:
@@ -46,10 +63,8 @@ def render_json(diagnostics: Iterable[Diagnostic], *, keep_order: bool = False) 
         order of `sort_diagnostics`, or as given with `keep_order`; `[]` for none.
 
     """
-    import json
-
     ordered = tuple(diagnostics) if keep_order else sort_diagnostics(diagnostics)
-    return json.dumps([asdict(d) for d in ordered])
+    return encode_json([asdict(d) for d in ordered])
 
 
 def render_check(

@@ -3,7 +3,12 @@
 
 lazy from wio.formats.block import read_metadata_block
 lazy from wio.formats.closest import closest_key
-lazy from wio.formats.diagnostics import render_check, render_json, render_text
+lazy from wio.formats.diagnostics import (
+    encode_json,
+    render_check,
+    render_json,
+    render_text,
+)
 lazy from wio.formats.directives import (
     COMBINING,
     DIRECTIVES,
@@ -33,6 +38,7 @@ __all__ = [
     "TomlSyntaxError",
     "closest_key",
     "decode_toml",
+    "encode_json",
     "encode_toml",
     "find_items",
     "judge_items",

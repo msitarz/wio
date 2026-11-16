@@ -2,12 +2,11 @@
 """What `wio contracts list` prints."""
 
 from typing import TYPE_CHECKING
-lazy import json
 
 from wio.contracts.discovery import discover_works
 from wio.contracts.errors import ContractsError
 from wio.contracts.hierarchy import build_hierarchy
-lazy from wio.formats import render_text
+lazy from wio.formats import encode_json, render_text
 
 _HINT = "`wio contracts check` shows every problem."
 """The line that a refusal ends with, so a person knows where to see them all."""
@@ -62,7 +61,7 @@ def render_list(found: Hierarchy, *, as_json: bool) -> str:
         in the human form, and `[]` and a newline in the JSON form.
     """
     if as_json:
-        return json.dumps([_as_object(work, found) for work in found.works]) + "\n"
+        return encode_json([_as_object(work, found) for work in found.works]) + "\n"
     order = _text_order(found)
     width = max((len(work.id) for work, _ in order), default=0)
     titles = {work.id: work.title for work in found.works}
