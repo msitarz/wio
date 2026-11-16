@@ -317,3 +317,45 @@ says how sections are matched.
 - **A fresh Work must pass.** What an entry template requires decides what a
   Work needs from its first commit, which the scenarios show with a template
   that requires only headings and one that requires an item.
+
+## The resolved view of a Work
+
+An agent reads one text for a Work: its own contract and the sections that its
+ancestors pass on, so it never opens a whole parent contract.
+[`resolve.py`](resolve.py) builds it in two steps, `resolve_work` gathers the
+parts into a `ResolvedContract` and `render_resolved` writes the text, and the
+docstrings there say each rule of the layout and of what an ancestor passes. The
+[unit tests](../../../tests/unit/contracts/test_resolve.py) show each case.
+[Inheritance, computed](../../../docs/concepts.md#inheritance-computed) says
+what inherits and why.
+
+- **One function writes the text.** `wio contracts show` and the context bundle
+  print the same bytes because both call `render_resolved`, and the value holds
+  the parts and not the text so that neither can lay it out on its own.
+- **An inherited section is named by its ancestor.** It stands under a
+  `## Inherited from:` heading and is demoted one level, so it can be neither
+  mistaken for one of the Work's own sections nor read as one.
+- **The ancestor's source decides, not the Work's.** What a Work inherits does
+  not depend on whether it follows a template itself, and a section is matched
+  to the source by its heading text, as the check of the body matches it, so
+  the two cannot disagree about which sections are marked.
+- **A damaged ancestor passes nothing and stops nothing.** A missing or rejected
+  template, a file that cannot be read and a list that cannot be read each leave
+  that ancestor out, while the ancestors above it still pass theirs, because
+  those problems are reported by the commands that check them and a command that
+  only shows a Work must still show it. The Work's own file is the exception: a
+  read that fails there is raised, because there is nothing to show without it.
+- **A list that can be read is taken off and one that cannot stays.** A
+  directive list is metadata for the checks and is of no use to the agent that
+  reads the view, while one that cannot be read is shown as written, so its
+  author sees why it marks nothing. A comment is kept, because an authoring note
+  may matter to a reader.
+- **The directive parser reads a line at column 0.** An indented heading that
+  the outline counts is therefore left as written, is not demoted and never
+  matches a template's heading. A closing sequence of `#` marks is not part of a
+  heading's text, as in the title that discovery gives.
+- **The resolver reads the template's file itself.** The catalog gives only the
+  template and its path, and the directives are in its body, as for the check of
+  the body.
+- **The view reads and never writes, and the same Work gives the same text.**
+  Line endings are LF whatever the files hold.

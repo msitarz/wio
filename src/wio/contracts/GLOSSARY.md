@@ -15,3 +15,6 @@ engine in the [repository glossary](../../../GLOSSARY.md).
 | Slug | The name of a Work's directory: lowercase letters and digits joined by single `-`, given by `--slug` as written or derived from a title. It is not the Work's id, which is six random characters. |
 | Resolved actions of a Work | Its actions after its own `[actions]` replace those of its template, or of the config's `[works.defaults.actions]` when it names no template, an empty list removing the action, as [Where the pipeline comes from](../../../docs/concepts.md#where-the-pipeline-comes-from) says. |
 | Section of a contract | A `##` heading of its body with what follows it up to the next heading of level 1 or 2. A heading deeper than level 2 belongs to a section and is free. |
+| Resolved view | A Work's own contract followed by the inherited sections of its ancestors, each ancestor under a `## Inherited from: <title> (<id>)` heading, nearest first. |
+| Inherited section | A `##` section of an ancestor that the directive source of that ancestor marks `inherit`, and every section whose heading text matches a marked one passes, so a repeated section passes each time. |
+| Directive source | The template an ancestor names, or its own headings when it names none, which says what the ancestor passes on. |

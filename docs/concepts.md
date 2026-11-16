@@ -998,8 +998,12 @@ neither an error nor a warning ([Parent and leaf](#parent-and-leaf)).
 `wio contracts show` prints the Work together with those sections, and so does
 the resolved contract in a bundle
 ([The context compiler](#11-the-context-compiler)). The agent reads one resolved
-view and never needs to open whole parent contracts. How the inherited sections
-are rendered is open ([Open points](#15-open-points)).
+view and never needs to open whole parent contracts. The view is the Work's
+own contract, then, for each ancestor that passes a section, nearest first, a
+`## Inherited from: <title> (<id>)` heading and that ancestor's sections, each
+demoted by one level, so an inherited section names the ancestor it comes from.
+[The resolved view of a Work](../src/wio/contracts/README.md#the-resolved-view-of-a-work)
+says how it is built.
 
 A leaf's own Constraints section holds only the constraints the leaf adds. The
 inherited ones are not restated, so they cannot drift.
@@ -2529,10 +2533,6 @@ and its own selection give it.
   yields ids that look like rule codes, such as `ARC1`. "By form" needs the form
   of a code stated precisely, and then either `wio contracts check` rejects item
   ids of that form or a cited rule is always qualified with its ruleset.
-- How the resolved view renders inherited sections: their heading levels,
-  their order relative to the Work's own sections, and how each names the
-  ancestor it comes from. The contract Work settles it before golden tests fix
-  it.
 - Recipes for harness hooks that inject the bundle again after compaction.
 - A lock file for the whole workflow, like `uv.lock`, for v0.3 or later.
   `.agents/wio/wio.lock` records everything `wio context` compiles bundles from:
