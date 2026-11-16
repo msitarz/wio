@@ -84,9 +84,7 @@ defines what a Work is.
   `FileSystem` port, and its output is in a fixed order: the Works by the
   string of their paths and the diagnostics as the shared ordering puts them.
 - **`Work` is in [`wio.models.works`](../models/works.py).** Its docstring holds
-  its fields and the rule that the title is the first heading, at any level. It
-  sits beside the stub `work.pyi`, which a later Work replaces, so that a stub
-  and its implementation never share a module name.
+  its fields and the rule that the title is the first heading, at any level.
 
 The walk, the refusal of a Works directory and the ordering of diagnostics are
 the [shared helpers](../io/walk.py) that the templates discovery also uses, so

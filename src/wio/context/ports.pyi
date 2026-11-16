@@ -7,8 +7,8 @@ satisfies each is wired in by `wio.cli`; `wio.context` never imports it.
 
 from typing import Protocol
 
+from wio.models.resolved import ResolvedContract
 from wio.models.rules import Selection
-from wio.models.work import ResolvedContract
 
 class Contracts(Protocol):
     """The Work contracts that a bundle shows."""
