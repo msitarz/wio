@@ -88,7 +88,9 @@ def run_hook(
     """Run the command of a hook with a fake `uv` that stands for the check.
 
     With `wio`, the fake `uv` runs that `wio` command instead of printing what it
-    is told, so the hook runs the real check.
+    is told, so the hook runs the real check, and the hook gets the environment of
+    the tests, because `uv` needs it to find the Python that the wheel requires and
+    exits 1, as a failed check does, when it cannot.
 
     Args:
         hook: The hook, as `find_hook` returns it.
@@ -108,13 +110,16 @@ def run_hook(
     uv.write_text(FAKE_UV if wio is None else FORWARDING_UV)
     uv.chmod(uv.stat().st_mode | stat.S_IXUSR)
     jq = Path(shutil.which("jq") or "/usr/bin/jq").parent
+    real = wio is not None
+    path = os.environ["PATH"] if real else f"{jq}:/usr/bin:/bin"
     env = {
-        "PATH": f"{tmp_path}:{jq}:/usr/bin:/bin",
+        **(os.environ if real else {}),
+        "PATH": f"{tmp_path}:{path}",
         "FAKE_CHECK": check,
         "FAKE_CHECK_EXIT": str(exit_code),
         "FAKE_CHECK_OUTPUT": output,
         "FAKE_CHECK_CALLED": str(tmp_path / CALLED),
-        **({} if wio is None else {"WIO_COMMAND": wio, **_uv_cache()}),
+        **({"WIO_COMMAND": wio, **_uv_cache()} if wio is not None else {}),
     }
     done = subprocess.run(
         ["/bin/sh", "-c", str(hook["command"])],
