@@ -24,37 +24,89 @@ _SOURCE_TEXT: Final[dict[ShownSource, str]] = {
 
 
 def render_show(shown: ShownWork, *, as_json: bool) -> str:
-    """Render a Work for a person or for a program.
+    r"""Render a Work for a person or for a program.
 
     It reads nothing and writes nothing, and imports `json` only for the JSON
-    form.
-
-    The text is the first line `Work <id>  <title>`, the facts, a blank line,
-    `Actions` and the actions, a blank line, a line of `----`, a blank line and
-    the view, and ends at the line of `----` when the view is empty, so it
-    always ends in one line ending. The facts are `Path`, `Template`, `Parent`,
-    `Roots`, `After` and `Needed by`, each written only when it has something to
-    say, with its label padded so that every value starts at column 15 and a
-    second value on the next line in that column. `Roots` shows a Work's own
-    roots as written, and when it lists `@descendants` an arrow and the resolved
-    roots, or `none`. A related Work is `<id>  <title>`, with `(not found)` and
-    `(no title)` where they apply. An action is its name, its preset, where it
-    comes from and `on demand` when the config marks it, with its stages on the
-    next line, or `removed (by the contract)` with no mark, although the JSON
-    keeps the config's flag. With no action line to print, `Actions` is followed
-    by the line `none`, and the JSON `actions` is an empty array.
-
-    The JSON is one object on one line, written by `json.dumps` with its default
-    separators, with `id`, `title`, `path`, `template`, `parent`, `roots`,
-    `resolved_roots`, `depends_on`, `dependents`, `actions` and `view` in that
-    order. The text and the JSON say the same facts.
+    form. The text and the JSON say the same facts, and the text ends in one line
+    ending, at the `----` line when the view is empty.
 
     Args:
         shown: The Work with what `gather_work` found.
         as_json: Whether to render the object instead of the text.
 
     Returns:
-        The text for standard output, ending in one line ending.
+        The text for standard output, or the JSON object on one line, ending in
+        one line ending.
+
+    Example:
+        A Work with a parent and a dependency, whose actions are one from its
+        template, one of its own and one that it removed:
+
+            Work w4k7mn  Cache
+              Path         .agents/wio/works/search/cache/README.md
+              Template     feature.leaf
+              Parent       q8d3zt  Search
+              Roots        wio
+              After        r2v6hc  Index
+
+            Actions
+              plan      plan-feature  (from the template)
+                          plan, review-plan
+              release   (from the contract)
+                          tag, publish
+              rollback  removed (by the contract)
+
+            ----
+
+            # Cache
+
+            ## Purpose
+
+            Keep what was read.
+
+        A fact with nothing to say is left out, a second value goes on its own
+        line in the column of the first, and `@descendants` shows what it
+        resolves to, or `none`:
+
+              Roots        e2e, @descendants → api, e2e
+              After        r2v6hc  Twin
+                           n5p7qr  (no title)
+                           y4k2mq  (not found)
+              Needed by    k3m9xq  Child
+
+        An on-demand action, and a preset that the config does not declare, which
+        has no stages line:
+
+            Actions
+              amend   amend-contract  (on demand, from the config defaults)
+                        amend, review-amendment
+              ratify  unknown  (from the config defaults)
+
+        A Work that resolves to no action:
+
+            Actions
+              none
+
+        The JSON of the first Work is one line with these fields in this order,
+        `null` where there is none, and a removed action with its source and no
+        preset or stages:
+
+            {
+              "id": "w4k7mn",
+              "title": "Cache",
+              "path": ".agents/wio/works/search/cache/README.md",
+              "template": "feature.leaf",
+              "parent": "q8d3zt",
+              "roots": ["wio"],
+              "resolved_roots": ["wio"],
+              "depends_on": ["r2v6hc"],
+              "dependents": [],
+              "actions": [
+                {"name": "rollback", "source": "contract", "on_demand": false,
+                 "preset": null, "stages": []}
+              ],
+              "view": "# Cache\n\n## Purpose\n\nKeep what was read.\n"
+            }
     """
     if as_json:
         return f"{encode_json(_as_object(shown))}\n"
