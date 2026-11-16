@@ -499,3 +499,50 @@ def test_an_indented_heading_and_a_section_with_no_content_pass_nothing(
 
     # Then nothing is passed
     assert text == expected
+
+
+def test_closing_marks_are_not_part_of_a_title_or_of_the_text_a_section_matches() -> (
+    None
+):
+    """A closing sequence of `#` marks is left out of the title and of the match."""
+    # Given a parent titled `# Parent ##` whose `## Constraints ##` the template
+    # marks as `## Constraints ## <!-- wio: inherit -->`
+    files = MemoryFileSystem()
+    catalog = _Catalog(files, {"t": ("## Constraints ##" + INHERIT,)})
+    body = "# Parent ##\n\n## Constraints ##\n\nA line.\n"
+    parent = _add(files, "p/README.md", "p5n2hv", body, "t")
+    child = _add(files, "p/c/README.md", "c", "")
+
+    # When the view of a child with an empty own contract is rendered
+    text = _view(child, [parent, child], files, catalog)
+
+    # Then the ancestor is named `Parent` and the section passes
+    assert text == (
+        "## Inherited from: Parent (p5n2hv)\n\n### Constraints ##\n\nA line.\n"
+    )
+
+
+def test_a_closing_sequence_before_a_directive_list_is_left_out_of_the_title() -> None:
+    """A title with a closing sequence and then a readable list is named plainly."""
+    # Given a parent titled `# Parent # <!-- wio: required -->`
+    body = "# Parent # <!-- wio: required -->\n\n## Constraints\n\nA line.\n"
+
+    # When the view of a child with an empty own contract is rendered
+    text = _parent_view(body, ("Constraints",))
+
+    # Then it begins with `## Inherited from: Parent (p5n2hv)`
+    assert text.startswith("## Inherited from: Parent (p5n2hv)\n")
+
+
+def test_the_works_own_file_that_cannot_be_read_is_not_swallowed() -> None:
+    """A failed read of the Work's own file reaches the caller."""
+    # Given a Work whose file raises an OSError
+    files = MemoryFileSystem()
+    catalog = _Catalog(files, {})
+    child = _add(files, "c/README.md", "c", "# C\n")
+    files.broken[ROOT / child.path] = PermissionError("no")
+
+    # When the Work is resolved
+    # Then the error is raised
+    with pytest.raises(PermissionError):
+        resolve_work(child, (), catalog, ROOT, files)

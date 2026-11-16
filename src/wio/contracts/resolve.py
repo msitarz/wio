@@ -30,6 +30,8 @@ _DEEPEST: Final = 6
 """The deepest heading level, which a demotion does not pass."""
 _MARKS: Final = re.compile(r"#{1,6}\s+")
 _COMMENT: Final = re.compile(r"<!--.*?-->", re.DOTALL)
+_CLOSING: Final = re.compile(r"\s+#+$")
+"""The closing sequence of an ATX heading, which is not part of its text."""
 
 
 @dataclass(frozen=True)
@@ -308,14 +310,15 @@ def _key(raw: str) -> str | None:
         raw: A heading's line.
 
     Returns:
-        Its text without the `#` marks, any directive list, readable or not, and
-        the whitespace around it, in lowercase for comparison, or `None` for a
-        line that does not start with its marks at column 0.
+        Its text without the `#` marks, any directive list, readable or not, a
+        closing sequence of `#` marks and the whitespace around it, in lowercase
+        for comparison, or `None` for a line that does not start with its marks
+        at column 0.
     """
     if _MARKS.match(raw) is None:
         return None
     text = _MARKS.sub("", remove_directive_list(raw), count=1)
-    return text.strip().casefold()
+    return _CLOSING.sub("", text.strip()).casefold()
 
 
 def _clean(raw: str) -> str:
@@ -344,13 +347,14 @@ def _title(heading: Heading) -> str:
         heading: A real heading.
 
     Returns:
-        Its text as `read_outline` found it, less a list that can be read.
+        Its text as `read_outline` found it, less a list that can be read, so
+        without a closing sequence of `#` marks.
     """
     try:
         parsed = read_directive_heading(heading.raw)
     except DirectiveSyntaxError:
         return heading.text
-    return heading.text if parsed is None else parsed.text
+    return heading.text if parsed is None else _CLOSING.sub("", parsed.text)
 
 
 def _section(body: _Body, index: int) -> str:
