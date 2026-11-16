@@ -252,14 +252,34 @@ def test_check_reports_every_problem_of_the_tree_in_one_run_and_in_one_order(
     assert [(p["severity"], p["where"], p["message"]) for p in report] == _problems(
         text
     )
-    places = " ".join(place for _, place, _ in _problems(text))
-    assert f"{WORKS}/s1/README.md" in text.stdout
-    assert f"{WORKS}/s2/README.md" in text.stdout
-    assert f"{WORKS}/x/README.md" in text.stdout
-    assert "x2x2x2" in text.stdout
-    assert "y3y3y3" in text.stdout
-    assert f"{WORKS}/r/README.md" in places
-    assert f"{WORKS}/c/" in text.stdout
+    assert _problems(text) == [
+        (
+            "error",
+            f"{WORKS}/r/README.md",
+            "The section `Purpose` is required by the template `feature.leaf`",
+        ),
+        (
+            "error",
+            f"{WORKS}/x/README.md",
+            (
+                "Dependency cycle: x2x2x2 → y3y3y3 (listed in depends_on) → x2x2x2 "
+                "(listed in depends_on)"
+            ),
+        ),
+        (
+            "error",
+            f"{WORKS}/c/README.md, {WORKS}/c/other.md",
+            (
+                f"`{WORKS}/c` holds 2 marked files, and under `nesting` a directory "
+                "holds one Work"
+            ),
+        ),
+        (
+            "error",
+            f"{WORKS}/s1/README.md, {WORKS}/s2/README.md",
+            "Works share the id `s1s1s1`",
+        ),
+    ]
     assert (text.exit_code, data.exit_code) == (1, 1)
 
 
