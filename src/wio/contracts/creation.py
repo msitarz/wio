@@ -177,7 +177,7 @@ def _choose_template(
     name = _template_name(arguments, config)
     if name is None:
         return None
-    template = _find_template(name, catalog, entry=arguments.template is None)
+    template = find_template(name, catalog, entry=arguments.template is None)
     if arguments.kind is not None and template.kind != arguments.kind:
         msg = (
             f"The template `{name}` is of kind `{template.kind}`, "
@@ -214,8 +214,12 @@ def _template_name(arguments: NewArguments, config: Config) -> str | None:
     )
 
 
-def _find_template(name: str, catalog: TemplateCatalog, *, entry: bool) -> Template:
+def find_template(name: str, catalog: TemplateCatalog, *, entry: bool) -> Template:
     """Find a template and refuse a missing or rejected one.
+
+    `wio contracts new` and `wio contracts skeleton` find their template with it,
+    so they refuse the same way. A rejected template is reported before a missing
+    one.
 
     Args:
         name: The template name.

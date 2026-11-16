@@ -1,7 +1,8 @@
 # `wio.contracts`
 
 The component behind `wio contracts`: the group of subcommands that create,
-list, check and show Work contracts. This directory holds the group and what
+list, check and show Work contracts and prepare the skeleton of an existing
+Work. This directory holds the group and what
 every subcommand shares, and each subcommand lives in a module of its own.
 [`src/wio/README.md`](../README.md) is the architecture, and the
 [glossary](../../../GLOSSARY.md) defines the terms.
@@ -137,10 +138,11 @@ case reads. [Parent and leaf](../../../docs/concepts.md#parent-and-leaf),
 editor, location decision and write guard to create a Work. Its docstrings give
 the selection, validation and report rules; the
 [unit tests](../../../tests/unit/contracts/test_creation.py) and
-[acceptance scenarios](../../../tests/acceptance/contracts/test_new.py) show
-the cases. The [metadata editor](../formats/README.md#editing-contract-metadata)
-is shared with the planned skeleton command, so neither command needs its own
-interpretation of a block.
+[acceptance scenarios](../../../tests/acceptance/contracts/test_new.py) show the
+cases. The [metadata editor](../formats/README.md#editing-contract-metadata) is
+shared with
+[the skeleton of an existing Work](#the-skeleton-of-an-existing-work), so
+neither command needs its own interpretation of a block.
 
 Creation plans before it writes, so an invalid request cannot leave a partial
 Work, and reports only after the guard succeeds. Its parent lookup is shared
@@ -190,6 +192,48 @@ defines the rules for ids, the default place and `--path`.
   options, through the slug, the parent and the path, to what already exists, so
   a mistake in the arguments is reported before the file system is asked what
   already exists.
+
+## The skeleton of an existing Work
+
+`wio contracts skeleton` prints a template's skeleton for a Work that exists, so
+that a stage that moves the Work to another template keeps its id and its
+dependencies, and with them its records and its place in the order.
+[`skeleton.py`](skeleton.py) holds it, and its docstrings say the order of the
+refusals, what a skeleton carries and the form of the note. The
+[scenarios](../../../tests/acceptance/contracts/test_skeleton.py) show the
+output and the
+[concepts](../../../docs/concepts.md#from-template-to-contract) say what the
+command is for.
+
+- **It prepares and never writes.** The stage knows where the skeleton goes and
+  what else to carry from the old body, and the command knows neither, so it
+  prints a skeleton and leaves the decision to the stage and its skill. Two runs
+  print the same bytes, so a stage can run it again after it was interrupted.
+- **Only the values and the body are promised, not the layout.** The block is
+  rewritten by
+  [the shared editor](../formats/README.md#editing-contract-metadata), so
+  comments, spacing and the place of a key in it are not carried, and a stage
+  that compares skeletons compares the decoded keys.
+- **Nothing is dropped silently, and the stage chooses what to keep.** The
+  command does not know which keys matter to a move between two templates, so
+  it carries the identity, names what it left and lets `--keep` carry any key,
+  the Work's own data in a table included. The keys that the skeleton handles
+  already are refused by `--keep`, because carrying them twice could only
+  contradict the identity.
+- **The Work is read twice, and its wrong types are not mended.** A `Work` holds
+  only the fields that the other commands use, so the keys come from its file
+  again, as `check` does. A `depends_on` of the wrong type is carried as the
+  file has it, so the skeleton fails `wio contracts check` where the Work did,
+  and the one place that reports it stays `check`.
+- **The refusals follow the cost of explaining them.** A mistake that the tree
+  causes would be reported again as a missing Work, so the tree is judged before
+  the Work, and a usage error needs no file at all. The lookups of `show` and
+  `new` are reused, so the three commands word a missing id, a shared id and a
+  missing or rejected template alike, and a shared id refuses only its own
+  lookup, as in `show`.
+- **`--work` is checked by the command and not by the parser.** A required
+  option would give the parser's own usage message, and this error must point to
+  `wio templates show`, which prints a skeleton for no Work.
 
 ## Listing the Works
 

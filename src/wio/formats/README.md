@@ -190,6 +190,6 @@ contract's metadata block. Its docstring specifies what the rewrite keeps and
 discards, and its [tests](../../../tests/unit/formats/test_setkeys.py) cover
 both block forms and TOML value round trips. It reads values through the common
 metadata reader and writes them through the common TOML writer, so creation and
-the planned existing-Work skeleton use one interpretation of the block. The
+the skeleton of an existing Work use one interpretation of the block. The
 comment-form writer escapes the closing delimiter inside TOML strings, so a
 value cannot end the block before the metadata reader reaches its delimiter.

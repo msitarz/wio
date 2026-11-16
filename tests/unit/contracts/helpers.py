@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, cast
 from unittest.mock import Mock
 
 from tests.fakes import FakeEnvironment
-from tests.unit.fakes import ROOT, FakeEntropy, FakeRepository
+from tests.unit.fakes import ROOT, FakeEntropy, FakeRepository, MemoryFileSystem
 from wio.contracts import Services
 from wio.models.config import Config
 from wio.models.frozen import freeze
@@ -16,7 +16,6 @@ from wio.models.works import Work
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
 
-    from tests.unit.fakes import MemoryFileSystem
     from wio.contracts.ports import TemplateCatalog
     from wio.models.diagnostics import Diagnostic
     from wio.ports import Settings
@@ -145,3 +144,27 @@ def services(
         FakeEntropy(),
         FakeEnvironment(directory),
     )
+
+
+def marked(block: str) -> str:
+    """Write a file with a metadata block and a title.
+
+    Args:
+        block: The lines of the block.
+
+    Returns:
+        The text of the file.
+    """
+    return f"<!-- wio\n{block}\n-->\n\n# Title\n"
+
+
+def works_tree(files: dict[str, str]) -> MemoryFileSystem:
+    """Put files under the Works directory.
+
+    Args:
+        files: The files, by path relative to the Works directory.
+
+    Returns:
+        The file system.
+    """
+    return MemoryFileSystem({ROOT / BASE / name: text for name, text in files.items()})
