@@ -9,10 +9,10 @@ depends_on = []
 
 ## Purpose
 
-This Work delivers the trailers component, which manages the `Wio-*` git
-message trailers that tie every commit to a stage: writing them, checking
-them at commit time and in CI, folding them for pull request bodies, and
-identifying the reviewed commit for a gate.
+Commit records are written by hand and checked and folded by a script outside
+the engine, so nothing validates them against the live config and a gate cannot
+find the commit it reviews; the engine needs to own the records that tie every
+commit to a stage.
 
 ## Goals
 
@@ -23,10 +23,9 @@ identifying the reviewed commit for a gate.
   commit time (by file or stdin) and over a range in CI.
 - Records of a commit range are foldable into a pull request body that
   survives a squash merge, retiring `records.py`.
-- The reviewed commit of a gate is identifiable from the history by walking
-  back past its pure gate commits.
-- A gate's result, judge and cited items are recordable with one command; the
-  review event write is stubbed until `wio log` is built.
+- The reviewed commit of a gate is identifiable from the history, even when
+  pure gate commits sit on top of it.
+- A gate's result, judge and cited items are recordable with one command.
 
 ## Glossary
 
@@ -141,22 +140,29 @@ exits 1 with a diagnostic.
 - **When** `wio trailers <work> <action> <stage> --result pass` is called.
 - **Then** the command exits 1 and reports that the stage is not a gate.
 
-### **AC-2** Folded output matches `records.py` semantically
+### **AC-2** Fold follows the fold rules
 
-Semantically equivalent means the same records in the same order with the
-same trailer key-value pairs; whitespace and line endings may differ.
-`wio trailers fold body` produces an equivalent result to `records.py body`,
-and `wio trailers fold block` produces an equivalent result to
-`records.py block`.
+`wio trailers fold body` and `wio trailers fold block` fold the records of a
+range in two steps, as [concepts.md](../../../../docs/concepts.md#records)
+specifies. For each Work, consecutive records of the same action and stage
+become one record at the later position. Then consecutive records that differ
+only in the Work become one list. Records that are not consecutive stay apart.
 
-#### Equivalent fold for a range with a re-delivered child
+#### A re-delivered child stays after its parent's integration
 
-- **Given** a range of commits with records for two Works, one delivering
-  again after integration.
-- **When** `wio trailers fold block` and `records.py block` are run on the
-  same range.
-- **Then** both produce the same folded record paragraphs and
-  outside-revert lines.
+- **Given** a range of commits whose records are, in order, child `a`
+  delivering `implementation`, parent `p` integrating, and `a` delivering
+  `implementation` again.
+- **When** `wio trailers fold block` runs on the range.
+- **Then** it prints three record paragraphs in that order, and the two
+  deliveries of `a` are not merged.
+
+#### Consecutive records of two Works merge into one list
+
+- **Given** a range whose consecutive commits carry the same action, stage and
+  result for Works `a` and `b`.
+- **When** `wio trailers fold block` runs on the range.
+- **Then** it prints one record paragraph whose `Wio-Work` lists `a` and `b`.
 
 ### **AC-3** The CI workflow uses `wio trailers` after this Work
 
@@ -214,14 +220,26 @@ pure gate commit for this gate.
 - **Then** the reviewed commit is the work commit, not any of the gate
   commits.
 
-### **AC-7** `--result` writes the gate record and does not error on the stub sink
+### **AC-7** `--result` prints the gate record with its result, judge and cites
 
-- **Given** a gate stage and the no-op `EventSink` stub.
-- **When** `wio trailers <work> <action> <stage> --result pass` runs.
-- **Then** the record paragraph is printed and the command exits 0.
+#### The printed record carries what was passed
+
+- **Given** a gate stage and a Work with an item `AC-1`.
+- **When** `wio trailers <work> <action> <stage> --result pass --judge human
+  --items AC-1` runs.
+- **Then** the printed record paragraph holds `Wio-Result: pass`,
+  `Wio-Judge: human` and `Wio-Items: AC-1`, and `wio trailers check` accepts
+  it.
+
+#### A result outside the vocabulary is refused
+
+- **Given** a gate stage and a config whose results do not include `maybe`.
+- **When** `wio trailers <work> <action> <stage> --result maybe` runs.
+- **Then** the command exits 1, prints no record and reports the allowed
+  results.
 
 ## Additional context
 
-`records.py` is the reference implementation for the fold algorithm and the
-`scan` reader. Its logic and behaviour are the normative baseline for the
-leaves that replace it.
+The fold rules and the `scan` reader are specified in
+[concepts.md](../../../../docs/concepts.md#records), which is the baseline the
+leaves implement. `records.py` is deleted once they do (AC-3).
