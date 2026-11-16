@@ -28,6 +28,7 @@ lazy from wio.contracts.location import (
 )
 lazy from wio.contracts.resolve import render_resolved, resolve_work
 lazy from wio.contracts.showing import run_show
+lazy from wio.contracts.skeleton import run_skeleton
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -94,6 +95,7 @@ _NEW_HELP = "Create a Work from a template or as a bare contract."
 _NEW_JSON = "Write one JSON object describing the created Work."
 _SHOW_HELP = "Show one Work with its facts, its actions and its resolved contract."
 _SHOW_JSON = "Write one JSON object of the Work instead of the text."
+_SKELETON_HELP = "Print a template's skeleton for an existing Work."
 
 
 def _json_option(parser: ArgumentParser, *, help: str) -> None:  # noqa: A002
@@ -116,6 +118,22 @@ def _configure_show(parser: ArgumentParser) -> None:
     _json_option(parser, help=_SHOW_JSON)
 
 
+def _configure_skeleton(parser: ArgumentParser) -> None:
+    """Add the template to print, `--work` and `--keep`.
+
+    `--work` is not marked required here, because its absence is a usage error
+    that points to `wio templates show` and is reported after nothing else.
+
+    Args:
+        parser: The subparser.
+    """
+    parser.add_argument("template", help="Name of the template.")
+    parser.add_argument("--work", help="Id of the Work whose identity to carry.")
+    parser.add_argument(
+        "--keep", action="append", default=[], help="Key of the Work to carry."
+    )
+
+
 def _show(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Run `wio contracts show`.
 
@@ -128,6 +146,20 @@ def _show(services: Services, args: Namespace, stdio: Stdio) -> int:
         The exit code.
     """
     return run_show(services, args, stdio)
+
+
+def _skeleton(services: Services, args: Namespace, stdio: Stdio) -> int:
+    """Run `wio contracts skeleton`.
+
+    Args:
+        services: What the subcommand reads the project through.
+        args: The parsed arguments.
+        stdio: Where the skeleton and the note go.
+
+    Returns:
+        The exit code.
+    """
+    return run_skeleton(services, args, stdio)
 
 
 def _check(services: Services, args: Namespace, stdio: Stdio) -> int:
@@ -193,6 +225,7 @@ SUBCOMMANDS: Final[Sequence[Subcommand]] = (
     Subcommand("list", _LIST_HELP, partial(_json_option, help=_LIST_JSON), _list),
     Subcommand("new", _NEW_HELP, _configure_new, _new),
     Subcommand("show", _SHOW_HELP, _configure_show, _show),
+    Subcommand("skeleton", _SKELETON_HELP, _configure_skeleton, _skeleton),
 )
 """The subcommands of `wio contracts`, to which each leaf adds its own entry.
 
