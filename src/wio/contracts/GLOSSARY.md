@@ -14,6 +14,7 @@ engine in the [repository glossary](../../../GLOSSARY.md).
 | Dependents of a Work | The Works that list its id in `depends_on`. A parent that waits for the Work as its child is not one. |
 | Slug | The name of a Work's directory: lowercase letters and digits joined by single `-`, given by `--slug` as written or derived from a title. It is not the Work's id, which is six random characters. |
 | Resolved actions of a Work | Its actions after its own `[actions]` replace those of its template, or of the config's `[works.defaults.actions]` when it names no template, an empty list removing the action, as [Where the pipeline comes from](../../../docs/concepts.md#where-the-pipeline-comes-from) says. |
+| Carried key | A key of an existing Work that its skeleton has: `id` and `depends_on` always, and the keys that `--keep` names. A key that the Work has and the skeleton does not is not carried, and the note names it. |
 | Section of a contract | A `##` heading of its body with what follows it up to the next heading of level 1 or 2. A heading deeper than level 2 belongs to a section and is free. |
 | Resolved view | A Work's own contract followed by the inherited sections of its ancestors, each ancestor under a `## Inherited from: <title> (<id>)` heading, nearest first. |
 | Inherited section | A `##` section of an ancestor that the directive source of that ancestor marks `inherit`, and every section whose heading text matches a marked one passes, so a repeated section passes each time. |

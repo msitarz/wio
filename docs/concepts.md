@@ -635,16 +635,18 @@ refuses it.
 Carrying an existing Work's identity into a skeleton belongs to `wio contracts`,
 and `--work` and `--keep` are not options of `wio templates show`. With
 `--work <id>`, a skeleton of `wio contracts` is the one for that existing Work:
-`template` is the
-requested template, and the Work's `id` and `depends_on` are carried over,
-because they are its identity and its ordering in any template. Everything else
-comes from the new template's defaults. `--keep <key>`, which can be repeated,
-carries more on request: `--keep roots` and `--keep actions` keep the Work's
-roots and its action overrides. wio knows no procedure for moving between
-templates, so it never decides what else to keep: the skill that knows its
-templates does. On standard error, wio lists the Work's metadata the skeleton
-does not carry, so nothing is dropped silently; standard output stays the
-skeleton. A stage that moves a Work to another template uses `wio contracts`
+`template` is the requested template, and the Work's `id` and `depends_on` are
+carried over, because they are its identity and its ordering in any template.
+Everything else comes from the new template's defaults. `--keep <key>`, which
+can be repeated, carries more on request: it takes any key or table of the Work,
+so `--keep roots` and `--keep actions` keep its roots and its action overrides,
+and `--keep x` keeps data of its own, which a move between templates would
+otherwise lose. The keys that the skeleton handles already, `id`, `template`,
+`depends_on` and `wio`, cannot be kept. wio knows no procedure for moving
+between templates, so it never decides what else to keep: the skill that knows
+its templates does. On standard error, wio lists the Work's metadata the
+skeleton does not carry, so nothing is dropped silently; standard output stays
+the skeleton. A stage that moves a Work to another template uses `wio contracts`
 with `--work`, so the Work keeps its id and its records.
 
 ### Kinds and entry templates
