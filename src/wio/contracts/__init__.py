@@ -121,8 +121,8 @@ def _configure_show(parser: ArgumentParser) -> None:
 def _configure_skeleton(parser: ArgumentParser) -> None:
     """Add the template to print, `--work` and `--keep`.
 
-    `--work` is not marked required here, because its absence is a usage error
-    that points to `wio templates show` and is reported after nothing else.
+    `--work` is not marked required here, because `run_skeleton` reports its
+    absence with a pointer to `wio templates show`, which the parser cannot.
 
     Args:
         parser: The subparser.

@@ -73,19 +73,16 @@ class Skeleton:
 def run_skeleton(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Run `wio contracts skeleton`.
 
-    It reads through `services`, writes the skeleton to `stdio.stdout` and the
-    note to `stdio.stderr`, and writes no file. A mistake is found before
-    anything is written, so it prints nothing on standard output. When several
-    apply the first of these is reported: a usage error, an incomplete tree, the
-    Work, the template, then `--keep`. The usage error is a missing `--work`,
-    which points to `wio templates show` and is refused before any file is read.
-    The tree is walked with `discover_works` and judged with
-    `refuse_tree(discovery, shared=False)`, so every error of finding the Works
-    but a shared id refuses the command, with the pointer to
+    It writes the skeleton to `stdio.stdout` and the note to `stdio.stderr`, and
+    writes no file. A mistake is found before anything is written, so it prints
+    nothing on standard output. When several apply the first of these is
+    reported: a usage error, an incomplete tree, the Work, the template, then
+    `--keep`. The usage error is a missing `--work`, which points to
+    `wio templates show` and is refused before any file is read. Every error of
+    finding the Works but a shared id refuses the command, with the pointer to
     `wio contracts check`, and a shared id refuses only its own lookup. The Work
-    is found with `find_by_id` of `wio.contracts.showing`, which gives the
-    messages of `show`: no Work has the id, with the closest one, or two share
-    it.
+    and the template are found as `show` and `new` find theirs, so the messages
+    are the same.
 
     Args:
         services: What the command reads the project through.
@@ -167,16 +164,11 @@ def plan_skeleton(
 ) -> Skeleton:
     """Prepare the template's skeleton for a Work without writing a file.
 
-    The skeleton is the template's, with the Work's identity: the `id` first,
-    after `wio = 1` in front matter, the requested `template`, and the Work's
-    `depends_on` as its file has it, a wrong type included. A Work with no
-    `depends_on` leaves the template's as the template has it, and one with
-    `depends_on = []` gives `depends_on = []`. A kept key or table replaces the
-    template's and is added when the template has none. The Work's keys are read
-    again from its file, because the `Work` holds only the fields that the other
-    commands use. The block is rewritten with the first line ending of the
-    skeleton, and its body stays as the template has it. The skeleton comes from
-    `prepare_skeleton`, and `carry_keys` sets the keys.
+    The template's skeleton is the one `prepare_skeleton` gives, and
+    `carry_keys` says what the Work adds to it. The Work's keys are read again
+    from its file, because the `Work` holds only the fields that the other
+    commands use, and `--keep` is checked against them before anything is
+    carried.
 
     Args:
         template: The usable template.
@@ -205,12 +197,12 @@ def carry_keys(
 ) -> Skeleton:
     """Put the identity and the kept keys of a Work into a prepared skeleton.
 
-    `id` goes first and `depends_on` is the Work's when it has one. Each kept key
-    replaces the skeleton's, or is added, and a key that is a table is carried as
-    a value. The form of the template, its first line ending, its `template`
-    and its body stay as the skeleton has them, and TOML comments of the block
-    are not carried. The keys that the Work has and the skeleton did not take,
-    besides `CANNOT_KEEP`, are `dropped`, in the order of the Work.
+    `id` goes first and `depends_on` is the Work's when it has one, as its file
+    has it, a wrong type included; a Work with none leaves the template's, and
+    `depends_on = []` gives `[]`. Each kept key replaces the skeleton's, or is
+    added, and a table is carried as a value. The form, the first line ending,
+    the `template` and the body stay as the skeleton has them, and TOML comments
+    of the block are not carried. What the skeleton did not take is `dropped`.
 
     Args:
         prepared: The skeleton that `prepare_skeleton` gives for the template.
