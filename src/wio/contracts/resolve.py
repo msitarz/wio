@@ -3,13 +3,14 @@
 
 from typing import TYPE_CHECKING
 
+lazy from wio.models.resolved import InheritedSections, ResolvedContract
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
     from wio.contracts.ports import TemplateCatalog
     from wio.io.ports import FileSystem
-    from wio.models.resolved import ResolvedContract
     from wio.models.works import Work
 
 
@@ -69,7 +70,9 @@ def resolve_work(
         UnicodeDecodeError: The Work's own file is not UTF-8.
         ConfigurationError: The config cannot be loaded, which `catalog` raises.
     """
-    raise NotImplementedError
+    own = _own_contract(files.read_text(root / work.path))
+    found = (_inherited(a, catalog, root, files) for a in ancestors)
+    return ResolvedContract(work, own, tuple(i for i in found if i is not None))
 
 
 def render_resolved(resolved: ResolvedContract) -> str:
@@ -89,5 +92,90 @@ def render_resolved(resolved: ResolvedContract) -> str:
     Returns:
         The text, ending in one line ending, and the empty string when the own
         contract is empty and nothing is inherited.
+    """
+    parts = [resolved.own]
+    for entry in resolved.inherited:
+        header = f"## Inherited from: {entry.title} ({entry.ancestor.id})"
+        parts.extend((header, *entry.sections))
+    text = "\n\n".join(part for part in parts if part)
+    return f"{text}\n" if text else ""
+
+
+def _inherited(
+    ancestor: Work, catalog: TemplateCatalog, root: Path, files: FileSystem
+) -> InheritedSections | None:
+    """Gather what one ancestor passes on.
+
+    Args:
+        ancestor: The ancestor.
+        catalog: Finds the ancestor's template and says whether it is rejected.
+        root: The repository root that paths are relative to.
+        files: The port that reads the files.
+
+    Returns:
+        Its title and sections, or `None` when it passes nothing: its file cannot
+        be read, its source of directives cannot be used, or no section passes.
+    """
+    try:
+        text = files.read_text(root / ancestor.path)
+    except OSError, UnicodeDecodeError:
+        return None
+    marked = _marked_texts(ancestor, text, catalog, root, files)
+    title, sections = ("", ()) if marked is None else _cut_ancestor(text, marked)
+    return InheritedSections(ancestor, title, sections) if sections else None
+
+
+def _own_contract(text: str) -> str:
+    """Take a Work's file down to its own contract as the view starts.
+
+    Args:
+        text: The whole file.
+
+    Returns:
+        The text after the metadata block, with LF endings, comments kept, a
+        readable directive list taken off every heading and the blank lines at
+        either end removed.
+    """
+    raise NotImplementedError
+
+
+def _marked_texts(
+    ancestor: Work,
+    text: str,
+    catalog: TemplateCatalog,
+    root: Path,
+    files: FileSystem,
+) -> frozenset[str] | None:
+    """Find the `##` sections that an ancestor's source of directives marks.
+
+    Args:
+        ancestor: The ancestor, whose `template` names its source.
+        text: The ancestor's whole file, the source when it names no template.
+        catalog: Finds the template and says whether it is rejected.
+        root: The repository root that the template's path is relative to.
+        files: The port that reads the template's file.
+
+    Returns:
+        The text of each marked section as sections are matched, which is
+        lowercase, without the whitespace around it and without a trailing
+        directive list; empty when a readable list marks nothing; and `None` when
+        the template is missing, rejected or cannot be read.
+    """
+    raise NotImplementedError
+
+
+def _cut_ancestor(text: str, marked: frozenset[str]) -> tuple[str, tuple[str, ...]]:
+    """Name an ancestor and cut the sections of it that pass, from one outline.
+
+    Args:
+        text: The ancestor's whole file.
+        marked: The matching text of each marked section.
+
+    Returns:
+        The ancestor's title, which is the text of its first real heading at any
+        level with a readable directive list taken off, and each level-2 section
+        whose text matches, in the ancestor's order, as its heading line demoted
+        by one level, never below 6, and its text, without the blank lines that
+        end it. A section with only comments and whitespace is left out.
     """
     raise NotImplementedError

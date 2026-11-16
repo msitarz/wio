@@ -26,6 +26,7 @@ lazy from wio.contracts.location import (
     new_id,
     write_new,
 )
+lazy from wio.contracts.resolve import render_resolved, resolve_work
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -242,6 +243,8 @@ __all__ = [
     "explain_not_a_work",
     "find_work",
     "new_id",
+    "render_resolved",
+    "resolve_work",
     "run_check",
     "write_new",
 ]
