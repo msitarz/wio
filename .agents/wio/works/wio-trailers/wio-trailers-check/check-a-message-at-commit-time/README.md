@@ -2,7 +2,7 @@
 id = "vy01kg"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["pnf585", "hk3qt5"]
+depends_on = ["pnf585", "hk3qt5", "jzvrtx"]
 -->
 
 # Check a message at commit time
@@ -55,11 +55,11 @@ warning. The driver confirms this at the gate.
   shape leaf, with the reader that `[trailers] reader` names in the config. This
   mode turns a `malformed` or `invisible` finding into an error and an
   `unknown-key` finding into a warning.
-- **`validate_record`** — the validator of a record's fields against the config
-  and the Works, with the read of a Work that is in `HEAD` and not in the index,
-  which the validator leaf builds and this mode reuses with the index as its
-  source of Works. How this mode turns its findings into diagnostics, and how
-  the Works of the index are read, are for the architecture stage to settle.
+- **`validate_record`** — the validator of the validator leaf, which this mode
+  runs on each record with the lookup leaf's adapter for the index, whose
+  fallback to `HEAD` finds a Work that the commit being made deletes.
+- **Diagnostics** — how this mode turns the shape findings and the validator's
+  diagnostics into the printed lines is for the architecture stage to settle.
 
 ## Acceptance criteria
 

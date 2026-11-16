@@ -2,7 +2,7 @@
 id = "hk3qt5"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["pnf585"]
+depends_on = ["pnf585", "jzvrtx"]
 -->
 
 # Validate the fields of a record
@@ -15,43 +15,37 @@ disagree, so that a record could pass one and fail the other.
 
 ## Goals
 
-- Every field of a record is checked against the config and the Works it names.
-- A Work that only `HEAD` has, because the commit being made deletes it, is
-  checked from its contract at `HEAD`.
+- Every field of a record except the judge is checked against the config and
+  the Works it names.
 - A stage outside the Work's pipeline is warned about and not refused.
 
 ## Non-Goals
 
 - The record's own form, which the shape leaf judges.
+- Judging the judge against its gate; the gate leaf does that.
+- Finding a Work in the working tree, the index or `HEAD`, which the lookup leaf
+  does.
 - Reading a message, printing a record or choosing an exit code; the commands
   do that.
-- Deciding how the Works of the index are read, which the contract component
-  settles.
 
 ## Assumptions
 
-None.
+### A-1
+
+The messages `result required` and `not a gate`, which the criteria and the
+commands report, are fixed wording.
 
 ## Mechanisms
 
 - **`validate_record(record, contracts, config) -> list[Diagnostic]`** — the one
-  validator, in `wio.trailers`, which the architecture stage may type further.
-  `record` is one record of the shape leaf's `Reading`, or a mapping of keys to
-  values with their lines when it has them. `Wio-Work: none` has no Work to
-  check and yields no diagnostic. A list of Works is checked for each Work in
-  the order written. The diagnostics come in the order of the record's fields,
-  with the Works of a list in the order written and errors and warnings
-  interleaved by field.
-- **`Diagnostic`** — the existing `wio.models.diagnostics.Diagnostic`, a frozen
-  value of `severity`, `where` and `message`, whose `where` here is the line of
-  the field as a string when the record carries lines and the key of the field
-  otherwise. A diagnostic about an absent field or about the whole record uses
-  the record's first line, or the key of the field it concerns when there are no
-  lines.
-- **`Contracts` port** — the provisional port of `src/wio/trailers/ports.pyi`,
-  which the validator reads with `items` and `pipeline`. It finds a Work in the
-  working tree and otherwise in `HEAD`, through `History.list_files` and
-  `show`; how it reads the index is for the contract component to settle.
+  validator, in `wio.trailers`, which takes a record that passed the shape check
+  and the `Contracts` port of the lookup leaf, and which the architecture stage
+  may type further.
+- **`Record`** — the ordered fields `(key, value, line or None)` of one record
+  of the shape leaf's `Reading`, which the write command builds without lines.
+- **`Diagnostic`** — the existing `wio.models.diagnostics.Diagnostic`, whose
+  `where` here is the line of the field as a string, or the key of the field
+  when the record has no lines.
 
 ## Acceptance criteria
 
@@ -75,19 +69,17 @@ k3m9xq`, `Wio-Action: deliver` and `Wio-Stage: architecture`.
 
 #### A Work that exists nowhere
 
-- **Given** R with `Wio-Work: zz9zz9`, which is in neither the working tree
-  nor `HEAD`.
+- **Given** R with `Wio-Work: zz9zz9`, for which the `Contracts` port returns
+  `None`.
 - **When** `validate_record` runs.
-- **Then** it returns one `error` naming `zz9zz9`.
+- **Then** it returns one `error` naming `zz9zz9` and no other diagnostic.
 
-#### A Work that only `HEAD` has
+#### Nothing else is reported for a Work that is absent
 
-- **Given** R with `Wio-Work: d4e5f6`, a leaf Work that is in `HEAD` and not in
-  the working tree, whose `deliver` lists `architecture`.
-- **When** `validate_record` runs, and again with `Wio-Items: AC-99`, which its
-  contract at `HEAD` does not have.
-- **Then** it returns no diagnostic for the first and one `error` naming
-  `AC-99` for the second.
+- **Given** R with `Wio-Work: zz9zz9` and `Wio-Stage: nosuch`.
+- **When** `validate_record` runs.
+- **Then** it returns the one `error` for `zz9zz9` and the one for `nosuch`, and
+  no `warning`.
 
 ### **AC-3** The names must be in the config
 
@@ -131,6 +123,13 @@ k3m9xq`, `Wio-Action: deliver` and `Wio-Stage: architecture`.
 - **When** `validate_record` runs.
 - **Then** it returns one `warning` naming `integration` and no `error`.
 
+#### An action that the Work does not have
+
+- **Given** a record of `k3m9xq` with `Wio-Action: define`, which the config has
+  and `k3m9xq` lacks.
+- **When** `validate_record` runs.
+- **Then** it returns one `warning` naming `define` and no `error`.
+
 ### **AC-7** The place follows the record
 
 #### A present field
@@ -149,6 +148,14 @@ k3m9xq`, `Wio-Action: deliver` and `Wio-Stage: architecture`.
 - **Then** the `error` has `where` `3`, the record's first line, for the first
   and `Wio-Result` for the second.
 
+#### Each diagnostic points at its own field
+
+- **Given** R with lines 3 to 6 holding `Wio-Items: AC-99` and the stage
+  `integration`.
+- **When** `validate_record` runs.
+- **Then** the `error` for `AC-99` has `where` `6` and the `warning` for
+  `integration` has `where` `5`.
+
 ### **AC-8** The diagnostics come in the order of the fields
 
 #### A record with two errors
@@ -158,3 +165,17 @@ k3m9xq`, `Wio-Action: deliver` and `Wio-Stage: architecture`.
 - **When** `validate_record` runs.
 - **Then** it returns the `error` for the action, then the one for the stage,
   then the one for `AC-99`.
+
+#### A list of Works
+
+- **Given** R with `Wio-Work: a7b2c4, k3m9xq` and `Wio-Items: AC-3`, where
+  `a7b2c4` lacks `AC-3` and its `deliver` lists `architecture`.
+- **When** `validate_record` runs.
+- **Then** it returns the `error` for `a7b2c4` and no `error` for `k3m9xq`.
+
+#### A warning before an error
+
+- **Given** R with `Wio-Stage: integration` and `Wio-Items: AC-99`.
+- **When** `validate_record` runs.
+- **Then** it returns the `warning` for the stage, then the `error` for
+  `AC-99`.
