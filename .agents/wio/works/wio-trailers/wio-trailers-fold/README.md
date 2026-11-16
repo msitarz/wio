@@ -2,7 +2,7 @@
 id = "x4vs3k"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = []
+depends_on = ["pnf585"]
 -->
 
 # wio trailers fold
