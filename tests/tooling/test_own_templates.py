@@ -1,20 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests that this repository's templates are named by their files."""
 
-import hashlib
 import re
 import subprocess
-import sys
 import tomllib
-from pathlib import Path
 
 import pytest
 
+from tests.tooling.own import ROOT, SCRIPT, hash_files
+
 pytestmark = pytest.mark.slow
 
-ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = ROOT / ".agents" / "wio" / "templates"
-SCRIPT = Path(sys.executable).parent / "wio"
 NAMES = ("feature.draft", "feature.leaf", "feature.parent")
 
 
@@ -120,23 +117,10 @@ def test_the_repository_templates_pass_the_check() -> None:
     assert (out, err, code) == ("The templates pass.\n", "", 0)
 
 
-def _hashes() -> dict[str, str]:
-    """Hash every file of the templates directory.
-
-    Returns:
-        The SHA-256 of each file, by its path relative to the directory.
-    """
-    return {
-        str(path.relative_to(TEMPLATES)): hashlib.sha256(path.read_bytes()).hexdigest()
-        for path in sorted(TEMPLATES.rglob("*"))
-        if path.is_file()
-    }
-
-
 def test_no_command_changes_a_template() -> None:
     """Parent AC-3: `list`, `show` and `check` leave every template as it was."""
     # Given this repository's templates and a hash of each file
-    before = _hashes()
+    before = hash_files(TEMPLATES)
 
     # When `wio templates list`, `show` and `check` run on them
     for arguments in (("list",), ("show", "feature.parent"), ("check",)):
@@ -144,7 +128,7 @@ def test_no_command_changes_a_template() -> None:
 
     # Then the hash of every template is unchanged
     assert before
-    assert _hashes() == before
+    assert hash_files(TEMPLATES) == before
 
 
 @pytest.mark.parametrize(

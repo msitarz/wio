@@ -117,7 +117,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | --- | --- | --- | --- |
 | `kind` | *required* | The declared kind the template serves. | [Kinds and entry templates](#kinds-and-entry-templates) |
 | `description` | *open* | What tools show when they list templates. | [What a template is](#what-a-template-is) |
-| `shape` | *optional* | `"leaf"` or `"parent"`, the shape of Work the author expected. | [What a template is](#what-a-template-is) |
+| `shape` | *optional* | A free description of the Work the author expected, such as `"leaf"` or `"parent"`. | [What a template is](#what-a-template-is) |
 | `[actions]` | *open* | The default pipeline of each action. | [Where the pipeline comes from](#where-the-pipeline-comes-from) |
 | `[contract]` | *open* | The metadata of the contracts the template produces. | [From template to contract](#from-template-to-contract) |
 | `<!-- wio: required -->` | *optional* | The section must be present in the contract. | [Directives](#directives) |
@@ -451,7 +451,10 @@ spec.
 
 ### Identity and location
 
-- The `id` is random and short: 6 to 8 characters of lowercase Crockford base32.
+- The `id` that wio generates is random and short: 6 characters of lowercase
+  Crockford base32. An id that a person writes may have any other form that a
+  record can carry: it is not empty, holds no whitespace or comma, and is not
+  `none` ([Invariants wio checks](#invariants-wio-checks)).
   It is generated, not written by a model, because models invent or duplicate
   ids. It is not a UUID (too long, untypeable) and not a ticket key (that would
   tie wio to one tracker).
@@ -575,8 +578,8 @@ depends_on = []
   lives. Two templates cannot share a name.
 - `kind` is the template's kind, one of the kinds the config declares.
 - `description` is what tools show when they list templates.
-- `shape` is optional: `"leaf"` or `"parent"`, the shape of Work the template
-  is for. It is a free description, so wio does not compare it with the tree:
+- `shape` is optional: a free description, such as `"leaf"` or `"parent"`, of
+  the Work the template is for. wio does not compare it with the tree:
   the two disagree for a moment during every split. wio still has no levels:
   the tree decides what a Work is, and `shape` only states what the template's
   author expected.
@@ -2491,8 +2494,8 @@ and its own selection give it.
   comments, so the rewrite either swaps only the delimiters or reads with a
   style-preserving parser.
 - Importing existing specs that carry no marker: a mode that takes every `.md`
-  file with front matter and an `id` as a Work, configurable id generation, and
-  an id format that admits ids such as `SPEC-012`. The mode needs default
+  file with front matter and an `id` as a Work, and configurable id generation.
+  An id such as `SPEC-012` is already valid. The mode needs default
   actions for contracts without a template, since such specs name none
   ([Where the pipeline comes from](#where-the-pipeline-comes-from)).
 - A named file template as the default, `[works] default_template`, for

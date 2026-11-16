@@ -511,3 +511,139 @@ def test_the_installed_wheel_explains_the_directives_outside_a_repository(
         assert entry["meaning"]
         assert entry["examples"]
     assert (text.returncode, machine.returncode) == (0, 0)
+
+
+_CONTRACTS_PRESETS = {
+    "define-feature": ("define", "review-contract"),
+    "amend-contract": ("amend", "review-amendment"),
+    "ratify-contract": ("ratify", "review-ratify"),
+    "typed-boundary": (
+        "architecture",
+        "architecture-review",
+        "wiring",
+        "wiring-review",
+        "implementation",
+        "implementation-review",
+        "promote-docs",
+        "docs-review",
+    ),
+}
+"""The stage presets that the three `feature` templates of this repository name."""
+_CONTRACTS_ACTIONS = ("define", "deliver", "amend", "ratify")
+
+
+def _contracts_config() -> str:
+    """Write a config that declares what the `feature` templates of the repo name.
+
+    Returns:
+        The config: the kind `feature` with the entry template `feature.draft`,
+        `hierarchy = "nesting"`, and the actions, stage presets and stages that the
+        three templates name, so the templates pass `wio templates check`.
+    """
+    stages = dict.fromkeys(
+        stage for stages in _CONTRACTS_PRESETS.values() for stage in stages
+    )
+    parts = [
+        '[works]\nhierarchy = "nesting"\n',
+        '[templates.kinds]\nfeature = "feature.draft"\n',
+    ]
+    parts += [
+        f'[actions.{name}]\ndescription = "{name}."\n' for name in _CONTRACTS_ACTIONS
+    ]
+    parts += [f'[stages.{name}]\ngoal = "{name}."\n' for name in stages]
+    presets = "".join(
+        f"{name} = {json.dumps(list(members))}\n"
+        for name, members in _CONTRACTS_PRESETS.items()
+    )
+    return "\n".join([*parts, f"[stage_presets]\n{presets}"])
+
+
+def _contracts_project(tmp_path: Path) -> Path:
+    """Make a git repository with the three `feature` templates of this repository.
+
+    Args:
+        tmp_path: A directory of the test.
+
+    Returns:
+        The repository's root, whose config is `_contracts_config`.
+    """
+    root = _project(tmp_path, "contracts", _contracts_config())
+    shutil.copytree(
+        ROOT / ".agents" / "wio" / "templates", root / ".agents" / "wio" / "templates"
+    )
+    return root
+
+
+def test_the_installed_wheel_creates_lists_shows_and_checks_works(
+    wheel_path: Path, tmp_path: Path
+) -> None:
+    """Parent AC-1: the wheel gives a working `contracts` outside this repository."""
+    # Given the built wheel and a repository that is not this one, with the kind
+    # `feature`, the entry template `feature.draft` and the three templates
+    project = _contracts_project(tmp_path)
+
+    # When `wio contracts new feature --title "Read config"`, `list`, `show <id>`
+    # and `check` run there, with the id that `new` printed
+    made = _run_in_project(
+        wheel_path, project, "contracts", "new", "feature", "--title", "Read config"
+    )
+    found = re.match(r"Created Work (\w{6})  Read config\n  (\S+)\n$", made.stdout)
+    assert found
+    work_id, path = found.groups()
+    listed = _run_in_project(wheel_path, project, "contracts", "list")
+    shown = _run_in_project(wheel_path, project, "contracts", "show", work_id)
+    checked = _run_in_project(wheel_path, project, "contracts", "check")
+
+    # Then `new` prints the id and the path of the Work, `list` lists the Work with
+    # that id and title, `show` prints it, and `check` passes, each exiting 0
+    assert path == ".agents/wio/works/read-config/README.md"
+    assert listed.stdout.startswith(f"{work_id}  Read config")
+    assert shown.stdout.startswith(f"Work {work_id}  Read config\n")
+    assert checked.stdout == "The contracts pass.\n"
+    assert [r.returncode for r in (made, listed, shown, checked)] == [0, 0, 0, 0]
+
+
+def test_the_installed_wheel_creates_a_work_from_any_template_and_a_bare_one(
+    wheel_path: Path, tmp_path: Path
+) -> None:
+    """Parent AC-1: `new` with `--template`, and with no kind at all."""
+    # Given the same wheel and repository, and the template `feature.leaf`
+    project = _contracts_project(tmp_path)
+
+    # When `new feature --template feature.leaf --title "Leaf"` and
+    # `new --slug note` run there, and then `list`
+    leaf = _run_in_project(
+        wheel_path,
+        project,
+        *("contracts", "new", "feature", "--template", "feature.leaf"),
+        *("--title", "Leaf"),
+    )
+    bare = _run_in_project(wheel_path, project, "contracts", "new", "--slug", "note")
+    listed = _run_in_project(wheel_path, project, "contracts", "list")
+
+    # Then each prints its id and path and exits 0, and `list` shows both
+    assert leaf.stdout.startswith("Created Work ")
+    assert "  .agents/wio/works/leaf/README.md\n" in leaf.stdout
+    assert "  .agents/wio/works/note/README.md\n" in bare.stdout
+    assert "[feature.leaf]" in listed.stdout
+    assert ".agents/wio/works/note/README.md" in listed.stdout
+    assert [r.returncode for r in (leaf, bare, listed)] == [0, 0, 0]
+
+
+def test_the_installed_wheel_refuses_a_kind_and_an_id_that_do_not_exist(
+    wheel_path: Path, tmp_path: Path
+) -> None:
+    """Parent AC-1: each mistake is named on standard error and exits 2."""
+    # Given the same wheel and repository
+    project = _contracts_project(tmp_path)
+
+    # When `new nosuch --title "X"` and `show zzzzzz` run there
+    kind = _run_in_project(
+        wheel_path, project, "contracts", "new", "nosuch", "--title", "X"
+    )
+    work = _run_in_project(wheel_path, project, "contracts", "show", "zzzzzz")
+
+    # Then each names what does not exist on standard error and exits 2
+    assert "`nosuch`" in kind.stderr
+    assert "`zzzzzz`" in work.stderr
+    assert [(r.stdout, r.returncode) for r in (kind, work)] == [("", 2), ("", 2)]

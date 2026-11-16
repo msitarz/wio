@@ -7,6 +7,64 @@ every subcommand shares, and each subcommand lives in a module of its own.
 [`src/wio/README.md`](../README.md) is the architecture, and the
 [glossary](../../../GLOSSARY.md) defines the terms.
 
+## What the component guarantees as a whole
+
+Every command agrees on what a Work is, what it inherits and what it depends on,
+because the code that finds and reads Works is here and nowhere else. Its
+functions are the ones that the ports of the later `wio trailers`, `wio rules`
+and `wio context` can wrap, so none of them needs to read a contract on its own.
+The sections below say how each part works, and these hold for all of them.
+
+- **Only `new` writes, and it never overwrites.** `new` creates one file and
+  refuses a path that exists, as
+  [the id and the place of a new Work](#the-id-and-the-place-of-a-new-work)
+  says. `skeleton`, `list`, `show` and `check` write nothing, so a Work changes
+  only when a person or an agent changes it.
+- **The output is the same on every run.** It is sorted or in a fixed order and
+  has no timestamp, and `--json` writes one array or object that parses. The
+  exit codes are the [command line's](../cli/README.md#failures-and-exit-codes).
+- **Nothing is loaded before it is needed.** `list` and `check` without
+  `--json` import neither `tomlkit` nor `json`, the Markdown parser loads on the
+  first body that is read for a title or a heading, and only `new` and
+  `skeleton` import the writer. An
+  [integration test](../../../tests/integration/contracts/test_imports.py)
+  pins it for `list` and `check` on a project whose Works name a template, so
+  that the catalog runs.
+- **One reader, one writer, one Markdown parser.** Only
+  [`wio.formats`](../formats/README.md) imports `tomllib`, `tomlkit` and
+  `markdown_it`, and ruff's `banned-api` reports any other import.
+- **The component imports no other component.** It reaches the templates only
+  through the catalog port, which `wio.cli` wires, so it can be built and
+  changed alone.
+
+```mermaid
+flowchart LR
+    cli["wio.cli (composition root)"]
+    contracts["wio.contracts"]
+    templates["wio.templates"]
+    formats["wio.formats"]
+    models["wio.models"]
+    errors["wio.errors"]
+    io["wio.io (ports and the shared walk)"]
+    ports["ports of wio.env and wio.ports"]
+    cli --> contracts
+    cli --> templates
+    contracts --> formats
+    contracts --> models
+    contracts --> errors
+    contracts --> io
+    contracts -- "ports" --> ports
+    templates -. "satisfies the catalog port" .-> contracts
+```
+
+`tach check` is not enough to hold the last guarantee, because it sometimes
+passes a forbidden import
+([known issues](../../../docs/known-issues.md#tach-check-sometimes-passes-a-forbidden-import)).
+A [scan of the imports](../../../tests/tooling/test_contracts_imports.py) reads
+the syntax trees of the package, `from wio import templates` and relative
+imports included, and the review of a change to the package reads the imports
+of the files it touches.
+
 ## The group
 
 [`__init__.py`](__init__.py) holds `ContractsSpec` and the table of subcommands,

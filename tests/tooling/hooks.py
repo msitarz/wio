@@ -10,6 +10,7 @@ never called the check.
 
 import json
 import os
+import shlex
 import shutil
 import stat
 import subprocess
@@ -25,6 +26,12 @@ FAKE_UV = """#!/bin/sh
 : > "$FAKE_CHECK_CALLED"
 printf '%s\\n' "$FAKE_CHECK_OUTPUT"
 exit "$FAKE_CHECK_EXIT"
+"""
+FORWARDING_UV = """#!/bin/sh
+# A stand-in for `uv run wio ...` that runs the `wio` command given in WIO_COMMAND.
+[ "$1 $2" = "run wio" ] || exit 70
+shift 2
+eval "exec $WIO_COMMAND \\"\\$@\\""
 """
 CALLED = "check-called"
 """The name of the marker that the fake `uv` leaves in the directory it is in."""
@@ -75,8 +82,15 @@ def run_hook(
     check: str,
     exit_code: int,
     output: str,
+    wio: str | None = None,
+    cwd: Path | None = None,
 ) -> tuple[int, str, str]:
     """Run the command of a hook with a fake `uv` that stands for the check.
+
+    With `wio`, the fake `uv` runs that `wio` command instead of printing what it
+    is told, so the hook runs the real check, and the hook gets the environment of
+    the tests, because `uv` needs it to find the Python that the wheel requires and
+    exits 1, as a failed check does, when it cannot.
 
     Args:
         hook: The hook, as `find_hook` returns it.
@@ -85,19 +99,27 @@ def run_hook(
         check: What the fake `uv` accepts after `uv run wio`, such as `config check`.
         exit_code: The exit code of the fake check.
         output: The line that the fake check prints on standard output.
+        wio: A shell command that runs `wio`, such as one that runs a built wheel,
+            or `None` for the fake check.
+        cwd: The directory the hook runs in, or `None` for the current one.
 
     Returns:
         The exit code, standard output and standard error of the hook.
     """
     uv = tmp_path / "uv"
-    uv.write_text(FAKE_UV)
+    uv.write_text(FAKE_UV if wio is None else FORWARDING_UV)
     uv.chmod(uv.stat().st_mode | stat.S_IXUSR)
+    jq = Path(shutil.which("jq") or "/usr/bin/jq").parent
+    real = wio is not None
+    path = os.environ["PATH"] if real else f"{jq}:/usr/bin:/bin"
     env = {
-        "PATH": f"{tmp_path}:/usr/bin:/bin",
+        **(os.environ if real else {}),
+        "PATH": f"{tmp_path}:{path}",
         "FAKE_CHECK": check,
         "FAKE_CHECK_EXIT": str(exit_code),
         "FAKE_CHECK_OUTPUT": output,
         "FAKE_CHECK_CALLED": str(tmp_path / CALLED),
+        **({"WIO_COMMAND": wio, **_uv_cache()} if wio is not None else {}),
     }
     done = subprocess.run(
         ["/bin/sh", "-c", str(hook["command"])],
@@ -106,11 +128,26 @@ def run_hook(
         text=True,
         check=False,
         env=env,
+        cwd=cwd,
     )
     return done.returncode, done.stdout, done.stderr
 
 
-def run_prek(tmp_path: Path, files: dict[str, str], hook: str) -> tuple[int, str]:
+def _uv_cache() -> dict[str, str]:
+    """Name the cache of `uv`, so a run under another home does not fetch again.
+
+    Returns:
+        `UV_CACHE_DIR` set to the cache of the user running the tests.
+    """
+    done = subprocess.run(
+        ["uv", "cache", "dir"], capture_output=True, text=True, check=True
+    )
+    return {"UV_CACHE_DIR": done.stdout.strip()}
+
+
+def run_prek(
+    tmp_path: Path, files: dict[str, str], hook: str, *, wio: str | None = None
+) -> tuple[int, str]:
     """Run one hook of `prek.toml` on the staged files of a new repository.
 
     The repository is a new git repository under `tmp_path/repo` that holds
@@ -129,6 +166,8 @@ def run_prek(tmp_path: Path, files: dict[str, str], hook: str) -> tuple[int, str
         files: The files to stage, by path relative to the repository's root,
             which include the config and the templates that the check needs.
         hook: The id of the hook, such as `wio-contracts`.
+        wio: A shell command that runs `wio`, which the shim runs instead of the
+            `wio` beside this interpreter, such as one that runs a built wheel.
 
     Returns:
         The exit code of `prek`, which is not 0 when the hook fails, and its output,
@@ -148,10 +187,7 @@ def run_prek(tmp_path: Path, files: dict[str, str], hook: str) -> tuple[int, str
     shim_dir = tmp_path / "shim"
     shim_dir.mkdir()
     shim = shim_dir / "uv"
-    shim.write_text(
-        '#!/bin/sh\n[ "$1 $2" = "run wio" ] || exit 70\nshift 2\n'
-        f'exec "{bin_dir / "wio"}" "$@"\n'
-    )
+    shim.write_text(FORWARDING_UV)
     shim.chmod(shim.stat().st_mode | stat.S_IXUSR)
     env = {
         **os.environ,
@@ -159,6 +195,8 @@ def run_prek(tmp_path: Path, files: dict[str, str], hook: str) -> tuple[int, str
         "HOME": str(tmp_path / "home"),
         "PREK_HOME": str(tmp_path / "prek-home"),
         "NO_COLOR": "1",
+        "WIO_COMMAND": wio or shlex.quote(str(bin_dir / "wio")),
+        **({} if wio is None else _uv_cache()),
     }
     (tmp_path / "home").mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, env=env, check=True)
