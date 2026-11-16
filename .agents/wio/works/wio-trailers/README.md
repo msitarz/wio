@@ -9,30 +9,23 @@ depends_on = []
 
 ## Purpose
 
-Records tie every commit to the stage it belongs to, so progress is readable
-from the history and a gate can find the commit it is reviewing. Without a
-command to write and check them, agents must remember the format, cannot
-validate against the live config, and have no way to locate the reviewed
-commit. `records.py` fills part of that gap today but is a stand-in with no
-access to the config and no write path.
-
-This Work delivers `wio trailers`: one command that writes validated records,
-checks them at commit time and over a range, folds them for a pull request
-body, and identifies the reviewed commit for a gate.
+Without a command that knows the live config, agents construct records by
+hand with no validation, `records.py` fills only part of the gap, and a gate
+cannot locate the commit it is reviewing.
 
 ## Goals
 
-- Write a checked `Wio-*` record paragraph for a named Work, action and stage,
-  validating each field against the live config and the Work's own item ids.
-- Check a commit message, by file or stdin, at commit time (`--require`) or
-  afterwards.
-- Check a revision range in CI.
-- Fold the records of a commit range into a pull request body, retiring
-  `records.py`.
-- Find the reviewed commit of a gate by walking first-parent commits back past
-  its pure gate commits, for use with `--result`.
-- Record a gate's result with `--result`, writing the trailer record now and
-  stubbing the `review` event write until `wio log` is built.
+- A checked `Wio-*` record paragraph is available for any named Work, action
+  and stage, with each field validated against the live config and the Work's
+  own item ids.
+- Commit messages and revision ranges are checkable against the live config at
+  commit time (by file or stdin) and over a range in CI.
+- Records of a commit range are foldable into a pull request body that
+  survives a squash merge, retiring `records.py`.
+- The reviewed commit of a gate is identifiable from the history by walking
+  back past its pure gate commits.
+- A gate's result, judge and cited items are recordable with one command; the
+  review event write is stubbed until `wio log` is built.
 
 ## Glossary
 
@@ -80,8 +73,7 @@ an `EventSink`. It returns without error and writes nothing.
 - **`History` port and adapter** — declared in `wio.io`, walks first-parent
   commits from HEAD, returning each commit's sha and message. Its adapter
   arrives with this Work, the first to consume it.
-- **`EventSink` port** — declared in `wio.ports`, accepts the `review` event;
-  wired to a no-op until `wio log` builds the real adapter.
+- **`EventSink` port** — declared in `wio.ports`, accepts the `review` event.
 - **`wio.formats` record module** — the canonical record parser and renderer,
   shared by write, check and fold.
 
@@ -100,6 +92,11 @@ from `wio.log`.
 
 The record parser and renderer live in `wio.formats`. No child reimplements
 them.
+
+### C-4
+
+The `EventSink` wired to `wio trailers --result` is a no-op until `wio log`
+builds the real adapter. No child wires a real event sink.
 
 ## Visuals
 
@@ -125,11 +122,13 @@ flowchart LR
 
 ## Acceptance criteria
 
-### **AC-1** Folded output matches `records.py` for the same range
+### **AC-1** Folded output matches `records.py` semantically
 
-For any revision range, `wio trailers fold body` produces an equivalent
-result to `records.py body`, and `wio trailers fold block` produces an
-equivalent result to `records.py block`.
+Semantically equivalent means the same records in the same order with the
+same trailer key-value pairs; whitespace and line endings may differ.
+`wio trailers fold body` produces an equivalent result to `records.py body`,
+and `wio trailers fold block` produces an equivalent result to
+`records.py block`.
 
 #### Equivalent fold for a range with a re-delivered child
 
@@ -152,25 +151,48 @@ The `records.yml` workflow calls `wio trailers check --ref-range` and
 - **Then** it passes using `wio trailers` commands and `records.py` is
   absent from the repository.
 
-### **AC-3** All subcommands share the reader, the parser and the exit-code contract
+### **AC-3** All subcommands use the same configured reader
 
-Every `wio trailers` subcommand uses the same configured reader and the same
-record parser from `wio.formats`, and follows the exit-code contract: 0 for
-success, 1 for a failed check, 2 for a usage error or a `WioError`.
+Every `wio trailers` subcommand uses the reader named in the project config,
+whether `scan` or `git`.
 
-#### Shared reader picked up by all subcommands
+#### Reader setting picked up by all subcommands
 
 - **Given** a project configured with `reader = "git"`.
 - **When** `wio trailers write`, `check` and `fold` each process a message.
-- **Then** all three use `git log --format=%(trailers)` and not the paragraph
-  scanner.
+- **Then** all three use the git reader and not the paragraph scanner.
+
+### **AC-4** All subcommands follow the exit-code contract
+
+Every `wio trailers` subcommand exits 0 on success, 1 on a failed check and
+2 on a usage error or `WioError`.
+
+#### Check exits 1 on a malformed record, not 2
+
+- **Given** a commit message with a `Wio-Work` value that is not a valid id.
+- **When** `wio trailers check` reads it.
+- **Then** the command exits 1 and reports the problem on stderr.
+
+### **AC-5** `--result` identifies the reviewed commit correctly
+
+The reviewed commit is the first commit reachable from HEAD that is not a
+pure gate commit for this gate.
+
+#### Walk skips pure gate commits
+
+- **Given** three commits on HEAD: the latest two carry only records for one
+  gate's action and stage, and the third is the work commit.
+- **When** `wio trailers --result` runs for that gate.
+- **Then** the reviewed commit is the third commit.
+
+### **AC-6** `--result` writes the gate record and does not error on the stub sink
+
+- **Given** a gate stage and the no-op `EventSink` stub.
+- **When** `wio trailers <work> <action> <stage> --result pass` runs.
+- **Then** the record paragraph is printed and the command exits 0.
 
 ## Additional context
 
 `records.py` is the reference implementation for the fold algorithm and the
 `scan` reader. Its logic and behaviour are the normative baseline for the
 leaves that replace it.
-
-The `History` port adapter runs `git log --reverse --topo-order
---format=%H%n%B%x00` and parses the null-delimited output, matching
-`commits_in` in `records.py`.
