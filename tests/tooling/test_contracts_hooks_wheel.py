@@ -80,6 +80,14 @@ def test_the_hook_of_an_edit_runs_the_installed_check(tmp_path: Path, wio: str) 
     # When the command of the hook receives the input for an edit of the Work, once
     # when the Work lists an id that no Work has and once when it does not
     def run(root: Path) -> tuple[int, str, str]:
+        """Run the hook for an edit of the Work of a repository.
+
+        Args:
+            root: The repository, which the hook runs in.
+
+        Returns:
+            The exit code, standard output and standard error of the hook.
+        """
         return run_hook(
             hook,
             root,
