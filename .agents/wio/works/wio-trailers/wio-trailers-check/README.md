@@ -31,7 +31,9 @@ written and tolerates an old one afterwards.
 ### A-1
 
 A project calls the commit-time check from a commit-msg hook and the later check
-from CI, as concepts.md describes.
+from CI, as
+[concepts.md](../../../../../docs/concepts.md#records) describes, which is why
+the two modes judge a name differently.
 
 ## Mechanisms
 
@@ -44,7 +46,8 @@ from CI, as concepts.md describes.
 ## Visuals
 
 The Before diagram is drawn from `9bfd62b` on `main`; the After diagram is the
-design this Work delivers.
+design this Work delivers, and its `--ref-range` is provisional, as the parent's
+A-3 says.
 
 ### Before
 
@@ -58,42 +61,32 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  M[Commit message] --> C["wio trailers check --require"]
-  B[Body or range] --> A["wio trailers check"]
+  M[Commit message] --> C["wio trailers check --require\n(new)"]
+  B[Body or range] --> A["wio trailers check\n--ref-range (new)"]
   C --> S[Shape check]
   A --> S
 ```
 
 ## Acceptance criteria
 
-### **AC-1** A wrong record is refused at commit time
+### **AC-1** The same record is judged by the time of the check
 
 #### A stage the config does not have
 
-- **Given** a commit message whose record has `Wio-Stage: nosuch`.
-- **When** `wio trailers check --require` reads it.
-- **Then** the command exits 1 and names the stage.
+- **Given** a message whose well-formed record has `Wio-Stage: nosuch`.
+- **When** `wio trailers check --require` reads it, and then
+  `wio trailers check` reads it.
+- **Then** the first exits 1 and names the stage, and the second exits 0 and
+  warns about the same stage.
 
-#### A message with no record
+### **AC-2** A range tolerates what the config no longer has
 
-- **Given** a message with no record whose subject is not one that git writes
-  for a merge, a revert or a squash.
-- **When** `wio trailers check --require` reads it.
-- **Then** the command exits 1 and reports that no record was found.
+#### A commit whose stage the config no longer lists
 
-### **AC-2** An old record is tolerated afterwards
-
-#### A name the config no longer knows
-
-- **Given** a body whose record has a well-formed `Wio-Stage: nosuch`.
-- **When** `wio trailers check` reads it.
+- **Given** a range with a commit whose well-formed record has
+  `Wio-Stage: nosuch`.
+- **When** `wio trailers check --ref-range` reads the range.
 - **Then** the command exits 0 and warns about the stage.
-
-#### A malformed value
-
-- **Given** a body whose record has a `Wio-Work` value that is not a valid id.
-- **When** `wio trailers check` reads it.
-- **Then** the command exits 1 and names the value.
 
 ### **AC-3** A record the reader cannot see is reported
 
