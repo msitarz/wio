@@ -308,15 +308,20 @@ def test_title_after_unterminated_whitespace_body() -> None:
 def test_title_in_empty_body_keeps_final_line_endings(suffix: str) -> None:
     """A title added after a blank body keeps the skeleton's final endings."""
     # Given a contract with a whitespace-only body and varied final endings
-    from wio.contracts.creation import _set_title
-
-    text = "<!-- wio\n-->\n    " + suffix
+    config, files, catalog = _setup()
+    files.files[ROOT / "templates/feature.draft.md"] = (
+        '<!-- wio\nkind = "feature"\n[contract]\n-->\n    ' + suffix
+    )
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments("feature", None, NameArguments("a", "Mine", None, None), ())
 
     # When a title is inserted
-    result = _set_title(text, "Mine")
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
 
     # Then the title has the same final endings as the original text
-    assert result.endswith("# Mine" + suffix)
+    assert work.text.endswith("# Mine" + suffix)
 
 
 def test_title_is_trimmed_before_checking_for_line_breaks() -> None:
@@ -412,27 +417,39 @@ def test_title_ending_in_hash_is_not_taken_as_heading_markup(
 def test_title_replacement_keeps_a_multiline_authoring_comment() -> None:
     """An authoring comment begun on the heading keeps its opening and body."""
     # Given a heading that starts a multiline authoring comment
-    from wio.contracts.creation import _set_title
-
-    text = "<!-- wio\n-->\n\n# Old <!-- multi\ncontinued -->\n\n## Body\n"
+    config, files, catalog = _setup()
+    files.files[ROOT / "templates/feature.draft.md"] = (
+        '<!-- wio\nkind = "feature"\n[contract]\n-->\n\n'
+        "# Old <!-- multi\ncontinued -->\n\n## Body\n"
+    )
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments("feature", None, NameArguments("a", "New", None, None), ())
 
     # When the heading is replaced
-    result = _set_title(text, "New")
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
 
     # Then the comment and the remaining body are preserved
-    assert result == "<!-- wio\n-->\n\n# New <!-- multi\ncontinued -->\n\n## Body\n"
+    assert work.text.endswith("\n\n# New <!-- multi\ncontinued -->\n\n## Body\n")
 
 
 @pytest.mark.parametrize("character", ["\x0c", "\x85", "\u2028"])
 def test_title_replacement_counts_only_markdown_line_endings(character: str) -> None:
     """A non-newline character in an earlier body line cannot shift the heading."""
     # Given a body with a non-newline separator before a level-one heading
-    from wio.contracts.creation import _set_title
-
-    text = f"<!-- wio\n-->\nbefore{character}inside\n# Old\n## Purpose\n"
+    config, files, catalog = _setup()
+    files.files[ROOT / "templates/feature.draft.md"] = (
+        '<!-- wio\nkind = "feature"\n[contract]\n-->\n'
+        f"before{character}inside\n# Old\n## Purpose\n"
+    )
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments("feature", None, NameArguments("a", "New", None, None), ())
 
     # When the title is replaced
-    result = _set_title(text, "New")
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
 
     # Then the earlier line is unchanged and only the heading is replaced
-    assert result == f"<!-- wio\n-->\nbefore{character}inside\n# New\n## Purpose\n"
+    assert work.text.endswith(f"\nbefore{character}inside\n# New\n## Purpose\n")
