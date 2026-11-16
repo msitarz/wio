@@ -32,18 +32,19 @@ commit to a stage.
 - Writing one record for a list of Works, `wio trailers none`, the `--reviewed`
   override and the warnings that concepts.md gives `wio trailers` beyond what
   the criteria state.
+- Writing the `review` event to the event log, which arrives with `wio log`
+  (C-4).
 
 ## Assumptions
 
 ### A-1
 
-Git is installed and on PATH. The `History` adapter runs git commands
+Git is installed and on PATH, because the `History` adapter runs git commands
 directly.
 
 ### A-2
 
 The configured reader (`scan` or `git`) matches the project's merge workflow.
-`wio trailers` does not change it.
 
 ### A-3
 
@@ -61,9 +62,9 @@ sink is a no-op (C-4).
   blocks, as specified in `docs/concepts.md`. Shared by write, check and fold.
 - **`git` reader** — delegates to git's own trailer parsing for
   last-paragraph-only workflows, as specified in `docs/concepts.md`.
-- **`History` port and adapter** — walks first-parent commits from HEAD,
-  returning each commit's sha and message. Its adapter arrives with this Work,
-  the first to consume it.
+- **`History` port and adapter** — gives the first-parent commits from HEAD
+  for the reviewed-commit walk and the commits of a range for check and fold,
+  each with its sha and message; the adapter arrives with this Work.
 - **`EventSink` port** — accepts the `review` event.
 - **Record parser and renderer** — the canonical parser and renderer for
   `Wio-*` records, shared by write, check and fold.
@@ -113,6 +114,8 @@ flowchart LR
   B --> C["wio trailers check --require\n(commit-msg hook)"]
   B --> D["wio trailers check --ref-range\n(CI range)"]
   E["wio trailers fold body and block\n(CI fold)"] --> F[Pull request body]
+  G["wio trailers ... --result\n(gate review)"] --> H["History:\nreviewed commit"]
+  G --> I["EventSink: review event"]
 ```
 
 ## Acceptance criteria
@@ -125,9 +128,16 @@ flowchart LR
 #### Round trip for a Work and stage
 
 - **Given** a Work in the working tree and one of its stages.
-- **When** the record that `wio trailers <work> <action> <stage>` prints is the
-  paragraph of a commit message that `wio trailers check --require` reads.
+- **When** `wio trailers <work> <action> <stage>` prints a record, and that
+  record is the paragraph of a commit message that `wio trailers check
+  --require` reads.
 - **Then** both commands exit 0.
+
+#### An item the Work does not have
+
+- **Given** a Work that has no item `AC-99`.
+- **When** `wio trailers <work> <action> <stage> --items AC-99` runs.
+- **Then** the command exits 1, prints no record and names `AC-99`.
 
 ### **AC-2** Check validates a message and a range against the live config
 
@@ -158,6 +168,12 @@ range as [concepts.md](../../../../docs/concepts.md#records) specifies.
 - **Then** it prints three record paragraphs in that order, and the two
   deliveries of `a` are not merged.
 
+#### A body ends with the folded records
+
+- **Given** a body of prose and a range with records.
+- **When** `wio trailers fold body` runs on the body and the range.
+- **Then** it prints the prose unchanged, followed by the folded records.
+
 ### **AC-4** A gate's reviewed commit is found under its pure gate commits
 
 #### The walk reaches the work commit
@@ -170,7 +186,7 @@ range as [concepts.md](../../../../docs/concepts.md#records) specifies.
 - **Then** the sink receives one `review` event whose reviewed commit is the
   work commit's sha.
 
-### **AC-5** A gate's result, judge and cited items are recorded with one command
+### **AC-5** A gate's result, judge and cited items are recorded in one call
 
 #### The record and the event carry what was passed
 
@@ -199,7 +215,7 @@ usage error or `WioError`. A refused field of a record is a failed check.
 - **When** `wio trailers <work>` runs.
 - **Then** the command exits 2 and prints no record.
 
-### **AC-7** Nothing in the repository depends on `records.py`
+### **AC-7** The hook and the workflows no longer use `records.py`
 
 #### The script and its references are gone
 
