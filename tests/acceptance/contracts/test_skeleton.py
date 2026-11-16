@@ -354,8 +354,10 @@ def test_each_mistake_prints_nothing_and_says_what_to_do(wio: Wio) -> None:
     missing = _skeleton(wio, "nosuch", "--work", "k3m9xq")
     rejected = _skeleton(wio, "bad", "--work", "k3m9xq")
     no_work = _skeleton(wio, template)
+    other = _skeleton(wio, template, "--work", "k3m9xq")
 
-    # Then each exits 2 with its own message and nothing on standard output
+    # Then each exits 2 with its own message and nothing on standard output, and a
+    # lookup of another id is not refused by the shared one
     every = [unknown, shared, nosuch, missing, rejected, no_work, *cannot.values()]
     assert all(_refused(output) for output in every)
     assert "No Work has the id `k3m9xr`" in unknown.stderr
@@ -370,6 +372,8 @@ def test_each_mistake_prints_nothing_and_says_what_to_do(wio: Wio) -> None:
     assert "`bad` is rejected; run `wio templates check`" in rejected.stderr
     assert "`--work` is required" in no_work.stderr
     assert "wio templates show" in no_work.stderr
+    assert other.stdout.startswith('<!-- wio\nid = "k3m9xq"')
+    assert other.exit_code == 0
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
