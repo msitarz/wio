@@ -203,6 +203,7 @@ def test_template_problems_are_refused(problem: str) -> None:
         "feature", "other.note", NameArguments("a", None, None, None), ()
     )
     found = discover_works(ROOT, config.works, files)
+    before = files.files.copy()
 
     # When the Work is planned
     with pytest.raises(ContractsError) as error:
@@ -214,7 +215,7 @@ def test_template_problems_are_refused(problem: str) -> None:
         "rejected": "templates check",
         "wrong_kind": "other",
     }[problem] in str(error.value)
-    assert len(files.files) == 1
+    assert files.files == before
 
 
 def test_a_title_is_inserted_in_a_crlf_template_without_a_heading() -> None:
@@ -273,13 +274,14 @@ def test_a_missing_entry_template_points_to_check() -> None:
     cast("Mock", catalog).find.return_value = None
     args = NewArguments("feature", None, NameArguments("a", None, None, None), ())
     found = discover_works(ROOT, config.works, files)
+    before = files.files.copy()
 
     # When the Work is planned
     with pytest.raises(ContractsError, match="wio templates check"):
         plan_work(args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy()))
 
-    # Then the template is the only file
-    assert len(files.files) == 1
+    # Then the files are unchanged
+    assert files.files == before
 
 
 def test_title_after_unterminated_whitespace_body() -> None:
