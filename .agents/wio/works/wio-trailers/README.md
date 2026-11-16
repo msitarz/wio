@@ -61,21 +61,23 @@ The configured reader (`scan` or `git`) matches the project's merge workflow.
 ### A-3
 
 The `review` event write in `--result` is a no-op stub until `wio log` wires
-an `EventSink`. It returns without error and writes nothing.
+an `EventSink`. It returns without error and writes nothing. C-4 is the
+corresponding constraint for children.
 
 ## Mechanisms
 
-- **`scan` reader** — paragraph scanner that accepts every paragraph in which
-  every line is a `Key: value` trailer and some key starts with `Wio-`,
-  outside fenced code blocks and skipping `#` lines.
-- **`git` reader** — delegates to `git log --format=%(trailers)` for
-  last-paragraph-only workflows.
-- **`History` port and adapter** — declared in `wio.io`, walks first-parent
-  commits from HEAD, returning each commit's sha and message. Its adapter
-  arrives with this Work, the first to consume it.
-- **`EventSink` port** — declared in `wio.ports`, accepts the `review` event.
-- **`wio.formats` record module** — the canonical record parser and renderer,
-  shared by write, check and fold.
+- **`scan` reader** — reads every record from a message, outside fenced code
+  blocks, as specified in `docs/concepts.md`. Shared by write, check and fold.
+- **`git` reader** — delegates to git's own trailer parsing for
+  last-paragraph-only workflows, as specified in `docs/concepts.md`.
+- **`History` port and adapter** — walks first-parent commits from HEAD,
+  returning each commit's sha and message. Its adapter arrives with this Work,
+  the first to consume it.
+- **`EventSink` port** — accepts the `review` event; wired to a no-op until
+  `wio log` builds the real adapter.
+- **Record parser and renderer** — the canonical parser and renderer for
+  `Wio-*` records, shared by write, check and fold. Lives in `wio.formats`
+  (C-3).
 
 ## Constraints
 
@@ -122,7 +124,26 @@ flowchart LR
 
 ## Acceptance criteria
 
-### **AC-1** Folded output matches `records.py` semantically
+### **AC-1** Write produces a validated record paragraph
+
+`wio trailers <work> <action> <stage>` prints a correct `Wio-*` record
+paragraph and exits 0 when every field is valid, and exits 1 with a
+diagnostic when any field fails validation.
+
+#### Result required exactly on a gate stage
+
+- **Given** a gate stage and a Work that exists in the working tree.
+- **When** `wio trailers <work> <action> <stage>` is called without
+  `--result`.
+- **Then** the command exits 1 and reports that a result is required.
+
+#### Result rejected on a non-gate stage
+
+- **Given** a non-gate stage and a Work that exists in the working tree.
+- **When** `wio trailers <work> <action> <stage> --result pass` is called.
+- **Then** the command exits 1 and reports that the stage is not a gate.
+
+### **AC-2** Folded output matches `records.py` semantically
 
 Semantically equivalent means the same records in the same order with the
 same trailer key-value pairs; whitespace and line endings may differ.
@@ -139,7 +160,7 @@ and `wio trailers fold block` produces an equivalent result to
 - **Then** both produce the same folded record paragraphs and
   outside-revert lines.
 
-### **AC-2** The CI workflow uses `wio trailers` after this Work
+### **AC-3** The CI workflow uses `wio trailers` after this Work
 
 The `records.yml` workflow calls `wio trailers check --ref-range` and
 `wio trailers fold body` instead of `records.py`. `records.py` is deleted.
@@ -151,7 +172,7 @@ The `records.yml` workflow calls `wio trailers check --ref-range` and
 - **Then** it passes using `wio trailers` commands and `records.py` is
   absent from the repository.
 
-### **AC-3** All subcommands use the same configured reader
+### **AC-4** All subcommands use the same configured reader
 
 Every `wio trailers` subcommand uses the reader named in the project config,
 whether `scan` or `git`.
@@ -162,7 +183,7 @@ whether `scan` or `git`.
 - **When** `wio trailers write`, `check` and `fold` each process a message.
 - **Then** all three use the git reader and not the paragraph scanner.
 
-### **AC-4** All subcommands follow the exit-code contract
+### **AC-5** All subcommands follow the exit-code contract
 
 Every `wio trailers` subcommand exits 0 on success, 1 on a failed check and
 2 on a usage error or `WioError`.
@@ -173,19 +194,29 @@ Every `wio trailers` subcommand exits 0 on success, 1 on a failed check and
 - **When** `wio trailers check` reads it.
 - **Then** the command exits 1 and reports the problem on stderr.
 
-### **AC-5** `--result` identifies the reviewed commit correctly
+#### Check --require exits 1 when no record is present
+
+- **Given** a non-exempt commit message (subject does not start with
+  `Merge `, `Revert `, `Reapply `, `fixup!` or `squash! `) with no
+  `Wio-*` record.
+- **When** `wio trailers check --require` reads it.
+- **Then** the command exits 1 and reports that no record was found.
+
+### **AC-6** `--result` identifies the reviewed commit correctly
 
 The reviewed commit is the first commit reachable from HEAD that is not a
 pure gate commit for this gate.
 
-#### Walk skips pure gate commits
+#### Walk skips one or more pure gate commits
 
-- **Given** three commits on HEAD: the latest two carry only records for one
-  gate's action and stage, and the third is the work commit.
+- **Given** commits on HEAD where one or more of the latest carry only
+  records for one gate's action and stage, and the next earlier commit is
+  the work commit.
 - **When** `wio trailers --result` runs for that gate.
-- **Then** the reviewed commit is the third commit.
+- **Then** the reviewed commit is the work commit, not any of the gate
+  commits.
 
-### **AC-6** `--result` writes the gate record and does not error on the stub sink
+### **AC-7** `--result` writes the gate record and does not error on the stub sink
 
 - **Given** a gate stage and the no-op `EventSink` stub.
 - **When** `wio trailers <work> <action> <stage> --result pass` runs.
