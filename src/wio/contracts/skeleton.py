@@ -9,7 +9,13 @@ from wio.contracts.discovery import discover_works
 from wio.contracts.errors import ContractsError
 from wio.contracts.refusal import refuse_tree
 from wio.contracts.showing import find_by_id
-from wio.formats import prepare_skeleton, read_metadata_block
+from wio.formats import (
+    prepare_skeleton,
+    read_metadata_block,
+    render_text,
+    set_block_keys,
+)
+from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -57,7 +63,11 @@ class Skeleton:
         Returns:
             The note, or an empty string when nothing was dropped.
         """
-        raise NotImplementedError
+        if not self.dropped:
+            return ""
+        names = ", ".join(f"`{name}`" for name in self.dropped)
+        message = f"Not carried over: {names}. Use `--keep <key>` to carry one."
+        return render_text([Diagnostic("note", path.as_posix(), message)]) + "\n"
 
 
 def run_skeleton(services: Services, args: Namespace, stdio: Stdio) -> int:
@@ -122,7 +132,30 @@ def check_keep(keep: Sequence[str], keys: Sequence[str]) -> None:
             lists the keys that can be kept, those of the Work without
             `CANNOT_KEEP`, in the order of the Work.
     """
-    raise NotImplementedError
+    for name in keep:
+        if name in CANNOT_KEEP:
+            msg = f"The key `{name}` cannot be kept: the skeleton carries it already"
+            raise ContractsError(msg)
+    for name in keep:
+        if name not in keys:
+            raise ContractsError(_no_such_key(name, keys))
+
+
+def _no_such_key(name: str, keys: Sequence[str]) -> str:
+    """Word the refusal of a key that the Work does not have.
+
+    Args:
+        name: The key that was asked for.
+        keys: The keys of the Work, in its order.
+
+    Returns:
+        The message, which lists the keys that can be kept, or says there are
+        none.
+    """
+    keepable = [key for key in keys if key not in CANNOT_KEEP]
+    listed = ", ".join(f"`{key}`" for key in keepable)
+    hint = f"; it can keep {listed}" if keepable else "; it has no key to keep"
+    return f"The Work has no key `{name}`{hint}"
 
 
 def plan_skeleton(
@@ -143,7 +176,7 @@ def plan_skeleton(
     again from its file, because the `Work` holds only the fields that the other
     commands use. The block is rewritten with the first line ending of the
     skeleton, and its body stays as the template has it. The skeleton comes from
-    `prepare_skeleton` and the keys are set with `set_block_keys`.
+    `prepare_skeleton`, and `carry_keys` sets the keys.
 
     Args:
         template: The usable template.
@@ -174,8 +207,10 @@ def carry_keys(
 
     `id` goes first and `depends_on` is the Work's when it has one. Each kept key
     replaces the skeleton's, or is added, and a key that is a table is carried as
-    a value. The keys that the Work has and the skeleton did not take, besides
-    `CANNOT_KEEP`, are `dropped`, in the order of the Work.
+    a value. The form of the template, its first line ending, its `template`
+    and its body stay as the skeleton has them, and TOML comments of the block
+    are not carried. The keys that the Work has and the skeleton did not take,
+    besides `CANNOT_KEEP`, are `dropped`, in the order of the Work.
 
     Args:
         prepared: The skeleton that `prepare_skeleton` gives for the template.
@@ -185,4 +220,11 @@ def carry_keys(
     Returns:
         The skeleton and the keys that were not carried.
     """
-    raise NotImplementedError
+    identity = {"id": data["id"]}
+    if "depends_on" in data:
+        identity["depends_on"] = data["depends_on"]
+    kept = {name: data[name] for name in dict.fromkeys(keep)}
+    dropped = tuple(
+        name for name in data if name not in CANNOT_KEEP and name not in kept
+    )
+    return Skeleton(set_block_keys(prepared, {**identity, **kept}), dropped)
