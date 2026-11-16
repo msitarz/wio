@@ -78,17 +78,19 @@ class Wio:
         """
         return self.driver.read(path)
 
-    def run(self, args: Sequence[str]) -> Output:
+    def run(self, args: Sequence[str], directory: str | None = None) -> Output:
         """Run `wio` with some arguments.
 
         Args:
             args: The arguments after the program name, such as
                 `["config", "show", "works"]`.
+            directory: A directory below the root of the repository to run in,
+                or `None` to run at the root.
 
         Returns:
             Both output streams and the exit code.
         """
-        result = self.driver.run(args)
+        result = self.driver.run(args, directory)
         return Output(
             stdout=result.stdout,
             stderr=result.stderr,

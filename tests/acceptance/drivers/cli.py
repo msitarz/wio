@@ -21,18 +21,19 @@ class CliDriver(SandboxedDriver):
     shell is involved.
     """
 
-    def run(self, args: Sequence[str]) -> RunResult:
+    def run(self, args: Sequence[str], directory: str | None = None) -> RunResult:
         """Run the command in the sandbox's directory and environment.
 
         Args:
             args: The arguments after the program name.
+            directory: A directory below the sandbox's root to run in, or `None`.
 
         Returns:
             The decoded streams and the exit code of the process.
         """
         done = subprocess.run(
             [str(SCRIPT), *args],
-            cwd=self._sandbox.root,
+            cwd=self._directory(directory),
             env=self._sandbox.env,
             capture_output=True,
             text=True,

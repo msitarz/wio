@@ -6,8 +6,9 @@ import pytest
 from tests.unit.fakes import ROOT, MemoryFileSystem
 from wio.contracts.discovery import discover_works
 from wio.contracts.errors import ContractsError
-from wio.contracts.refusal import HINT, refuse_tree
+from wio.contracts.refusal import HINT, refuse, refuse_tree
 from wio.models.config import Works
+from wio.models.diagnostics import Diagnostic
 
 BASE = ROOT / ".agents/wio/works"
 
@@ -64,3 +65,22 @@ def test_a_shared_id_refuses_the_tree_only_when_asked() -> None:
 
     # Then only the second refused, and it ended with the hint
     assert str(raised.value).endswith(HINT)
+
+
+def test_a_refusal_carries_its_errors_one_to_a_line_and_the_hint() -> None:
+    """The message is the errors rendered, then the hint, and they are kept."""
+    # Given two errors of discovery
+    errors = [
+        Diagnostic("error", "a/README.md", "first"),
+        Diagnostic("error", "b/README.md", "second"),
+    ]
+
+    # When they are refused
+    with pytest.raises(ContractsError) as raised:
+        refuse(errors)
+
+    # Then the message has each as `error: <where>: <message>` and ends with the
+    # hint
+    assert str(raised.value) == (
+        "error: a/README.md: first\nerror: b/README.md: second\n" + HINT
+    )

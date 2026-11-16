@@ -21,16 +21,17 @@ if TYPE_CHECKING:
 class FakeDriver:
     """A test driver that returns a fixed result."""
 
-    def run(self, args: Sequence[str]) -> RunResult:
+    def run(self, args: Sequence[str], directory: str | None = None) -> RunResult:
         """Answer with a fixed result whatever the arguments.
 
         Args:
             args: The arguments, ignored.
+            directory: The directory, ignored.
 
         Returns:
             The fixed result.
         """
-        del args
+        del args, directory
         return RunResult("usage\n", "warning\n", 3)
 
     def install(self, fixture: str) -> None:
@@ -134,25 +135,43 @@ def test_the_cli_driver_runs_in_the_sandbox(
     assert calls[0]["env"] == sandbox.env
 
 
+def test_the_cli_driver_runs_in_a_directory_below_the_sandbox_root(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The subprocess starts in the directory that the scenario names."""
+    # Given the CLI driver and a spy in place of starting a process
+    calls = _spy_on_subprocess(monkeypatch)
+
+    # When it runs wio in a subdirectory
+    CliDriver(sandbox).run(["x"], "a/b")
+
+    # Then the process started there, with the sandbox's environment
+    assert calls[0]["cwd"] == sandbox.root / "a/b"
+    assert calls[0]["env"] == sandbox.env
+
+
 class RecordingDriver:
     """A test driver that records what the facade asks of it."""
 
     def __init__(self) -> None:
         """Start with nothing recorded."""
         self.arguments: list[Sequence[str]] = []
+        self.directories: list[str | None] = []
         self.installed: list[str] = []
         self.written: dict[str, bytes] = {}
 
-    def run(self, args: Sequence[str]) -> RunResult:
-        """Record the arguments.
+    def run(self, args: Sequence[str], directory: str | None = None) -> RunResult:
+        """Record the arguments and the directory.
 
         Args:
             args: The arguments after the program name.
+            directory: The directory the facade asked to run in.
 
         Returns:
             A silent success.
         """
         self.arguments.append(args)
+        self.directories.append(directory)
         return RunResult("", "", 0)
 
     def install(self, fixture: str) -> None:
@@ -207,6 +226,20 @@ def test_the_facade_runs_any_command_with_its_arguments() -> None:
     # Then the driver ran those arguments and the output is the driver's result
     assert driver.arguments == [["config", "show", "works", "--json"]]
     assert output == Output(stdout="", stderr="", exit_code=0)
+
+
+def test_the_facade_passes_the_directory_to_the_driver() -> None:
+    """`run` hands the directory on, and runs at the root without one."""
+    # Given a facade over a recording driver
+    driver = RecordingDriver()
+    wio = Wio(driver)
+
+    # When a command runs in a directory and another at the root
+    wio.run(["contracts", "show", "c/README.md"], "p")
+    wio.run(["contracts", "list"])
+
+    # Then the driver was given the directory, and none for the second
+    assert driver.directories == ["p", None]
 
 
 def test_the_facade_installs_a_fixture_by_name() -> None:

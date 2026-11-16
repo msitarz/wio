@@ -2,22 +2,26 @@
 """What `wio contracts show` finds out about a Work before it prints it."""
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+from os.path import normpath
+from pathlib import Path
+from typing import TYPE_CHECKING, Final, Literal
 
 from wio.contracts.actions import resolve_actions, template_actions
-from wio.contracts.discovery import discover_works
+from wio.contracts.discovery import discover_works, explain_not_a_work, find_work
+from wio.contracts.errors import ContractsError
 from wio.contracts.hierarchy import build_hierarchy
-from wio.contracts.refusal import refuse_tree
+from wio.contracts.refusal import refuse, refuse_tree
 from wio.contracts.resolve import render_resolved, resolve_work
 from wio.contracts.show_render import render_show
+from wio.models.diagnostics import Diagnostic
+lazy from wio.formats import closest_key
 
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Mapping, Sequence
-    from pathlib import Path
 
     from wio.contracts import Services
-    from wio.contracts.actions import Pipeline, ResolvedAction
+    from wio.contracts.actions import ActionSource, Pipeline, ResolvedAction
     from wio.contracts.discovery import WorkDiscovery
     from wio.contracts.hierarchy import Hierarchy
     from wio.contracts.ports import TemplateCatalog
@@ -29,6 +33,12 @@ if TYPE_CHECKING:
 type ShownSource = Literal["template", "contract", "defaults"]
 """Where an action comes from: the template, the Work's own `[actions]` or the
 config's `[works.defaults.actions]`."""
+_SOURCES: Final[Mapping[ActionSource, ShownSource]] = {
+    "work": "contract",
+    "template": "template",
+    "defaults": "defaults",
+}
+"""The source of a resolved action as a contract names it."""
 
 
 @dataclass(frozen=True)
@@ -209,7 +219,7 @@ def shown_actions(
     else:
         inherited = _template_pipelines(work.template, catalog, root, files)
         resolved = resolve_actions(work.actions, inherited, "template")
-    return _in_config_order(resolved, config)
+    return _in_config_order(resolved, config, tuple(work.actions))
 
 
 def gather_work(
@@ -290,7 +300,15 @@ def _by_path(
         ContractsError: The path is not a Work, with the reason that
             `explain_not_a_work` gives.
     """
-    raise NotImplementedError
+    target = Path(
+        normpath(
+            Path(argument) if Path(argument).is_absolute() else directory / argument
+        )
+    )
+    reason = explain_not_a_work(root, target, settings, files)
+    if reason is not None:
+        raise ContractsError(reason)
+    return {root / work.path: work for work in discovery.works}[target]
 
 
 def _by_id(discovery: WorkDiscovery, argument: str) -> Work:
@@ -308,7 +326,15 @@ def _by_id(discovery: WorkDiscovery, argument: str) -> Work:
             `closest_key` finds one, or two Works share it, with the error of
             discovery and the hint, as `refuse` raises it.
     """
-    raise NotImplementedError
+    found = find_work(discovery, argument)
+    if found is None:
+        close = closest_key(argument, [work.id for work in discovery.works])
+        hint = f" Did you mean `{close}`?" if close else ""
+        message = f"No Work has the id `{argument}`.{hint}"
+        raise ContractsError(message)
+    if isinstance(found, Diagnostic):
+        refuse([found])
+    return found
 
 
 def _related_ids(ids: Sequence[str], works: Sequence[Work]) -> tuple[Related, ...]:
@@ -368,17 +394,69 @@ def _template_pipelines(
 
 
 def _in_config_order(
-    resolved: Sequence[ResolvedAction], config: Config
+    resolved: Sequence[ResolvedAction], config: Config, own: Sequence[str]
 ) -> tuple[ShownAction, ...]:
     """Turn resolved actions into the actions `show` prints, in order.
 
     Args:
-        resolved: The actions that `resolve_actions` gave.
+        resolved: The actions that `resolve_actions` gave, in its order.
         config: The config, for the order, the on-demand flag and the presets.
+        own: The names in the Work's own `[actions]`, in the order written.
 
     Returns:
-        The actions the config declares in its order, then the others as
-        `shown_actions` orders them, each with its source named as a contract
-        names it.
+        The actions the config declares in its order, then those it does not
+        declare that the Work's own `[actions]` name, in the order written, and
+        then the others in the order of `resolved`, each with its source named as
+        a contract names it.
     """
-    raise NotImplementedError
+    by_name = {action.name: action for action in resolved}
+    names = _names_in_order(list(by_name), list(config.actions), own)
+    return tuple(_shown(by_name[name], config) for name in names)
+
+
+def _names_in_order(
+    present: Sequence[str], declared: Sequence[str], own: Sequence[str]
+) -> list[str]:
+    """Order the names of the actions that a Work has.
+
+    Args:
+        present: The names, in the order of the resolved actions.
+        declared: The names the config declares, in its order.
+        own: The names in the Work's own `[actions]`, in the order written.
+
+    Returns:
+        The declared names that are present, then the undeclared names of `own`,
+        then the other undeclared names in the order of `present`.
+    """
+    first = [name for name in declared if name in present]
+    others = [name for name in present if name not in first]
+    named = [name for name in own if name in others]
+    return [*first, *named, *(name for name in others if name not in named)]
+
+
+def _shown(action: ResolvedAction, config: Config) -> ShownAction:
+    """Describe one resolved action as `show` prints it.
+
+    Args:
+        action: The resolved action.
+        config: The config, for the on-demand flag and the stages of a preset.
+
+    Returns:
+        The action with its source named as a contract names it, the config's
+        on-demand flag, and a preset with the stages the config declares for it,
+        or the listed stages, or neither for a removed action.
+    """
+    declared = config.actions.get(action.name)
+    on_demand = declared is not None and declared.on_demand
+    source = _SOURCES[action.source]
+    pipeline = action.pipeline
+    if action.removed:
+        return ShownAction(action.name, source, on_demand, None, (), removed=True)
+    if isinstance(pipeline, str):
+        stages = tuple(config.stage_presets.get(pipeline, ()))
+        return ShownAction(
+            action.name, source, on_demand, pipeline, stages, removed=False
+        )
+    return ShownAction(
+        action.name, source, on_demand, None, tuple(pipeline), removed=False
+    )

@@ -126,6 +126,7 @@ def test_show_composes_the_lookup_the_gathering_and_the_rendering(
     assert find.call_args.args[4] is config.works
     found = gather.call_args.args[1]
     assert found.works == build_hierarchy(find_works(files), mode).works
+    assert found.parent == build_hierarchy(find_works(files), mode).parent
     assert gather.call_args.args[0] is work
     assert gather.call_args.args[2] is config
     render.assert_called_once_with(shown, as_json=True)
