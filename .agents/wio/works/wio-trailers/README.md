@@ -26,6 +26,7 @@ commit to a stage.
   with them.
 - The hook and the pull request workflow of this repository check and fold
   records with `wio trailers`.
+- The commands run as one `wio trailers` command on a real repository.
 - The reviewed commit of a gate is identifiable from the history, even when
   pure gate commits sit on top of it.
 - A gate's result, judge and cited items are recordable with one command.
@@ -43,8 +44,8 @@ commit to a stage.
 
 ### A-1
 
-Git is installed and on PATH, because the `History` adapter runs git commands
-directly.
+Git is installed and on PATH, because the `History` adapter and the `git`
+reader run git commands.
 
 ### A-2
 
@@ -58,18 +59,22 @@ commits.
 
 ## Mechanisms
 
-- **`scan` reader** — reads every record from a message, outside fenced code
-  blocks, as specified in [concepts.md](../../../../docs/concepts.md#records).
-  Shared by write, check and fold.
-- **`git` reader** — delegates to git's own trailer parsing for
-  last-paragraph-only workflows, as specified in
+- **Record parser with both readers** — one parser in `wio.formats`, built by
+  the shape leaf, that reads a record with the `scan` or the `git` reader of
   [concepts.md](../../../../docs/concepts.md#records).
-- **`History` port and adapter** — gives the first-parent commits from HEAD
-  for the reviewed-commit walk and the commits of a range for check and fold,
-  each with its sha and message; the adapter arrives with this Work.
+- **Record renderer** — the one renderer of `Wio-*` records in `wio.formats`,
+  built by the print leaf.
+- **Field validator** — the one validator of a record's fields, built by the
+  validator leaf, which the write command and the commit-time check share.
+- **`History` port and its git adapter** — gives commits, files at a revision
+  and the staged index, built by the history leaf.
+- **`Contracts` port and its adapter** — gives a Work's items and pipelines,
+  built by the lookup leaf.
 - **`EventSink` port** — accepts the `review` event.
-- **Record parser and renderer** — the canonical parser and renderer for
-  `Wio-*` records, shared by write, check and fold.
+- **Stage-rules port** — provisional, gives the rules a stage selects with their
+  hashes, which the rules Work satisfies; the gate leaf consumes it.
+- **The `wio trailers` command** — in `wio.cli`, built by the command leaf,
+  which wires every adapter and the no-op `EventSink`.
 
 ## Constraints
 
@@ -114,7 +119,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  A["wio trailers write"] --> B[Commit message]
+  A["wio trailers\nwork action stage"] --> B[Commit message]
   B --> C["wio trailers check --require\n(commit-msg hook)"]
   B --> D["wio trailers check --ref-range\n(CI range)"]
   E["wio trailers fold body and block\n(CI fold)"] --> F[Pull request body]
@@ -143,7 +148,7 @@ flowchart LR
 - **When** `wio trailers <work> <action> <stage> --items AC-99` runs.
 - **Then** the command exits 1, prints no record and names `AC-99`.
 
-### **AC-2** Check refuses a wrong message and a malformed commit
+### **AC-2** Check refuses a wrong message and tolerates an old record
 
 #### A stage the config does not have fails at commit time
 
@@ -157,6 +162,13 @@ flowchart LR
   a valid id.
 - **When** `wio trailers check --ref-range` reads the range.
 - **Then** the command exits 1 and names that commit.
+
+#### A commit with a stage the config no longer lists passes
+
+- **Given** a range in which one commit has a well-formed record with
+  `Wio-Stage: nosuch`.
+- **When** `wio trailers check --ref-range` reads the range.
+- **Then** the command exits 0 and warns about the stage.
 
 ### **AC-3** Fold keeps what a later reader relies on
 
@@ -178,31 +190,23 @@ range as [concepts.md](../../../../docs/concepts.md#records) specifies.
 - **When** `wio trailers fold body` runs on the body and the range.
 - **Then** it prints the prose unchanged, followed by the folded records.
 
-### **AC-4** A gate's reviewed commit is found under its pure gate commits
+### **AC-4** A gate's result is recorded, accepted and folded
 
-#### The walk reaches the work commit
+#### One call that the check and the fold take back
 
-- **Given** commits on HEAD where one or more of the latest carry only
-  records for one gate's action and stage, and the next earlier commit is
-  the work commit.
-- **When** `wio trailers <work> <action> <stage> --result pass` runs for that
-  gate with a recording `EventSink`.
-- **Then** the sink receives one `review` event whose reviewed commit is the
-  work commit's sha.
-
-### **AC-5** A gate's result, judge and cited items are recorded in one call
-
-#### The record and the event carry what was passed
-
-- **Given** a gate stage, a Work with an item `AC-1` and a recording
+- **Given** a gate stage, a Work with an item `AC-1`, commits on `HEAD` where
+  the latest carry only the gate's record above the work commit, and a recording
   `EventSink`.
 - **When** `wio trailers <work> <action> <stage> --result pass --judge human
-  --items AC-1 --cite AC-1=pass` runs.
-- **Then** the printed record holds `Wio-Result: pass`, `Wio-Judge: human` and
-  `Wio-Items: AC-1`, and the sink receives one `review` event citing `AC-1`
-  with the result `pass`.
+  --items AC-1 --cite AC-1=pass` prints a record, that record is the paragraph
+  of a commit message that `wio trailers check --require` reads, and
+  `wio trailers fold block` runs on a range with that commit.
+- **Then** the record holds `Wio-Result: pass`, `Wio-Judge: human` and
+  `Wio-Items: AC-1`, the check exits 0, the fold prints the record, and the sink
+  received one `review` event citing `AC-1` with `pass` whose reviewed commit is
+  the work commit's sha.
 
-### **AC-6** Every subcommand follows the exit-code contract
+### **AC-5** Every subcommand follows the exit-code contract
 
 A `wio trailers` subcommand exits 0 on success, 1 on a failed check and 2 on a
 usage error or `WioError`. A refused field of a record is a failed check.
@@ -215,12 +219,15 @@ usage error or `WioError`. A refused field of a record is a failed check.
 
 #### A usage error exits 2
 
-- **Given** a call to each of `wio trailers check`, `wio trailers fold` and
-  `wio trailers <work>` with an argument missing.
-- **When** each runs.
-- **Then** each command exits 2 and prints no record.
+- **Given** a path and `--ref-range` given together to `check`, an unknown
+  revision given to `fold block`, and a call with a Work and an action and no
+  stage.
+- **When** `wio trailers check <path> --ref-range main..HEAD`,
+  `wio trailers fold block nosuch..nosuch2` and `wio trailers <work> <action>`
+  run.
+- **Then** each command exits 2.
 
-### **AC-7** The hook and the workflows no longer use `records.py`
+### **AC-6** The hook and the workflows no longer use `records.py`
 
 #### The script and its references are gone
 
@@ -236,4 +243,5 @@ The fold rules and the readers are specified in
 [concepts.md](../../../../docs/concepts.md#records), the baseline the children
 implement. The hook and workflow change is the `22j7aw` child's; the reader
 choice, the exempt subjects, the reviewed-commit boundaries and the checks of
-each field belong to the `check`, `write` and `fold` children.
+each field belong to the `check`, `write` and `fold` children, and the adapters
+and the command to the history and command leaves.

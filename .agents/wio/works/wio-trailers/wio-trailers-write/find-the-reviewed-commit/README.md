@@ -2,7 +2,7 @@
 id = "92xps9"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["pnf585"]
+depends_on = ["pnf585", "chqy1s"]
 -->
 
 # Find the reviewed commit
