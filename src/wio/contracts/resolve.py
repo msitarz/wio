@@ -1,8 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 """The resolved view of a Work: its contract and what its ancestors pass on."""
 
-from typing import TYPE_CHECKING
+import re
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Final
 
+from wio.formats.errors import DirectiveSyntaxError, MetadataBlockError
+from wio.models.directives import Inherit
+lazy from wio.formats import (
+    read_directive_heading,
+    read_metadata_block,
+    read_outline,
+    remove_directive_list,
+)
 lazy from wio.models.resolved import InheritedSections, ResolvedContract
 
 if TYPE_CHECKING:
@@ -11,7 +21,30 @@ if TYPE_CHECKING:
 
     from wio.contracts.ports import TemplateCatalog
     from wio.io.ports import FileSystem
+    from wio.models.heading import Heading
     from wio.models.works import Work
+
+_LEVEL: Final = 2
+"""The one heading level whose sections inherit."""
+_DEEPEST: Final = 6
+"""The deepest heading level, which a demotion does not pass."""
+_MARKS: Final = re.compile(r"#{1,6}\s+")
+_COMMENT: Final = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+@dataclass(frozen=True)
+class _Body:
+    """The body of a file as lines, and the real headings in it.
+
+    Attributes:
+        lines: The body's lines, split at CRLF, CR and LF alike, so none ends in
+            a carriage return.
+        headings: The real headings of the body, whose `line` counts from 1 in
+            `lines`.
+    """
+
+    lines: tuple[str, ...]
+    headings: tuple[Heading, ...]
 
 
 def resolve_work(
@@ -133,10 +166,16 @@ def _own_contract(text: str) -> str:
 
     Returns:
         The text after the metadata block, with LF endings, comments kept, a
-        readable directive list taken off every heading and the blank lines at
-        either end removed.
+        readable directive list taken off every real heading and the blank lines
+        at either end removed. A file without a readable block has none.
     """
-    raise NotImplementedError
+    body = _read_body(text)
+    if body is None:
+        return ""
+    lines = list(body.lines)
+    for heading in body.headings:
+        lines[heading.line - 1] = _clean(heading.raw)
+    return "\n".join(_trim(lines))
 
 
 def _marked_texts(
@@ -147,6 +186,10 @@ def _marked_texts(
     files: FileSystem,
 ) -> frozenset[str] | None:
     """Find the `##` sections that an ancestor's source of directives marks.
+
+    A failed read of the template's file, an `OSError` or a `UnicodeDecodeError`
+    of `files`, and a template whose block cannot be read, are swallowed here and
+    give `None`, because the ancestor then passes nothing.
 
     Args:
         ancestor: The ancestor, whose `template` names its source.
@@ -161,11 +204,24 @@ def _marked_texts(
         directive list; empty when a readable list marks nothing; and `None` when
         the template is missing, rejected or cannot be read.
     """
-    raise NotImplementedError
+    if ancestor.template is None:
+        return _marked_in(text)
+    template = catalog.find(ancestor.template)
+    if template is None or catalog.is_rejected(ancestor.template):
+        return None
+    try:
+        source = files.read_text(root / template.path)
+    except OSError, UnicodeDecodeError:
+        return None
+    return _marked_in(source)
 
 
 def _cut_ancestor(text: str, marked: frozenset[str]) -> tuple[str, tuple[str, ...]]:
     """Name an ancestor and cut the sections of it that pass, from one outline.
+
+    The metadata block is not part of the body, so the title is the first
+    heading after it, and CRLF and CR are read as LF, so a section never holds a
+    carriage return.
 
     Args:
         text: The ancestor's whole file.
@@ -178,4 +234,178 @@ def _cut_ancestor(text: str, marked: frozenset[str]) -> tuple[str, tuple[str, ..
         by one level, never below 6, and its text, without the blank lines that
         end it. A section with only comments and whitespace is left out.
     """
-    raise NotImplementedError
+    body = _read_body(text)
+    if body is None or not body.headings:
+        return "", ()
+    sections = (
+        _section(body, index)
+        for index, heading in enumerate(body.headings)
+        if heading.level == _LEVEL and _key(heading.raw) in marked
+    )
+    return _title(body.headings[0]), tuple(s for s in sections if s)
+
+
+def _read_body(text: str) -> _Body | None:
+    """Split a file into the lines of its body and the real headings.
+
+    Args:
+        text: The whole file.
+
+    Returns:
+        The body, or `None` for a file without a metadata block or with one that
+        cannot be read.
+    """
+    try:
+        block = read_metadata_block(text)
+    except MetadataBlockError:
+        return None
+    if block is None:
+        return None
+    lines = tuple(re.split(r"\r\n|\r|\n", block.body))
+    return _Body(lines, read_outline(block.body, 1))
+
+
+def _marked_in(text: str) -> frozenset[str] | None:
+    """Find the `##` headings of a text that carry `inherit`.
+
+    Args:
+        text: A template's file, or an ancestor's own.
+
+    Returns:
+        The key of each such heading, or `None` when the text has no readable
+        body.
+    """
+    body = _read_body(text)
+    if body is None:
+        return None
+    keys = (_marked_key(h) for h in body.headings if h.level == _LEVEL)
+    return frozenset(key for key in keys if key is not None)
+
+
+def _marked_key(heading: Heading) -> str | None:
+    """Give the key of a heading whose readable list has `inherit`.
+
+    Args:
+        heading: A heading.
+
+    Returns:
+        Its key, or `None` for a heading that is indented, has no list, has a list
+        that cannot be read or has no `inherit` in it.
+    """
+    try:
+        parsed = read_directive_heading(heading.raw)
+    except DirectiveSyntaxError:
+        return None
+    if parsed is None or not any(isinstance(d, Inherit) for d in parsed.directives):
+        return None
+    return _key(heading.raw)
+
+
+def _key(raw: str) -> str | None:
+    """Give the key that sections are matched by.
+
+    Args:
+        raw: A heading's line.
+
+    Returns:
+        Its text without the `#` marks, any directive list, readable or not, and
+        the whitespace around it, in lowercase for comparison, or `None` for a
+        line that does not start with its marks at column 0.
+    """
+    if _MARKS.match(raw) is None:
+        return None
+    text = _MARKS.sub("", remove_directive_list(raw), count=1)
+    return text.strip().casefold()
+
+
+def _clean(raw: str) -> str:
+    """Take the directive list off a heading line when it can be read.
+
+    Args:
+        raw: A heading's line.
+
+    Returns:
+        The line without a readable list and right-trimmed, and the line as
+        written when it is indented or its list cannot be read.
+    """
+    if _MARKS.match(raw) is None:
+        return raw
+    try:
+        read_directive_heading(raw)
+    except DirectiveSyntaxError:
+        return raw
+    return remove_directive_list(raw).rstrip()
+
+
+def _title(heading: Heading) -> str:
+    """Give the text of a heading without a readable directive list.
+
+    Args:
+        heading: A real heading.
+
+    Returns:
+        Its text as `read_outline` found it, less a list that can be read.
+    """
+    try:
+        parsed = read_directive_heading(heading.raw)
+    except DirectiveSyntaxError:
+        return heading.text
+    return heading.text if parsed is None else parsed.text
+
+
+def _section(body: _Body, index: int) -> str:
+    """Cut one `##` section out of a body, demoted.
+
+    Args:
+        body: The body.
+        index: The position of the section's heading among its headings.
+
+    Returns:
+        The heading and its text up to the next heading of level 1 or 2, with
+        each real heading of it cleaned and demoted, without the blank lines at
+        its end, or the empty string when nothing but comments and whitespace
+        follows the heading.
+    """
+    heading = body.headings[index]
+    start = heading.line - 1
+    end = next(
+        (h.line - 1 for h in body.headings[index + 1 :] if h.level <= _LEVEL),
+        len(body.lines),
+    )
+    lines = list(body.lines[start:end])
+    if not _COMMENT.sub("", "\n".join(lines[1:])).strip():
+        return ""
+    for inner in body.headings[index:]:
+        if inner.line - 1 >= end:
+            break
+        lines[inner.line - 1 - start] = _demote(inner)
+    return "\n".join(_trim(lines))
+
+
+def _demote(heading: Heading) -> str:
+    """Clean a heading line and put it one level deeper.
+
+    Args:
+        heading: A real heading.
+
+    Returns:
+        The cleaned line with one more `#`, unchanged in level at 6 and as
+        written when it is indented.
+    """
+    cleaned = _clean(heading.raw)
+    if _MARKS.match(cleaned) is None or heading.level >= _DEEPEST:
+        return cleaned
+    return f"#{cleaned}"
+
+
+def _trim(lines: list[str]) -> list[str]:
+    """Remove the blank lines at both ends.
+
+    Args:
+        lines: Lines of text.
+
+    Returns:
+        The lines from the first to the last that is not blank.
+    """
+    kept = [number for number, line in enumerate(lines) if line.strip()]
+    return lines[kept[0] : kept[-1] + 1] if kept else []

@@ -13,6 +13,7 @@ lazy from wio.formats.directives import (
     COMBINING,
     DIRECTIVES,
     read_directive_heading,
+    remove_directive_list,
 )
 lazy from wio.formats.errors import (
     DirectiveSyntaxError,
@@ -46,6 +47,7 @@ __all__ = [
     "read_directive_heading",
     "read_metadata_block",
     "read_outline",
+    "remove_directive_list",
     "render_check",
     "render_json",
     "render_text",
