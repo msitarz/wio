@@ -19,17 +19,18 @@ def render_show(shown: ShownWork, *, as_json: bool) -> str:
 
     The text is the first line `Work <id>  <title>`, the facts, a blank line,
     `Actions` and the actions, a blank line, a line of `----`, a blank line and
-    the view. The facts are `Path`, `Template`, `Parent`, `Roots`, `After` and
-    `Needed by`, each written only when it has something to say, with its label
-    padded so that every value starts at column 15 and a second value on the next
-    line in that column. `Roots` shows a Work's own roots as written, and when it
-    lists `@descendants` an arrow and the resolved roots, or `none`. A related
-    Work is `<id>  <title>`, with `(not found)` and `(no title)` where they
-    apply. An action is its name, its preset, where it comes from and `on demand`
-    when the config marks it, with its stages on the next line, or `removed (by
-    the contract)` with no mark, although the JSON keeps the config's flag. With
-    no action line to print, `Actions` is followed by the line `none`, and the
-    JSON `actions` is an empty array.
+    the view, and ends at the line of `----` when the view is empty, so it
+    always ends in one line ending. The facts are `Path`, `Template`, `Parent`,
+    `Roots`, `After` and `Needed by`, each written only when it has something to
+    say, with its label padded so that every value starts at column 15 and a
+    second value on the next line in that column. `Roots` shows a Work's own
+    roots as written, and when it lists `@descendants` an arrow and the resolved
+    roots, or `none`. A related Work is `<id>  <title>`, with `(not found)` and
+    `(no title)` where they apply. An action is its name, its preset, where it
+    comes from and `on demand` when the config marks it, with its stages on the
+    next line, or `removed (by the contract)` with no mark, although the JSON
+    keeps the config's flag. With no action line to print, `Actions` is followed
+    by the line `none`, and the JSON `actions` is an empty array.
 
     The JSON is one object on one line, written by `json.dumps` with its default
     separators, with `id`, `title`, `path`, `template`, `parent`, `roots`,
@@ -53,9 +54,9 @@ def render_show(shown: ShownWork, *, as_json: bool) -> str:
         *_action_lines(shown.actions),
         "",
         "----",
-        "",
     ]
-    return "\n".join(head) + "\n" + shown.view
+    text = "\n".join(head) + "\n"
+    return f"{text}\n{shown.view}" if shown.view else text
 
 
 def _first_line(shown: ShownWork) -> str:
@@ -79,7 +80,9 @@ def _fact_lines(shown: ShownWork) -> list[str]:
     Returns:
         The lines of `Path`, `Template`, `Parent`, `Roots`, `After` and
         `Needed by` that have something to say, with the labels padded and a
-        second value on a line of its own in the column of the first.
+        second value on a line of its own in the column of the first. `Roots`
+        is the Work's own `roots` as written, and `resolved_roots` only after the
+        arrow of a Work that lists `@descendants`.
     """
     raise NotImplementedError
 
@@ -105,5 +108,7 @@ def _as_object(shown: ShownWork) -> dict[str, object]:
 
     Returns:
         The fields in the order of the contract, with `path` written with `/`.
+        `roots` is as written, and `resolved_roots` is the hierarchy's value, so
+        it may differ from `roots` in order and repeats.
     """
     raise NotImplementedError

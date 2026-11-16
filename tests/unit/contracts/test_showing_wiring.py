@@ -2,6 +2,7 @@
 """Tests of how `show` is composed from its leaves."""
 
 from argparse import ArgumentParser, Namespace
+from dataclasses import replace
 from typing import TYPE_CHECKING, cast
 from unittest.mock import Mock
 
@@ -14,6 +15,7 @@ from wio.contracts import showing as module
 from wio.contracts.actions import ResolvedAction
 from wio.contracts.discovery import discover_works
 from wio.contracts.hierarchy import build_hierarchy
+from wio.errors import ConfigurationError
 from wio.models.config import Config, Defaults, Works
 from wio.models.frozen import freeze
 
@@ -121,6 +123,7 @@ def test_show_composes_the_lookup_the_gathering_and_the_rendering(
     # gathering got the Work, a hierarchy and the config, and the rendering got
     # what it gathered and the JSON flag
     assert find.call_args.args[1:4] == ("a7b2c4", ROOT, DIRECTORY)
+    assert find.call_args.args[4] is config.works
     found = gather.call_args.args[1]
     assert found.works == build_hierarchy(find_works(files), mode).works
     assert gather.call_args.args[0] is work
@@ -203,16 +206,25 @@ def test_the_view_the_parent_and_the_relations_come_from_the_hierarchy(
     assert shown.dependents == (module.Related("k5m8ps", None, found=True),)
     assert shown.depends_on == related
     assert shown.actions == actions
-    assert shown.view.startswith("<!--") is False
+    assert shown.view.startswith("# Title\n")
     assert "Own." in shown.view
 
 
-def test_a_top_work_has_no_parent(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A Work with no parent has none in what is gathered."""
-    # Given a Work alone in a flat tree
-    work = work_under_works("a/README.md", "k3m9xq")
-    files = _tree({"a/README.md": _marked('id = "k3m9xq"')})
-    found = build_hierarchy([work], "flat")
+def test_under_flat_a_nested_work_has_no_parent_and_no_inherited_view(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Under flat the layout gives no parent, and the view is the Work's own."""
+    # Given a parent and a child that is nested under it, in a flat tree
+    parent = work_under_works("p/README.md", "p5n2hv")
+    work = work_under_works("p/c/README.md", "k3m9xq")
+    files = _tree(
+        {
+            "p/README.md": _marked('id = "p5n2hv"')
+            + "\n## Glossary <!-- wio: inherit -->\n\nT.\n",
+            "p/c/README.md": _marked('id = "k3m9xq"'),
+        }
+    )
+    found = build_hierarchy([parent, work], "flat")
     monkeypatch.setattr(module, "_related_ids", Mock(return_value=()))
     monkeypatch.setattr(module, "shown_actions", Mock(return_value=()))
 
@@ -221,8 +233,9 @@ def test_a_top_work_has_no_parent(monkeypatch: pytest.MonkeyPatch) -> None:
         work, found, Config(), services(files, directory=DIRECTORY)
     )
 
-    # Then it has no parent
+    # Then it has no parent and its view holds nothing inherited
     assert shown.parent is None
+    assert "Inherited from" not in shown.view
 
 
 def test_a_work_with_no_template_takes_the_defaults_and_not_a_template(
@@ -279,3 +292,20 @@ def test_a_work_with_a_template_takes_its_actions_and_never_the_defaults(
         ResolvedAction("deliver", ("build",), "template", removed=False),
         ResolvedAction("amend", (), "work", removed=True),
     )
+
+
+def test_an_error_of_the_config_reaches_the_caller_before_anything_is_read() -> None:
+    """The command does not swallow the error of loading the config."""
+    # Given settings whose load fails
+    files = _tree({"a/README.md": _marked('id = "k3m9xq"')})
+    wired = services(files, directory=DIRECTORY)
+    failing = Mock()
+    failing.load.side_effect = ConfigurationError("bad config")
+    broken = replace(wired, settings=failing)
+    stdio = FakeStdio()
+
+    # When `show` runs
+    # Then the error is raised and nothing is written
+    with pytest.raises(ConfigurationError):
+        ContractsCommand(broken).run(_show_args("k3m9xq"), stdio)
+    assert cast("io.StringIO", stdio.stdout).getvalue() == ""

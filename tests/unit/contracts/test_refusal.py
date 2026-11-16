@@ -59,7 +59,8 @@ def test_a_shared_id_refuses_the_tree_only_when_asked() -> None:
 
     # When it is judged without and with shared ids
     refuse_tree(discovery, shared=False)
-    with pytest.raises(ContractsError):
+    with pytest.raises(ContractsError) as raised:
         refuse_tree(discovery, shared=True)
 
-    # Then only the second refused, and the first raised nothing
+    # Then only the second refused, and it ended with the hint
+    assert str(raised.value).endswith(HINT)

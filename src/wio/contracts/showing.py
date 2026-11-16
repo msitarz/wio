@@ -282,7 +282,9 @@ def _by_path(
         files: The port that reads files.
 
     Returns:
-        The Work whose file the path is.
+        The Work whose `path` is the argument resolved against `directory`, made
+        relative to `root`. Under a tree that was judged complete, a path that
+        `explain_not_a_work` finds no reason against names a Work of `discovery`.
 
     Raises:
         ContractsError: The path is not a Work, with the reason that
@@ -302,9 +304,9 @@ def _by_id(discovery: WorkDiscovery, argument: str) -> Work:
         The Work.
 
     Raises:
-        ContractsError: No Work has the id, with the closest id when there is
-            one, or two Works share it, with the error of discovery and the
-            hint.
+        ContractsError: No Work has the id, with the closest id when
+            `closest_key` finds one, or two Works share it, with the error of
+            discovery and the hint, as `refuse` raises it.
     """
     raise NotImplementedError
 

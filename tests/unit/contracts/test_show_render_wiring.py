@@ -64,3 +64,20 @@ def test_the_json_is_the_object_of_the_leaf_on_one_line_with_one_line_ending(
     # ending
     assert text == json.dumps(described) + "\n"
     assert text.count("\n") == 1
+
+
+def test_an_empty_view_ends_the_text_at_the_rule_with_one_line_ending(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Work with no view has no blank line after the rule."""
+    # Given leaves that give a first line, no fact and no action line, and a Work
+    # whose view is empty
+    monkeypatch.setattr(module, "_first_line", Mock(return_value="Work k3m9xq  T"))
+    monkeypatch.setattr(module, "_fact_lines", Mock(return_value=[]))
+    monkeypatch.setattr(module, "_action_lines", Mock(return_value=["  none"]))
+
+    # When the text is rendered
+    text = module.render_show(_shown(""), as_json=False)
+
+    # Then it ends at the rule with exactly one line ending
+    assert text == "Work k3m9xq  T\n\nActions\n  none\n\n----\n"
