@@ -89,6 +89,15 @@ def test_an_emptied_action_is_removed_and_an_empty_one_is_not_shown() -> None:
     raise NotImplementedError
 
 
+def test_a_work_whose_actions_are_all_emptied_has_them_removed() -> None:
+    """AC-1: all actions removed."""
+    # Given a template with `deliver` and `amend` and a Work whose `[actions]`
+    # empty both
+    # When `shown_actions` runs
+    # Then both are given as removed with the source `contract`
+    raise NotImplementedError
+
+
 def test_a_work_with_nothing_to_resolve_has_no_action() -> None:
     """AC-1: a Work that resolves to no action."""
     # Given a config with no defaults and a Work with no template and no

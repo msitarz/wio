@@ -3,8 +3,12 @@
 
 from typing import TYPE_CHECKING
 
+lazy from wio.formats import encode_json
+
 if TYPE_CHECKING:
-    from wio.contracts.showing import ShownWork
+    from collections.abc import Sequence
+
+    from wio.contracts.showing import ShownAction, ShownWork
 
 
 def render_show(shown: ShownWork, *, as_json: bool) -> str:
@@ -38,5 +42,68 @@ def render_show(shown: ShownWork, *, as_json: bool) -> str:
 
     Returns:
         The text for standard output, ending in one line ending.
+    """
+    if as_json:
+        return f"{encode_json(_as_object(shown))}\n"
+    head = [
+        _first_line(shown),
+        *_fact_lines(shown),
+        "",
+        "Actions",
+        *_action_lines(shown.actions),
+        "",
+        "----",
+        "",
+    ]
+    return "\n".join(head) + "\n" + shown.view
+
+
+def _first_line(shown: ShownWork) -> str:
+    """Write the first line of the text.
+
+    Args:
+        shown: The Work.
+
+    Returns:
+        `Work <id>  <title>`, with `(no title)` for a Work with none.
+    """
+    raise NotImplementedError
+
+
+def _fact_lines(shown: ShownWork) -> list[str]:
+    """Write the fact lines of the text.
+
+    Args:
+        shown: The Work.
+
+    Returns:
+        The lines of `Path`, `Template`, `Parent`, `Roots`, `After` and
+        `Needed by` that have something to say, with the labels padded and a
+        second value on a line of its own in the column of the first.
+    """
+    raise NotImplementedError
+
+
+def _action_lines(actions: Sequence[ShownAction]) -> list[str]:
+    """Write the lines of the actions block.
+
+    Args:
+        actions: The Work's actions in order.
+
+    Returns:
+        The lines of each action with its stages, or the one line `  none` when
+        there is no action.
+    """
+    raise NotImplementedError
+
+
+def _as_object(shown: ShownWork) -> dict[str, object]:
+    """Describe a Work as plain data for JSON.
+
+    Args:
+        shown: The Work.
+
+    Returns:
+        The fields in the order of the contract, with `path` written with `/`.
     """
     raise NotImplementedError

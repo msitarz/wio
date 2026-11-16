@@ -27,6 +27,7 @@ lazy from wio.contracts.location import (
     write_new,
 )
 lazy from wio.contracts.resolve import render_resolved, resolve_work
+lazy from wio.contracts.showing import run_show
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -91,6 +92,8 @@ _LIST_HELP = "List the Works with their hierarchy and their overrides."
 _LIST_JSON = "Write one JSON array of the Works instead of the text."
 _NEW_HELP = "Create a Work from a template or as a bare contract."
 _NEW_JSON = "Write one JSON object describing the created Work."
+_SHOW_HELP = "Show one Work with its facts, its actions and its resolved contract."
+_SHOW_JSON = "Write one JSON object of the Work instead of the text."
 
 
 def _json_option(parser: ArgumentParser, *, help: str) -> None:  # noqa: A002
@@ -101,6 +104,30 @@ def _json_option(parser: ArgumentParser, *, help: str) -> None:  # noqa: A002
         help: What `--help` says of it.
     """
     parser.add_argument("--json", action="store_true", help=help)
+
+
+def _configure_show(parser: ArgumentParser) -> None:
+    """Add the argument that names the Work to show, and `--json`.
+
+    Args:
+        parser: The subparser.
+    """
+    parser.add_argument("work", help="Id of the Work, or the path of its contract.")
+    _json_option(parser, help=_SHOW_JSON)
+
+
+def _show(services: Services, args: Namespace, stdio: Stdio) -> int:
+    """Run `wio contracts show`.
+
+    Args:
+        services: What the subcommand reads the project through.
+        args: The parsed arguments.
+        stdio: Where the output goes.
+
+    Returns:
+        The exit code.
+    """
+    return run_show(services, args, stdio)
 
 
 def _check(services: Services, args: Namespace, stdio: Stdio) -> int:
@@ -165,6 +192,7 @@ SUBCOMMANDS: Final[Sequence[Subcommand]] = (
     Subcommand("check", _CHECK_HELP, partial(_json_option, help=_CHECK_JSON), _check),
     Subcommand("list", _LIST_HELP, partial(_json_option, help=_LIST_JSON), _list),
     Subcommand("new", _NEW_HELP, _configure_new, _new),
+    Subcommand("show", _SHOW_HELP, _configure_show, _show),
 )
 """The subcommands of `wio contracts`, to which each leaf adds its own entry.
 

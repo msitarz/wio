@@ -4,12 +4,10 @@
 from typing import TYPE_CHECKING
 
 from wio.contracts.discovery import discover_works
-from wio.contracts.errors import ContractsError
 from wio.contracts.hierarchy import build_hierarchy
-lazy from wio.formats import encode_json, render_text
+from wio.contracts.refusal import refuse_tree
+lazy from wio.formats import encode_json
 
-_HINT = "`wio contracts check` shows every problem."
-"""The line that a refusal ends with, so a person knows where to see them all."""
 _NO_TITLE = "(no title)"
 
 if TYPE_CHECKING:
@@ -17,7 +15,6 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from wio.contracts import Services
-    from wio.contracts.discovery import WorkDiscovery
     from wio.contracts.hierarchy import Hierarchy
     from wio.io.ports import Stdio
     from wio.models.works import Work
@@ -210,25 +207,7 @@ def run_list(services: Services, args: Namespace, stdio: Stdio) -> int:
     """
     config = services.settings.load()
     discovery = discover_works(services.repository.root(), config.works, services.files)
-    _refuse_incomplete(discovery)
+    refuse_tree(discovery, shared=True)
     found = build_hierarchy(discovery.works, config.works.hierarchy)
     stdio.stdout.write(render_list(found, as_json=args.json))
     return 0
-
-
-def _refuse_incomplete(discovery: WorkDiscovery) -> None:
-    """Refuse a tree that may not hold every Work, or whose ids are shared.
-
-    Args:
-        discovery: What one walk of the Works directory found.
-
-    Raises:
-        ContractsError: `incomplete` or `ambiguous` holds an error. It carries
-            those errors in the order of `diagnostics`, and its message is them
-            rendered one to a line and the hint.
-    """
-    left = {*discovery.incomplete, *discovery.ambiguous}
-    refused = [error for error in discovery.diagnostics if error in left]
-    if refused:
-        message = f"{render_text(refused, keep_order=True)}\n{_HINT}"
-        raise ContractsError(message, refused)

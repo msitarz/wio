@@ -4,14 +4,22 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
-lazy from wio.contracts.discovery import WorkDiscovery
-lazy from wio.contracts.hierarchy import Hierarchy
+from wio.contracts.actions import resolve_actions, template_actions
+from wio.contracts.discovery import discover_works
+from wio.contracts.hierarchy import build_hierarchy
+from wio.contracts.refusal import refuse_tree
+from wio.contracts.resolve import render_resolved, resolve_work
+from wio.contracts.show_render import render_show
 
 if TYPE_CHECKING:
     from argparse import Namespace
+    from collections.abc import Mapping, Sequence
     from pathlib import Path
 
     from wio.contracts import Services
+    from wio.contracts.actions import Pipeline, ResolvedAction
+    from wio.contracts.discovery import WorkDiscovery
+    from wio.contracts.hierarchy import Hierarchy
     from wio.contracts.ports import TemplateCatalog
     from wio.io.ports import FileSystem, Stdio
     from wio.models.config import Config
@@ -112,7 +120,18 @@ def run_show(services: Services, args: Namespace, stdio: Stdio) -> int:
         OSError: The Work's own file cannot be read, as `resolve_work` raises it.
         UnicodeDecodeError: The Work's own file is not UTF-8.
     """
-    raise NotImplementedError
+    config = services.settings.load()
+    root = services.repository.root()
+    discovery = discover_works(root, config.works, services.files)
+    refuse_tree(discovery, shared=False)
+    directory = services.environment.working_directory()
+    work = find_target(
+        discovery, args.work, root, directory, config.works, services.files
+    )
+    found = build_hierarchy(discovery.works, config.works.hierarchy)
+    shown = gather_work(work, found, config, services)
+    stdio.stdout.write(render_show(shown, as_json=args.json))
+    return 0
 
 
 def find_target(
@@ -147,7 +166,9 @@ def find_target(
             line that points to `wio contracts check`; or the path is not a Work,
             with the reason that `explain_not_a_work` gives.
     """
-    raise NotImplementedError
+    if _is_path(argument):
+        return _by_path(discovery, argument, root, directory, settings, files)
+    return _by_id(discovery, argument)
 
 
 def shown_actions(
@@ -164,7 +185,8 @@ def shown_actions(
     order that the Work's own `[actions]`, the template's and the defaults list
     them. An action emptied by the Work is `removed`, and an action that is empty
     and that nothing else gives is left out. A template that the catalog does not
-    have, or rejects, or whose file cannot be read gives no actions.
+    have, or rejects, or whose file cannot be read gives no actions, and the
+    Work's own are still given.
 
     Args:
         work: The Work.
@@ -180,7 +202,14 @@ def shown_actions(
     Raises:
         ConfigurationError: The config cannot be loaded, which `catalog` raises.
     """
-    raise NotImplementedError
+    if work.template is None:
+        resolved = resolve_actions(
+            work.actions, config.works.defaults.actions, "defaults"
+        )
+    else:
+        inherited = _template_pipelines(work.template, catalog, root, files)
+        resolved = resolve_actions(work.actions, inherited, "template")
+    return _in_config_order(resolved, config)
 
 
 def gather_work(
@@ -202,5 +231,152 @@ def gather_work(
         OSError: The Work's own file cannot be read, as `resolve_work` raises it.
         UnicodeDecodeError: The Work's own file is not UTF-8.
         ConfigurationError: The config cannot be loaded, which `catalog` raises.
+    """
+    root = services.repository.root()
+    ancestors = found.ancestors[work.path]
+    parent = found.parent[work.path]
+    return ShownWork(
+        work=work,
+        parent=None if parent is None else Related(parent.id, parent.title, found=True),
+        resolved_roots=found.roots[work.path],
+        depends_on=_related_ids(found.dependencies[work.path], found.works),
+        dependents=tuple(
+            Related(other.id, other.title, found=True)
+            for other in found.dependents[work.path]
+        ),
+        actions=shown_actions(work, config, services.catalog, root, services.files),
+        view=render_resolved(
+            resolve_work(work, ancestors, services.catalog, root, services.files)
+        ),
+    )
+
+
+def _is_path(argument: str) -> bool:
+    """Tell a path from an id by its form.
+
+    Args:
+        argument: What the person wrote.
+
+    Returns:
+        Whether it contains `/` or ends in `.md`.
+    """
+    return "/" in argument or argument.endswith(".md")
+
+
+def _by_path(
+    discovery: WorkDiscovery,
+    argument: str,
+    root: Path,
+    directory: Path,
+    settings: WorksSettings,
+    files: FileSystem,
+) -> Work:
+    """Find the Work that a path names.
+
+    Args:
+        discovery: What discovery found.
+        argument: The path as written, relative to `directory` or absolute.
+        root: The repository root.
+        directory: The working directory.
+        settings: The `[works]` table of the config.
+        files: The port that reads files.
+
+    Returns:
+        The Work whose file the path is.
+
+    Raises:
+        ContractsError: The path is not a Work, with the reason that
+            `explain_not_a_work` gives.
+    """
+    raise NotImplementedError
+
+
+def _by_id(discovery: WorkDiscovery, argument: str) -> Work:
+    """Find the Work that has an id.
+
+    Args:
+        discovery: What discovery found.
+        argument: The id.
+
+    Returns:
+        The Work.
+
+    Raises:
+        ContractsError: No Work has the id, with the closest id when there is
+            one, or two Works share it, with the error of discovery and the
+            hint.
+    """
+    raise NotImplementedError
+
+
+def _related_ids(ids: Sequence[str], works: Sequence[Work]) -> tuple[Related, ...]:
+    """Name the Works that some ids stand for.
+
+    Args:
+        ids: The ids in the order listed.
+        works: Every Work.
+
+    Returns:
+        One entry for each Work that has an id, so a shared id gives one for
+        each of them, and an entry that is not found for an id no Work has.
+    """
+    owners: dict[str, list[Work]] = {}
+    for work in works:
+        owners.setdefault(work.id, []).append(work)
+    related: list[Related] = []
+    for work_id in ids:
+        related.extend(_named(work_id, owners.get(work_id, [])))
+    return tuple(related)
+
+
+def _named(work_id: str, owners: Sequence[Work]) -> list[Related]:
+    """Name the Works that have an id.
+
+    Args:
+        work_id: The id as listed.
+        owners: The Works that have it.
+
+    Returns:
+        One entry for each Work, or one that is not found when there is none.
+    """
+    if not owners:
+        return [Related(work_id, None, found=False)]
+    return [Related(work.id, work.title, found=True) for work in owners]
+
+
+def _template_pipelines(
+    name: str, catalog: TemplateCatalog, root: Path, files: FileSystem
+) -> Mapping[str, Pipeline]:
+    """Read the actions that a template gives.
+
+    Args:
+        name: The template's name.
+        catalog: Finds the template and says whether it is rejected.
+        root: The repository root that the template's path is relative to.
+        files: The port that reads the template's file.
+
+    Returns:
+        The template's `[actions]`, empty when the catalog does not have the
+        template, rejects it or its file cannot be used.
+    """
+    template = catalog.find(name)
+    if template is None or catalog.is_rejected(name):
+        return {}
+    return template_actions(template, root, files) or {}
+
+
+def _in_config_order(
+    resolved: Sequence[ResolvedAction], config: Config
+) -> tuple[ShownAction, ...]:
+    """Turn resolved actions into the actions `show` prints, in order.
+
+    Args:
+        resolved: The actions that `resolve_actions` gave.
+        config: The config, for the order, the on-demand flag and the presets.
+
+    Returns:
+        The actions the config declares in its order, then the others as
+        `shown_actions` orders them, each with its source named as a contract
+        names it.
     """
     raise NotImplementedError
