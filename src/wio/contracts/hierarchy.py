@@ -5,6 +5,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.contracts.roots import DESCENDANTS
 from wio.models.diagnostics import Diagnostic, order_diagnostics
 from wio.models.frozen import freeze
 
@@ -15,7 +16,6 @@ if TYPE_CHECKING:
     from wio.models.config import HierarchyMode
     from wio.models.works import Work
 
-_DESCENDANTS = "@descendants"
 _LISTED = "listed in depends_on"
 _CHILD = "a parent waits for its child"
 type _Graph = Mapping[Path, Mapping[Path, str]]
@@ -251,8 +251,8 @@ def _roots_of(
         its children resolves to, each name once and sorted.
     """
     if work.path not in resolved:
-        kids = children[work.path] if _DESCENDANTS in work.roots else ()
-        names = {root for root in work.roots if root != _DESCENDANTS}
+        kids = children[work.path] if DESCENDANTS in work.roots else ()
+        names = {root for root in work.roots if root != DESCENDANTS}
         names.update(*(_roots_of(kid, children, resolved) for kid in kids))
         resolved[work.path] = tuple(sorted(names))
     return resolved[work.path]

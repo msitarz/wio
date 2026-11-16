@@ -85,6 +85,29 @@ def test_plan_template_and_report() -> None:
     }
 
 
+def test_plan_accepts_descendants_as_a_root() -> None:
+    """The special descendants entry is accepted and kept once."""
+    # Given a request with the special entry and a declared root
+    config, files, catalog = _setup()
+    found = discover_works(ROOT, config.works, files)
+    args = NewArguments(
+        "feature",
+        None,
+        NameArguments("a", None, None, None),
+        ("@descendants", "wio", "@descendants"),
+    )
+
+    # When a Work is planned
+    work = plan_work(
+        args, config, found, catalog, files, ROOT, RandomIds(FakeEntropy())
+    )
+
+    # Then the entries are retained in their first-seen order
+    block = read_metadata_block(work.text)
+    assert block is not None
+    assert block.data["roots"] == ["@descendants", "wio"]
+
+
 def test_plan_keeps_comment_terminator_in_template_value() -> None:
     """A template value containing the comment terminator survives creation."""
     # Given a template whose contract value escapes a comment terminator

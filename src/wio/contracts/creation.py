@@ -15,6 +15,7 @@ from wio.contracts.location import (
     new_id,
     write_new,
 )
+from wio.contracts.roots import undeclared_root
 from wio.formats import (
     prepare_skeleton,
     read_metadata_block,
@@ -252,7 +253,7 @@ def _validate_roots(roots: tuple[str, ...], config: Config) -> tuple[str, ...]:
         ContractsError: A name is not declared.
     """
     for root in roots:
-        if root != "@descendants" and root not in config.roots:
+        if undeclared_root(root, config.roots):
             msg = f"The root `{root}` is not declared in `[roots]` of the config"
             raise ContractsError(msg)
     return tuple(dict.fromkeys(roots))
