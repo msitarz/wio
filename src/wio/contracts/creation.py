@@ -91,54 +91,39 @@ def plan_work(
     root: Path,
     generator: IdGenerator,
 ) -> NewWork:
-    """Decide the new Work and write nothing.
+    """Plan a new Work without writing a file.
 
-    Everything that was asked for is checked before anything is decided about the
-    file, and there is one error for each call, the first of these: no kind is
-    declared for `new <kind>`, the kind is not declared, the template is missing or
-    rejected or is of another kind than the kind, a root is not declared, the title
-    is not one non-blank line, which is ``The title must be one non-blank line``,
-    then the errors of `decide_place`. The messages say
-    what to do: a template that is rejected, or is the entry template of a kind,
-    points to `wio templates check`, and a name that no file has points to
-    `wio templates list`.
+    Choose the requested template, the kind's entry template, or none for a
+    bare contract. A template used with a kind must have that kind. Validate
+    the template, roots and title before deciding the place: report the first
+    error in that order, followed by errors from `decide_place`. A rejected template or
+    missing entry template points to `wio templates check`; another unknown
+    template name points to `wio templates list`.
 
-    The template is the entry template of the kind, `--template`'s, or none for a
-    bare contract; given both a kind and `--template`, its kind must be the kind.
-    The text is `prepare_skeleton`'s of the template's file, which is read at the
-    catalog's path, or `<!-- wio`, `-->`, an empty line and `# Title` for a bare
-    contract. On it `set_block_keys` adds the `id`, and `roots` replaced or
-    added when `--root` was given, a name given twice counting once in the order of
-    its first appearance and each name a declared root or `@descendants`. The first
-    level-1 heading is found by `read_outline` of the body and its first line,
-    which `read_metadata_block` gives for the text. A title is trimmed and replaces
-    that heading, or is inserted before the first
-    line of the body that is not empty and followed by one empty line, in the
-    template's line ending, or at the end of the body when it has no such line.
-    The block is rewritten without TOML comments, retaining its other values;
-    the rest of the skeleton is retained. The parent is `parent_of` in
-    `wio.contracts.hierarchy` of the new file's path, the one definition of the
-    rule, whether the place came from `--parent` or from `--path`, and none under
-    `flat`. An undeclared root is the error ``The root `r` is not declared in
-    `[roots]` of the config``, as the check of the Works words it. `set_block_keys`
-    is called by its name in this module, once, with the `id` and, when roots were
-    given, `roots`.
+    Build the text from the template's skeleton or a bare metadata block and
+    `# Title`. Add the new id and, if requested, replace the roots with declared
+    roots or `@descendants`, deduplicated in first-seen order. Preserve the
+    other metadata values and skeleton, except for TOML comments in the block.
+    A supplied title must be one non-blank line; trim it and replace the first
+    level-1 heading, or insert it before the first non-empty body line (or at
+    the end), followed by an empty line in the template's line ending.
+    Determine the parent from the chosen path using `parent_of`; under `flat`
+    there is none.
 
     Args:
-        arguments: What was typed.
-        config: The settings, which declare the kinds, their entry templates and the
-            roots, and the hierarchy mode.
-        discovery: The Works found, for the id, the parent and the place.
-        catalog: Finds a template and says whether `wio templates check` rejects it.
-        files: Reads the template's text and tells what exists.
+        arguments: The requested kind, template, roots, title and place.
+        config: The declared kinds, roots and hierarchy mode.
+        discovery: The existing Works.
+        catalog: Finds templates and reports whether they are rejected.
+        files: Reads templates and checks paths.
         root: The repository root.
-        generator: Draws the candidate ids.
+        generator: Draws candidate ids.
 
     Returns:
-        The Work, with its text and its place.
+        The planned Work, including its text and place.
 
     Raises:
-        ContractsError: One of the mistakes above, or one of `decide_place` and
+        ContractsError: An invalid request or an error from `decide_place` or
             `new_id`.
     """
     template = _choose_template(arguments, config, catalog)
