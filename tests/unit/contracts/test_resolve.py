@@ -485,7 +485,7 @@ def test_an_ancestor_without_a_level_one_heading_is_named_by_its_first_heading()
 @pytest.mark.parametrize(
     ("body", "expected"),
     [
-        ("# P\n\n    ## Constraints\n\nA line.\n", ""),
+        ("# P\n\n ## Constraints\n\nA line.\n", ""),
         ("# P\n\n## Constraints\n\n<!-- only -->\n\n  \n", ""),
     ],
 )
@@ -546,3 +546,20 @@ def test_the_works_own_file_that_cannot_be_read_is_not_swallowed() -> None:
     # Then the error is raised
     with pytest.raises(PermissionError):
         resolve_work(child, (), catalog, ROOT, files)
+
+
+def test_a_hash_that_ends_a_word_is_not_a_closing_sequence() -> None:
+    """`C#` stays whole in a title and in the text a section matches."""
+    # Given a parent titled `# C#` with `## C#` and `## C`, where the template
+    # marks only `## C#`
+    files = MemoryFileSystem()
+    catalog = _Catalog(files, {"t": ("## C#" + INHERIT,)})
+    body = "# C#\n\n## C\n\nOther.\n\n## C#\n\nSharp.\n"
+    parent = _add(files, "p/README.md", "p5n2hv", body, "t")
+    child = _add(files, "p/c/README.md", "c", "")
+
+    # When the view of a child with an empty own contract is rendered
+    text = _view(child, [parent, child], files, catalog)
+
+    # Then the ancestor is named `C#` and only `## C#` passes
+    assert text == "## Inherited from: C# (p5n2hv)\n\n### C#\n\nSharp.\n"
