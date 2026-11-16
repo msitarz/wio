@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, cast, override
 
 import pytest
 
+from tests.fakes import FakeEnvironment
 from tests.unit.fakes import (
     ROOT,
     FakeEntropy,
@@ -693,7 +694,14 @@ def test_the_command_exits_0_for_a_warning(
     """A warning is printed and does not fail the command."""
     # Given a Work with an unknown key
     disk = MemoryFileSystem({ROOT / BASE / "a/README.md": _marked("a1", extra)})
-    services = Services(_Settings(), FakeRepository(), disk, _Catalog(), FakeEntropy())
+    services = Services(
+        _Settings(),
+        FakeRepository(),
+        disk,
+        _Catalog(),
+        FakeEntropy(),
+        FakeEnvironment(ROOT),
+    )
     stdio = FakeStdio()
 
     # When the command runs
@@ -725,17 +733,38 @@ def test_the_command_exits_1_for_an_error_and_says_when_the_contracts_pass() -> 
 
     # When the command runs on each, and on the good one with `--json`
     failed = run_check(
-        Services(_Settings(), FakeRepository(), bad, _Catalog(), FakeEntropy()),
+        Services(
+            _Settings(),
+            FakeRepository(),
+            bad,
+            _Catalog(),
+            FakeEntropy(),
+            FakeEnvironment(ROOT),
+        ),
         Namespace(json=False),
         streams[0],
     )
     passed = run_check(
-        Services(_Settings(), FakeRepository(), good, _Catalog(), FakeEntropy()),
+        Services(
+            _Settings(),
+            FakeRepository(),
+            good,
+            _Catalog(),
+            FakeEntropy(),
+            FakeEnvironment(ROOT),
+        ),
         Namespace(json=False),
         streams[1],
     )
     as_json = run_check(
-        Services(_Settings(), FakeRepository(), good, _Catalog(), FakeEntropy()),
+        Services(
+            _Settings(),
+            FakeRepository(),
+            good,
+            _Catalog(),
+            FakeEntropy(),
+            FakeEnvironment(ROOT),
+        ),
         Namespace(json=True),
         streams[2],
     )

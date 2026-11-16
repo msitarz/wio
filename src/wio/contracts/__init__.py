@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from wio.contracts.ports import TemplateCatalog
-    from wio.env.ports import Entropy
+    from wio.env.ports import Entropy, Environment
     from wio.io.ports import FileSystem, Repository, Stdio
     from wio.ports import Settings
 
@@ -50,6 +50,8 @@ class Services:
         files: Lists and reads files.
         catalog: Finds the templates of the project.
         entropy: Gives the random bytes of a new id.
+        environment: Gives the working directory that a path argument is
+            resolved against.
     """
 
     settings: Settings
@@ -57,6 +59,7 @@ class Services:
     files: FileSystem
     catalog: TemplateCatalog
     entropy: Entropy
+    environment: Environment
 
 
 @dataclass(frozen=True)

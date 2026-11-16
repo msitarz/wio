@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Literal, cast
 
 import pytest
 
+from tests.fakes import FakeEnvironment
 from tests.unit.fakes import (
     ROOT,
     FakeEntropy,
@@ -355,7 +356,12 @@ def _list(
     """
     disk = MemoryFileSystem({ROOT / BASE / name: text for name, text in files.items()})
     services = Services(
-        _Settings(mode), FakeRepository(), disk, _NoCatalog(), FakeEntropy()
+        _Settings(mode),
+        FakeRepository(),
+        disk,
+        _NoCatalog(),
+        FakeEntropy(),
+        FakeEnvironment(ROOT),
     )
     stdio = FakeStdio()
     code = run_list(services, Namespace(json=as_json), stdio)

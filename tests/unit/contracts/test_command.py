@@ -3,8 +3,9 @@
 
 from typing import TYPE_CHECKING
 
+from tests.fakes import FakeEnvironment
 from tests.unit.cli.fakes import run_main
-from tests.unit.fakes import FakeEntropy, FakeRepository, MemoryFileSystem
+from tests.unit.fakes import ROOT, FakeEntropy, FakeRepository, MemoryFileSystem
 from wio.cli.table import Entry
 from wio.contracts import (
     ContractsCommand,
@@ -84,7 +85,12 @@ def _entry(table: Sequence[Subcommand]) -> Entry:
             The command.
         """
         services = Services(
-            _Settings(), FakeRepository(), MemoryFileSystem(), _Catalog(), FakeEntropy()
+            _Settings(),
+            FakeRepository(),
+            MemoryFileSystem(),
+            _Catalog(),
+            FakeEntropy(),
+            FakeEnvironment(ROOT),
         )
         return ContractsCommand(services, table)
 
