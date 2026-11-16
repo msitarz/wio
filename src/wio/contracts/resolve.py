@@ -58,34 +58,11 @@ def resolve_work(
 ) -> ResolvedContract:
     """Resolve a Work against its ancestors.
 
-    It reads the Work's file, each ancestor's file and the file of each template
-    an ancestor names, through `files` only, and writes nothing. Everything in
-    the result is fixed by those files and the catalog, so the same Work gives
-    the same value on every run.
-
-    The Work's own contract is the text after its metadata block, with CRLF read
-    as LF, without the blank lines at either end, every comment kept. The
-    directive list is taken off every heading of it whose list
-    `read_directive_heading` reads, and left as written on a heading whose list
-    it rejects.
-
-    An ancestor's source of directives is the template it names, found through
-    `catalog`, or its own headings when it names none. Only a level-2 section
-    inherits, a section runs to the next heading of level 1 or 2 so a deeper
-    heading is content, and every section whose heading matches a marked one,
-    by text ignoring case, the whitespace around it and a trailing directive
-    list, passes, so a repeated section passes each time. A section that holds
-    only comments and whitespace is not passed, and a directive list that cannot
-    be read marks nothing. A heading is demoted by one level, never below level
-    6, and only when it starts at column 0; an indented heading that
-    `read_outline` counts is left as written and never matches a template's.
-
-    An ancestor passes nothing, and the walk goes on to the ancestors above it
-    without an error, when the catalog has no template of its name, when
-    `is_rejected` rejects it, when the template's file or the ancestor's own file
-    cannot be read, a `UnicodeDecodeError` or an `OSError` of `files`. A
-    template or an ancestor file that discovery read can fail here, because this
-    is its own read.
+    It reads through `files` and writes nothing, and the same files give the same
+    value. The Work's own contract is cleaned by `_own_contract`, and each
+    ancestor passes what `_marked_texts` and `_cut_ancestor` say. An ancestor
+    that cannot be used passes nothing, without an error, and the walk goes on to
+    the ancestors above it.
 
     Args:
         work: The Work to resolve, whose contract is read from `root / work.path`.
@@ -220,10 +197,6 @@ def _marked_texts(
 
 def _cut_ancestor(text: str, marked: frozenset[str]) -> tuple[str, tuple[str, ...]]:
     """Name an ancestor and cut the sections of it that pass, from one outline.
-
-    The metadata block is not part of the body, so the title is the first
-    heading after it, and CRLF and CR are read as LF, so a section never holds a
-    carriage return.
 
     Args:
         text: The ancestor's whole file.
