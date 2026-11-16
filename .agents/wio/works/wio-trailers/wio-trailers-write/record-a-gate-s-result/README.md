@@ -9,20 +9,20 @@ depends_on = ["eh62g6"]
 
 ## Purpose
 
-A gate's review leaves no trace of what it judged, who judged it or which commit
-it saw, so the engine records the result, the judge and the reviewed commit
-itself.
+A gate's review leaves no trace of the items it cited or of the commit it saw,
+and a gate that needs a human can be recorded as judged by an agent, so the
+engine records the citations and the reviewed commit and refuses that judge.
 
 ## Goals
 
-- A gate's record carries a result from the vocabulary and who judged it, and a
-  gate that needs a human is never recorded as judged by an agent.
+- A gate that needs a human is never recorded as judged by an agent.
 - The items a review cites are checked and sent with the result.
 - The commit a review judged is found from the history, past the pure gate
   commits above it, and named in the `review` event.
 
 ## Non-Goals
 
+- Printing the record with its result and judge; the print leaf does that.
 - Writing one record for a list of Works.
 - The `--reviewed` override, and the warnings that compare the reviewed commit
   with the `context` event.
@@ -42,43 +42,16 @@ gate.
 
 ## Mechanisms
 
-- **`wio trailers <work> <action> <stage> --result`** — prints the record of a
-  gate with its result, judge and items, and hands the `review` event to the
+- **`wio trailers <work> <action> <stage> --result RESULT --cite ITEM=RESULT`**
+  — extends the print leaf's command: it refuses `agent` for a gate with
+  `judge = "human"`, checks the cited items, and hands the `review` event to the
   `EventSink`.
 - **`History` port** — gives the commits from `HEAD` for the walk.
 - **`EventSink` port** — receives the `review` event.
 
 ## Acceptance criteria
 
-### **AC-1** The result is in the vocabulary
-
-#### A result the config does not list
-
-- **Given** a gate stage and a config whose results do not include `maybe`.
-- **When** `wio trailers <work> <action> <stage> --result maybe` runs.
-- **Then** the command exits 1, prints no record and lists the results the
-  config allows.
-
-#### A result the config lists
-
-- **Given** the same gate stage.
-- **When** `wio trailers <work> <action> <stage> --result pass` runs.
-- **Then** the printed record holds `Wio-Result: pass`.
-
-### **AC-2** The judge is recorded and a human gate refuses an agent
-
-#### The default judge is an agent
-
-- **Given** a gate stage that does not need a human.
-- **When** `wio trailers <work> <action> <stage> --result pass` runs.
-- **Then** the printed record holds `Wio-Judge: agent`.
-
-#### A human judge
-
-- **Given** any gate stage.
-- **When** `wio trailers <work> <action> <stage> --result pass --judge human`
-  runs.
-- **Then** the printed record holds `Wio-Judge: human`.
+### **AC-1** A human gate refuses an agent
 
 #### An agent for a gate with `judge = "human"`
 
@@ -87,7 +60,14 @@ gate.
   it runs with `--judge agent`.
 - **Then** each exits 1, prints no record and says the gate needs a human judge.
 
-### **AC-3** The cited items are checked
+#### A human for a gate with `judge = "human"`
+
+- **Given** the same gate stage.
+- **When** `wio trailers <work> <action> <stage> --result pass --judge human`
+  runs.
+- **Then** the printed record holds `Wio-Judge: human`.
+
+### **AC-2** The cited items are checked
 
 #### A rule code the config does not choose
 
@@ -108,7 +88,7 @@ gate.
 - **When** the same command runs with `--cite AC-1=maybe`.
 - **Then** the command exits 1, prints no record and names `maybe`.
 
-### **AC-4** The reviewed commit is found past the pure gate commits
+### **AC-3** The reviewed commit is found past the pure gate commits
 
 #### One or more pure gate commits above the work commit
 
@@ -132,7 +112,7 @@ gate.
 - **When** the same command runs.
 - **Then** the reviewed commit is that latest commit.
 
-### **AC-5** The review event carries the judgment
+### **AC-4** The review event carries the judgment
 
 #### The event for a cited review
 

@@ -64,9 +64,10 @@ warning. The driver confirms this at the gate.
 ## Acceptance criteria
 
 The examples use a Work `k3m9xq` that is in the index and has an item `AC-1`.
-Its `deliver` action lists the stages `architecture`, which is not a gate, and
-`architecture-review`, which is a gate. The config also has the stage `wiring`,
-which is not a gate and which `k3m9xq`'s `deliver` does not list. The
+It is a leaf, so its `deliver` is the `typed-boundary` stage preset, which lists
+the stages `architecture`, which is not a gate, and `architecture-review`, which
+is a gate. The config also has the stage `integration`, which is not a gate and
+which that preset does not list. The
 config's results are `pass`, `fail` and `unknown`, and its reader is `scan`
 unless a scenario says otherwise. R is the paragraph of the three lines
 `Wio-Work: k3m9xq`, `Wio-Action: deliver` and `Wio-Stage: architecture`, and M
@@ -245,6 +246,6 @@ the record's first line, and line 1 when there is no record.
 
 #### A stage that the Work's actions do not list
 
-- **Given** M with `Wio-Stage: wiring`.
+- **Given** M with `Wio-Stage: integration`.
 - **When** `wio trailers check --require` reads it.
-- **Then** the command exits 0 and warns about `wiring`.
+- **Then** the command exits 0 and warns about `integration`.
