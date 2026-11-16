@@ -69,10 +69,28 @@ def test_the_repository_lists_shows_and_checks_its_own_works() -> None:
     assert (checked.stdout, checked.returncode) == ("The contracts pass.\n", 0)
 
 
+def _status() -> str:
+    """List what differs from the index, untracked files included.
+
+    Returns:
+        The output of `git status --porcelain --untracked-files=all` in this
+        repository, which names a file that a command wrote anywhere.
+    """
+    done = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return done.stdout
+
+
 def test_no_command_changes_a_contract() -> None:
-    """Parent AC-5: `list`, `show`, `skeleton` and `check` change no contract."""
+    """Parent AC-5: `list`, `show`, `skeleton` and `check` write no file."""
     # Given this repository's Works and a hash of each contract
     before = hash_files(WORKS)
+    status = _status()
     leaf = _leaves()[0]
 
     # When `list`, `show`, `skeleton feature.parent --work <leaf>` and `check` run
@@ -90,6 +108,7 @@ def test_no_command_changes_a_contract() -> None:
     assert codes == [0, 0, 0, 0]
     assert before
     assert hash_files(WORKS) == before
+    assert _status() == status
 
 
 @pytest.mark.parametrize("command", ["list", "show", "check"])

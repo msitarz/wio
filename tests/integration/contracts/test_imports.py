@@ -2,7 +2,6 @@
 """Tests of what `wio contracts list` and `check` import, in a fresh interpreter."""
 
 import ast
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -10,7 +9,24 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-PROJECT = ROOT / "tests" / "fixtures" / "contracts" / "check-clean"
+FILES = {
+    ".agents/wio/config.toml": (
+        '[templates.kinds]\nfeature = "feature.leaf"\n\n'
+        '[actions.define]\ndescription = "Define."\n\n'
+        '[stages.define]\ngoal = "Define."\n\n'
+        '[stage_presets]\ndefine-feature = ["define"]\n'
+    ),
+    ".agents/wio/templates/feature.leaf.md": (
+        '<!-- wio\nkind = "feature"\nshape = "leaf"\n\n[actions]\n'
+        'define = "define-feature"\n-->\n\n# <Work name>\n\n'
+        "## Purpose <!-- wio: required -->\n"
+    ),
+    ".agents/wio/works/a/README.md": (
+        '<!-- wio\nid = "k3m9xq"\ntemplate = "feature.leaf"\n-->\n\n'
+        "# Work\n\n## Purpose\n\nWhy.\n"
+    ),
+}
+"""A project whose Work names a template, so that the catalog is used."""
 _PROBE = """
 import sys
 from wio.cli import main
@@ -29,9 +45,11 @@ sys.stderr.write(repr([[first, second], [after_list, loaded()]]))
 @pytest.mark.slow
 def test_listing_and_checking_load_no_writer_and_no_json(tmp_path: Path) -> None:
     """Parent AC-6: after `list` and after `check`, neither module is loaded."""
-    # Given a new Python process and a repository with valid Works
+    # Given a new Python process and a repository whose Work names a template
     project = tmp_path / "project"
-    shutil.copytree(PROJECT, project)
+    for name, text in FILES.items():
+        (project / name).parent.mkdir(parents=True, exist_ok=True)
+        (project / name).write_text(text)
     subprocess.run(["git", "init", "--quiet"], cwd=project, check=True)
 
     # When `main(["contracts", "list"], stdio)` and then

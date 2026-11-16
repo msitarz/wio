@@ -177,7 +177,7 @@ def test_a_work_moves_to_another_template_and_keeps_its_identity(wio: Wio) -> No
         'roots = ["api"]\ndepends_on = ["a7b2c4"]\n\n[actions]\ndeliver = ["ship"]\n',
     )
     _project(wio, {"w/README.md": work})
-    before = wio.fingerprint(WORKS)
+    before = wio.fingerprint(".agents")
 
     # When `skeleton feature.parent --work <W>` runs, with and without
     # `--keep roots`, and with an id and a template that do not exist
@@ -202,7 +202,7 @@ def test_a_work_moves_to_another_template_and_keeps_its_identity(wio: Wio) -> No
     assert "`actions`" in kept.stderr
     assert "`roots`" not in kept.stderr
     assert (plain.exit_code, kept.exit_code) == (0, 0)
-    assert wio.fingerprint(WORKS) == before
+    assert wio.fingerprint(".agents") == before
     assert "`zzzzzz`" in no_work.stderr
     assert "`nosuch`" in no_template.stderr
     assert (no_work.exit_code, no_template.exit_code) == (2, 2)
