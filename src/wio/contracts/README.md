@@ -217,8 +217,8 @@ command is for.
 - **Nothing is dropped silently, and the stage chooses what to keep.** The
   command does not know which keys matter to a move between two templates, so
   it carries the identity, names what it left and lets `--keep` carry any key,
-  the Work's own data in a table included. `id`, `template`, `depends_on` and
-  `wio` are refused by `--keep`, because carrying them twice could only
+  the Work's own data in a table included. The keys that the skeleton handles
+  already are refused by `--keep`, because carrying them twice could only
   contradict the identity.
 - **The Work is read twice, and its wrong types are not mended.** A `Work` holds
   only the fields that the other commands use, so the keys come from its file
