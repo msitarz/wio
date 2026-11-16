@@ -227,11 +227,11 @@ byte for byte on both channels.
 
 `wio contracts show` reads one Work in full: where it sits, what it waits for
 and what waits for it, where each of its actions comes from, and its resolved
-contract, as text or as one JSON object. [`showing.py`](showing.py) finds what
-is shown and [`show_render.py`](show_render.py) writes it, and their docstrings
-say the layout, the order of the actions and the fields. The
-[scenarios](../../../tests/acceptance/contracts/test_show.py) show the text and
-the object byte for byte on both channels, and the view is the one of
+contract. [`showing.py`](showing.py) finds what is shown and
+[`show_render.py`](show_render.py) writes it, and their docstrings say the
+layout, the order of the actions and the fields. The
+[scenarios](../../../tests/acceptance/contracts/test_show.py) show the output
+byte for byte, and the view is the one of
 [the resolved view of a Work](#the-resolved-view-of-a-work).
 
 - **The tree is judged before the argument, and only an incomplete tree
@@ -240,39 +240,29 @@ the object byte for byte on both channels, and the view is the one of
   that id, because a Work that lists a shared id must still be shown with both
   Works. An error of the metadata or of the graph does not stop it, because
   `show` is how a person finds the Work to fix.
-- **An argument is a path when it has a `/` or ends in `.md`, and an id
-  otherwise.** The two are told apart by their form, with no flag, so an id of
-  that form can be shown only by its path, which is a known limit. A path is
-  resolved against the working directory, which `Services` carries as the
-  environment, so `show c/README.md` works from the Work's own directory. A
-  file that is not a Work gets the reason that discovery gives, so a reason is
-  worded once.
+- **An id and a path are told apart by their form.** An id that looks like a
+  path can be shown only by its path, a known limit that spares a flag. A path
+  is resolved against the working directory, which `Services` carries as the
+  environment, and a file that is not a Work gets the reason that discovery
+  gives, so a reason is worded once.
 - **The actions are not resolved a second time.** They are those that the check
   of the Works resolves, so `show` and `check` cannot disagree about where an
-  action comes from, and the layering of the template, the defaults and the
-  Work's own is theirs. What `show` adds is the order: the actions the config
-  declares come first in its order, and then the names it does not declare,
-  the Work's own first in the order written, because the order of the resolved
-  actions loses it for an action that the Work overrides.
+  action comes from. `show` adds only the order, which keeps the Work's own
+  written order for the names the config does not declare, because the resolved
+  order loses it for an action that the Work overrides.
 - **A Work with no action is shown, and a removed action is shown as removed.**
   `check` reports a Work that resolves to no action as an error, and `show` is
   how a person finds it, so it prints `none` and not an empty block, which would
-  look like output that was left out. An action that the contract empties is
-  printed as removed with the source `contract`, so an override is never hidden.
-  A Work whose actions are all removed prints them and not `none`.
-- **The text shows the Work's own roots, and what they resolve to only for
-  `@descendants`.** The JSON always has `resolved_roots`, which is the
-  hierarchy's value and can differ from `roots` in order and repeats.
-- **A template that cannot be used gives no inherited actions.** A template that
-  is missing, rejected or unreadable leaves the Work's own actions, and so does
-  a `template` of the wrong type, which discovery leaves out, so such a Work
-  shows the config defaults while `check` skips it. This is a known limit.
-- **The text ends in one line ending whatever the view is.** An empty view ends
-  the text at the rule.
-- **`show` reads and never writes, and two runs print the same bytes.** A run
-  without `--json` loads neither `json` nor `tomlkit`, which an
+  look like output that was left out. A removed action is printed as such, so an
+  override is never hidden, and a Work whose actions are all removed prints them
+  and not `none`.
+- **A template that cannot be used gives no inherited actions.** The Work's own
+  actions remain, and so for a `template` of the wrong type, which discovery
+  leaves out, so such a Work shows the config defaults while `check` skips it.
+  This is a known limit.
+- **A run without `--json` loads neither `json` nor `tomlkit`.** An
   [integration test](../../../tests/integration/contracts/test_show_imports.py)
-  pins in a fresh interpreter.
+  pins it in a fresh interpreter.
 
 ## Checking the Works
 
