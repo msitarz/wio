@@ -9,9 +9,10 @@ depends_on = []
 
 ## Purpose
 
-Without a command that knows the live config, agents construct records by
-hand with no validation, `records.py` fills only part of the gap, and a gate
-cannot locate the commit it is reviewing.
+This Work delivers the trailers component, which manages the `Wio-*` git
+message trailers that tie every commit to a stage: writing them, checking
+them at commit time and in CI, folding them for pull request bodies, and
+identifying the reviewed commit for a gate.
 
 ## Goals
 
@@ -57,12 +58,6 @@ directly.
 
 The configured reader (`scan` or `git`) matches the project's merge workflow.
 `wio trailers` does not change it.
-
-### A-3
-
-The `review` event write in `--result` is a no-op stub until `wio log` wires
-an `EventSink`. It returns without error and writes nothing. C-4 is the
-corresponding constraint for children.
 
 ## Mechanisms
 
@@ -126,9 +121,12 @@ flowchart LR
 
 ### **AC-1** Write produces a validated record paragraph
 
-`wio trailers <work> <action> <stage>` prints a correct `Wio-*` record
-paragraph and exits 0 when every field is valid, and exits 1 with a
-diagnostic when any field fails validation.
+`wio trailers <work> <action> <stage>` prints a `Wio-*` record paragraph
+that `wio trailers check` accepts, and exits 0 when every field is valid.
+Validation covers: the Work exists in the working tree or in `HEAD`, the
+item ids are among the Work's own ids, the result is in the vocabulary, and
+a result is present exactly when the stage is a gate. Any failing field
+exits 1 with a diagnostic.
 
 #### Result required exactly on a gate stage
 
