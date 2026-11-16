@@ -38,11 +38,13 @@ class WioDriver(Protocol):
     kind of value.
     """
 
-    def run(self, args: Sequence[str]) -> RunResult:
+    def run(self, args: Sequence[str], directory: str | None = None) -> RunResult:
         """Run `wio` with the given arguments in the driver's sandbox.
 
         Args:
             args: The arguments after the program name.
+            directory: A directory below the root of the sandbox to run in, or
+                `None` to run at the root. The repository stays the sandbox.
 
         Returns:
             The streams and exit code of the run.
@@ -105,6 +107,18 @@ class SandboxedDriver:
             sandbox: The directory and environment to give `wio`.
         """
         self._sandbox = sandbox
+
+    def _directory(self, directory: str | None) -> Path:
+        """Find the directory a run starts in.
+
+        Args:
+            directory: A directory below the root of the sandbox, or `None`.
+
+        Returns:
+            That directory, or the root of the sandbox for `None`.
+        """
+        root = self._sandbox.root
+        return root if directory is None else root / directory
 
     def install(self, fixture: str) -> None:
         """Copy a fixture to the root of the sandbox.

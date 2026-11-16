@@ -11,6 +11,8 @@ from tests.acceptance.drivers.base import RunResult
 from tests.acceptance.drivers.cli import CliDriver
 from tests.acceptance.drivers.in_process import InProcessDriver
 from tests.sandbox import Sandbox
+from wio.env.adapters import ProcessEnvironment
+from wio.io import adapters
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -32,6 +34,39 @@ def test_both_test_drivers_return_the_same_data(tmp_path: Path) -> None:
     # Then each returns a result, and the two are equal
     assert isinstance(first, RunResult)
     assert first == second
+
+
+def test_the_in_process_driver_runs_below_the_root_in_a_repository_at_the_root(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A run in a subdirectory still has the sandbox as its repository."""
+    # Given the in-process driver, a subdirectory and a main that records where it
+    # runs and what the repository calls its root
+    (sandbox.root / "a").mkdir()
+    seen: list[tuple[Path, Path]] = []
+
+    def record(argv: Sequence[str], stdio: Stdio) -> int:
+        """Remember the working directory and the repository's root.
+
+        Args:
+            argv: The arguments, ignored.
+            stdio: The streams, ignored.
+
+        Returns:
+            Exit code 0.
+        """
+        del argv, stdio
+        repository = adapters.GitRepository(ProcessEnvironment())
+        seen.append((Path.cwd(), repository.root()))
+        return 0
+
+    monkeypatch.setattr("wio.cli.main", record)
+
+    # When it runs wio in the subdirectory
+    InProcessDriver(sandbox).run([], "a")
+
+    # Then the run was in the subdirectory and the root is the sandbox's
+    assert seen == [((sandbox.root / "a").resolve(), sandbox.root.resolve())]
 
 
 def test_the_in_process_driver_runs_in_the_sandbox(

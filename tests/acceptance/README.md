@@ -39,8 +39,10 @@ The `Wio` facade in [`dsl/wio.py`](dsl/wio.py) is what a scenario sees, and a
 
 - **One generic verb.** A command runs through `wio.run(args)`, so the facade
   has no method for each `wio` command and the test drivers dispatch in one
-  place. An operation-shaped verb is layered on it only when a scenario needs
-  it.
+  place. A scenario that depends on where the command starts passes a directory
+  below the root of the repository, as `wio.run(args, "a/b")`, and the
+  in-process repository keeps the root of the sandbox as its own. An
+  operation-shaped verb is layered on it only when a scenario needs it.
 - **Builders, when a scenario needs them.** The config, contract metadata, rule
   files, templates and roots are fixtures that interact. Without builders every
   test hand-writes TOML and Markdown, and any format change breaks every test. A

@@ -8,6 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from tests.fakes import FakeEnvironment
 from tests.unit.fakes import (
     ROOT,
     FakeEntropy,
@@ -43,6 +44,7 @@ def _services(files: MemoryFileSystem) -> Services:
         files,
         cast("TemplateCatalog", Mock()),
         FakeEntropy(),
+        FakeEnvironment(ROOT),
     )
 
 

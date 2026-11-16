@@ -93,7 +93,13 @@ where each comes from, and its contract with what its ancestors pass on.
   line. An action that the contract empties is `removed (by the contract)`
   without the on-demand mark, and an action that is empty and that nothing else
   gives is not shown. A template that is missing from the catalog or rejected
-  gives no actions, so the Work's own are all there is.
+  gives no actions, so the Work's own are all there is. A Work that resolves to
+  no action is still shown, because `check` reports it and `show` is how a
+  person finds the Work to fix. When there is no action line to print,
+  `Actions` is followed by the line `none`, indented two spaces, and the JSON
+  `actions` is an empty array. A Work whose actions the contract has all
+  removed prints the `removed (by the contract)` lines instead, and its JSON has
+  them.
 - **A path or an id.** An argument that contains `/` or ends in `.md` is a path,
   resolved against the working directory, and any other is an id. An id that
   contains `/` or ends in `.md` can therefore be shown only by its path, which
@@ -199,6 +205,19 @@ view.
                amend, review-amendment
     ratify   (from the contract)
                ship
+  ```
+
+#### A Work that resolves to no action
+
+- **Given** a config with no `[works.defaults.actions]` and a Work `k3m9xq`
+  titled `Solo` with no template and no `[actions]`.
+- **When** `wio contracts show k3m9xq` and the same with `--json` run.
+- **Then** the first prints the actions block exactly as below and exits 0, and
+  the second has `"actions": []` and exits 0:
+
+  ```text
+  Actions
+    none
   ```
 
 ### **AC-2** Roots resolve, dependents are listed and flat has no relatives

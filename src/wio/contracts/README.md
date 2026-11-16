@@ -28,8 +28,9 @@ takes and returns, and the
   repository, a config or a command of git, so it works anywhere, even when the
   config has an error.
 - **What a subcommand needs comes in `Services`.** The settings, the repository,
-  the file system and the catalog are built in `wio.cli`, the one place where
-  they meet the group, and a subcommand that needs another port adds a field.
+  the file system, the catalog, the entropy and the environment are built in
+  `wio.cli`, the one place where they meet the group, and a subcommand that
+  needs another port adds a field.
 - **A mistake the user must fix is a `ContractsError`.** It is a `WioError`, so
   the command line prints its message and exits 2, while a handler returns 0, or
   1 for a failed check, and never another code. A refusal can carry diagnostics,
@@ -221,6 +222,47 @@ byte for byte on both channels.
 - **Listing reads and never writes, and two runs print the same bytes.** The
   output has no timestamp and nothing is cut or wrapped, so a line is as the
   Work wrote it.
+
+## Showing a Work
+
+`wio contracts show` reads one Work in full: where it sits, what it waits for
+and what waits for it, where each of its actions comes from, and its resolved
+contract. [`showing.py`](showing.py) finds what is shown and
+[`show_render.py`](show_render.py) writes it, and their docstrings say the
+layout, the order of the actions and the fields. The
+[scenarios](../../../tests/acceptance/contracts/test_show.py) show the output
+byte for byte, and the view is the one of
+[the resolved view of a Work](#the-resolved-view-of-a-work).
+
+- **The tree is judged before the argument, and only an incomplete tree
+  refuses.** The refusal is the one of the listing, in
+  [`refusal.py`](refusal.py), except that a shared id refuses only the lookup of
+  that id, because a Work that lists a shared id must still be shown with both
+  Works. An error of the metadata or of the graph does not stop it, because
+  `show` is how a person finds the Work to fix.
+- **An id and a path are told apart by their form.** An id that looks like a
+  path can be shown only by its path, a known limit that spares a flag. A path
+  is resolved against the working directory, which `Services` carries as the
+  environment, and a file that is not a Work gets the reason that discovery
+  gives, so a reason is worded once.
+- **The actions are not resolved a second time.** They are those that the check
+  of the Works resolves, so `show` and `check` cannot disagree about where an
+  action comes from. `show` adds only the order, which keeps the Work's own
+  written order for the names the config does not declare, because the resolved
+  order loses it for an action that the Work overrides.
+- **A Work with no action is shown, and a removed action is shown as removed.**
+  `check` reports a Work that resolves to no action as an error, and `show` is
+  how a person finds it, so it prints `none` and not an empty block, which would
+  look like output that was left out. A removed action is printed as such, so an
+  override is never hidden, and a Work whose actions are all removed prints them
+  and not `none`.
+- **A template that cannot be used gives no inherited actions.** The Work's own
+  actions remain, and so for a `template` of the wrong type, which discovery
+  leaves out, so such a Work shows the config defaults while `check` skips it.
+  This is a known limit.
+- **A run without `--json` loads neither `json` nor `tomlkit`.** An
+  [integration test](../../../tests/integration/contracts/test_show_imports.py)
+  pins it in a fresh interpreter.
 
 ## Checking the Works
 

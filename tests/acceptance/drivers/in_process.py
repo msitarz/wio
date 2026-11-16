@@ -5,6 +5,7 @@ import contextlib
 import io
 import os
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING, Protocol, TextIO
 from unittest import mock
 
@@ -39,17 +40,21 @@ class SandboxRepository:
 
     Attributes:
         environment: Reports the working directory.
+        top: The root to answer with, or `None` for the working directory, which
+            a run that starts below the root of the sandbox gives.
     """
 
     environment: _Directory
+    top: Path | None = None
 
     def root(self) -> Path:
-        """Find the top of the working tree: the working directory itself.
+        """Find the top of the working tree.
 
         Returns:
-            The absolute working directory.
+            The root the repository was given, or else the absolute working
+            directory.
         """
-        return self.environment.working_directory()
+        return self.top or self.environment.working_directory()
 
     def identity(self) -> Path:
         """Refuse: no scenario of this channel tells clones apart.
@@ -97,21 +102,26 @@ class InProcessDriver(SandboxedDriver):
     A scenario that needs a real repository, or none, runs on the CLI channel.
     """
 
-    def run(self, args: Sequence[str]) -> RunResult:
+    def run(self, args: Sequence[str], directory: str | None = None) -> RunResult:
         """Call `wio.cli.main` inside the sandbox.
 
         Args:
             args: The arguments after the program name.
+            directory: A directory below the sandbox's root to run in, or `None`.
+                The repository's root is the sandbox's either way.
 
         Returns:
             The text the call wrote to its streams and its exit code.
         """
         out, err = io.StringIO(), io.StringIO()
         stdio = MemoryStdio(io.StringIO(), out, err)
+        root = self._sandbox.root
         with (
-            contextlib.chdir(self._sandbox.root),
+            contextlib.chdir(self._directory(directory)),
             mock.patch.dict(os.environ, self._sandbox.env, clear=True),
-            mock.patch("wio.io.adapters.GitRepository", SandboxRepository),
+            mock.patch(
+                "wio.io.adapters.GitRepository", partial(SandboxRepository, top=root)
+            ),
         ):
             code = cli.main(list(args), stdio)
         return RunResult(out.getvalue(), err.getvalue(), code)

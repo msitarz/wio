@@ -1096,7 +1096,8 @@ description = "Build what the contract says."
 
 The description is written for agents, like a skill's description: an agent
 reads it to choose the action that fits what the user asked for. `wio contracts
-show` lists a Work's actions with their descriptions and pipelines.
+show` lists a Work's actions with their pipelines, and leaves the description to
+the config.
 
 An action can be **on demand**:
 

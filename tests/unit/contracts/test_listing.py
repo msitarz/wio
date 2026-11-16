@@ -3,11 +3,12 @@
 
 import json
 from argparse import Namespace
-from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
 import pytest
 
+from tests.fakes import FakeEnvironment
+from tests.unit.contracts.helpers import BASE, work_under_works
 from tests.unit.fakes import (
     ROOT,
     FakeEntropy,
@@ -19,48 +20,12 @@ from wio.contracts import ContractsError, Services
 from wio.contracts.hierarchy import build_hierarchy
 from wio.contracts.listing import render_list, run_list
 from wio.models.config import Config, HierarchyMode, Works
-from wio.models.frozen import freeze
-from wio.models.works import Work
 
 if TYPE_CHECKING:
     import io
     from collections.abc import Mapping
 
-BASE = ".agents/wio/works"
-
-
-def _work(
-    path: str,
-    work_id: str,
-    title: str | None = None,
-    template: str | None = None,
-    roots: tuple[str, ...] = (),
-    depends_on: tuple[str, ...] = (),
-    actions: Mapping[str, str | tuple[str, ...]] | None = None,
-) -> Work:
-    """Build a Work at `<Works directory>/<path>`.
-
-    Args:
-        path: The file, relative to the Works directory.
-        work_id: The id.
-        title: The title, or `None`.
-        template: The template, or `None`.
-        roots: The roots as written.
-        depends_on: The dependencies as written.
-        actions: The `[actions]` overrides.
-
-    Returns:
-        The Work.
-    """
-    return Work(
-        id=work_id,
-        title=title,
-        path=Path(BASE) / path,
-        template=template,
-        roots=roots,
-        depends_on=depends_on,
-        actions=freeze(actions or {}),
-    )
+    from wio.models.works import Work
 
 
 def _text(mode: HierarchyMode, *works: Work) -> str:
@@ -81,11 +46,11 @@ def test_a_parent_comes_before_its_children_and_each_child_is_indented() -> None
     # Given a parent with two children, one of which has a child, and a Work
     # whose path sorts between them
     works = [
-        _work("p/README.md", "p1", "Parent"),
-        _work("p/a/README.md", "c1", "First"),
-        _work("p/a/x/README.md", "g1", "Grandchild"),
-        _work("p/b/README.md", "c2", "Second"),
-        _work("q/README.md", "q1", "Other"),
+        work_under_works("p/README.md", "p1", "Parent"),
+        work_under_works("p/a/README.md", "c1", "First"),
+        work_under_works("p/a/x/README.md", "g1", "Grandchild"),
+        work_under_works("p/b/README.md", "c2", "Second"),
+        work_under_works("q/README.md", "q1", "Other"),
     ]
 
     # When the Works are rendered as text under nesting
@@ -109,9 +74,9 @@ def test_the_id_column_is_as_wide_as_the_widest_id_of_the_output() -> None:
     """Every title lines up, whatever the depth of its Work."""
     # Given a short id at the top and a long one in another branch
     works = [
-        _work("a/README.md", "a1", "Short"),
-        _work("b/README.md", "b1", "Parent"),
-        _work("b/c/README.md", "longer-id", "Long"),
+        work_under_works("a/README.md", "a1", "Short"),
+        work_under_works("b/README.md", "b1", "Parent"),
+        work_under_works("b/c/README.md", "longer-id", "Long"),
     ]
 
     # When the Works are rendered as text under nesting
@@ -128,8 +93,8 @@ def test_under_flat_every_work_is_at_the_same_indent() -> None:
     """A path that nests is no hierarchy under flat."""
     # Given Works whose paths nest
     works = [
-        _work("p/README.md", "p1", "Parent"),
-        _work("p/a/README.md", "c1", "Child"),
+        work_under_works("p/README.md", "p1", "Parent"),
+        work_under_works("p/a/README.md", "c1", "Child"),
     ]
 
     # When the Works are rendered as text under flat
@@ -145,7 +110,7 @@ def test_under_flat_every_work_is_at_the_same_indent() -> None:
 def test_only_the_overrides_of_a_work_show() -> None:
     """A preset, a list and an empty list are written as the contract says."""
     # Given a Work whose `[actions]` hold a preset, a list and an empty list
-    work = _work(
+    work = work_under_works(
         "a/README.md",
         "k3m9xq",
         "Title",
@@ -169,9 +134,9 @@ def test_a_dependency_shows_its_title_or_says_why_not() -> None:
     # Given a Work that lists a Work with a title, one with none, an id that no
     # Work has, and the first one again
     works = [
-        _work("a/README.md", "a1", depends_on=("t1", "n1", "zz", "t1")),
-        _work("n/README.md", "n1"),
-        _work("t/README.md", "t1", "Titled"),
+        work_under_works("a/README.md", "a1", depends_on=("t1", "n1", "zz", "t1")),
+        work_under_works("n/README.md", "n1"),
+        work_under_works("t/README.md", "t1", "Titled"),
     ]
 
     # When the Works are rendered as text under flat
@@ -190,7 +155,7 @@ def test_a_dependency_shows_its_title_or_says_why_not() -> None:
 def test_a_work_with_nothing_to_say_has_its_path_only() -> None:
     """No roots, dependencies or actions give no line."""
     # Given a Work with a title and a template and nothing else
-    work = _work("a/README.md", "a1", "Title")
+    work = work_under_works("a/README.md", "a1", "Title")
 
     # When it is rendered
     text = _text("flat", work)
@@ -219,8 +184,8 @@ def test_json_is_one_array_in_the_order_of_the_paths() -> None:
     """The array is sorted by path alone, so a child can come before its parent."""
     # Given a parent whose file sorts after the directory of its child
     works = [
-        _work("p/spec.md", "p1", "Parent"),
-        _work("p/a/README.md", "c1", "Child"),
+        work_under_works("p/spec.md", "p1", "Parent"),
+        work_under_works("p/a/README.md", "c1", "Child"),
     ]
 
     # When the Works are rendered as JSON and as text under nesting
@@ -238,7 +203,7 @@ def test_json_is_one_array_in_the_order_of_the_paths() -> None:
 def test_the_fields_of_an_object_are_in_a_fixed_order() -> None:
     """Each object has the eight fields in the order of the contract."""
     # Given a Work with every field
-    work = _work(
+    work = work_under_works(
         "a/README.md",
         "a1",
         "Title",
@@ -355,7 +320,12 @@ def _list(
     """
     disk = MemoryFileSystem({ROOT / BASE / name: text for name, text in files.items()})
     services = Services(
-        _Settings(mode), FakeRepository(), disk, _NoCatalog(), FakeEntropy()
+        _Settings(mode),
+        FakeRepository(),
+        disk,
+        _NoCatalog(),
+        FakeEntropy(),
+        FakeEnvironment(ROOT),
     )
     stdio = FakeStdio()
     code = run_list(services, Namespace(json=as_json), stdio)
@@ -461,7 +431,9 @@ def test_the_errors_of_a_refusal_are_in_the_order_that_discovery_gives() -> None
 def test_several_roots_are_written_as_given_and_joined_by_a_comma_and_a_space() -> None:
     """The roots keep their order and repeats, and a root may hold a comma."""
     # Given a Work with several roots, one repeated and one with a comma
-    work = _work("a/README.md", "a1", "Title", roots=("web", "api", "web", "a, b"))
+    work = work_under_works(
+        "a/README.md", "a1", "Title", roots=("web", "api", "web", "a, b")
+    )
 
     # When it is rendered as text and as JSON
     text = _text("flat", work).splitlines()
@@ -483,7 +455,7 @@ def test_a_title_is_written_as_it_is_whatever_it_holds() -> None:
         "x" * 300,
     ]
     works = [
-        _work(f"{n}/README.md", f"id{n}", title, "feature.leaf")
+        work_under_works(f"{n}/README.md", f"id{n}", title, "feature.leaf")
         for n, title in enumerate(titles)
     ]
 
@@ -505,7 +477,7 @@ def test_a_title_is_written_as_it_is_whatever_it_holds() -> None:
 def test_a_path_with_spaces_colons_and_accents_is_written_as_it_is() -> None:
     """The path is not quoted or escaped, and keeps its `/`."""
     # Given a Work whose directory holds a space, a colon, an accent and a dot
-    work = _work("my work: ł/v1.2 draft/README.md", "a1", "Title")
+    work = work_under_works("my work: ł/v1.2 draft/README.md", "a1", "Title")
 
     # When it is rendered as text and as JSON
     text = _text("flat", work).splitlines()
@@ -519,7 +491,7 @@ def test_a_path_with_spaces_colons_and_accents_is_written_as_it_is() -> None:
 def test_a_template_with_brackets_or_spaces_is_written_between_brackets() -> None:
     """The template is the text between the brackets, whatever it holds."""
     # Given a Work whose template name holds a bracket and a space
-    work = _work("a/README.md", "a1", "Title", "odd [name] x")
+    work = work_under_works("a/README.md", "a1", "Title", "odd [name] x")
 
     # When it is rendered as text
     first = _text("flat", work).splitlines()[0]
@@ -532,8 +504,8 @@ def test_a_dependency_on_a_work_with_an_odd_title_shows_the_title_whole() -> Non
     """The `after:` line holds the title as it is."""
     # Given a Work that lists a Work whose title has brackets and a comma
     works = [
-        _work("a/README.md", "a1", depends_on=("b1",)),
-        _work("b/README.md", "b1", "[x], y"),
+        work_under_works("a/README.md", "a1", depends_on=("b1",)),
+        work_under_works("b/README.md", "b1", "[x], y"),
     ]
 
     # When the Works are rendered as text

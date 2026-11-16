@@ -103,12 +103,14 @@ def _contracts() -> Command:
         the templates through the catalog of `wio.templates` and draw ids from the
         system's randomness.
     """
-    repository = io.GitRepository(env.ProcessEnvironment())
+    environment = env.ProcessEnvironment()
+    repository = io.GitRepository(environment)
     files = io.LocalFileSystem()
     settings = ConfigSettings(repository, files)
     catalog = TemplatesCatalog(settings, repository, files)
     entropy = env.SystemEntropy()
-    return ContractsCommand(Services(settings, repository, files, catalog, entropy))
+    services = Services(settings, repository, files, catalog, entropy, environment)
+    return ContractsCommand(services)
 
 
 COMMANDS: Final[Sequence[Entry]] = (
