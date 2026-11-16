@@ -143,11 +143,8 @@ def _fact_lines(shown: ShownWork) -> list[str]:
         shown: The Work.
 
     Returns:
-        The lines of `Path`, `Template`, `Parent`, `Roots`, `After` and
-        `Needed by` that have something to say, with the labels padded and a
-        second value on a line of its own in the column of the first. `Roots`
-        is the Work's own `roots` as written, and `resolved_roots` only after the
-        arrow of a Work that lists `@descendants`.
+        The lines of the facts that have something to say, as the example of
+        `render_show` shows them.
     """
     work = shown.work
     facts: list[tuple[str, list[str]]] = [
@@ -169,8 +166,7 @@ def _rows(label: str, values: Sequence[str]) -> list[str]:
         values: Its values, none for a fact with nothing to say.
 
     Returns:
-        A line for each value, the label on the first and blanks of its width on
-        the rest, so that every value starts at column 15.
+        A line for each value, the label on the first only.
     """
     return [
         f"  {label if index == 0 else '':<{_LABEL_WIDTH}}{value}"
@@ -185,8 +181,8 @@ def _related(related: Related) -> str:
         related: The Work, or the id that no Work has.
 
     Returns:
-        The id and the title, `(no title)` for a Work with none and
-        `(not found)` for an id no Work has.
+        The id and the title, or the marker for a Work with none or for an id
+        no Work has.
     """
     if not related.found:
         return f"{related.id}  {_NOT_FOUND}"
@@ -200,9 +196,9 @@ def _roots(shown: ShownWork) -> list[str]:
         shown: The Work.
 
     Returns:
-        Nothing for a Work with no roots, otherwise one value: the roots as
-        written, and for a Work that lists `@descendants` an arrow and what they
-        resolve to, or `none`.
+        Nothing for a Work with no roots, otherwise one value: the Work's own
+        roots as written, and what they resolve to only when it lists
+        `@descendants`.
     """
     roots = shown.work.roots
     if not roots:
@@ -220,8 +216,7 @@ def _action_lines(actions: Sequence[ShownAction]) -> list[str]:
         actions: The Work's actions in order.
 
     Returns:
-        The lines of each action with its stages, or the one line `  none` when
-        there is no action.
+        The lines of each action, or the one line `  none` when there is none.
     """
     if not actions:
         return ["  none"]
@@ -237,9 +232,7 @@ def _action(action: ShownAction, width: int) -> list[str]:
         width: The width of the name column.
 
     Returns:
-        The line with the name, the preset and, in parentheses, where it comes
-        from, or `removed (by the contract)`, and the stages on a line of their
-        own past the preset's column when there are any.
+        The line of the action and the line of its stages, if it has any.
     """
     head = f"  {action.name:<{width}}"
     if action.removed:
@@ -259,9 +252,9 @@ def _as_object(shown: ShownWork) -> dict[str, object]:
         shown: The Work.
 
     Returns:
-        The fields in the order of the contract, with `path` written with `/`.
-        `roots` and `depends_on` are as written, and `resolved_roots` is the
-        hierarchy's value, so it may differ from `roots` in order and repeats.
+        The fields in the order of the example of `render_show`. `resolved_roots`
+        is the hierarchy's value, so it may differ from `roots` in order and
+        repeats.
     """
     work = shown.work
     return {

@@ -121,11 +121,9 @@ def run_show(services: Services, args: Namespace, stdio: Stdio) -> int:
         0 after the Work is written.
 
     Raises:
-        ContractsError: The tree is incomplete, or the argument names no Work.
-            Its message is the errors, one `error: <where>: <message>` to a
-            line, or the one message of the lookup, and for an incomplete tree
-            and a shared id the line "`wio contracts check` shows every
-            problem.". The command line writes it to standard error and exits 2.
+        ContractsError: The tree is incomplete, or the argument names no Work,
+            as `find_target` says. The command line writes it to standard error
+            and exits 2.
         ConfigurationError: The config has an error.
         OSError: The Work's own file cannot be read, as `resolve_work` raises it.
         UnicodeDecodeError: The Work's own file is not UTF-8.
@@ -171,10 +169,8 @@ def find_target(
         The Work.
 
     Raises:
-        ContractsError: No Work has the id, naming it and the closest id when
-            there is one; two Works share it, with the error of discovery and the
-            line that points to `wio contracts check`; or the path is not a Work,
-            with the reason that `explain_not_a_work` gives.
+        ContractsError: No Work has the id, two Works share it, or the path is
+            not a Work, each with the message of its own lookup.
     """
     if _is_path(argument):
         return _by_path(discovery, argument, root, directory, settings, files)
@@ -191,9 +187,9 @@ def shown_actions(
     """Resolve the actions of a Work and say where each comes from.
 
     The actions are those that `resolve_actions` gives. The ones the config
-    declares come first, in its order, then the names it does not declare in the
-    order that the Work's own `[actions]`, the template's and the defaults list
-    them. An action emptied by the Work is `removed`, and an action that is empty
+    declares come first, in its order, then the names it does not declare, the
+    Work's own in the order written and then the inherited ones. An action
+    emptied by the Work is `removed`, and an action that is empty
     and that nothing else gives is left out. A template that the catalog does not
     have, or rejects, or whose file cannot be read gives no actions, and the
     Work's own are still given.
@@ -292,9 +288,7 @@ def _by_path(
         files: The port that reads files.
 
     Returns:
-        The Work whose `path` is the argument resolved against `directory`, made
-        relative to `root`. Under a tree that was judged complete, a path that
-        `explain_not_a_work` finds no reason against names a Work of `discovery`.
+        The Work whose file the path is.
 
     Raises:
         ContractsError: The path is not a Work, with the reason that
@@ -365,7 +359,7 @@ def _named(work_id: str, owners: Sequence[Work]) -> list[Related]:
         owners: The Works that have it.
 
     Returns:
-        One entry for each Work, or one that is not found when there is none.
+        An entry for each Work that has the id, or one that is not found.
     """
     if not owners:
         return [Related(work_id, None, found=False)]
@@ -404,10 +398,7 @@ def _in_config_order(
         own: The names in the Work's own `[actions]`, in the order written.
 
     Returns:
-        The actions the config declares in its order, then those it does not
-        declare that the Work's own `[actions]` name, in the order written, and
-        then the others in the order of `resolved`, each with its source named as
-        a contract names it.
+        The actions in the order that `shown_actions` gives.
     """
     by_name = {action.name: action for action in resolved}
     names = _names_in_order(list(by_name), list(config.actions), own)
@@ -425,8 +416,7 @@ def _names_in_order(
         own: The names in the Work's own `[actions]`, in the order written.
 
     Returns:
-        The declared names that are present, then the undeclared names of `own`,
-        then the other undeclared names in the order of `present`.
+        The names in the order that `shown_actions` gives.
     """
     first = [name for name in declared if name in present]
     others = [name for name in present if name not in first]
@@ -442,9 +432,7 @@ def _shown(action: ResolvedAction, config: Config) -> ShownAction:
         config: The config, for the on-demand flag and the stages of a preset.
 
     Returns:
-        The action with its source named as a contract names it, the config's
-        on-demand flag, and a preset with the stages the config declares for it,
-        or the listed stages, or neither for a removed action.
+        The action as `ShownAction` describes it.
     """
     declared = config.actions.get(action.name)
     on_demand = declared is not None and declared.on_demand
