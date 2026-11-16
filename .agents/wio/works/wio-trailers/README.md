@@ -114,7 +114,7 @@ flowchart LR
   B --> C["wio trailers check --require\n(commit-msg hook)"]
   B --> D["wio trailers check --ref-range\n(CI range)"]
   E["wio trailers fold body and block\n(CI fold)"] --> F[Pull request body]
-  G["wio trailers ... --result\n(gate review)"] --> H["History:\nreviewed commit"]
+  G["wio trailers --result\n(gate review)"] --> H["History:\nreviewed commit"]
   G --> I["EventSink: review event"]
 ```
 
