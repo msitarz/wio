@@ -125,8 +125,7 @@ def _inherited(
         files: The port that reads the files.
 
     Returns:
-        Its title and sections, or `None` when it passes nothing: its file cannot
-        be read, its source of directives cannot be used, or no section passes.
+        Its title and sections, or `None` when it passes nothing.
     """
     try:
         text = files.read_text(root / ancestor.path)
@@ -178,10 +177,9 @@ def _marked_texts(
         files: The port that reads the template's file.
 
     Returns:
-        The text of each marked section as sections are matched, which is
-        lowercase, without the whitespace around it and without a trailing
-        directive list; empty when a readable list marks nothing; and `None` when
-        the template is missing, rejected or cannot be read.
+        The key, as `_key` gives it, of each marked section, empty when a
+        readable list marks nothing, and `None` when the template is missing,
+        rejected or cannot be read.
     """
     if ancestor.template is None:
         return _marked_in(text)
@@ -338,10 +336,9 @@ def _section(body: _Body, index: int) -> str:
         index: The position of the section's heading among its headings.
 
     Returns:
-        The heading and its text up to the next heading of level 1 or 2, with
-        each real heading of it cleaned and demoted, without the blank lines at
-        its end, or the empty string when nothing but comments and whitespace
-        follows the heading.
+        The heading and its text up to the next heading of level 1 or 2, cleaned
+        and demoted by `_demote` and trimmed by `_trim`, or the empty string when
+        nothing but comments and whitespace follows the heading.
     """
     heading = body.headings[index]
     start = heading.line - 1
