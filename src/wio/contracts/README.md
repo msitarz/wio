@@ -337,8 +337,8 @@ what inherits and why.
   mistaken for one of the Work's own sections nor read as one.
 - **The ancestor's source decides, not the Work's.** What a Work inherits does
   not depend on whether it follows a template itself, and a section is matched
-  to the source by its heading text, as the check of the body matches it, so
-  the two cannot disagree about which sections are marked.
+  to the source by the same rule as in the check of the body: its heading text,
+  ignoring case and the whitespace around it.
 - **A damaged ancestor passes nothing and stops nothing.** A missing or rejected
   template, a file that cannot be read and a list that cannot be read each leave
   that ancestor out, while the ancestors above it still pass theirs, because
