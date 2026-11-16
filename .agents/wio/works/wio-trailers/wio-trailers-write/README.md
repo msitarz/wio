@@ -2,7 +2,7 @@
 id = "frspda"
 template = "feature.parent"
 roots = ["@descendants"]
-depends_on = []
+depends_on = ["570wa9"]
 -->
 
 # wio trailers write
@@ -74,13 +74,15 @@ flowchart LR
   paragraph of a commit message that `wio trailers check --require` reads.
 - **Then** both commands exit 0.
 
-### **AC-2** A refused field prints no record
+### **AC-2** A refused gate result prints no record and sends no event
 
-#### A Work that exists nowhere
+#### A result outside the vocabulary
 
-- **Given** a Work id that is in neither the working tree nor `HEAD`.
-- **When** `wio trailers <work> <action> <stage>` runs.
-- **Then** the command exits 1 and prints no record.
+- **Given** a gate stage, a config whose results do not include `maybe`, and a
+  recording `EventSink`.
+- **When** `wio trailers <work> <action> <stage> --result maybe` runs.
+- **Then** the command exits 1, prints no record, and the sink receives no
+  `review` event.
 
 ### **AC-3** A gate's result is recorded with the commit it judged
 
@@ -90,7 +92,7 @@ flowchart LR
   the latest is a pure gate commit of this gate and the one before is the work
   commit, and a recording `EventSink`.
 - **When** `wio trailers <work> <action> <stage> --result pass --judge human
-  --items AC-1` runs.
+  --items AC-1 --cite AC-1=pass` runs.
 - **Then** the printed record holds `Wio-Result: pass`, `Wio-Judge: human` and
   `Wio-Items: AC-1`, and the sink receives one `review` event whose reviewed
-  commit is the work commit's sha.
+  commit is the work commit's sha and which cites `AC-1` with the result `pass`.
