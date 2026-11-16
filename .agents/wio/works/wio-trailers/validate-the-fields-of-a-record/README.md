@@ -44,6 +44,11 @@ commands report, are fixed wording.
   check, the `Contracts` port of the lookup leaf and the config's action names,
   stage names, gate stages and `gates.results`, and which the architecture stage
   may type further.
+- **`validate_names(record, config) -> list[Diagnostic]`** — the name checks of
+  `validate_record` as a function of their own, which return only the errors for
+  an action or a stage the config lacks and for a result outside
+  `gates.results`, and which the later check of `sk5wwq` calls and turns into
+  warnings.
 - **Checks** — a Work that is absent gets its own error and no check of its
   items or pipeline, a name the config lacks gets an error and no pipeline
   warning, a stage the config lacks gets no result check, and every other field
@@ -207,3 +212,14 @@ k3m9xq`, `Wio-Action: deliver` and `Wio-Stage: architecture`.
   `Wio-Result`.
 - **When** `validate_record` runs.
 - **Then** it returns the `error` for `AC-99` and then `result required`.
+
+### **AC-10** The name checks stand alone
+
+#### Only the names are judged
+
+- **Given** R with `Wio-Work: zz9zz9`, `Wio-Action: nosuch`,
+  `Wio-Stage: nosuch` and `Wio-Items: AC-99`, and R with the stage
+  `architecture-review` and `Wio-Result: maybe`.
+- **When** `validate_names` runs on each.
+- **Then** it returns the two `error`s for the action and the stage, and none
+  for `zz9zz9` or `AC-99`, and for the second the one `error` naming `maybe`.
