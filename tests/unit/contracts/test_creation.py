@@ -165,13 +165,11 @@ def test_the_shared_block_editor_receives_id_and_roots(
     # Given a recording stand-in for the block editor
     config, files, catalog = _setup()
     found = discover_works(ROOT, config.works, files)
-    args = NewArguments(
-        "feature", None, NameArguments("a", "Title", None, None), ("wio",)
-    )
+    args = NewArguments("feature", None, NameArguments("a", None, None, None), ("wio",))
     from wio.contracts import creation
 
-    real = creation.set_block_keys
-    editor = Mock(side_effect=real)
+    edited = '<!-- wio\nid = "k3m9xq"\nroots = ["wio"]\n-->\n\n# From editor\n'
+    editor = Mock(return_value=edited)
     monkeypatch.setattr(creation, "set_block_keys", editor)
 
     # When the Work is planned
@@ -180,11 +178,11 @@ def test_the_shared_block_editor_receives_id_and_roots(
     )
 
     # Then the editor receives the id and roots, and its result supplies the block
-    editor.assert_called_once()
-    assert editor.call_args.args[1] == {"id": "k3m9xq", "roots": ["wio"]}
-    block = read_metadata_block(work.text)
-    assert block is not None
-    assert block.data["roots"] == ["wio"]
+    assert any(
+        call.args[1] == {"id": "k3m9xq", "roots": ["wio"]}
+        for call in editor.call_args_list
+    )
+    assert work.text == edited
 
 
 @pytest.mark.parametrize("problem", ["missing", "rejected", "wrong_kind"])
