@@ -3,6 +3,9 @@ id = "22j7aw"
 template = "feature.leaf"
 roots = ["repo"]
 depends_on = ["570wa9", "frspda", "x4vs3k"]
+
+[actions]
+deliver = ["implementation", "implementation-review"]
 -->
 
 # Adopt wio trailers in the hook and CI
@@ -22,7 +25,8 @@ the engine's own records are checked and folded by code the engine does not own.
 
 ## Non-Goals
 
-- Updating the documents that mention the script; `promote-docs` does that.
+- Updating the documents that mention the script; the `promote-docs` stage of
+  the parent does that.
 - Changing the configured reader.
 
 ## Assumptions
