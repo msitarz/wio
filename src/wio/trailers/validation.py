@@ -9,13 +9,15 @@ validator composes its checks, and the leaves that do the judging are stubbed.
 """
 
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING
+
+from wio.models.diagnostics import Diagnostic, Severity
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from wio.models.config import Config
-    from wio.models.diagnostics import Diagnostic
+    from wio.models.config import Config, Stage
     from wio.trailers.ports import Contracts
 
 _ORDER = ("Wio-Work", "Wio-Action", "Wio-Stage", "Wio-Items", "Wio-Result")
@@ -190,7 +192,71 @@ def _work_checks(
         warning for each Work that lacks the action, and the warning for each Work
         whose pipeline does not list the stage, none for a Work that is absent.
     """
-    raise NotImplementedError
+    works = _value(record, "Wio-Work")
+    if works is None or works == "none":
+        return []
+    found: list[_Finding] = []
+    for work in works.split(", "):
+        have = contracts.items(work)
+        if have is None:
+            found.append(_error(record, "Wio-Work", f"No Work has the id `{work}`."))
+        else:
+            found += _item_findings(record, work, have)
+            found += _pipeline_findings(record, (work, contracts), config)
+    return found
+
+
+def _item_findings(record: _Record, work: str, have: frozenset[str]) -> list[_Finding]:
+    """Judge the items of a record against one Work.
+
+    Args:
+        record: The record.
+        work: The id of a Work that exists.
+        have: The item ids of that Work.
+
+    Returns:
+        An error for each item that the Work lacks, in the order written, naming
+        the item and the Work.
+    """
+    items = _value(record, "Wio-Items")
+    return [
+        _error(record, "Wio-Items", f"`{item}` is not an item of the Work `{work}`.")
+        for item in (items.split(", ") if items else [])
+        if item not in have
+    ]
+
+
+def _pipeline_findings(
+    record: _Record, found_in: tuple[str, Contracts], config: Config
+) -> list[_Finding]:
+    """Warn when a Work's pipeline does not hold the action or the stage.
+
+    Args:
+        record: The record.
+        found_in: The id of a Work that exists, and the port that finds its
+            pipeline.
+        config: The config, for the action names and the stage names.
+
+    Returns:
+        One warning when the Work lacks the action, or one when the pipeline of the
+        action does not list the stage, and none for an action or a stage that the
+        config lacks, which is an error elsewhere.
+    """
+    work, contracts = found_in
+    action, stage = _value(record, "Wio-Action"), _value(record, "Wio-Stage")
+    if action is None or action not in config.actions:
+        return []
+    stages = contracts.pipeline(work, action)
+    if stages is None:
+        return [
+            _warning(
+                record, "Wio-Action", f"The Work `{work}` has no action `{action}`."
+            )
+        ]
+    if stage in config.stages and stage not in stages:
+        message = f"The stage `{stage}` is not in the `{action}` pipeline of `{work}`."
+        return [_warning(record, "Wio-Stage", message)]
+    return []
 
 
 def _config_checks(
@@ -215,4 +281,87 @@ def _config_checks(
         all, and with `names_only` a result is judged against `gates.results`
         whatever the stage is.
     """
-    raise NotImplementedError
+    action, stage = _value(record, "Wio-Action"), _value(record, "Wio-Stage")
+    found = []
+    if action is not None and action not in config.actions:
+        found.append(_error(record, "Wio-Action", f"`{action}` is not an action."))
+    if stage is not None and stage not in config.stages:
+        found.append(_error(record, "Wio-Stage", f"`{stage}` is not a stage."))
+    result = _value(record, "Wio-Result")
+    known = config.stages.get(stage) if stage is not None else None
+    if names_only:
+        return found + _listed(record, config, result)
+    if known is None:
+        return found
+    return [*found, *_listed(record, config, result), *_gated(record, known, result)]
+
+
+def _listed(record: _Record, config: Config, result: str | None) -> list[_Finding]:
+    """Judge a result against the results that a gate can decide.
+
+    Args:
+        record: The record.
+        config: The config, for `gates.results`.
+        result: The `Wio-Result` value, or `None` for none.
+
+    Returns:
+        An error naming a result that `gates.results` does not list, none for no
+        result or a listed one.
+    """
+    if result is None or result in config.gates.results:
+        return []
+    return [_error(record, "Wio-Result", f"`{result}` is not a result of a gate.")]
+
+
+def _gated(record: _Record, stage: Stage, result: str | None) -> list[_Finding]:
+    """Judge whether a result is present exactly on a gate.
+
+    Args:
+        record: The record.
+        stage: The stage of the record, which the config has.
+        result: The `Wio-Result` value, or `None` for none.
+
+    Returns:
+        The error `result required` for a gate without a result and `not a gate`
+        for a result on a stage that is not a gate.
+    """
+    if stage.gate and result is None:
+        return [_error(record, "Wio-Result", "result required")]
+    if result is not None and not stage.gate:
+        return [_error(record, "Wio-Result", "not a gate")]
+    return []
+
+
+def _value(record: _Record, key: str) -> str | None:
+    """Read the value of a field.
+
+    Args:
+        record: The record.
+        key: The key.
+
+    Returns:
+        The value, or `None` when the record has no such field.
+    """
+    field = record.get(key)
+    return None if field is None else field.value
+
+
+def _finding(severity: Severity, record: _Record, key: str, message: str) -> _Finding:
+    """Make a diagnostic about a field.
+
+    Args:
+        severity: `error` for what is wrong and `warning` for what is doubtful.
+        record: The record, which places the diagnostic.
+        key: The key of the field the diagnostic is about.
+        message: What is wrong or doubtful.
+
+    Returns:
+        The finding.
+    """
+    return _Finding(key, Diagnostic(severity, record.where(key), message))
+
+
+_error = partial(_finding, "error")
+"""Make an error about a field from the record, its key and a message."""
+_warning = partial(_finding, "warning")
+"""Make a warning about a field from the record, its key and a message."""
