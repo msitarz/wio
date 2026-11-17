@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from typing import TextIO
 
     from wio.env.ports import Environment
+    from wio.models.commits import Commit
 
 
 class SystemStdio:
@@ -212,7 +213,19 @@ def _git_path(environment: Environment, *arguments: str) -> Path:
     return Path(done.stdout.strip())
 
 
-class GitRepository:
+class _InWorkingDirectory:
+    """What the git adapters share: where the working directory comes from."""
+
+    def __init__(self, environment: Environment) -> None:
+        """Keep the environment that tells where the working directory is.
+
+        Args:
+            environment: Reports the working directory git runs in.
+        """
+        self._environment: Environment = environment
+
+
+class GitRepository(_InWorkingDirectory):
     """The repository of the working directory, read with git, as `Repository`.
 
     `root` and `identity` ask git, which must be installed wherever wio runs
@@ -225,14 +238,6 @@ class GitRepository:
     It is given an `Environment` and runs git in the working directory that the
     environment reports, never in one it finds itself, so a test can fix it.
     """
-
-    def __init__(self, environment: Environment) -> None:
-        """Keep the environment that tells where the working directory is.
-
-        Args:
-            environment: Reports the working directory git runs in.
-        """
-        self._environment: Environment = environment
 
     def root(self) -> Path:
         """Find the top of the working tree.
@@ -291,3 +296,160 @@ class GitRepository:
         """
         message = "is_dirty is implemented by the trailers Work"
         raise NotImplementedError(message)
+
+
+class GitHistory(_InWorkingDirectory):
+    """The revisions of the working directory's repository, as `History`.
+
+    It is given an `Environment` and runs git in the working directory that the
+    environment reports, as `GitRepository` does, and raises the same
+    `RuntimeError` for a directory that is not usable, outside a repository, or
+    when git cannot be run. A revision or range that git rejects raises
+    `ValueError` that names it. Every read leaves the repository as it was.
+    """
+
+    def rev_parse(self, revision: str) -> str:
+        """Resolve a revision to a full commit id.
+
+        Args:
+            revision: A revision such as `HEAD`.
+
+        Returns:
+            The full 40-character id.
+
+        Raises:
+            ValueError: If git rejects the revision.
+        """
+        return _git_text(self._environment, "rev-parse", "--verify", revision)
+
+    def history(self, revision_range: str) -> Sequence[Commit]:
+        """List the commits of a revision range.
+
+        Args:
+            revision_range: A range such as `main..HEAD`.
+
+        Returns:
+            The commits oldest first, parents before children, a merge commit
+            included, each with its full id and its message as committed,
+            without its trailing newline; none for an empty range.
+
+        Raises:
+            ValueError: If git rejects the range.
+        """
+        return _commits(self._environment, "--topo-order", "--reverse", revision_range)
+
+    def first_parents(self, revision: str) -> Sequence[Commit]:
+        """List a revision's ancestors along first parents.
+
+        Args:
+            revision: The revision to start from, such as `HEAD`.
+
+        Returns:
+            The commits newest first, starting with the revision's own; the
+            commits that a merge brought in are not in it.
+
+        Raises:
+            ValueError: If git rejects the revision.
+        """
+        return _commits(self._environment, "--first-parent", revision)
+
+    def list_files(self, revision: str) -> Sequence[Path]:
+        """List the files of a revision's tree.
+
+        Args:
+            revision: The revision, such as `HEAD`.
+
+        Returns:
+            The paths relative to the repository root, whatever the working
+            directory inside the repository is, sorted by path.
+
+        Raises:
+            ValueError: If git rejects the revision.
+        """
+        return _paths(self._environment, revision)
+
+    def show(self, revision: str, path: Path) -> str | None:
+        """Read a file as it was at a revision.
+
+        Args:
+            revision: The revision, such as `HEAD`.
+            path: The file, relative to the repository root.
+
+        Returns:
+            The file's content, or `None` when it did not exist then.
+
+        Raises:
+            ValueError: If git rejects the revision.
+        """
+        return _blob(self._environment, revision, path)
+
+
+def _git_text(environment: Environment, *arguments: str) -> str:
+    """Run git in the environment's working directory and read its output.
+
+    Args:
+        environment: Reports the working directory git runs in.
+        *arguments: The arguments after `git`.
+
+    Returns:
+        What git printed, without its trailing newline.
+
+    Raises:
+        RuntimeError: If the working directory is not usable or not inside a
+            repository, or git cannot be run, as `GitRepository` says.
+        ValueError: If git rejects a revision or range among the arguments.
+    """
+    raise NotImplementedError
+
+
+def _commits(environment: Environment, *arguments: str) -> list[Commit]:
+    """Read the commits that `git log` lists for the arguments.
+
+    Args:
+        environment: Reports the working directory git runs in.
+        *arguments: The options and the revision or range after `git log`.
+
+    Returns:
+        The commits in the order git printed them, each with its full id and its
+        message without the trailing newline.
+
+    Raises:
+        RuntimeError: As `_git_text`.
+        ValueError: As `_git_text`.
+    """
+    raise NotImplementedError
+
+
+def _paths(environment: Environment, revision: str) -> list[Path]:
+    """List the files of a revision's tree.
+
+    Args:
+        environment: Reports the working directory git runs in.
+        revision: The revision.
+
+    Returns:
+        The paths relative to the repository root, sorted by path.
+
+    Raises:
+        RuntimeError: As `_git_text`.
+        ValueError: As `_git_text`.
+    """
+    raise NotImplementedError
+
+
+def _blob(environment: Environment, revision: str, path: Path) -> str | None:
+    """Read a file as it was at a revision.
+
+    Args:
+        environment: Reports the working directory git runs in.
+        revision: The revision.
+        path: The file, relative to the repository root.
+
+    Returns:
+        The content, or `None` when the revision has no such file.
+
+    Raises:
+        RuntimeError: As `_git_text`.
+        ValueError: As `_git_text`.
+    """
+    raise NotImplementedError
