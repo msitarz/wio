@@ -117,7 +117,7 @@ def run_later(services: Services, args: Namespace, stdio: Stdio) -> int:
     """
     _one_input(args.path, args.ref_range)
     config = services.settings.load()
-    if args.ref_range:
+    if args.ref_range is not None:
         commits = _commits_of(services.history, args.ref_range)
         return write_diagnostics(check_range(commits, config), stdio)
     message = read_message(services, args.path, stdio)

@@ -154,7 +154,7 @@ def run_check(services: Services, args: Namespace, stdio: Stdio) -> int:
     """
     if not args.require:
         return run_later(services, args, stdio)
-    if args.ref_range:
+    if args.ref_range is not None:
         message = "--require checks one commit message and cannot be given --ref-range."
         raise TrailersError(message)
     config = services.settings.load()

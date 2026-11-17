@@ -226,11 +226,11 @@ def test_a_line_the_reader_cannot_see_is_a_warning() -> None:
     # Then each exits 0 and prints a `warning:` for each `Wio-` line that the reader
     # cannot see, at its line
     assert body[0] == ranged[0] == 0
-    assert [line.split(":")[1] for line in body[1].splitlines()] == ["3", "4", "5"]
-    assert ranged[1].count("warning:") == 3
-    assert all(
-        line.startswith(f"warning: {_id(2)}:") for line in ranged[1].splitlines()
-    )
+    assert [line.split(": ")[1] for line in body[1].splitlines()] == ["3", "4", "5"]
+    assert [line.split(": ")[1] for line in ranged[1].splitlines()] == [
+        f"{_id(2)}:{n}" for n in (3, 4, 5)
+    ]
+    assert all(line.startswith("warning:") for line in ranged[1].splitlines())
 
 
 @PENDING
