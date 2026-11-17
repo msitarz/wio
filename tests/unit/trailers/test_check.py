@@ -462,3 +462,55 @@ def test_the_exempt_subject_is_the_first_line_that_is_not_a_comment(
     # When `has_exempt_subject` reads it
     # Then it says whether git wrote the subject
     assert has_exempt_subject(message) is exempt
+
+
+def test_a_message_with_crlf_line_ends_is_read_like_one_with_lf() -> None:
+    """The `#` line, the subject and the record are found with a carriage return."""
+    # Given M and a merge message with a comment line, both with CRLF line ends
+    valid = _run(M.replace("\n", "\r\n"))
+    merge = _run("# c\r\nMerge x\r\n")
+
+    # When `check --require` reads each
+    # Then both exit 0 and print nothing
+    assert valid == (0, "")
+    assert merge == (0, "")
+
+
+def test_a_record_in_a_fenced_block_is_not_read() -> None:
+    """An example in a fence is no record, so the message has none."""
+    # Given a message whose only record is in a fenced code block
+    message = f"feat: x\n\n```\n{R}\n```"
+
+    # When `check --require` reads it
+    code, err = _run(message)
+
+    # Then it exits 1 and reports that no record was found
+    assert code == 1
+    assert "no record was found" in err
+
+
+def test_a_malformed_record_is_not_validated() -> None:
+    """A repeated key makes the record malformed, so its other lines are not judged."""
+    # Given R with a second `Wio-Stage` line and a stage the config lacks
+    message = _messages(stage="nosuch", extra="\nWio-Stage: architecture")
+
+    # When `check --require` reads it
+    code, err = _run(message)
+
+    # Then it exits 1 for the repeated key and does not name the stage
+    assert code == 1
+    assert "nosuch" not in err
+
+
+@pytest.mark.parametrize("subject", ["Merge", "fixup!\tx"])
+def test_a_subject_without_the_space_after_the_word_needs_a_record(
+    subject: str,
+) -> None:
+    """The word must be followed by a space and not a tab or nothing."""
+    # Given a message with no record whose subject lacks the space
+    # When `check --require` reads it
+    code, err = _run(subject)
+
+    # Then it exits 1 and reports that no record was found
+    assert code == 1
+    assert "no record was found" in err
