@@ -55,7 +55,8 @@ class Reading:
         records: The records in the order of the message.
         rejected: The `Wio-` lines that the reader does not take as part of a
             record, in the order of the message. A line in a fenced code block
-            or after a `#` is not one, because no reader would take it.
+            or starting with `#` is not one under `scan`, which
+            leaves such lines out.
     """
 
     records: tuple[Record, ...]

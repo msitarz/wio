@@ -7,11 +7,10 @@ Every `wio trailers` command reads records through `read` and judges their form
 through `check_shape`, so no command has its own idea of either.
 """
 
-from typing import Literal
-
+from wio.models.config import Reader
 from wio.models.records import Finding, Reading
 
-def read(message: str, reader: Literal["scan", "git"]) -> Reading:
+def read(message: str, reader: Reader) -> Reading:
     """Read the records of a message the way the configured reader does.
 
     The `scan` reader takes every paragraph made only of `Wio-` lines, outside
@@ -19,8 +18,8 @@ def read(message: str, reader: Literal["scan", "git"]) -> Reading:
     reader takes only the trailers of the last paragraph, as
     `git interpret-trailers` does. A `Wio-` line that the reader would take for
     a record but does not, such as one in a paragraph with prose, is kept as
-    rejected. A line it would never take, in a fenced code block or starting
-    with `#`, is not.
+    rejected. Under `scan`, a line in a fenced code block or starting with `#`
+    is none of the reader's business and is not rejected.
 
     Args:
         message: The whole commit message, or a pull request body.
@@ -32,7 +31,7 @@ def read(message: str, reader: Literal["scan", "git"]) -> Reading:
     """
     ...
 
-def check_shape(message: str, reader: Literal["scan", "git"]) -> list[Finding]:
+def check_shape(message: str, reader: Reader) -> list[Finding]:
     """Judge the form of every record of a message.
 
     A record is judged for its keys, the form of each value and the ids of each

@@ -57,11 +57,20 @@ def test_an_unknown_key_is_a_finding_of_its_own() -> None:
     pytest.skip(STUB)
 
 
-def test_a_line_the_reader_cannot_see_is_found() -> None:
-    """AC-6: prose in a paragraph under `scan`, an early record under `git`."""
-    # Given a paragraph of R and a prose line, and R followed by a later record
-    # When `check_shape` reads them with the `scan` and the `git` reader
-    # Then it returns one `invisible` finding for each `Wio-` line not seen
+def test_a_line_in_a_paragraph_with_prose_is_invisible_under_scan() -> None:
+    """AC-6: each `Wio-` line of a paragraph that also holds prose is found."""
+    # Given a paragraph that holds R and the prose line `Fixes the login bug`
+    # When `check_shape` reads it with the `scan` reader
+    # Then it returns one `invisible` finding for each `Wio-` line of it
+    pytest.skip(STUB)
+
+
+def test_a_record_before_the_last_paragraph_is_invisible_under_git() -> None:
+    """AC-6: R followed by another record is not seen, the last one is."""
+    # Given R, a blank line, and a second record that git sees as the last
+    # When `check_shape` reads it with the `git` reader
+    # Then it returns one `invisible` finding for each `Wio-` line of R, and
+    # none for the last paragraph
     pytest.skip(STUB)
 
 
