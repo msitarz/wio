@@ -12,6 +12,7 @@ the `Contracts` port finds wherever it is.
 import io
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -21,6 +22,9 @@ from wio.errors import ConfigurationError
 from wio.trailers import Services
 from wio.trailers.errors import TrailersError
 from wio.trailers.write import configure_write, run_write
+
+if TYPE_CHECKING:
+    from wio.io.ports import History
 lazy from wio.models.config import Config
 
 
@@ -58,11 +62,13 @@ def _run(argv: list[str], settings: FakeSettings | None = None) -> tuple[int, st
     configure_write(parser)
     args = parser.parse_args(argv)
     out, err = io.StringIO(), io.StringIO()
-    services = Services(settings or FakeSettings(), FakeContracts())
+    services = Services(settings or FakeSettings(), FakeContracts(), _NO_HISTORY)
     code = run_write(services, args, FakeStdio(stdout=out, stderr=err))
     return code, out.getvalue(), err.getvalue()
 
 
+_NO_HISTORY = cast("History", object())
+"""The write form reads no history, so any object stands for the port."""
 R = ["k3m9xq", "deliver", "architecture"]
 GATE = ["k3m9xq", "deliver", "architecture-review"]
 

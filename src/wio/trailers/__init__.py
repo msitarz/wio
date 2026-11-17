@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from wio.io.ports import History
     from wio.ports import Settings
     from wio.trailers.ports import Contracts
 
@@ -20,7 +21,9 @@ class Services:
         settings: Loads the config.
         contracts: Finds the items and the pipelines of the Works that a record
             names.
+        history: Gives the commits of a range with their messages.
     """
 
     settings: Settings
     contracts: Contracts
+    history: History
