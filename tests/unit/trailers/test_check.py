@@ -208,6 +208,30 @@ def test_an_unknown_key_is_a_warning() -> None:
     pytest.skip(STUB)
 
 
+def test_an_unknown_key_does_not_hide_a_bad_stage() -> None:
+    """AC-7: the record with only a warning is still validated."""
+    # Given M with a `Wio-Criteria: AC-1` line and `Wio-Stage: nosuch`
+    # When `check --require` reads it
+    # Then the command exits 1, names `nosuch` and warns about `Wio-Criteria`
+    pytest.skip(STUB)
+
+
+def test_diagnostics_are_sorted_by_line_as_numbers() -> None:
+    """AC-1: line 9 comes before line 10."""
+    # Given a message with a bad record on line 9 and another on line 10
+    # When `check --require` reads it
+    # Then the diagnostic of line 9 is printed before that of line 10
+    pytest.skip(STUB)
+
+
+def test_a_record_of_no_work_is_not_judged_by_the_validator() -> None:
+    """AC-2: `Wio-Work: none` has nothing to check."""
+    # Given a message with the paragraph `Wio-Work: none`
+    # When `check_commit_message` runs on it
+    # Then it returns no diagnostic
+    pytest.skip(STUB)
+
+
 def test_a_stage_outside_the_pipeline_is_a_warning() -> None:
     """AC-8: `integration`."""
     # Given M with `Wio-Stage: integration`
