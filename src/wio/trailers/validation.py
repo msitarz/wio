@@ -70,7 +70,8 @@ class _Record:
 
         Returns:
             The field's line as a string, or the record's first line for an
-            absent field, or the key itself when the fields have no lines.
+            absent field, or the key itself when the fields have no lines. The
+            record has at least `Wio-Work`, which the shape check guarantees.
         """
         field = self.get(key) or self.fields[0]
         return key if field.line is None else str(field.line)
@@ -79,6 +80,9 @@ class _Record:
 @dataclass(frozen=True)
 class _Finding:
     """A diagnostic and the field it is about, which orders it.
+
+    Findings of one key keep the order in which a check emitted them, which the
+    sort by key relies on.
 
     Attributes:
         key: The key of the field the diagnostic is about, one of `_ORDER`.
@@ -118,8 +122,10 @@ def validate_record(
     `Wio-Action`, a stage outside the pipeline at `Wio-Stage`, an item at
     `Wio-Items` and a result at `Wio-Result`. An action that the Work lacks is one
     warning, and the stage is not warned about as well, because there is no
-    pipeline to list it. The checks of the result are independent: a result
-    outside `gates.results` is an error whether or not the stage is a gate.
+    pipeline to list it. For a stage that the config has, the checks of the result
+    are independent: a result outside `gates.results` is an error whether or not
+    the stage is a gate. A stage that the config lacks gets no check of the result
+    at all.
 
     Args:
         fields: The record's fields in the order written.
@@ -137,7 +143,7 @@ def validate_record(
     """
     record = _Record(tuple(fields))
     found = [
-        *_work_checks(record, contracts),
+        *_work_checks(record, contracts, config),
         *_config_checks(record, config, names_only=False),
     ]
     return [f.diagnostic for f in sorted(found, key=lambda f: _ORDER.index(f.key))]
@@ -164,17 +170,25 @@ def validate_names(fields: Sequence[Field], config: Config) -> list[Diagnostic]:
     return [f.diagnostic for f in found]
 
 
-def _work_checks(record: _Record, contracts: Contracts) -> list[_Finding]:
+def _work_checks(
+    record: _Record, contracts: Contracts, config: Config
+) -> list[_Finding]:
     """Judge the Works of a record and what depends on them.
+
+    A `Wio-Work: none` record gives nothing. The config is read only to tell a name
+    that the config lacks, which `_config_checks` refuses, from one that a Work
+    lacks, so an action or a stage that the config lacks is never warned about.
 
     Args:
         record: The record.
         contracts: Finds the items and the pipelines of the Works.
+        config: The config, for the action names and the stage names.
 
     Returns:
         The error for each Work that no view has, the error for each item that a
-        Work lacks, and the warnings for an action that a Work lacks and for a
-        stage outside a Work's pipeline, none for a Work that is absent.
+        Work lacks, Work by Work and each Work's items in the order written, the
+        warning for each Work that lacks the action, and the warning for each Work
+        whose pipeline does not list the stage, none for a Work that is absent.
     """
     raise NotImplementedError
 
@@ -196,7 +210,9 @@ def _config_checks(
         The errors for an action or a stage that the config lacks and for a
         result outside `gates.results`, in the order of the fields, then, unless
         `names_only`, the error `result required` for a gate without a result and
-        `not a gate` for a result on a stage that is not a gate, none of the latter
-        for a stage that the config lacks.
+        `not a gate` for a result on a stage that is not a gate. Unless
+        `names_only`, a stage that the config lacks gets no check of the result at
+        all, and with `names_only` a result is judged against `gates.results`
+        whatever the stage is.
     """
     raise NotImplementedError

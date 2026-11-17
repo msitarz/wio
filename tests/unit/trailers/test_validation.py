@@ -241,6 +241,56 @@ def test_a_result_on_a_stage_the_config_lacks_is_not_checked() -> None:
 
 
 @PENDING
+def test_a_stage_the_config_lacks_gets_no_check_of_the_result_at_all() -> None:
+    """AC-5, AC-6: not even `maybe` is judged against `gates.results`."""
+    # Given R with `Wio-Stage: nosuch` and `Wio-Result: maybe`
+    # When `validate_record` runs
+    found = _run(_fields(stage="nosuch", result="maybe"))
+
+    # Then it returns the one `error` for `nosuch`
+    assert [d.severity for d in found] == ["error"]
+    assert "nosuch" in found[0].message
+
+
+@PENDING
+def test_the_checks_of_a_result_are_independent_on_a_stage_the_config_has() -> None:
+    """AC-5, AC-6: a result `maybe` on a stage that is not a gate is two errors."""
+    # Given R with `Wio-Result: maybe`, whose stage `architecture` is not a gate
+    # When `validate_record` runs
+    found = _run(_fields(result="maybe"))
+
+    # Then it returns `not a gate` and the error naming `maybe`
+    assert [d.severity for d in found] == ["error", "error"]
+    assert any("not a gate" in d.message for d in found)
+    assert any("maybe" in d.message for d in found)
+
+
+@PENDING
+def test_a_pipeline_is_not_warned_about_for_a_name_the_config_lacks() -> None:
+    """AC-2, AC-3: `nosuch` is an error and never also a warning."""
+    # Given R with `Wio-Action: nosuch`, and R with `Wio-Stage: nosuch` of a Work
+    # whose pipelines the port knows
+    # When `validate_record` runs on each
+    action = _run(_fields(action="nosuch"))
+    stage = _run(_fields(stage="nosuch"))
+
+    # Then each is one `error` and no `warning`
+    assert [d.severity for d in action] == ["error"]
+    assert [d.severity for d in stage] == ["error"]
+
+
+@PENDING
+def test_the_place_of_an_item_error_is_the_line_of_the_items() -> None:
+    """AC-4, AC-8: the error for `AC-99` is at the line of `Wio-Items`."""
+    # Given R with `Wio-Items: AC-99` on line 6
+    # When `validate_record` runs
+    found = _run(_fields(items="AC-99"))
+
+    # Then the `error` has `where` `6`
+    assert _summary(found) == [("error", "6")]
+
+
+@PENDING
 def test_a_result_the_config_does_not_list_is_an_error() -> None:
     """AC-6: `maybe` on a gate stage."""
     # Given R with the stage `architecture-review` and `Wio-Result: maybe`
