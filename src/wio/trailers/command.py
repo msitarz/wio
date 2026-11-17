@@ -18,8 +18,7 @@ A mistake inside a form's own parser must not escape as a `SystemExit`, which
 subclass whose `error` raises a `TrailersError` with argparse's message, and whose
 `exit` raises a private stop that `run` catches, so that a form's `-h` prints that
 form's usage to standard output and the command exits 0. `configure_fold` builds its
-nested subparsers with the class of its parent, so the subclass reaches them. The
-parse itself is the leaf that is stubbed.
+nested subparsers with the class of its parent, so the subclass reaches them.
 """
 
 import contextlib
