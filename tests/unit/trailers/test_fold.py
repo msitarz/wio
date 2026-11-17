@@ -2,9 +2,7 @@
 """Tests of the fold form of `wio trailers`, run with fakes of its ports.
 
 A range is a list of commits, oldest first, each with a message that may hold one or
-more records. The tests fail with `NotImplementedError` until the implementation
-stage, which removes the marker, except the one for a range that does not resolve,
-which the wired reading of the history already answers.
+more records.
 """
 
 import io
@@ -24,10 +22,6 @@ from wio.trailers.fold import configure_fold, run_fold
 
 if TYPE_CHECKING:
     from wio.io.ports import History
-
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
 
 
 @dataclass(frozen=True)
@@ -72,6 +66,7 @@ def _record(
     *,
     items: str | None = None,
     result: str | None = None,
+    judge: str | None = None,
 ) -> str:
     """Write one record paragraph for a Work.
 
@@ -80,6 +75,7 @@ def _record(
         stage: The stage.
         items: The `Wio-Items` value, or `None` for none.
         result: The `Wio-Result` value, or `None` for none.
+        judge: The `Wio-Judge` value, or `None` for none.
 
     Returns:
         The paragraph without a trailing newline.
@@ -87,6 +83,7 @@ def _record(
     lines = [f"Wio-Work: {work}", "Wio-Action: deliver", f"Wio-Stage: {stage}"]
     lines += [f"Wio-Items: {items}"] if items else []
     lines += [f"Wio-Result: {result}"] if result else []
+    lines += [f"Wio-Judge: {judge}"] if judge else []
     return "\n".join(lines)
 
 
@@ -148,7 +145,6 @@ def _run(
 A_IMPL = "Wio-Work: a\nWio-Action: deliver\nWio-Stage: implementation\n"
 
 
-@PENDING
 def test_consecutive_records_of_one_work_and_stage_become_one() -> None:
     """AC-1: two commits of one stage, the items united and the result latest."""
     # Given two consecutive commits whose records are for Work `a`, action
@@ -166,7 +162,6 @@ def test_consecutive_records_of_one_work_and_stage_become_one() -> None:
     assert out == f"{A_IMPL}Wio-Items: AC-1, AC-2\nWio-Result: pass\n"
 
 
-@PENDING
 def test_neighbors_that_differ_only_in_the_work_become_one_list() -> None:
     """AC-2: the same record for two Works."""
     # Given consecutive commits whose records for Works `a` and `b` have the same
@@ -186,7 +181,6 @@ def test_neighbors_that_differ_only_in_the_work_become_one_list() -> None:
     )
 
 
-@PENDING
 def test_a_record_between_two_others_keeps_them_apart() -> None:
     """AC-3: a re-delivered child after its parent's integration."""
     # Given a range whose records are, in order, child `a` delivering
@@ -210,7 +204,6 @@ def test_a_record_between_two_others_keeps_them_apart() -> None:
     ]
 
 
-@PENDING
 def test_a_commit_reverted_in_the_range_leaves_no_record() -> None:
     """AC-4: neither the reverted record nor one for the revert is printed."""
     # Given a commit with a record and a later commit in the range that reverts it
@@ -223,7 +216,6 @@ def test_a_commit_reverted_in_the_range_leaves_no_record() -> None:
     assert out == ""
 
 
-@PENDING
 def test_a_revert_of_a_revert_restores_the_record() -> None:
     """AC-4: the first commit's record is printed again."""
     # Given a commit with a record, a revert of it, and a revert of that revert
@@ -236,7 +228,6 @@ def test_a_revert_of_a_revert_restores_the_record() -> None:
     assert out == A_IMPL
 
 
-@PENDING
 def test_a_revert_of_work_outside_the_range_stays_visible_in_a_body() -> None:
     """AC-5: the revert paragraph and then the folded records, each its own."""
     # Given the body `Fix the bug.` and a commit in the range that reverts a commit
@@ -250,7 +241,6 @@ def test_a_revert_of_work_outside_the_range_stays_visible_in_a_body() -> None:
     assert out == f"Fix the bug.\n\nThis reverts commit 1234567.\n\n{A_IMPL}"
 
 
-@PENDING
 def test_a_revert_of_work_outside_the_range_stays_visible_in_a_block() -> None:
     """AC-5: the paragraph and then the folded records."""
     # Given the same range
@@ -263,7 +253,6 @@ def test_a_revert_of_work_outside_the_range_stays_visible_in_a_block() -> None:
     assert out == f"This reverts commit 1234567.\n\n{A_IMPL}"
 
 
-@PENDING
 def test_a_body_without_the_records_gets_them_at_its_end() -> None:
     """AC-6: the prose is unchanged, a blank line and the folded records follow."""
     # Given a body of prose and a range with records
@@ -276,7 +265,6 @@ def test_a_body_without_the_records_gets_them_at_its_end() -> None:
     assert out == f"Fix the bug.\n\nMore prose.\n\n{A_IMPL}"
 
 
-@PENDING
 def test_a_body_that_ends_with_older_records_has_them_replaced() -> None:
     """AC-6: a record paragraph inside the prose stays, the trailing one goes."""
     # Given a body of prose that holds a record paragraph, and that ends with a
@@ -295,7 +283,6 @@ def test_a_body_that_ends_with_older_records_has_them_replaced() -> None:
     )
 
 
-@PENDING
 def test_a_body_that_already_has_them_prints_nothing() -> None:
     """AC-7: folding twice."""
     # Given the body that `wio trailers fold body` printed for a range
@@ -309,7 +296,6 @@ def test_a_body_that_already_has_them_prints_nothing() -> None:
     assert second == ""
 
 
-@PENDING
 def test_a_listed_work_folds_like_a_single_one_and_none_prints_nothing() -> None:
     """AC-8: `a, b` is `a` and then `b`, and `none` is dropped."""
     # Given a commit whose record has `Wio-Work: a, b`, and a commit whose record has
@@ -333,3 +319,76 @@ def test_a_range_that_does_not_resolve_prints_nothing(form: str) -> None:
     # Then each raises a `TrailersError` and writes nothing
     with pytest.raises(TrailersError):
         _run(form, (), revision_range="nosuch..b")
+
+
+def test_an_abbreviated_id_names_a_commit_of_the_range() -> None:
+    """A revert that writes a prefix of an id takes that commit back."""
+    # Given a commit and a revert that names it by the first seven digits
+    commits = (_commit(1, _record("a")), _revert(2, _id(1)[:7]))
+
+    # When the block is folded
+    out, _ = _run("block", commits)
+
+    # Then the record is gone and no revert line is kept for it
+    assert out == ""
+
+
+def test_a_revert_of_outside_work_that_a_later_revert_takes_back_is_not_kept() -> None:
+    """The line of a revert that was itself reverted disappears."""
+    # Given a revert of a commit outside the range, and a revert of that revert
+    commits = (_revert(1, "1234567"), _revert(2, _id(1)), _commit(3, _record("a")))
+
+    # When the block is folded
+    out, _ = _run("block", commits)
+
+    # Then only the record is printed
+    assert out == A_IMPL
+
+
+def test_neighbors_of_a_dropped_commit_merge() -> None:
+    """A record between two others, once it is taken back, no longer separates them."""
+    # Given a commit, a commit that is reverted, and a commit of the same stage
+    commits = (
+        _commit(1, _record("a", items="AC-1")),
+        _commit(2, _record("p", "integration")),
+        _revert(3, _id(2)),
+        _commit(4, _record("a", items="AC-2")),
+    )
+
+    # When the block is folded
+    out, _ = _run("block", commits)
+
+    # Then the two commits of `a` are one record
+    assert out == f"{A_IMPL}Wio-Items: AC-1, AC-2\n"
+
+
+def test_the_later_result_wins_and_an_earlier_judge_stands_when_absent() -> None:
+    """The first step takes the later values, and keeps the earlier when absent."""
+    # Given three commits of one stage with a result and a judge, a new result, and
+    # none
+    commits = (
+        _commit(1, _record("a", result="fail", judge="agent")),
+        _commit(2, _record("a", result="pass")),
+        _commit(3, _record("a", items="AC-1")),
+    )
+
+    # When the block is folded
+    out, _ = _run("block", commits)
+
+    # Then the latest result stands and the judge of the first is kept
+    assert out == f"{A_IMPL}Wio-Items: AC-1\nWio-Result: pass\nWio-Judge: agent\n"
+
+
+def test_neighbors_that_differ_in_the_judge_stay_apart() -> None:
+    """The second step needs equal results and judges."""
+    # Given records of two Works that differ only in the judge
+    commits = (
+        _commit(1, _record("a", result="pass", judge="agent")),
+        _commit(2, _record("b", result="pass", judge="human")),
+    )
+
+    # When the block is folded
+    out, _ = _run("block", commits)
+
+    # Then there are two records
+    assert len(out.rstrip("\n").split("\n\n")) == 2
