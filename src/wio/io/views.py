@@ -287,9 +287,25 @@ class IndexFiles(ReadOnlyFiles):
             Their paths relative to the root, read once.
         """
         if self._listing is None:
-            held = (c for c in self.candidates() if self.content(c) is not None)
+            held = (c for c in self.candidates() if self._is_staged(c))
             self._listing = frozenset(held)
         return self._listing
+
+    def _is_staged(self, path: Path) -> bool:
+        """Tell whether the index holds a file, whatever its content is.
+
+        Args:
+            path: A candidate, relative to the root.
+
+        Returns:
+            True when the index has the file, including one that is not UTF-8
+            text, which is reported when it is read and keeps no other file from
+            being listed.
+        """
+        try:
+            return self.content(path) is not None
+        except UnicodeDecodeError:
+            return True
 
     def candidates(self) -> frozenset[Path]:
         """List the files below the directory that the working tree or `HEAD` has.

@@ -68,8 +68,8 @@ class WorkLookup:
     still found. The views are tried in order and the first that has the id
     answers, so a Work that differs between two views answers as the first does.
     The config and the templates are always those of the working tree. It reads
-    and writes nothing else, and every call reads afresh, so a change between two
-    calls is seen.
+    and writes nothing else. A view reads its listing of files once, so a change
+    made after the first call is seen by a new lookup and not by the same one.
 
     A Work is found when exactly one Work of a view has the id. An id that two
     Works of a view share makes the answer absent, and the next view is not
@@ -130,7 +130,8 @@ class WorkLookup:
 
         Args:
             work_id: The Work's id.
-            action: The name of an action in the config.
+            action: The name of an action, one of the config or one that the Work
+                names itself.
 
         Returns:
             The names of the stages in the order of the pipeline, or `None` when

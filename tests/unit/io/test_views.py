@@ -60,6 +60,7 @@ class FakeIndex:
     """A `Repository` whose index holds a dictionary of files."""
 
     staged: dict[str, str]
+    binary: frozenset[str] = frozenset()
 
     def show_index(self, path: Path) -> str | None:
         """Read a staged file.
@@ -69,7 +70,13 @@ class FakeIndex:
 
         Returns:
             Its text, or `None` when it is not staged.
+
+        Raises:
+            UnicodeDecodeError: If the file is one of the fake's `binary` files.
         """
+        if path.as_posix() in self.binary:
+            error = UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
+            raise error
         return self.staged.get(path.as_posix())
 
 
@@ -208,3 +215,22 @@ def test_the_index_holds_the_candidates_that_are_staged() -> None:
     assert view.read_text(ROOT / "w/a.md") == "staged"
     assert not view.exists(ROOT / "w/b.md")
     assert not view.exists(ROOT / "other/c.md")
+
+
+def test_a_staged_file_that_is_not_text_is_held_and_keeps_no_other_file_out() -> None:
+    """A file that cannot be decoded is listed, and the others are still held."""
+    # Given an index in which one file is not UTF-8 text and another is
+    history = FakeHistory({"w/bad.md": "", "w/ok.md": ""})
+    index = FakeIndex({"w/ok.md": "ok"}, binary=frozenset({"w/bad.md"}))
+    view = IndexFiles(
+        _repository(index), _history(history), MemoryFileSystem(), ROOT, Path("w")
+    )
+
+    # When the view is listed, and the file that is not text is read
+    names = sorted(view.paths())
+
+    # Then both files are held, and only the read of the bad one fails
+    assert names == [Path("w/bad.md"), Path("w/ok.md")]
+    assert view.read_text(ROOT / "w/ok.md") == "ok"
+    with pytest.raises(UnicodeDecodeError):
+        view.read_text(ROOT / "w/bad.md")

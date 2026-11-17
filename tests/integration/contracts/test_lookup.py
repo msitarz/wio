@@ -393,3 +393,30 @@ def test_a_repository_with_no_commit_is_looked_up_without_an_error(
     # Then the Work is found, and the unknown id is absent and raises nothing
     assert found == [frozenset({"AC-1", "AC-3"})] * 2
     assert unknown == [None, None]
+
+
+@pytest.mark.slow
+def test_a_file_that_is_not_text_keeps_no_other_work_from_being_found(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A Work file that is not UTF-8, committed or staged, is left out."""
+    # Given a committed file below the Works directory that is not UTF-8 text, and
+    # a staged one
+    project = _project(sandbox, monkeypatch)
+    bad = project.root / WORKS / "bad" / "README.md"
+    bad.parent.mkdir()
+    bad.write_bytes(b"\xff\xfe not text")
+    git(sandbox, "add", "-A", check=True)
+    git(sandbox, "commit", "-q", "-m", "bad", check=True)
+    staged = project.root / WORKS / "staged" / "README.md"
+    staged.parent.mkdir()
+    staged.write_bytes(b"\xff\xfe not text")
+    git(sandbox, "add", "-A", check=True)
+
+    # When a Work and an unknown id are looked up on each adapter
+    found = [lookup.items("k3m9xq") for lookup in (project.working, project.index)]
+    unknown = [lookup.items("zz9zz9") for lookup in (project.working, project.index)]
+
+    # Then the Work is found, the unknown id is absent, and nothing is raised
+    assert found == [frozenset({"AC-1", "AC-3"})] * 2
+    assert unknown == [None, None]
