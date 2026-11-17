@@ -18,12 +18,15 @@ produce the record and the review event itself.
 - A checked record is printed for a named Work, action and stage, and nothing is
   printed when a field is refused.
 - A gate's result, judge and cited items are recorded with one command, and the
-  commit the review judged is named.
+  commit the review judged is named in the `review` event; a history with no
+  reviewed commit is refused.
+- A gate that needs a human is never recorded as judged by an agent, every
+  refusal prints no record and sends no event, and a warning stops neither.
 
 ## Non-Goals
 
 - Writing one record for a list of Works and `wio trailers none`.
-- Writing the review event to the event log; that arrives with `wio log`.
+- Writing the review event to the event log; see C-4 of `3jbrzz`.
 
 ## Assumptions
 
@@ -34,15 +37,20 @@ to its commit message; the command does not edit a message.
 
 ## Mechanisms
 
-- **Record renderer** — the shared renderer of `Wio-*` records.
+- **Record renderer** — the shared renderer of `Wio-*` records, built by
+  `eh62g6`.
 - **`History` port** — gives the commits from `HEAD` for the reviewed-commit
   walk.
 - **`EventSink` port** — receives the `review` event.
+- **Stage-rules port** — provisional, gives the rules a stage selects, declared
+  and consumed by `jyhy64`.
 
 ## Visuals
 
 The Before diagram is drawn from `9bfd62b` on `main`; the After diagram is the
-design this Work delivers.
+design this Work delivers. Every node of the After diagram is new: the
+checked record and the gate's review event have no counterpart in the Before
+diagram.
 
 ### Before
 
@@ -56,23 +64,36 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  A[Agent] --> W["wio trailers work action stage"]
-  W --> R[Checked record paragraph]
-  G[Gate review] --> W2["wio trailers ... --result"]
+  A[Agent] --> W["wio trailers work action stage\n(new)"]
+  W --> R["Checked record paragraph\n(new)"]
+  G[Gate review] --> W2["wio trailers ... --result\n(new)"]
   W2 --> R
-  W2 --> E["review event with reviewed commit"]
+  W2 --> E["review event with reviewed commit\n(new)"]
 ```
 
 ## Acceptance criteria
 
-### **AC-1** A printed record is accepted by the commit-time check
+### **AC-1** A human gate refuses an agent and a missing reviewed commit
 
-#### Round trip for a Work and stage
+#### An agent judge for a gate that needs a human
 
-- **Given** a Work in the working tree and one of its stages.
-- **When** the record that `wio trailers <work> <action> <stage>` prints is the
-  paragraph of a commit message that `wio trailers check --require` reads.
-- **Then** both commands exit 0.
+- **Given** a gate stage with `judge = "human"`, a Work, commits on `HEAD` where
+  the latest is a pure gate commit of this gate and the one before is the work
+  commit, and a recording `EventSink`.
+- **When** `wio trailers <work> <action> <stage> --result pass` runs, and then
+  `wio trailers <work> <action> <stage> --result pass --judge human` runs.
+- **Then** the first exits 1, prints no record and the sink receives no event;
+  the second exits 0, prints a record with `Wio-Judge: human` and the sink
+  receives one `review` event.
+
+#### A history with no reviewed commit
+
+- **Given** a gate stage and a history whose every commit is a pure gate commit
+  of this gate, and a recording `EventSink`.
+- **When** `wio trailers <work> <action> <stage> --result pass --judge human`
+  runs.
+- **Then** the command exits 1, prints no record and the sink receives no
+  event.
 
 ### **AC-2** A refused gate result prints no record and sends no event
 
@@ -88,11 +109,13 @@ flowchart LR
 
 #### The record and the event carry what was passed
 
-- **Given** a gate stage, a Work with an item `AC-1`, commits on `HEAD` where
+- **Given** a gate stage with `judge = "human"`, a Work with an item `AC-1`,
+  commits on `HEAD` where
   the latest is a pure gate commit of this gate and the one before is the work
   commit, and a recording `EventSink`.
 - **When** `wio trailers <work> <action> <stage> --result pass --judge human
   --items AC-1 --cite AC-1=pass` runs.
-- **Then** the printed record holds `Wio-Result: pass`, `Wio-Judge: human` and
-  `Wio-Items: AC-1`, and the sink receives one `review` event whose reviewed
-  commit is the work commit's sha and which cites `AC-1` with the result `pass`.
+- **Then** the command exits 0, the printed record holds `Wio-Result: pass`,
+  `Wio-Judge: human` and `Wio-Items: AC-1`, and the sink receives one `review`
+  event whose reviewed commit is the work commit's sha and which cites `AC-1`
+  with the result `pass`.
