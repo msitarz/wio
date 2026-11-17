@@ -73,8 +73,7 @@ def run_write(services: Services, args: Namespace, stdio: Stdio) -> int:
     the record is rendered. The record is rendered and `check_shape` judges it
     with the reader of the config, and only when that finds nothing does
     `validate_record` judge its fields against the config and the Works, which the
-    `Contracts` port finds in the working tree and then in `HEAD`. A `--judge`
-    without a result is refused as the finding of `Wio-Judge`.
+    `Contracts` port finds in the working tree and then in `HEAD`.
 
     Each finding of the shape check is written to standard error as
     `error: <key>: <message>` followed by its offending line, and each diagnostic of
@@ -131,7 +130,8 @@ def _fields(args: Namespace) -> list[tuple[str, str]]:
     if args.result is not None:
         fields.append(("Wio-Result", args.result))
     if args.judge is not None or args.result is not None:
-        fields.append(("Wio-Judge", args.judge or "agent"))
+        judge = args.judge if args.judge is not None else "agent"
+        fields.append(("Wio-Judge", judge))
     return fields
 
 
@@ -157,7 +157,9 @@ def _refused_arguments(fields: list[tuple[str, str]]) -> list[Finding]:
     Returns:
         A `malformed` finding for each value that is empty or holds a line end, and
         one for a `Wio-Judge` without a `Wio-Result`, each at its own field, in the
-        order of the fields.
+        order of the fields. The `line` of a finding is the field as it would be
+        written, with each line end of the value shown as an escaped newline, so that
+        it is one line and an argument cannot add one to the output either.
     """
     raise NotImplementedError
 

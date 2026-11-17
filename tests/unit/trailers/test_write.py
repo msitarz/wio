@@ -232,7 +232,7 @@ def test_malformed_items_a_work_id_and_a_judge_are_refused_by_form(
 
 @PENDING
 def test_a_judge_without_a_result_is_refused() -> None:
-    """AC-3: `--judge human` alone."""
+    """AC-3: `--judge human` alone, before the record is rendered."""
     # Given `k3m9xq`
     # When `wio trailers k3m9xq deliver architecture --judge human` runs
     code, out, err = _run([*R, "--judge", "human"])
@@ -251,8 +251,9 @@ def test_a_judge_without_a_result_is_refused() -> None:
         ([*R, "--items", "AC-1\nWio-Result: pass"], "Wio-Items"),
         ([*GATE, "--result", "pass\nWio-Judge: human"], "Wio-Result"),
         (["k3m9xq", "deliver", ""], "Wio-Stage"),
+        ([*GATE, "--result", "pass", "--judge", ""], "Wio-Judge"),
     ],
-    ids=["empty-items", "items-line", "result-line", "empty-stage"],
+    ids=["empty-items", "items-line", "result-line", "empty-stage", "empty-judge"],
 )
 def test_an_empty_or_multi_line_argument_cannot_add_a_line(
     argv: list[str], key: str
@@ -311,6 +312,19 @@ def test_an_unknown_option_is_a_usage_error() -> None:
     with pytest.raises(SystemExit) as caught:
         _run([*R, "--nosuch"])
     assert caught.value.code == 2
+
+
+@PENDING
+@pytest.mark.parametrize("work", ["k3m9xq,a7b2c4", "none"])
+def test_a_list_of_works_is_refused_before_the_config_is_loaded(work: str) -> None:
+    """AC-5: the `TrailersError` comes first, so a bad config does not hide it."""
+    # Given settings that raise a `ConfigurationError`
+    settings = FakeSettings(ConfigurationError("The config is not valid TOML."))
+
+    # When the command runs on a list of Works and on `none`
+    # Then it raises a `TrailersError` and not the `ConfigurationError`
+    with pytest.raises(TrailersError):
+        _run([work, "deliver", "architecture"], settings)
 
 
 @PENDING
