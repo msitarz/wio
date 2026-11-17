@@ -220,10 +220,7 @@ class GitRepository:
     directory that does not exist, is not a directory or cannot be entered, and
     a directory outside a repository each raise a `RuntimeError` that says which
     and what to do, and names the working directory except when git cannot be
-    run. `show_index` and `is_dirty` belong to the trailers Work: they exist and
-    raise `NotImplementedError` so that the class has every member of
-    `Repository` and can be wired where the port is expected, until that Work
-    gives them their meaning.
+    run.
 
     It is given an `Environment` and runs git in the working directory that the
     environment reports, never in one it finds itself, so a test can fix it.
@@ -259,11 +256,20 @@ class GitRepository:
     def show_index(self, path: Path) -> str | None:
         """Read a file as it is staged in the index.
 
+        It changes nothing: the index, the refs and the working tree are the
+        same after the call.
+
         Args:
-            path: The file, relative to the repository root.
+            path: The file, relative to the repository root, whatever the
+                working directory inside the repository is.
+
+        Returns:
+            The staged content, or `None` when the index has no such file.
 
         Raises:
-            NotImplementedError: Always, until the trailers Work implements it.
+            RuntimeError: If the working directory is not inside a repository,
+                as the other members do.
+            NotImplementedError: Until the implementation stage.
         """
         message = f"show_index({path}) is implemented by the trailers Work"
         raise NotImplementedError(message)
@@ -271,8 +277,17 @@ class GitRepository:
     def is_dirty(self) -> bool:
         """Tell whether the working tree has uncommitted changes.
 
+        It takes no optional lock and writes nothing, such as the index that a
+        plain `git status` refreshes, so a read leaves the repository as it was.
+
+        Returns:
+            True when a tracked file differs from `HEAD` or the index, or when
+            an untracked file that is not ignored exists.
+
         Raises:
-            NotImplementedError: Always, until the trailers Work implements it.
+            RuntimeError: If the working directory is not inside a repository,
+                as the other members do.
+            NotImplementedError: Until the implementation stage.
         """
         message = "is_dirty is implemented by the trailers Work"
         raise NotImplementedError(message)
