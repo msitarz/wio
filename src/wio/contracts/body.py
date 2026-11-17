@@ -211,6 +211,31 @@ class BodyChecker:
             *_item_errors(place, block, headings, directives.by_key),
         ]
 
+    def items(self, block: MetadataBlock, template: Template | None) -> frozenset[str]:
+        """Find the ids that the own sections of a contract carry.
+
+        The sections are those of the contract, and the directives that give them
+        ids are the template's `pattern` directives, found with `find_items` over
+        the first section of each text, as `check` finds them. It judges nothing
+        and reports nothing.
+
+        Args:
+            block: The contract's metadata block, whose body the ids are found in.
+            template: The template the catalog gave for the Work, or `None` for a
+                Work with none or with one that is missing or rejected.
+
+        Returns:
+            The ids, such as `AC-1`, empty for a contract with no template, a
+            template that cannot be used, or no section that has a `pattern`.
+        """
+        source = None if template is None else self._source(template)
+        if source is None:
+            return frozenset()
+        outline = read_outline(block.body, block.body_start_line)
+        headings = _level_two(outline)
+        by_key = _directives("", outline, headings, source).by_key
+        return _pattern_ids(block, headings, by_key)
+
     def _source(self, template: Template) -> _Source | None:
         """Give what a template says, reading its file the first time.
 
@@ -552,3 +577,44 @@ def _item_errors(
         if any(isinstance(d, Items | Pattern) for d in by_key.get(key, ()))
     ]
     return list(judge_items(place, sections))
+
+
+def _pattern_ids(
+    block: MetadataBlock,
+    headings: _Headings,
+    by_key: Mapping[str, tuple[Directive, ...]],
+) -> frozenset[str]:
+    """Find the ids of the sections that have a `pattern` directive.
+
+    Args:
+        block: The contract's block, whose body and first line the items are found
+            in.
+        headings: The `##` headings, of which only the first of each text counts.
+        by_key: The directives of each section.
+
+    Returns:
+        The ids that `find_items` matches, for the first heading of each text.
+    """
+    sections = [
+        (heading, by_key[key])
+        for key, heading in headings.firsts.items()
+        if _has_pattern(by_key.get(key, ()))
+    ]
+    ids = [
+        item.id
+        for heading, directives in sections
+        for item in find_items(block.body, block.body_start_line, heading, directives)
+    ]
+    return frozenset(i for i in ids if i is not None)
+
+
+def _has_pattern(directives: Sequence[Directive]) -> bool:
+    """Tell whether a section's directives give its items an id.
+
+    Args:
+        directives: The directives of a section.
+
+    Returns:
+        Whether one of them is a `pattern`.
+    """
+    return any(isinstance(d, Pattern) for d in directives)

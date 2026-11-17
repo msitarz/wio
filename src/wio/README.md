@@ -143,6 +143,11 @@ implementation of its own.
   needs it.
 - The adapters that read a repository with git, for revisions, the index and the
   state of the tree, are described in [`wio.io`](io/README.md).
+- `wio.io.views` holds the read-only `FileSystem` views of the index and of a
+  revision, which are adapters over the `Repository` and `History` ports, so the
+  code that reads a tree of files runs on them unchanged. It is imported only by
+  `wio.cli` and the tests, like `wio.io.adapters`, and is described in
+  [`wio.io`](io/README.md#the-views-of-the-index-and-of-a-revision).
 
 ## The outside world
 

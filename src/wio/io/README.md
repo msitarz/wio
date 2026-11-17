@@ -49,3 +49,32 @@ the tree goes through these ports and never calls git itself.
 - **The order is the history's.** `history` gives parents before children,
   oldest first, and `first_parents` gives the walk along first parents, newest
   first, so a commit that a merge brought in is not in it.
+
+## The views of the index and of a revision
+
+`HeadFiles` and `IndexFiles` in [`views.py`](views.py) are read-only
+`FileSystem`s over the `History` and `Repository` ports, so the code that reads
+a tree of files, such as the discovery of Works, runs unchanged on a revision or
+on the index. Their docstrings say what each holds and how it answers, and the
+[tests](../../../tests/unit/io/test_views.py) say how each case reads. Like the
+git adapters, they are imported only by `wio.cli` and the tests, and they never
+call git themselves.
+
+- **A view holds files, and a directory is a file below it.** A directory exists
+  when a file of the view lies below it, a symbolic link never exists, and
+  writing or appending raises `PermissionError`, so a command that reads cannot
+  change what it reads. A path is absolute and below the root, and any other
+  path is no path of the view.
+- **A repository with no commit holds no file in `HEAD`.** The view of `HEAD`
+  is empty then, so the first commit of a repository is checked like any other.
+- **The index is listed through its candidates.** The `Repository` port reads a
+  staged file by its path and lists none, so `IndexFiles` takes the Markdown
+  files below its directory from the working tree and every file below it from
+  `HEAD` and keeps those that the index holds. A file that is staged and is in
+  neither place is not seen, and a file that the index lacks is not held,
+  whatever the other two have.
+- **A file that is not UTF-8 text is held and fails when it is read.** One such
+  file below the directory therefore leaves every other file listed, and the
+  reader that meets it decides, as it does for a file of the working tree.
+- **A view reads its listing once.** Every member answers from one listing, so a
+  caller that needs to see a later change builds a new view.
