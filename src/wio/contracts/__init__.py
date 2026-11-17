@@ -26,6 +26,7 @@ lazy from wio.contracts.location import (
     new_id,
     write_new,
 )
+lazy from wio.contracts.lookup import WorkLookup
 lazy from wio.contracts.resolve import render_resolved, resolve_work
 lazy from wio.contracts.showing import run_show
 lazy from wio.contracts.skeleton import run_skeleton
@@ -299,6 +300,7 @@ __all__ = [
     "Services",
     "Subcommand",
     "WorkDiscovery",
+    "WorkLookup",
     "build_hierarchy",
     "choose_slug",
     "decide_place",
