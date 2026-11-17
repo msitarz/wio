@@ -13,6 +13,8 @@ are stubbed.
 from typing import TYPE_CHECKING
 
 from wio.formats import check_shape, render
+from wio.models.records import Finding
+from wio.trailers.errors import TrailersError
 from wio.trailers.validation import Field, validate_record
 
 if TYPE_CHECKING:
@@ -20,7 +22,6 @@ if TYPE_CHECKING:
 
     from wio.io.ports import Stdio
     from wio.models.diagnostics import Diagnostic
-    from wio.models.records import Finding
     from wio.trailers import Services
 
 
@@ -145,7 +146,12 @@ def _one_work(work: str) -> None:
         TrailersError: If it holds a comma, which makes it a list of Works, or is
             exactly `none`.
     """
-    raise NotImplementedError
+    if "," in work or work == "none":
+        message = (
+            f"`{work}` is a list of Works or none, which `wio trailers` does not write "
+            "for a record; name one Work."
+        )
+        raise TrailersError(message)
 
 
 def _refused_arguments(fields: list[tuple[str, str]]) -> list[Finding]:
@@ -157,11 +163,51 @@ def _refused_arguments(fields: list[tuple[str, str]]) -> list[Finding]:
     Returns:
         A `malformed` finding for each value that is empty or holds a line end, and
         one for a `Wio-Judge` without a `Wio-Result`, each at its own field, in the
-        order of the fields. The `line` of a finding is the field as it would be
+        order of the fields, and one at most for a field, the empty or line-end
+        one first. The `line` of a finding is the field as it would be
         written, with each line end of the value shown as an escaped newline, so that
         it is one line and an argument cannot add one to the output either.
     """
-    raise NotImplementedError
+    keys = {key for key, _ in fields}
+    reasons = [(key, value, _reason(key, value, keys)) for key, value in fields]
+    return [
+        Finding("malformed", key, _shown(key, value), number, reason)
+        for number, (key, value, reason) in enumerate(reasons, start=1)
+        if reason is not None
+    ]
+
+
+def _reason(key: str, value: str, keys: set[str]) -> str | None:
+    """Say why an argument cannot be rendered, if it cannot.
+
+    Args:
+        key: The key of the field.
+        value: The value of the field.
+        keys: The keys of every field of the record.
+
+    Returns:
+        The message for a value that is empty or holds a line end, or for a
+        `Wio-Judge` without a `Wio-Result`, the former first, and `None` for a
+        value that can be rendered.
+    """
+    if not value or "\n" in value or "\r" in value:
+        return f"`{key}` must be one line and not empty."
+    if key == "Wio-Judge" and "Wio-Result" not in keys:
+        return "`Wio-Judge` needs a `Wio-Result`."
+    return None
+
+
+def _shown(key: str, value: str) -> str:
+    """Show a field on one line, with each line end of the value escaped.
+
+    Args:
+        key: The key of the field.
+        value: The value of the field.
+
+    Returns:
+        `Key: value` with a carriage return or a line feed written as an escape.
+    """
+    return f"{key}: {value}".replace("\r", "\\r").replace("\n", "\\n")
 
 
 def _write_findings(findings: list[Finding], stdio: Stdio) -> None:
@@ -171,7 +217,8 @@ def _write_findings(findings: list[Finding], stdio: Stdio) -> None:
         findings: What `check_shape` or the refusal of an argument found.
         stdio: Where they are written.
     """
-    raise NotImplementedError
+    for finding in findings:
+        stdio.stderr.write(f"error: {finding.key}: {finding.message}\n{finding.line}\n")
 
 
 def _finish(diagnostics: list[Diagnostic], record: str, stdio: Stdio) -> int:
@@ -186,4 +233,9 @@ def _finish(diagnostics: list[Diagnostic], record: str, stdio: Stdio) -> int:
         1 when a diagnostic is an error, and then nothing is written to standard
         output, and 0 otherwise, after the record is written to standard output.
     """
-    raise NotImplementedError
+    for d in diagnostics:
+        stdio.stderr.write(f"{d.severity}: {d.where}: {d.message}\n")
+    if any(d.severity == "error" for d in diagnostics):
+        return 1
+    stdio.stdout.write(record)
+    return 0

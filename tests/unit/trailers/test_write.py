@@ -6,8 +6,7 @@ The examples use a Work `k3m9xq` with the items `AC-1` and `AC-3`, a leaf whose
 is not a gate, and `architecture-review`, which is a gate. The config also has the
 stage `integration`, which that preset does not list, and its results are `pass`,
 `fail` and `unknown`. The Work `d4e5f6` stands for one that only `HEAD` has, which
-the `Contracts` port finds wherever it is. The tests fail with
-`NotImplementedError` until the implementation stage, which removes the marker.
+the `Contracts` port finds wherever it is.
 """
 
 import io
@@ -23,10 +22,6 @@ from wio.trailers import Services
 from wio.trailers.errors import TrailersError
 from wio.trailers.write import configure_write, run_write
 lazy from wio.models.config import Config
-
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
 
 
 @dataclass(frozen=True)
@@ -72,7 +67,6 @@ R = ["k3m9xq", "deliver", "architecture"]
 GATE = ["k3m9xq", "deliver", "architecture-review"]
 
 
-@PENDING
 def test_a_valid_record_is_printed() -> None:
     """AC-1: a Work, an action, a stage and items, in the order given."""
     # Given `k3m9xq`
@@ -88,7 +82,6 @@ def test_a_valid_record_is_printed() -> None:
     assert (code, err) == (0, "")
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("extra", "judge"),
     [([], "agent"), (["--judge", "human"], "human"), (["--judge", "agent"], "agent")],
@@ -108,7 +101,6 @@ def test_a_gate_with_a_result_gets_a_judge(extra: list[str], judge: str) -> None
     assert code == 0
 
 
-@PENDING
 def test_a_work_that_only_head_has_is_printed() -> None:
     """AC-1: the `Contracts` port finds `d4e5f6` wherever it is."""
     # Given a leaf Work `d4e5f6` that the port finds
@@ -120,7 +112,6 @@ def test_a_work_that_only_head_has_is_printed() -> None:
     assert code == 0
 
 
-@PENDING
 def test_a_cited_item_is_ignored() -> None:
     """AC-1: `--cite` changes neither stream and the exit code."""
     # Given the gate stage `architecture-review`
@@ -133,7 +124,6 @@ def test_a_cited_item_is_ignored() -> None:
     assert with_cite[0] == 0
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("argv", "key", "value"),
     [
@@ -158,7 +148,6 @@ def test_a_work_an_action_or_a_stage_that_is_not_valid_is_refused(
     assert value in err
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("argv", "key", "value"),
     [
@@ -181,7 +170,6 @@ def test_an_item_and_a_result_that_are_not_valid_are_refused(
     assert value in err
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("argv", "message"),
     [
@@ -203,7 +191,6 @@ def test_a_result_that_does_not_fit_its_stage_is_refused(
     assert message in err
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("argv", "key"),
     [
@@ -230,7 +217,6 @@ def test_malformed_items_a_work_id_and_a_judge_are_refused_by_form(
     assert lines[1].startswith(f"{key}:")
 
 
-@PENDING
 def test_a_judge_without_a_result_is_refused() -> None:
     """AC-3: `--judge human` alone, before the record is rendered."""
     # Given `k3m9xq`
@@ -238,12 +224,13 @@ def test_a_judge_without_a_result_is_refused() -> None:
     code, out, err = _run([*R, "--judge", "human"])
 
     # Then the command exits 1, prints nothing on standard output and names
-    # `Wio-Judge` on standard error
+    # `Wio-Judge` on standard error, in one finding of the form and not of the
+    # shape check
     assert (code, out) == (1, "")
-    assert "Wio-Judge" in err
+    assert err.splitlines()[0].startswith("error: Wio-Judge:")
+    assert len(err.splitlines()) == 2
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("argv", "key"),
     [
@@ -263,12 +250,13 @@ def test_an_empty_or_multi_line_argument_cannot_add_a_line(
     # When the command runs on each
     code, out, err = _run(argv)
 
-    # Then it exits 1, prints nothing on standard output and names the key
+    # Then it exits 1, prints nothing on standard output and names the key, in one
+    # `error:` line and one offending line, whatever the argument held
     assert (code, out) == (1, "")
     assert f"error: {key}:" in err
+    assert len(err.splitlines()) == 2
 
 
-@PENDING
 def test_a_stage_outside_the_pipeline_is_a_warning_and_the_record_is_printed() -> None:
     """AC-4: the record on standard output, the warning on standard error."""
     # Given `k3m9xq`, whose `deliver` does not list `integration`
@@ -293,7 +281,6 @@ def test_a_call_with_no_stage_is_a_usage_error() -> None:
     assert caught.value.code == 2
 
 
-@PENDING
 @pytest.mark.parametrize("work", ["k3m9xq,a7b2c4", "none"])
 def test_a_list_of_works_and_none_are_usage_errors(work: str) -> None:
     """AC-5: the form refuses them with a `TrailersError`, which exits 2."""
@@ -314,7 +301,6 @@ def test_an_unknown_option_is_a_usage_error() -> None:
     assert caught.value.code == 2
 
 
-@PENDING
 @pytest.mark.parametrize("work", ["k3m9xq,a7b2c4", "none"])
 def test_a_list_of_works_is_refused_before_the_config_is_loaded(work: str) -> None:
     """AC-5: the `TrailersError` comes first, so a bad config does not hide it."""
@@ -327,7 +313,6 @@ def test_a_list_of_works_is_refused_before_the_config_is_loaded(work: str) -> No
         _run([work, "deliver", "architecture"], settings)
 
 
-@PENDING
 def test_a_config_that_cannot_be_read_is_a_usage_error() -> None:
     """AC-5: the `ConfigurationError` of the settings is not caught."""
     # Given settings that raise a `ConfigurationError`

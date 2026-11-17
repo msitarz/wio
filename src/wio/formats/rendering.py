@@ -7,10 +7,21 @@ reader of records. It renders and judges nothing: the form and the fields of a
 record are judged by `check_shape` and by the validator of `wio.trailers`.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
+
+KEYS: Final = (
+    "Wio-Work",
+    "Wio-Action",
+    "Wio-Stage",
+    "Wio-Items",
+    "Wio-Result",
+    "Wio-Judge",
+)
+"""The six keys of a record, in the order that a record lists them."""
 
 
 def render(fields: Mapping[str, str]) -> str:
@@ -32,4 +43,8 @@ def render(fields: Mapping[str, str]) -> str:
     Raises:
         ValueError: If a key is not one of the six. The message names the key.
     """
-    raise NotImplementedError
+    unknown = next((key for key in fields if key not in KEYS), None)
+    if unknown is not None:
+        message = f"`{unknown}` is not a key of a record."
+        raise ValueError(message)
+    return "".join(f"{key}: {fields[key]}\n" for key in KEYS if key in fields)

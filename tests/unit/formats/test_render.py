@@ -1,17 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of the renderer of records in `wio.formats`.
 
-Each test is one scenario of the Work that builds the renderer. The test fails with
-`NotImplementedError` until the implementation stage, which removes the marker.
+Each test is one scenario of the Work that builds the renderer.
 """
 
 import pytest
 
 from wio.formats import render
 
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
 FIELDS = {
     "Wio-Judge": "human",
     "Wio-Items": "AC-1",
@@ -22,7 +18,6 @@ FIELDS = {
 }
 
 
-@PENDING
 def test_fields_given_in_any_order_come_out_in_the_order_of_the_keys() -> None:
     """AC-6: six lines in order, and a key outside the six is refused."""
     # Given the six fields in any order
