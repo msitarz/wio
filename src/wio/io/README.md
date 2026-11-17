@@ -16,6 +16,9 @@ each case reads, and `Commit` in [`commits.py`](../models/commits.py) says what
 a commit holds. Every command that reads revisions, the index or the state of
 the tree goes through these ports and never calls git itself.
 
+- **Git is assumed to be installed and on `PATH`.** The `git` reader of
+  trailers needs it wherever wio runs, so the adapters add no requirement and
+  have no fallback; a git that cannot be run is a `RuntimeError` that says so.
 - **Git runs where the environment says.** Both adapters are given an
   `Environment` and run git in the working directory it reports, never in one
   they find themselves, so a test can fix it. A directory that is not usable, a
@@ -35,9 +38,10 @@ the tree goes through these ports and never calls git itself.
   gives the full id of a commit.
 - **Paths are relative to the root, from any directory.** `list_files`, `show`
   and `show_index` take and give paths from the top of the working tree whatever
-  the working directory inside it is, and the names are read with NUL
-  separators, so no name is quoted or split. A file that did not exist, and a
-  path that names a directory, read as no file and never as an error.
+  the working directory inside it is, `list_files` sorts them by path, and the
+  names are read with NUL separators, so no name is quoted or split. A file that
+  did not exist, and a path that names a directory, read as no file and never as
+  an error.
 - **A read changes nothing.** The index, the refs and the working tree are the
   same afterwards. `is_dirty` takes no optional lock, because a plain
   `git status` refreshes the index that it reads and the status of a repository
