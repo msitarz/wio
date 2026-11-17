@@ -4,8 +4,7 @@
 The examples use a temporary repository: `c1` adds `a.txt` and `sub/d.txt`, a
 branch `side` forks from `c1` with `s1` that adds `s.txt`, and on the main branch
 `c2` adds `b.txt` and `c3` merges `side` and deletes `b.txt`. Each commit is
-tagged with its name. The tests fail with `NotImplementedError` until the
-implementation stage, which removes the marker.
+tagged with its name.
 """
 
 from dataclasses import dataclass
@@ -21,18 +20,9 @@ from wio.io import adapters
 lazy from tests.sandbox import Sandbox
 
 if TYPE_CHECKING:
-    from wio.io.ports import History, Repository
+    from collections.abc import Callable
 
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
-# A `NotImplementedError` is a `RuntimeError`, so a check of the message that
-# the skeleton cannot satisfy fails on the assertion first.
-PENDING_REFUSAL = pytest.mark.xfail(
-    raises=(NotImplementedError, AssertionError),
-    strict=True,
-    reason="implementation stage",
-)
+    from wio.io.ports import History, Repository
 
 
 @dataclass(frozen=True)
@@ -126,7 +116,6 @@ def _history(
     return built, adapters.GitHistory(environment), adapters.GitRepository(environment)
 
 
-@PENDING
 @pytest.mark.slow
 def test_a_range_lists_its_commits_oldest_first(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -151,7 +140,6 @@ def test_a_range_lists_its_commits_oldest_first(
     assert empty == []
 
 
-@PENDING
 @pytest.mark.slow
 def test_first_parents_come_newest_first(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -169,7 +157,6 @@ def test_first_parents_come_newest_first(
     assert [c.id for c in commits] == [built.ids[n] for n in ("c3", "c2", "c1")]
 
 
-@PENDING
 @pytest.mark.slow
 def test_a_revision_resolves_to_a_full_id(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -187,7 +174,6 @@ def test_a_revision_resolves_to_a_full_id(
     assert resolved == built.ids["c3"]
 
 
-@PENDING
 @pytest.mark.slow
 def test_a_file_is_read_as_it_was_at_a_revision(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -214,7 +200,6 @@ def test_a_file_is_read_as_it_was_at_a_revision(
     assert from_sub == files
 
 
-@PENDING
 @pytest.mark.slow
 def test_a_file_is_read_as_it_is_staged(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -237,7 +222,6 @@ def test_a_file_is_read_as_it_is_staged(
     assert (staged, missing, from_sub) == ("staged\n", None, "staged\n")
 
 
-@PENDING
 @pytest.mark.slow
 def test_the_working_tree_is_reported_as_dirty_or_clean(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -271,7 +255,6 @@ def test_the_working_tree_is_reported_as_dirty_or_clean(
     )
 
 
-@PENDING_REFUSAL
 @pytest.mark.slow
 def test_a_directory_outside_a_repository_is_refused_by_every_member(
     tmp_path: Path,
@@ -285,21 +268,23 @@ def test_a_directory_outside_a_repository_is_refused_by_every_member(
         adapters.GitHistory(environment),
         adapters.GitRepository(environment),
     )
-    calls = [
-        lambda: history.rev_parse("HEAD"),
-        lambda: history.history("HEAD~1..HEAD"),
-        lambda: history.first_parents("HEAD"),
-        lambda: history.list_files("HEAD"),
-        lambda: history.show("HEAD", Path("a.txt")),
-        lambda: repository.show_index(Path("a.txt")),
-        repository.is_dirty,
+    history_calls = {
+        "rev_parse": ("HEAD",),
+        "history": ("HEAD~1..HEAD",),
+        "first_parents": ("HEAD",),
+        "list_files": ("HEAD",),
+        "show": ("HEAD", Path("a.txt")),
+    }
+    calls: list[tuple[Callable[..., object], tuple[object, ...]]] = [
+        (getattr(history, name), args) for name, args in history_calls.items()
     ]
+    calls += [(repository.show_index, (Path("a.txt"),)), (repository.is_dirty, ())]
 
     # When each member runs
     # Then each raises `RuntimeError` that names the working directory
-    for call in calls:
+    for call, args in calls:
         with pytest.raises(RuntimeError) as caught:
-            call()
+            call(*args)
         assert str(outside) in str(caught.value)
 
 
@@ -310,8 +295,8 @@ def _snapshot(sandbox: Sandbox) -> dict[str, bytes]:
         sandbox: The repository.
 
     Returns:
-        The content of `.git/index`, `HEAD`, `packed-refs`, each loose ref and
-        each working-tree file, by path.
+        The content of `.git/index`, `HEAD`, each loose ref and each
+        working-tree file, by path.
     """
     root = sandbox.root
     paths = [root / ".git" / "index", root / ".git" / "HEAD"]
@@ -320,7 +305,6 @@ def _snapshot(sandbox: Sandbox) -> dict[str, bytes]:
     return {str(p.relative_to(root)): p.read_bytes() for p in paths if p.exists()}
 
 
-@PENDING
 @pytest.mark.slow
 def test_a_read_leaves_the_repository_as_it_was(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
