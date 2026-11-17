@@ -176,3 +176,54 @@ refuse has no defined fold.
 - **A range that does not resolve prints nothing.** The history port refuses it
   before anything is written, and the form turns that into the usage error that
   exits 2, so a failed fold never leaves a half-written body to be pasted.
+
+## Checking a commit message
+
+`check_commit_message`, `has_exempt_subject`, `configure_check` and `run_check`
+in [`check.py`](check.py) are the check form of `wio trailers` in its
+commit-time mode, `check --require [PATH]`, which a commit-msg hook runs. It
+refuses a wrong record before the commit enters the history, so a record never
+has to be repaired afterwards. `wio.cli` dispatches and wires the ports, and
+this module holds what the check does, so it is run in a test with fakes. Its
+docstrings say what each takes and returns, and the
+[tests](../../../tests/unit/trailers/test_check.py) say how each case reads. A
+body or a range of commits is checked later, by a mode that shares the form and
+judges the same findings more leniently, because a record that was valid when it
+was written must not fail after the config or the Works have changed.
+
+- **The records are read and judged by form first, and by the config and the
+  Works second.** The shape check judges each record's own form with the reader
+  of the config, and every record that is not malformed is then judged by the
+  [validator](#validating-the-fields-of-a-record), so a bad record and a
+  malformed one in one message are both reported and a malformed one is never
+  judged by fields that cannot be trusted.
+- **A form that is wrong is an error, and a key the engine does not define is a
+  warning.** A record the reader cannot see is an error too, because a record
+  that no one reads is a record that was not written. An unknown key is only a
+  warning, deliberately: a `Wio-` key that the engine no longer defines is no
+  reason to refuse a commit, though a typo of a key then passes with a warning,
+  and a record with only that warning is still validated, so a stray key never
+  hides a bad stage.
+- **A Work that the commit deletes is still found.** The Works are looked up in
+  the index and then in `HEAD`, so the commit that retires or abandons a Work
+  can carry its record, which the working tree no longer holds.
+- **A record is required unless git wrote the subject.** The subject is the
+  first line that is not a `#` comment, because a hook sees the comments that
+  git removes afterwards. A subject that starts with `Merge`, `Revert`,
+  `Reapply`, `fixup!` or `squash!` and a space needs no record, because the
+  person did not write it, and a look-alike such as `amend! x`, `fixup!x` or
+  `Merged x` does. The exemption is only from the requirement: a record that
+  such a message has is judged like any other. A message with no subject, an
+  empty one or one of comments only, is not exempt.
+- **Each diagnostic is a line on standard error that names its line.** It is
+  `<severity>: <where>: <message>` with the 1-based line in the message, or line
+  1 for a record that was not found, sorted by the line as a number, so that
+  line 10 follows line 9, then errors before warnings. Nothing is written to
+  standard output, and an error exits 1 and a warning does not change the exit
+  code.
+- **A file that cannot be read is a usage error.** The message is read from the
+  file or, for `-` or no path, from standard input, and a file that cannot be
+  read or decoded raises the usage error that `wio.cli` turns into exit 2, so a
+  mistake in how the hook is called is never mistaken for a message that does
+  not hold. The option `--require` is required until the later check adds its
+  mode.
