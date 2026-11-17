@@ -39,17 +39,17 @@ other value is a Work id, so a Work cannot be named `check` or `fold`, though
 `wio contracts` does not forbid such an id. The form is chosen by the first
 argument, so an option before it is a usage error.
 
-### A-3
-
-`wio trailers` with no argument is a usage error, because the write form needs a
-Work, an action and a stage, and so it exits 2 as the other usage mistakes do,
-unlike `wio` and `wio contracts`, which print their help and exit 0.
-
 ### A-2
 
 The rules component does not exist yet, so until it does the port for the rules
 of a stage is wired to one that selects no rule, and a cited rule code is
 refused as not selected.
+
+### A-3
+
+`wio trailers` with no argument is a usage error, because the write form needs a
+Work, an action and a stage, and so it exits 2 as the other usage mistakes do,
+unlike `wio` and `wio contracts`, which print their help and exit 0.
 
 ## Mechanisms
 
@@ -75,17 +75,18 @@ item `AC-1` and a `deliver` that lists `architecture` and `architecture-review`.
 
 #### The write form, check and fold
 
-- **Given** the repository, a commit message file with no record and a pull
-  request body on standard input.
+- **Given** the repository, a commit message file with the subject `feat: add x`
+  and no record, and a pull request body. Standard input holds the message for
+  the fourth run and the body for the sixth.
 - **When** `wio trailers k3m9xq deliver architecture`,
   `wio trailers check <file>`, `wio trailers check --require <file>`,
-  `wio trailers check --require -` with the same message on standard input,
+  `wio trailers check --require -` with the message on standard input,
   `wio trailers fold block HEAD~1..HEAD` and
   `wio trailers fold body HEAD~1..HEAD` run.
-- **Then** the first prints the record of `k3m9xq`, the second exits 0 because
-  a message without a record passes, the third and the fourth exit 1 because
-  it has none, the fifth prints the folded record of `HEAD`, and the last prints
-  the body with that record at its end; the others exit 0.
+- **Then** the first, the fifth and the sixth exit 0 and print the record of
+  `k3m9xq`, the folded record of `HEAD` and the body with that record at its end
+  in turn, the second exits 0 because a message without a record passes, and
+  the third and the fourth exit 1 because it has none.
 
 ### **AC-2** A usage mistake exits 2
 
@@ -93,8 +94,8 @@ item `AC-1` and a `deliver` that lists `architecture` and `architecture-review`.
 
 - **Given** the repository.
 - **When** `wio trailers`, `wio trailers fold nosuch`,
-  `wio trailers check --nosuch` and `wio trailers --items AC-1 k3m9xq deliver
-  architecture` run.
+  `wio trailers check --nosuch` and the call that starts with the option
+  `--items AC-1`, before `k3m9xq deliver architecture`, run.
 - **Then** each exits 2, prints nothing on standard output and says on standard
   error what is wrong.
 
@@ -121,8 +122,8 @@ item `AC-1` and a `deliver` that lists `architecture` and `architecture-review`.
 - **Given** the repository, with no injected adapter.
 - **When** `wio trailers k3m9xq deliver architecture-review --result pass
   --judge human --cite docs.DOC001=fail` runs.
-- **Then** it exits 1, names `docs.DOC001` as not selected on standard error and
-  prints nothing on standard output.
+- **Then** it exits 1, prints an `error:` line that names `docs.DOC001` on
+  standard error and prints nothing on standard output.
 
 ### **AC-4** The help lists the forms
 
