@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The spec of the check form of `wio trailers`, in its commit-time mode.
+"""The check form of `wio trailers`, in its commit-time mode.
 
 `wio trailers check --require [PATH]` judges a commit message against the config
 and the Works it was written for, so that a wrong record is refused before it
@@ -7,20 +7,25 @@ enters the history. `wio.cli` dispatches on the first argument and wires the
 ports, and this module holds what the form does, so it is run in a test with
 fakes. The later check of a body or a range shares the form and adds its own mode,
 which makes the option `--require` optional. The records are read and their form is
-judged by `wio.formats`, and their fields by the validator of this package.
-
-The stub is the spec until the wiring stage of the Work that builds the commit-time
-check writes the module `wio.trailers.check` and deletes this stub, so the spec and
-the code never coexist.
+judged by `wio.formats`, and their fields by the validator of this package. The
+form composes the reading, the three judgments and the report, and the leaves that
+judge are stubbed.
 """
 
-from argparse import ArgumentParser, Namespace
+from typing import TYPE_CHECKING
 
-from wio.io.ports import Stdio
-from wio.models.config import Config
-from wio.models.diagnostics import Diagnostic
-from wio.trailers import Services
-from wio.trailers.ports import Contracts
+from wio.formats import check_shape, read
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace
+
+    from wio.io.ports import Stdio
+    from wio.models.config import Config
+    from wio.models.diagnostics import Diagnostic
+    from wio.models.records import Finding, Reading
+    from wio.trailers import Services
+    from wio.trailers.ports import Contracts
+
 
 def has_exempt_subject(message: str) -> bool:
     """Tell whether git wrote the subject of a message, which needs no record.
@@ -31,6 +36,9 @@ def has_exempt_subject(message: str) -> bool:
     `amend! x`, `fixup!x` and `Merged x` are not. The exemption is only from the
     requirement of a record: a record that such a message has is still judged.
 
+    A blank first line that is not a comment is the subject, so the message is not
+    exempt.
+
     Args:
         message: The commit message as the hook is given it.
 
@@ -38,7 +46,8 @@ def has_exempt_subject(message: str) -> bool:
         Whether the subject is one that git writes. A message with no subject, such
         as an empty one, has none.
     """
-    ...
+    raise NotImplementedError
+
 
 def check_commit_message(
     message: str, contracts: Contracts, config: Config
@@ -78,7 +87,15 @@ def check_commit_message(
         the commit-time mode only: the later check judges the same findings with other
         severities, so `run_check` dispatches on the mode.
     """
-    ...
+    reader = config.trailers.reader
+    reading, findings = read(message, reader), check_shape(message, reader)
+    found = [
+        *_shape_diagnostics(findings),
+        *_record_diagnostics(reading, findings, (contracts, config)),
+        *_missing_record(message, reading),
+    ]
+    return sorted(found, key=_order)
+
 
 def configure_check(parser: ArgumentParser) -> None:
     """Add the arguments of the check form to its parser.
@@ -90,7 +107,14 @@ def configure_check(parser: ArgumentParser) -> None:
     Args:
         parser: The parser that `wio.cli` created for `check`.
     """
-    ...
+    parser.add_argument("path", nargs="?", help="The file with the message, or -.")
+    parser.add_argument(
+        "--require",
+        action="store_true",
+        required=True,
+        help="Judge a commit message, which needs a record unless git wrote it.",
+    )
+
 
 def run_check(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Check the commit message of the arguments.
@@ -115,4 +139,86 @@ def run_check(services: Services, args: Namespace, stdio: Stdio) -> int:
         TrailersError: If the file cannot be read or decoded.
         ConfigurationError: If the config cannot be read.
     """
-    ...
+    config = services.settings.load()
+    message = _read_message(services, args.path, stdio)
+    diagnostics = check_commit_message(message, services.staged_contracts, config)
+    for diagnostic in diagnostics:
+        line = f"{diagnostic.severity}: {diagnostic.where}: {diagnostic.message}\n"
+        stdio.stderr.write(line)
+    return 1 if any(d.severity == "error" for d in diagnostics) else 0
+
+
+def _order(diagnostic: Diagnostic) -> tuple[int, int, str]:
+    """Give the key that orders the diagnostics of a message.
+
+    Args:
+        diagnostic: A diagnostic whose `where` is a line number.
+
+    Returns:
+        The line as a number, so that line 10 follows line 9, then 0 for an error and
+        1 for a warning, then the message.
+    """
+    rank = 0 if diagnostic.severity == "error" else 1
+    return (int(diagnostic.where), rank, diagnostic.message)
+
+
+def _shape_diagnostics(findings: list[Finding]) -> list[Diagnostic]:
+    """Turn the findings of the shape check into diagnostics.
+
+    Args:
+        findings: What `check_shape` found.
+
+    Returns:
+        An error for a `malformed` or `invisible` finding and a warning for an
+        `unknown-key` finding, each at the line of the finding.
+    """
+    raise NotImplementedError
+
+
+def _record_diagnostics(
+    reading: Reading, findings: list[Finding], judge: tuple[Contracts, Config]
+) -> list[Diagnostic]:
+    """Judge the fields of the records that are not malformed.
+
+    Args:
+        reading: The records of the message.
+        findings: What `check_shape` found, which says which records are malformed.
+        judge: The `Contracts` port and the config that `validate_record` judges
+            with.
+
+    Returns:
+        The diagnostics of `validate_record` for each record that has no `malformed`
+        finding, with the line of each field as its place.
+    """
+    raise NotImplementedError
+
+
+def _missing_record(message: str, reading: Reading) -> list[Diagnostic]:
+    """Require a record of a message whose subject is not one that git writes.
+
+    Args:
+        message: The commit message.
+        reading: The records that were read from it.
+
+    Returns:
+        The error `no record was found` at line 1 when the reading has no record
+        and the subject is not exempt, and none otherwise.
+    """
+    raise NotImplementedError
+
+
+def _read_message(services: Services, path: str | None, stdio: Stdio) -> str:
+    """Read the commit message to check.
+
+    Args:
+        services: The ports, of which `files` reads the file.
+        path: The file, or `-` or `None` for standard input.
+        stdio: Where standard input is read.
+
+    Returns:
+        The text of the message.
+
+    Raises:
+        TrailersError: If the file cannot be read or decoded.
+    """
+    raise NotImplementedError
