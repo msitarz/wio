@@ -369,3 +369,68 @@ def test_a_directory_is_not_a_file(
 
     # Then both are none
     assert (at_revision, staged) == (None, None)
+
+
+@pytest.mark.slow
+def test_an_annotated_tag_is_peeled_to_its_commit(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-3: a tag object resolves to the id of the commit it names."""
+    # Given an annotated tag on `c2`
+    built, history, _ = _history(sandbox, monkeypatch)
+    git(sandbox, "tag", "-a", "-m", "release", "annotated", "c2", check=True)
+
+    # When the tag is resolved and walked
+    resolved = history.rev_parse("annotated")
+    walked = history.first_parents("annotated")
+
+    # Then the id is the commit's, not the tag object's
+    assert resolved == built.ids["c2"]
+    assert [c.id for c in walked] == [built.ids["c2"], built.ids["c1"]]
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("revision", ["-x", "--all", "--output=leak"])
+def test_a_revision_that_looks_like_an_option_is_refused(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch, revision: str
+) -> None:
+    """AC-1 to AC-4: a revision is never read as an option of git."""
+    # Given the repository
+    _, history, _ = _history(sandbox, monkeypatch)
+
+    # When a revision that begins with a dash is given to each member
+    calls = [
+        lambda: history.rev_parse(revision),
+        lambda: history.history(revision),
+        lambda: history.first_parents(revision),
+        lambda: history.list_files(revision),
+        lambda: history.show(revision, Path("a.txt")),
+    ]
+
+    # Then each raises `ValueError`, and git wrote no file
+    for call in calls:
+        with pytest.raises(ValueError):  # noqa: PT011
+            call()
+    assert not (sandbox.root / "leak").exists()
+
+
+@pytest.mark.slow
+def test_a_name_with_a_space_or_a_non_ascii_letter_is_read_whole(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-4: names are not quoted or split."""
+    # Given files whose names hold a space and a non-ASCII letter
+    _, history, _ = _history(sandbox, monkeypatch)
+    _write(sandbox, "my file.txt", "spaced\n")
+    _write(sandbox, "é.txt", "accent\n")
+    git(sandbox, "commit", "-q", "-m", "names", check=True)
+
+    # When the files and their content are read
+    files = history.list_files("HEAD")
+    spaced = history.show("HEAD", Path("my file.txt"))
+    accent = history.show("HEAD", Path("é.txt"))
+
+    # Then the names are whole and the content is found
+    assert Path("my file.txt") in files
+    assert Path("é.txt") in files
+    assert (spaced, accent) == ("spaced\n", "accent\n")
