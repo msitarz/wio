@@ -1,12 +1,12 @@
 # `wio.trailers`
 
 The component behind `wio trailers`: it prints, judges and folds the records of
-commits, so that every command that handles a record reads and writes it the
-same way. A [record](../../../GLOSSARY.md) is a paragraph of `Wio-*` trailers,
-and [Records](../../../docs/concepts.md#records) says what each key means. The
-component reads the Works through the `Contracts` port of
-[`ports.pyi`](ports.pyi) and the config through the shared ports, and it never
-knows git, the files or the Works directory.
+commits and finds the commit a gate reviewed, so that every command that handles
+a record reads and writes it the same way. A [record](../../../GLOSSARY.md) is a
+paragraph of `Wio-*` trailers, and [Records](../../../docs/concepts.md#records)
+says what each key means. The component reads the Works through the `Contracts`
+port of [`ports.pyi`](ports.pyi) and the config through the shared ports, and it
+never knows git, the files or the Works directory.
 
 ## Validating the fields of a record
 
@@ -273,3 +273,33 @@ the other. The docstrings say what each takes and returns, and the
   hold. A path and a range are refused together because they read different
   inputs, and an empty `--ref-range` is still a range, so it is never read as no
   range and replaced by a body from standard input.
+
+## Finding the reviewed commit
+
+`reviewed_commit` in [`reviewed.py`](reviewed.py) finds the commit that a gate
+judged. A gate's own commits carry only the gate's record and sit on top of the
+artifact it reviewed, so the reviewed commit is the first commit, from `HEAD`
+down, that holds something else, and a later reader of a record knows which
+artifact a review saw. It reads the history through the `History` port and
+nothing else: the `--reviewed` override, the comparison with the `context` event
+and the recording of the result belong to the gate form that composes it. Its
+docstring says what it takes and returns, and the
+[tests](../../../tests/unit/trailers/test_reviewed.py) say how each case reads.
+
+- **A pure gate commit has records, and all of them are the gate's.** The
+  commit has at least one record, and every record names the gate's action and
+  stage, for any Work or list of Works, because the gate commit of one Work is
+  as much the gate's as another's. A commit with no record, a record of
+  `Wio-Work: none`, or another record beside the gate's holds something besides
+  the gate, so it is the reviewed commit.
+- **The reader decides what a record is.** A gate record that the configured
+  reader cannot see is not a record, so under `git` a gate record that is not in
+  the last paragraph does not make a gate commit, and the commit is the
+  reviewed one. The finder judges the records that the reader sees and ignores
+  the lines it rejects.
+- **No reviewed commit is a result, not an error.** A history of only gate
+  commits, and an empty one, give `None`, so the caller decides what a gate with
+  nothing under it means.
+- **The walk follows the first parents, newest first.** A merge commit is one
+  commit of that line, as the `History` port gives it, so the finder needs no
+  rule of its own for merges.
