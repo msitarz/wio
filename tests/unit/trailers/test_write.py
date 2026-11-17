@@ -217,6 +217,20 @@ def test_malformed_items_a_work_id_and_a_judge_are_refused_by_form(
     assert lines[1].startswith(f"{key}:")
 
 
+@pytest.mark.parametrize("items", ["AC-1,", ",AC-1", "AC-1,,AC-3", "AC-1, AC-3"])
+def test_items_with_a_stray_separator_are_refused_by_form(items: str) -> None:
+    """AC-3: the joined items are judged by the shape check, one finding."""
+    # Given `k3m9xq`
+    # When the command runs with items that have an empty id or a space
+    code, out, err = _run([*R, "--items", items])
+
+    # Then it exits 1, prints nothing on standard output and prints one `error:`
+    # line naming `Wio-Items` and its offending line
+    assert (code, out) == (1, "")
+    assert err.splitlines()[0].startswith("error: Wio-Items:")
+    assert len(err.splitlines()) == 2
+
+
 def test_a_judge_without_a_result_is_refused() -> None:
     """AC-3: `--judge human` alone, before the record is rendered."""
     # Given `k3m9xq`
@@ -265,8 +279,8 @@ def test_a_stage_outside_the_pipeline_is_a_warning_and_the_record_is_printed() -
 
     # Then the record is on standard output, the warning naming `integration` is on
     # standard error, and the command exits 0
-    assert out.startswith("Wio-Work: k3m9xq\n")
-    assert "warning" in err
+    assert out == ("Wio-Work: k3m9xq\nWio-Action: deliver\nWio-Stage: integration\n")
+    assert err.startswith("warning: Wio-Stage:")
     assert "integration" in err
     assert code == 0
 
