@@ -141,6 +141,8 @@ implementation of its own.
   member of its port, so that it can be wired where the port is expected: the
   others raise `NotImplementedError` naming the member and the Work that first
   needs it.
+- The adapters that read a repository with git, for revisions, the index and the
+  state of the tree, are described in [`wio.io`](io/README.md).
 
 ## The outside world
 

@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from wio.models.commits import Commit
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import TextIO
@@ -174,6 +176,45 @@ def _check_directory(directory: Path) -> None:
         raise RuntimeError(message)
 
 
+def _run_git(
+    environment: Environment, arguments: Sequence[str]
+) -> subprocess.CompletedProcess[str]:
+    """Run git in the environment's working directory.
+
+    Args:
+        environment: Reports the working directory git runs in.
+        arguments: The arguments after `git`.
+
+    Returns:
+        The completed process, whatever its exit code, with its output decoded
+        as UTF-8 and its line endings left as git printed them, so a CRLF in a
+        file or a message is not turned into an LF.
+
+    Raises:
+        RuntimeError: If the working directory does not exist, is not a
+            directory or cannot be entered, or git cannot be run. The message
+            says what is wrong and what to do, and names the working directory
+            the environment reported, except when git cannot be run.
+        UnicodeDecodeError: If what git printed is not UTF-8 text.
+    """
+    directory = environment.working_directory()
+    _check_directory(directory)
+    try:
+        done = subprocess.run(
+            ["git", *arguments], cwd=directory, capture_output=True, check=False
+        )
+    except OSError as error:
+        reason = error.strerror or str(error)
+        message = f"cannot run git: {reason}; check that git is installed and on PATH"
+        raise RuntimeError(message) from error
+    return subprocess.CompletedProcess(
+        done.args,
+        done.returncode,
+        done.stdout.decode("utf-8"),
+        done.stderr.decode("utf-8", errors="replace"),
+    )
+
+
 def _git_path(environment: Environment, *arguments: str) -> Path:
     """Run `git rev-parse` in the environment's directory and read its path.
 
@@ -190,21 +231,9 @@ def _git_path(environment: Environment, *arguments: str) -> Path:
             message says what is wrong and what to do, and names the working
             directory the environment reported, except when git cannot be run.
     """
-    directory = environment.working_directory()
-    _check_directory(directory)
-    try:
-        done = subprocess.run(
-            ["git", "rev-parse", *arguments],
-            cwd=directory,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-    except OSError as error:
-        reason = error.strerror or str(error)
-        message = f"cannot run git: {reason}; check that git is installed and on PATH"
-        raise RuntimeError(message) from error
+    done = _run_git(environment, ["rev-parse", *arguments])
     if done.returncode != 0:
+        directory = environment.working_directory()
         message = (
             f"not inside a git repository (working directory {directory}); {_NEXT}"
         )
@@ -212,22 +241,8 @@ def _git_path(environment: Environment, *arguments: str) -> Path:
     return Path(done.stdout.strip())
 
 
-class GitRepository:
-    """The repository of the working directory, read with git, as `Repository`.
-
-    `root` and `identity` ask git, which must be installed wherever wio runs
-    because the `git` trailer reader needs it too. A missing git, a working
-    directory that does not exist, is not a directory or cannot be entered, and
-    a directory outside a repository each raise a `RuntimeError` that says which
-    and what to do, and names the working directory except when git cannot be
-    run. `show_index` and `is_dirty` belong to the trailers Work: they exist and
-    raise `NotImplementedError` so that the class has every member of
-    `Repository` and can be wired where the port is expected, until that Work
-    gives them their meaning.
-
-    It is given an `Environment` and runs git in the working directory that the
-    environment reports, never in one it finds itself, so a test can fix it.
-    """
+class _InWorkingDirectory:
+    """What the git adapters share: where the working directory comes from."""
 
     def __init__(self, environment: Environment) -> None:
         """Keep the environment that tells where the working directory is.
@@ -236,6 +251,21 @@ class GitRepository:
             environment: Reports the working directory git runs in.
         """
         self._environment: Environment = environment
+
+
+class GitRepository(_InWorkingDirectory):
+    """The repository of the working directory, read with git, as `Repository`.
+
+    `root` and `identity` ask git, which must be installed wherever wio runs
+    because the `git` trailer reader needs it too. A missing git, a working
+    directory that does not exist, is not a directory or cannot be entered, and
+    a directory outside a repository each raise a `RuntimeError` that says which
+    and what to do, and names the working directory except when git cannot be
+    run.
+
+    It is given an `Environment` and runs git in the working directory that the
+    environment reports, never in one it finds itself, so a test can fix it.
+    """
 
     def root(self) -> Path:
         """Find the top of the working tree.
@@ -259,20 +289,261 @@ class GitRepository:
     def show_index(self, path: Path) -> str | None:
         """Read a file as it is staged in the index.
 
+        It changes nothing: the index, the refs and the working tree are the
+        same after the call.
+
         Args:
-            path: The file, relative to the repository root.
+            path: The file, relative to the repository root, whatever the
+                working directory inside the repository is.
+
+        Returns:
+            The staged content, or `None` when the index has no such file.
 
         Raises:
-            NotImplementedError: Always, until the trailers Work implements it.
+            RuntimeError: If the working directory is not inside a repository,
+                as the other members do.
+            ValueError: If the staged content is not UTF-8 text.
         """
-        message = f"show_index({path}) is implemented by the trailers Work"
-        raise NotImplementedError(message)
+        return _content(self._environment, f":{path.as_posix()}")
 
     def is_dirty(self) -> bool:
         """Tell whether the working tree has uncommitted changes.
 
+        It takes no optional lock and writes nothing, such as the index that a
+        plain `git status` refreshes, so a read leaves the repository as it was.
+
+        Returns:
+            True when a tracked file differs from `HEAD` or the index, or when
+            an untracked file that is not ignored exists.
+
         Raises:
-            NotImplementedError: Always, until the trailers Work implements it.
+            RuntimeError: If the working directory is not inside a repository,
+                as the other members do.
         """
-        message = "is_dirty is implemented by the trailers Work"
-        raise NotImplementedError(message)
+        status = _git_text(
+            self._environment,
+            "--no-optional-locks",
+            "status",
+            "--porcelain",
+            "--untracked-files=normal",
+        )
+        return bool(status)
+
+
+class GitHistory(_InWorkingDirectory):
+    """The revisions of the working directory's repository, as `History`.
+
+    It is given an `Environment` and runs git in the working directory that the
+    environment reports, as `GitRepository` does, and raises the same
+    `RuntimeError` for a directory that is not usable, outside a repository, or
+    when git cannot be run. A revision or range that git rejects raises
+    `ValueError` that names it. Every read leaves the repository as it was.
+    """
+
+    def rev_parse(self, revision: str) -> str:
+        """Resolve a revision to a full commit id.
+
+        Args:
+            revision: A revision such as `HEAD`.
+
+        Returns:
+            The full 40-character id.
+
+        Raises:
+            ValueError: If git rejects the revision.
+        """
+        return _git_text(
+            self._environment,
+            "rev-parse",
+            "--verify",
+            "--end-of-options",
+            f"{revision}^{{commit}}",
+        )
+
+    def history(self, revision_range: str) -> Sequence[Commit]:
+        """List the commits of a revision range.
+
+        Args:
+            revision_range: A range such as `main..HEAD`.
+
+        Returns:
+            The commits oldest first, parents before children, a merge commit
+            included, each with its full id and its message as committed,
+            without its trailing newline; none for an empty range.
+
+        Raises:
+            ValueError: If git rejects the range.
+        """
+        return _commits(self._environment, revision_range, "--topo-order", "--reverse")
+
+    def first_parents(self, revision: str) -> Sequence[Commit]:
+        """List a revision's ancestors along first parents.
+
+        Args:
+            revision: The revision to start from, such as `HEAD`.
+
+        Returns:
+            The commits newest first, starting with the revision's own; the
+            commits that a merge brought in are not in it.
+
+        Raises:
+            ValueError: If git rejects the revision.
+        """
+        return _commits(self._environment, revision, "--first-parent")
+
+    def list_files(self, revision: str) -> Sequence[Path]:
+        """List the files of a revision's tree.
+
+        Args:
+            revision: The revision, such as `HEAD`.
+
+        Returns:
+            The paths relative to the repository root, whatever the working
+            directory inside the repository is, sorted by path.
+
+        Raises:
+            ValueError: If git rejects the revision.
+        """
+        return _paths(self._environment, revision)
+
+    def show(self, revision: str, path: Path) -> str | None:
+        """Read a file as it was at a revision.
+
+        Args:
+            revision: The revision, such as `HEAD`.
+            path: The file, relative to the repository root.
+
+        Returns:
+            The file's content, or `None` when it did not exist then.
+
+        Raises:
+            ValueError: If git rejects the revision.
+        """
+        return _blob(self._environment, revision, path)
+
+
+def _git_text(environment: Environment, *arguments: str) -> str:
+    """Run git in the environment's working directory and read its output.
+
+    Args:
+        environment: Reports the working directory git runs in.
+        *arguments: The arguments after `git`.
+
+    Returns:
+        What git printed, without its trailing newline.
+
+    Raises:
+        RuntimeError: If the working directory is not usable or not inside a
+            repository, or git cannot be run, as `GitRepository` says.
+        ValueError: If git rejects a revision or range among the arguments. The
+            message is git's own followed by the command, so it names them.
+    """
+    _git_path(environment, "--git-dir")
+    done = _run_git(environment, arguments)
+    if done.returncode != 0:
+        reason = done.stderr.strip() or "git failed"
+        message = f"{reason} (git {' '.join(arguments)})"
+        raise ValueError(message)
+    return done.stdout.removesuffix("\n")
+
+
+def _commits(environment: Environment, revision: str, *options: str) -> list[Commit]:
+    """Read the commits that `git log` lists for a revision or range.
+
+    Args:
+        environment: Reports the working directory git runs in.
+        revision: The revision or range.
+        *options: The `git log` options that choose the order.
+
+    Returns:
+        The commits in the order git printed them, each with its full id and its
+        message without the trailing newline.
+
+    Raises:
+        RuntimeError: As `_git_text`.
+        ValueError: As `_git_text`.
+    """
+    out = _git_text(
+        environment,
+        "log",
+        "-z",
+        "--format=%H%x00%B",
+        *options,
+        "--end-of-options",
+        revision,
+    )
+    fields = [field.removesuffix("\n") for field in out.split("\0")]
+    return [Commit(fields[i], fields[i + 1]) for i in range(0, len(fields) - 1, 2)]
+
+
+def _paths(environment: Environment, revision: str) -> list[Path]:
+    """List the files of a revision's tree.
+
+    Args:
+        environment: Reports the working directory git runs in.
+        revision: The revision.
+
+    Returns:
+        The paths relative to the repository root, sorted by path.
+
+    Raises:
+        RuntimeError: As `_git_text`.
+        ValueError: As `_git_text`.
+    """
+    out = _git_text(
+        environment,
+        "ls-tree",
+        "-r",
+        "--name-only",
+        "-z",
+        "--full-tree",
+        "--end-of-options",
+        revision,
+    )
+    return sorted(Path(name) for name in out.split("\0") if name)
+
+
+def _blob(environment: Environment, revision: str, path: Path) -> str | None:
+    """Read a file as it was at a revision.
+
+    Args:
+        environment: Reports the working directory git runs in.
+        revision: The revision.
+        path: The file, relative to the repository root.
+
+    Returns:
+        The content, or `None` when the revision has no such file.
+
+    Raises:
+        RuntimeError: As `_git_text`.
+        ValueError: As `_git_text`, and if the content is not UTF-8 text.
+    """
+    _git_text(
+        environment,
+        "rev-parse",
+        "--verify",
+        "--end-of-options",
+        f"{revision}^{{commit}}",
+    )
+    return _content(environment, f"{revision}:{path.as_posix()}")
+
+
+def _content(environment: Environment, spec: str) -> str | None:
+    """Read the object a `revision:path` or `:path` specification names.
+
+    Args:
+        environment: Reports the working directory git runs in.
+        spec: A specification such as `HEAD:a.txt`, or `:a.txt` for the index,
+            whose path is relative to the repository root.
+
+    Returns:
+        The content exactly as git stores it, or `None` when git finds no such
+        file, a directory included.
+
+    Raises:
+        RuntimeError: As `_git_text`.
+        ValueError: If the content is not UTF-8 text.
+    """
+    _git_path(environment, "--git-dir")
+    done = _run_git(environment, ["cat-file", "blob", spec])
+    return done.stdout if done.returncode == 0 else None
