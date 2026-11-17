@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, cast, override
 
 import pytest
 
-from tests.unit.fakes import FakeStdio, MemoryFileSystem
+from tests.unit.fakes import FakeRules, FakeStdio, MemoryFileSystem, RecordingSink
 from tests.unit.trailers.test_validation import CONFIG, FakeContracts
 from wio.models.config import Config, Trailers
 from wio.trailers import Services
@@ -94,6 +94,8 @@ def services(
         cast("History", history or object()),
         FakeContracts(),
         cast("FileSystem", MemoryFileSystem(files or {})),
+        FakeRules(),
+        RecordingSink(),
     )
 
 

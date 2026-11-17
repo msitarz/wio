@@ -6,8 +6,8 @@ a stage, with optional item ids, a result and a judge, when every field holds, a
 nothing when one does not. `wio.cli` dispatches on the first argument and wires
 the ports, and this module holds what the form does, so the form is run in a test
 with fakes of the ports. The form composes `render`, `check_shape` and
-`validate_record`, and the leaves that refuse an argument and write what it found
-are stubbed.
+`validate_record`, and for a result or a cite the review of
+`wio.trailers.gate`, which records what the gate judged.
 """
 
 from typing import TYPE_CHECKING
@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 from wio.formats import check_shape, render
 from wio.models.records import Finding
 from wio.trailers.errors import TrailersError
+from wio.trailers.gate import run_review
 from wio.trailers.validation import Field, validate_record
 
 if TYPE_CHECKING:
@@ -37,7 +38,7 @@ _OPTIONS = {
     "judge": "Who judged a gate: human or agent.",
 }
 """The options that take one value and what `--help` says of each."""
-_CITE = "An item and its result, accepted and ignored here."
+_CITE = "An item id or a rule code and its result, as KEY=RESULT."
 
 
 def configure_write(parser: ArgumentParser) -> None:
@@ -45,9 +46,9 @@ def configure_write(parser: ArgumentParser) -> None:
 
     It does no I/O. The positional arguments are the Work, the action and the stage,
     which argparse refuses to lack, and the options are `--items`, a comma-separated
-    list of item ids, `--result`, `--judge` and `--cite`, which may be repeated, is
-    accepted and is ignored here because the gate leaf handles it. An unknown option
-    is argparse's usage error.
+    list of item ids, `--result`, `--judge` and `--cite`, which may be repeated and
+    names an item or a rule and its result for the gate form. An unknown option is
+    argparse's usage error.
 
     Args:
         parser: The parser that `wio.cli` created for the form.
@@ -81,7 +82,9 @@ def run_write(services: Services, args: Namespace, stdio: Stdio) -> int:
     the validator as `<severity>: <where>: <message>`, in the order they come, with
     the key of the field as `<where>`. Nothing is written to standard output when
     anything is an error. A warning does not stop the record, which is written to
-    standard output with its lines in the order of the keys.
+    standard output with its lines in the order of the keys. A call that gives a
+    result or a cite is then recorded by `run_review` before the record is written,
+    and what it refuses stops the record.
 
     Args:
         services: The ports the form reads the config and the Works through.
@@ -107,7 +110,8 @@ def run_write(services: Services, args: Namespace, stdio: Stdio) -> int:
         _write_findings(findings, stdio)
         return 1
     checked = [Field(key, value, None) for key, value in fields]
-    return _finish(validate_record(checked, services.contracts, config), record, stdio)
+    diagnostics = validate_record(checked, services.contracts, config)
+    return _finish(diagnostics, record, (services, fields, args.cite), stdio)
 
 
 def _fields(args: Namespace) -> list[tuple[str, str]]:
@@ -221,21 +225,35 @@ def _write_findings(findings: list[Finding], stdio: Stdio) -> None:
         stdio.stderr.write(f"error: {finding.key}: {finding.message}\n{finding.line}\n")
 
 
-def _finish(diagnostics: list[Diagnostic], record: str, stdio: Stdio) -> int:
-    """Write what the validator found, and the record when nothing is an error.
+def _finish(
+    diagnostics: list[Diagnostic],
+    record: str,
+    review: tuple[Services, list[tuple[str, str]], list[str]],
+    stdio: Stdio,
+) -> int:
+    """Write what the validator found, record the review and print the record.
 
     Args:
         diagnostics: What `validate_record` returned, in the order of the fields.
         record: The rendered record.
+        review: The services, the fields of the record and the `--cite` values,
+            which `run_review` records the result of a gate with.
         stdio: Where the diagnostics and the record are written.
 
     Returns:
-        1 when a diagnostic is an error, and then nothing is written to standard
-        output, and 0 otherwise, after the record is written to standard output.
+        1 when a diagnostic is an error or the review is refused, and then nothing
+        is written to standard output, and 0 otherwise, after the event is written
+        for a call that gives a result or a cite and the record is written to
+        standard output.
     """
     for d in diagnostics:
         stdio.stderr.write(f"{d.severity}: {d.where}: {d.message}\n")
     if any(d.severity == "error" for d in diagnostics):
+        return 1
+    services, fields, cites = review
+    if ("Wio-Result" in dict(fields) or cites) and run_review(
+        services, fields, cites, stdio
+    ):
         return 1
     stdio.stdout.write(record)
     return 0

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The spec of the gate form of `wio trailers`: record a gate's result.
+"""The gate form of `wio trailers`: record a gate's result.
 
 `wio trailers <work> <action> <stage> --result RESULT [--judge JUDGE] [--cite
 KEY=RESULT]...` extends the write form of `wio.trailers.write`. After the fields of
@@ -11,25 +11,31 @@ reviewer session and the driver each record a result and an event. The form
 refuses without writing the event or printing the record, and a failing sink is the
 sink's warning and never the command's failure.
 
-`configure_write` also gains the meaning of `--cite`, which the print leaf accepts and
-ignores, and `run_write` calls `run_review` once every field holds and has no error,
-only when `--result` or `--cite` is given. `wio.trailers.Services` gains the fields
-`rules`, the `StageRules` port, and `events`, the `EventSink` port. The print leaf's
-scenario that a cited item is ignored is replaced by the scenarios of this form.
+`configure_write` gives `--cite` its meaning, which the print leaf accepted and
+ignored, and `run_write` calls `run_review` once every field holds and has no error,
+only when `--result` or `--cite` is given. `wio.trailers.Services` has the fields
+`rules`, the `StageRules` port, and `events`, the `EventSink` port, which `wio.cli`
+wires with an adapter that selects no rule and one that drops the events until
+their components exist.
 
-The stub is the spec until the wiring stage of the Work that records a gate's result
-writes the module `wio.trailers.gate` and deletes this stub, so the spec and the code
-never coexist.
+The form composes the check of the cites, the finder of the reviewed commit and the
+event sink, and the leaves that check the cites and build the event are stubbed.
 """
 
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from wio.io.ports import Stdio
-from wio.models.config import Config
-from wio.models.events import ReviewEvent
-from wio.models.records import Finding
-from wio.trailers import Services
+from wio.trailers.reviewed import reviewed_commit
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+
+    from wio.io.ports import Stdio
+    from wio.models.config import Config
+    from wio.models.events import ReviewEvent
+    from wio.models.records import Finding
+    from wio.trailers import Services
+
 
 @dataclass(frozen=True)
 class Cite:
@@ -46,11 +52,13 @@ class Cite:
     key: str
     result: str
 
+
 def check_cites(
     raw: Sequence[str],
-    has_result: bool,
     config: Config,
     known: tuple[frozenset[str], Mapping[str, str]],
+    *,
+    has_result: bool,
 ) -> tuple[list[Cite], list[Finding]]:
     """Check the `--cite` arguments of a review.
 
@@ -59,24 +67,26 @@ def check_cites(
     config choosing it. Every refusal is a `malformed` finding whose `key` is the
     name that the message prints after `error: `: `--cite` for a cite with no `=`,
     for an empty key or result and for `--cite` without `--result`, and the cite's
-    own key otherwise. The refusals are a cite with no `=`, an empty key or result, a
-    key repeated, a result outside `gates.results`, an item the Work lacks, a code
+    own key otherwise; the `line` of a finding is the cite as written and its `number`
+    the 1-based place among the cites, and the line is not written. The refusals are
+    a cite with no `=`, an empty key or result, a key repeated, a result outside
+    `gates.results`, an item the Work lacks, a code
     that is not qualified or that the stage does not select, and `--cite` without
-    `--result`; a cite that is not refused is checked as the others are, and one
-    finding is given for each cite at most, in the order given.
+    `--result`, and one finding is given for each cite at most, in the order given.
 
     Args:
         raw: The values of `--cite`, each `KEY=RESULT`, in the order given.
-        has_result: Whether `--result` was given.
         config: The config, for `gates.results`.
         known: The item ids of the Work and the rules that the stage selects for it,
             each qualified code with the hash of its file.
+        has_result: Whether `--result` was given.
 
     Returns:
         The cites in the order given and no finding when every cite holds, and no
         cites and the findings otherwise.
     """
-    ...
+    raise NotImplementedError
+
 
 def review_event(
     record: Mapping[str, str],
@@ -98,7 +108,8 @@ def review_event(
         The event, with each cited key and its result in the order given, and the
         hash of each cited rule.
     """
-    ...
+    raise NotImplementedError
+
 
 def run_review(
     services: Services,
@@ -135,5 +146,33 @@ def run_review(
     Raises:
         RuntimeError: If the working directory is not in a repository, as the
             `History` port raises it.
+        ValueError: If the `History` port rejects the revision, as it raises it.
     """
-    ...
+    record = dict(fields)
+    work, action, stage = record["Wio-Work"], record["Wio-Action"], record["Wio-Stage"]
+    config = services.settings.load()
+    selected = services.rules.selected(work, action, stage)
+    items = services.contracts.items(work) or frozenset()
+    cited, findings = check_cites(
+        cites, config, (items, selected), has_result="Wio-Result" in record
+    )
+    if findings:
+        _write_findings(findings, stdio)
+        return 1
+    commit = reviewed_commit(action, stage, services.history, config.trailers.reader)
+    if commit is None:
+        stdio.stderr.write("error: Wio-Work: no reviewed commit was found\n")
+        return 1
+    services.events.write(review_event(record, commit, cited, selected))
+    return 0
+
+
+def _write_findings(findings: Sequence[Finding], stdio: Stdio) -> None:
+    """Write the refusals of the cites to standard error.
+
+    Args:
+        findings: What `check_cites` found.
+        stdio: Where they are written.
+    """
+    for finding in findings:
+        stdio.stderr.write(f"error: {finding.key}: {finding.message}\n")

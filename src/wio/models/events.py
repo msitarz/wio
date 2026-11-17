@@ -1,15 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 """The types for the events that sessions leave in the event log.
 
-The stubs are the spec until the wiring stage of the Work that records a gate's
-result replaces them with a `.py` of the same annotations, so the spec and the code
-never coexist. `ReviewEvent` declares the fields that `wio trailers --result`
-writes; `ContextEvent` declares none, and the Work that implements `wio log`
-extends both.
+`ReviewEvent` carries the fields that `wio trailers --result` writes. `ContextEvent`
+carries none yet, and the Work that implements `wio log` extends both. Neither
+holds a prompt, code or free text.
 """
 
-from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 
 @dataclass(frozen=True)
 class ContextEvent:
@@ -17,6 +19,7 @@ class ContextEvent:
 
     It records ids, hashes and codes, and never prompts, code or free text.
     """
+
 
 @dataclass(frozen=True)
 class ReviewEvent:
@@ -47,6 +50,7 @@ class ReviewEvent:
     result: str
     cited: Mapping[str, str]
     hashes: Mapping[str, str]
+
 
 type Event = ContextEvent | ReviewEvent
 """Either kind of event that the event log accepts."""
