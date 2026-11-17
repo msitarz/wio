@@ -118,6 +118,15 @@ def test_a_path_with_a_range_is_a_usage_error() -> None:
         _run(["body.txt", "--ref-range", "a..b"])
 
 
+def test_an_empty_range_is_a_range_and_not_no_range() -> None:
+    """AC-1: `--ref-range ""` is refused by the port, not read as a body."""
+    # Given a body on standard input and an empty `--ref-range`
+    # When `check --ref-range ""` runs
+    # Then it raises a `TrailersError`, and the body is not checked instead
+    with pytest.raises(TrailersError):
+        _run(["--ref-range", ""], body=B)
+
+
 def test_a_range_that_does_not_resolve_is_a_usage_error() -> None:
     """AC-1: `nosuch..nosuch2` is refused by the port with a `ValueError`."""
     # Given a range `nosuch..nosuch2`

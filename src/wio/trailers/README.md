@@ -267,10 +267,9 @@ the other. The docstrings say what each takes and returns, and the
   output.** It is `<severity>: <where>: <message>`. An error exits 1, a warning
   never changes the exit code, and the config is read once.
 - **An input that cannot be read is a usage error and exits 2.** A file that
-  does not exist, a call that gives both a path and `--ref-range`, a range that
-  the history port refuses with a `ValueError` and a directory that is not in a
-  repository, which the port refuses with a `RuntimeError`, raise the usage
-  error that `wio.cli` turns into the exit code 2, so a mistake in the call is
-  never mistaken for a body that does not hold. A path and a range are refused
-  because they read different inputs, and an empty `--ref-range` is still a
-  range.
+  does not exist, a range that the history port refuses and a directory that is
+  not in a repository raise the usage error that `wio.cli` turns into the exit
+  code 2, so a mistake in the call is never mistaken for a body that does not
+  hold. A path and a range are refused together because they read different
+  inputs, and an empty `--ref-range` is still a range, so it is never read as no
+  range and replaced by a body from standard input.
