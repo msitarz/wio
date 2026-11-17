@@ -41,8 +41,7 @@ hooks = [
     { id = "ruff-format", name = "ruff format", entry = "uv run ruff format --force-exclude", language = "system", types_or = ["python", "pyi", "jupyter", "markdown"] },
     { id = "complexipy", name = "complexipy", entry = "uv run complexipy", language = "system", types_or = ["python", "pyi", "jupyter"] },
     { id = "commitizen", name = "commitizen check", entry = "uv run cz check --allow-abort --commit-msg-file", language = "system", stages = ["commit-msg"] },
-    # A stand-in for `wio trailers check` until the command exists.
-    { id = "records", name = "Wio-* records", entry = "uv run python scripts/records.py check", language = "system", stages = ["commit-msg"] },
+    { id = "records", name = "Wio-* records", entry = "uv run wio trailers check --require", language = "system", stages = ["commit-msg"] },
     { id = "wio-config", name = "wio config check", entry = "uv run wio config check", language = "system", files = '^\.agents/wio/config\.toml$', pass_filenames = false },
     { id = "wio-templates", name = "wio templates check", entry = "uv run wio templates check", language = "system", files = '^\.agents/wio/templates/.*\.md$', pass_filenames = false },
     { id = "wio-contracts", name = "wio contracts check", entry = "uv run wio contracts check", language = "system", files = '^\.agents/wio/works/.*\.md$', pass_filenames = false },
