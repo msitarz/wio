@@ -176,6 +176,7 @@ depends_on = [
     "wio.io.views",
     "wio.ports",
     "wio.templates",
+    "wio.trailers",
 ]
 
 # Integration tests meet the adapters, and the code that has something real
