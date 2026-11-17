@@ -193,3 +193,47 @@ metadata reader and writes them through the common TOML writer, so creation and
 the skeleton of an existing Work use one interpretation of the block. The
 comment-form writer escapes the closing delimiter inside TOML strings, so a
 value cannot end the block before the metadata reader reaches its delimiter.
+
+## The records of a message
+
+`read` and `check_shape` in [`records.py`](records.py) are the one reader and
+the one judge of the `Wio-*` records of a message, so every `wio trailers`
+command agrees on what a record is and when it is well formed, and no command
+keeps a copy that could drift. Their docstrings say what each takes and returns,
+the types are in [`records.py`](../models/records.py), and their
+[tests](../../../tests/unit/formats/test_records.py) say how each case reads.
+The [concepts](../../../docs/concepts.md#reading-records) define the two readers
+and what a record holds.
+
+- **The configured reader decides what a record is.** `read` takes the reader as
+  an argument and reads nothing from the config, a file or git. The `Wio-` lines
+  that the reader would take for a record but does not are kept in the reading,
+  never dropped, because a record that no reader sees is a fault to report and
+  not to ignore. Under `scan`, a line in a fenced code block or one that starts
+  with `#` is not a candidate, so it is not kept.
+- **A record is judged by its own form.** The shape check looks at the keys, the
+  value of each key and the ids of each list, and at nothing outside the
+  message. A Work id is any value without whitespace or commas that is not
+  `none`, and a list of ids is separated by a comma and one space, as the
+  [concepts](../../../docs/concepts.md#identity-and-location) say of an id a
+  person writes. An action, a stage and a result are lowercase names of letters,
+  digits and hyphens that start with a letter or a digit.
+- **A record's keys are judged as a set.** `Wio-Work` is required, and so are
+  `Wio-Action` and `Wio-Stage` unless the Work is `none`, which allows no other
+  key. A key is never repeated, a `Wio-Judge` needs a `Wio-Result`, and `none`
+  never sits in a list of Works or an id twice. A `Wio-` key the engine does not
+  define is a finding of its own kind, `unknown-key`, and not a malformed
+  record.
+- **The vocabulary of the config and the Works of the tree are not its
+  business.** A stage the config does not list, or a result outside
+  `gates.results`, passes the shape check, because the commit-time mode checks
+  the config and the afterwards mode tolerates what the config no longer has.
+- **A message with no record has no finding.** Requiring a record, and the
+  subjects that git writes for a merge, a revert or a squash, belong to the
+  modes.
+- **A finding has no severity.** A `Finding` carries its kind, the key, the line
+  as written, its 1-based number in the message and a sentence that says what is
+  wrong, and each mode decides whether it fails the check or warns, turning the
+  finding into a [diagnostic](../../../GLOSSARY.md) as it does so. A problem of
+  a whole record, such as a missing key, is at the first line of the record, and
+  the findings come in the order of the message.

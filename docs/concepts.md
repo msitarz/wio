@@ -1251,7 +1251,8 @@ something else. Every proposal says so in one fixed line.
   pipeline no longer contains are ignored, for example after a leaf is promoted
   to a parent with a different pipeline.
 - A gate's latest record carries its result, and which results let the next
-  stage start is declared with the results, when `wio next` is built.
+  stage start is declared with the results, when `wio next` is built. A gate
+  with `judge = "human"` is passed only by a result that a human judged.
 
 In a workflow like [wio's own](workflow.md), defining runs top-down and
 delivering runs bottom-up over a tree. A parent is defined before the Works its
@@ -1439,10 +1440,18 @@ so a person who records a result by hand adds nothing. `wio trailers --result`
 always writes the trailer: `agent` by default, because agents run the tool, and
 `human` with `--judge human` when a person judged, whether they ran the command
 or told the agent to record their decision. A gate with `judge = "human"`
-requires a human judge: `wio trailers` refuses `agent` for it, and the bundle's
-header says that a person must judge. This is a stated claim, not a proof: an
-agent could type `--judge human`. But the claim is explicit and reviewable,
-and the tool's default cannot produce it by accident.
+needs a human's judgment, and the bundle's header says that a person must
+judge. `wio trailers` does not refuse `agent` for it: the reviewer session that
+the stage's goal or skill starts records its own result with `agent`, and the
+driver then records theirs with `human`, each a record and each an event. The
+gate is passed by a result that a human judged, and `wio next` reads from the
+history in v0.2 which record counts. Until then the driver reads it. This is a
+stated claim, not a proof: an agent could type `--judge human`. But the claim is
+explicit and reviewable, and the tool's default cannot produce it by accident.
+
+In v0.2 a gate with `judge = "human"` may need neither a goal nor a skill, so
+that it has no reviewer session and only the human judges. Today every stage
+has exactly one of the two ([Stage](#7-stage)), and so does such a gate.
 
 There is no gate object to learn and no approval flag, only stages marked
 `gate = true` that record a result.
@@ -2370,14 +2379,14 @@ it records two events:
   whether the context changed.
 - `review`: a gate finished, with the Work, action, stage, the reviewed commit,
   the judge, the overall result, and a result for each cited item, a rule code
-  (with its file's hash) or an item id (`ARC001=fail`, `AC-2=pass`). What is
-  not cited was not judged.
-  `wio trailers --result` writes it, and `wio log review`, with the same
-  arguments, writes it for workflows that do not use records. A gate that takes
-  several commits, or a record printed again after a hook rejected the commit,
-  writes several `review` events; the latest one for the same Work, action,
-  stage and reviewed commit replaces the earlier ones, as the latest record
-  does. An event shows what a session recorded, not that a commit exists.
+  (with its file's hash) or an item id (`ARC001=fail`, `AC-2=pass`). What is not
+  cited was not judged. `wio trailers --result` writes it, and `wio log review`,
+  with the same arguments, writes it for workflows that do not use records. A
+  gate that takes several commits, or a record printed again after a hook
+  rejected the commit, writes several `review` events; the latest one for the
+  same Work, action, stage, reviewed commit and judge replaces the earlier ones,
+  as the latest record does, so an agent's review and a human's of one gate stay
+  apart. An event shows what a session recorded, not that a commit exists.
 
 Results come from a vocabulary that the config declares, so a misspelled
 result is an error. The vocabulary has at least one result and no duplicate, so
@@ -2468,7 +2477,11 @@ and its own selection give it.
   contract can cite the dependency's contract, while independent Works are
   defined in parallel. The first split exercise leans towards yes.
 - Which results let a gate's next stage start, for `wio next`, for example
-  `pass` continues and `fail` goes back.
+  `pass` continues and `fail` goes back, and that a gate with
+  `judge = "human"` is passed only by a human's result.
+- Whether a stage with `gate = true` and `judge = "human"` may have neither a
+  goal nor a skill, so that no reviewer session runs and only the human judges.
+  Every stage has exactly one of the two today.
 - Path hints for rules inside a root, so a ruleset can say which files of the
   root it is for, for example tests colocated with sources. The preferred shape
   is paths on a root's rule preset:

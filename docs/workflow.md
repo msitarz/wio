@@ -121,11 +121,13 @@ through four splits.
 
 The gate of `define`, `review-contract`, is where the engine's first need is
 met: a human confirms the understanding before expensive work starts. The
-reviewer judges the contract on its own terms, by the rules, and only the
-driver can say whether it states what they meant. So the gate is marked
-`judge = "human"`, ends by asking the driver to confirm, and records `pass`
-only once they have. The contract holds the intent in the template's shape,
-not a transcript of the interview that produced it.
+reviewer judges the contract on its own terms, by the rules, and only the driver
+can say whether it states what they meant. So the gate is marked
+`judge = "human"`, ends by asking the driver to confirm, and records `pass` only
+once they have. The tool does not refuse an agent's record for such a gate, so a
+reviewer session and the driver can each record a result, and the gate is passed
+by the driver's. The contract holds the intent in the template's shape, not a
+transcript of the interview that produced it.
 
 ### The contract root
 
@@ -279,6 +281,13 @@ Work.
 The contract, amendment and docs gates are marked `judge = "human"`, because
 they ask whether something states what the driver meant. The delivery gates are
 judged by an agent.
+
+A gate marked `judge = "human"` still has a goal here, and so a reviewer
+session, because every stage has a goal or a skill. This repository's gates
+record one result, judged by the driver, once they have confirmed. The
+two-record form, an agent's result and then the driver's, and the reading of
+which gate is passed come with `wio next` in v0.2. That version may also let
+such a gate have no goal and no skill, so that only the driver judges it.
 
 ## 7. Checking the config, the templates and the contracts after every edit
 

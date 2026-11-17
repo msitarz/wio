@@ -15,6 +15,9 @@ from typing import Literal
 type HierarchyMode = Literal["flat", "nesting"]
 """How the hierarchy of Works is derived: from the layout, or not at all."""
 
+type Reader = Literal["scan", "git"]
+"""Who reads the records of a message: wio's own scan, or git's trailer parser."""
+
 
 @dataclass(frozen=True)
 class Defaults:
@@ -72,7 +75,7 @@ class Templates:
 class Trailers:
     """How the records of commits are read."""
 
-    reader: Literal["scan", "git"] = field(
+    reader: Reader = field(
         default="scan",
         metadata={
             "description": "Who parses trailers, wio's scan or git; `scan` by default."
