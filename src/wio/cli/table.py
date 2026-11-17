@@ -7,18 +7,24 @@ and `component_entry` are required as written.
 
 import importlib
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Final, Literal
 
+lazy from wio.cli.null import NoEvents, NoRules
 lazy from wio.config import ConfigCommand, ConfigSettings
-lazy from wio.contracts import ContractsCommand, Services
+lazy from wio.contracts import ContractsCommand, Services, WorkLookup
 lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
+lazy from wio.io import views
 lazy from wio.templates import TemplatesCatalog, TemplatesCommand
+lazy from wio.trailers import Services as TrailersServices
+lazy from wio.trailers import TrailersCommand
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from wio.cli.ports import Command, CommandSpec
+    from wio.io.ports import Repository
 
 type Component = Literal[
     "config", "contracts", "templates", "rules", "trailers", "log", "context"
@@ -113,9 +119,56 @@ def _contracts() -> Command:
     return ContractsCommand(services)
 
 
+def _trailers() -> Command:
+    """Wire `wio trailers` to git, the contracts component and the null adapters.
+
+    Returns:
+        The command, whose forms read the config, the history and the Works through
+        the adapters, look a Work up in the working tree and then in `HEAD` and, for
+        a commit message, in the index and then in `HEAD`, and wire a port that
+        selects no rule and a sink that drops the events until their components
+        exist.
+
+    Raises:
+        TrailersError: If the working directory is not inside a git repository.
+    """
+    environment = env.ProcessEnvironment()
+    repository = io.GitRepository(environment)
+    history = io.GitHistory(environment)
+    files = io.LocalFileSystem()
+    settings = ConfigSettings(repository, files)
+    catalog = TemplatesCatalog(settings, repository, files)
+    root = _root(repository)
+    head = views.HeadFiles(history, root)
+    works = Path(settings.load().works.dir)
+    index = views.IndexFiles(repository, history, files, root, works)
+    tree = WorkLookup(settings, repository, catalog, files, [files, head])
+    staged = WorkLookup(settings, repository, catalog, files, [index, head])
+    services = TrailersServices(
+        settings, tree, history, staged, files, NoRules(), NoEvents()
+    )
+    return TrailersCommand(services)
+
+
+def _root(repository: Repository) -> Path:
+    """Find the root of the repository, or say that there is none.
+
+    Args:
+        repository: The port that finds the root.
+
+    Returns:
+        The root of the repository that the working directory is in.
+
+    Raises:
+        TrailersError: If the working directory is not inside a repository.
+    """
+    raise NotImplementedError
+
+
 COMMANDS: Final[Sequence[Entry]] = (
     component_entry("config", _config),
     component_entry("contracts", _contracts),
     component_entry("templates", _templates),
+    component_entry("trailers", _trailers),
 )
 """Every subcommand of wio, one entry for each component that has a command."""
