@@ -186,28 +186,33 @@ def _run_git(
         arguments: The arguments after `git`.
 
     Returns:
-        The completed process, whatever its exit code.
+        The completed process, whatever its exit code, with its output decoded
+        as UTF-8 and its line endings left as git printed them, so a CRLF in a
+        file or a message is not turned into an LF.
 
     Raises:
         RuntimeError: If the working directory does not exist, is not a
             directory or cannot be entered, or git cannot be run. The message
             says what is wrong and what to do, and names the working directory
             the environment reported, except when git cannot be run.
+        UnicodeDecodeError: If what git printed is not UTF-8 text.
     """
     directory = environment.working_directory()
     _check_directory(directory)
     try:
-        return subprocess.run(
-            ["git", *arguments],
-            cwd=directory,
-            capture_output=True,
-            text=True,
-            check=False,
+        done = subprocess.run(
+            ["git", *arguments], cwd=directory, capture_output=True, check=False
         )
     except OSError as error:
         reason = error.strerror or str(error)
         message = f"cannot run git: {reason}; check that git is installed and on PATH"
         raise RuntimeError(message) from error
+    return subprocess.CompletedProcess(
+        done.args,
+        done.returncode,
+        done.stdout.decode("utf-8"),
+        done.stderr.decode("utf-8", errors="replace"),
+    )
 
 
 def _git_path(environment: Environment, *arguments: str) -> Path:
@@ -533,12 +538,12 @@ def _content(environment: Environment, spec: str) -> str | None:
 
     Returns:
         The content exactly as git stores it, or `None` when git finds no such
-        object.
+        file, a directory included.
 
     Raises:
         RuntimeError: As `_git_text`.
         ValueError: If the content is not UTF-8 text.
     """
     _git_path(environment, "--git-dir")
-    done = _run_git(environment, ["show", "--end-of-options", spec])
+    done = _run_git(environment, ["cat-file", "blob", spec])
     return done.stdout if done.returncode == 0 else None

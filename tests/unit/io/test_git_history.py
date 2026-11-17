@@ -16,7 +16,7 @@ from wio.models.commits import Commit
 
 ID1 = "1" * 40
 ID2 = "2" * 40
-OK = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+OK = subprocess.CompletedProcess([], 0, stdout=b"", stderr=b"")
 
 
 def _done(stdout: str = "", code: int = 0, stderr: str = "") -> object:
@@ -30,7 +30,9 @@ def _done(stdout: str = "", code: int = 0, stderr: str = "") -> object:
     Returns:
         The completed process.
     """
-    return subprocess.CompletedProcess([], code, stdout=stdout, stderr=stderr)
+    return subprocess.CompletedProcess(
+        [], code, stdout=stdout.encode(), stderr=stderr.encode()
+    )
 
 
 def _script(
@@ -162,7 +164,7 @@ def test_a_file_that_did_not_exist_is_none_and_a_bad_revision_is_refused(
 ) -> None:
     """AC-4: a missing path gives `None`, an unknown revision `ValueError`."""
     # Given a git that finds no such file
-    _script(monkeypatch, {"show": _done(code=128), "rev-parse": _done(ID1)})
+    _script(monkeypatch, {"cat-file": _done(code=128), "rev-parse": _done(ID1)})
 
     # When the file is read at a revision that exists
     content = _history().show("c3", Path("b.txt"))
@@ -182,7 +184,7 @@ def test_a_file_is_read_exactly_as_git_stores_it(
 ) -> None:
     """AC-4: the trailing newline of a file is kept."""
     # Given a git that prints a file
-    calls = _script(monkeypatch, {"show": _done("b\n"), "rev-parse": _done(ID1)})
+    calls = _script(monkeypatch, {"cat-file": _done("b\n"), "rev-parse": _done(ID1)})
 
     # When the file is read
     content = _history().show("c2", Path("sub/b.txt"))
@@ -192,17 +194,34 @@ def test_a_file_is_read_exactly_as_git_stores_it(
     assert calls[-1][-1] == "c2:sub/b.txt"
 
 
+def test_the_line_endings_of_a_file_and_a_message_are_kept(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-1, AC-4: a CRLF is not turned into an LF."""
+    # Given a git that prints a file and a commit with CRLF line endings
+    log = f"{ID1}\0crlf\r\n\r\nbody\r\n\0"
+    _script(monkeypatch, {"cat-file": _done("a\r\nb\r\n"), "log": _done(log)})
+
+    # When the file and the commit are read
+    content = _history().show("c2", Path("a.txt"))
+    commits = _history().history("a..b")
+
+    # Then the carriage returns are still there
+    assert content == "a\r\nb\r\n"
+    assert commits[0].message.startswith("crlf\r\n\r\nbody")
+
+
 def test_the_index_is_read_by_path_from_the_root(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """AC-5: `:path` names the staged file, and a missing one is `None`."""
     # Given a git that prints a staged file
-    calls = _script(monkeypatch, {"show": _done("staged\n")})
+    calls = _script(monkeypatch, {"cat-file": _done("staged\n")})
     repository = adapters.GitRepository(FakeEnvironment(Path("/")))
 
     # When the index is read, and then a file that git does not find
     staged = repository.show_index(Path("a.txt"))
-    _script(monkeypatch, {"show": _done(code=128)})
+    _script(monkeypatch, {"cat-file": _done(code=128)})
     missing = repository.show_index(Path("new.txt"))
 
     # Then the staged content and none come back

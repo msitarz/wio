@@ -327,3 +327,45 @@ def test_a_read_leaves_the_repository_as_it_was(
 
     # Then the bytes of the index, the refs and the tree are the same
     assert _snapshot(sandbox) == before
+
+
+@pytest.mark.slow
+def test_line_endings_come_back_as_committed(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-1, AC-4, AC-5: a CRLF in a file or a message is not turned into an LF."""
+    # Given a file and a commit message with CRLF line endings
+    _, history, repository = _history(sandbox, monkeypatch)
+    (sandbox.root / "crlf.txt").write_bytes(b"a\r\nb\r\n")
+    git(sandbox, "add", "crlf.txt", check=True)
+    message = sandbox.root.parent / "message"
+    message.write_bytes(b"crlf\r\n\r\nbody\r\n")
+    git(sandbox, "commit", "-q", "--cleanup=verbatim", "-F", str(message), check=True)
+    (sandbox.root / "staged.txt").write_bytes(b"x\r\ny\r\n")
+    git(sandbox, "add", "staged.txt", check=True)
+
+    # When the file, the message and the staged file are read
+    content = history.show("HEAD", Path("crlf.txt"))
+    commit = history.first_parents("HEAD")[0]
+    staged = repository.show_index(Path("staged.txt"))
+
+    # Then every carriage return is still there
+    assert content == "a\r\nb\r\n"
+    assert commit.message.startswith("crlf\r\n\r\nbody")
+    assert staged == "x\r\ny\r\n"
+
+
+@pytest.mark.slow
+def test_a_directory_is_not_a_file(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-4, AC-5: a path that names a directory reads as no file."""
+    # Given the repository, in which `sub` is a directory
+    _, history, repository = _history(sandbox, monkeypatch)
+
+    # When the directory is read at a revision and in the index
+    at_revision = history.show("c1", Path("sub"))
+    staged = repository.show_index(Path("sub"))
+
+    # Then both are none
+    assert (at_revision, staged) == (None, None)

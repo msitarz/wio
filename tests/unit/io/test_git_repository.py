@@ -42,9 +42,11 @@ def _fake_run(
     """
     calls: list[list[str]] = []
 
-    def run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+    def run(command: list[str], **_: object) -> subprocess.CompletedProcess[bytes]:
         calls.append(command)
-        return result
+        return subprocess.CompletedProcess(
+            [], result.returncode, result.stdout.encode(), result.stderr.encode()
+        )
 
     monkeypatch.setattr(subprocess, "run", run)
     return calls
@@ -119,9 +121,11 @@ def test_git_runs_in_the_directory_the_environment_reports(
     """AC-3: the directory is handed to git as its working directory."""
     # Given a git that records how it is run, and an environment's directory
     seen: list[object] = []
-    done = subprocess.CompletedProcess([], 0, stdout="/r\n", stderr="")
+    done = subprocess.CompletedProcess([], 0, stdout=b"/r\n", stderr=b"")
 
-    def run(_command: list[str], **options: object) -> subprocess.CompletedProcess[str]:
+    def run(
+        _command: list[str], **options: object
+    ) -> subprocess.CompletedProcess[bytes]:
         seen.append(options.get("cwd"))
         return done
 
