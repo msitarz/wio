@@ -60,28 +60,33 @@ commits.
 ## Mechanisms
 
 - **Record parser with both readers** — one parser in `wio.formats`, built by
-  the shape leaf, that reads a record with the `scan` or the `git` reader of
+  `pnf585`, that reads a record with the `scan` or the `git` reader of
   [concepts.md](../../../../docs/concepts.md#records).
 - **Record renderer** — the one renderer of `Wio-*` records in `wio.formats`,
-  built by the print leaf.
-- **Field validator** — the one validator of a record's fields, built by the
-  validator leaf, which the write command and the commit-time check share.
-- **`History` port and its git adapter** — gives commits, files at a revision
-  and the staged index, built by the history leaf.
-- **`Contracts` port and its adapter** — gives a Work's items and pipelines,
-  built by the lookup leaf.
+  built by `eh62g6`.
+- **Field validator** — the one validator of a record's fields, built by
+  `hk3qt5`, which the write command and the commit-time check share.
+- **The git adapters** — the adapter of the `History` port, which gives commits
+  and files at a revision, and the `show_index` and `is_dirty` members of the
+  `Repository` port, which give the staged index and the state of the working
+  tree, built by `chqy1s`.
+- **`Contracts` port and its adapter** — provisional, gives a Work's items and
+  pipelines, and its adapter is built by `jzvrtx`.
 - **`EventSink` port** — accepts the `review` event.
 - **Stage-rules port** — provisional, gives the rules a stage selects with their
-  hashes, which the rules Work satisfies; the gate leaf consumes it.
-- **The `wio trailers` command** — in `wio.cli`, built by the command leaf,
-  which wires every adapter and the no-op `EventSink`.
+  hashes, which the rules Work satisfies; `jyhy64` consumes it. Until the rules
+  Work exists, `wio trailers` wires a null adapter that selects no rule, so a
+  cited rule code is refused.
+- **The `wio trailers` command** — in `wio.cli`, built by `37vw05`, which wires
+  every adapter and the no-op `EventSink`.
 
 ## Constraints
 
 ### C-1
 
-All history reads go through the `History` port. No child calls git directly.
-A reviewer judges this by reading the children's imports.
+All reads of the history and of the index go through the `History` and
+`Repository` ports. No child calls git directly. A reviewer judges this by
+reading the children's imports.
 
 ### C-2
 
@@ -103,7 +108,9 @@ in `wio.cli`.
 ## Visuals
 
 The Before diagram is drawn from `9bfd62b` on `main`; the After diagram is
-the design this Work delivers.
+the design this Work delivers. The After diagram marks `G` as new because it is
+the one flow with no counterpart in the Before diagram: every other flow
+replaces one of `records.py`.
 
 ### Before
 
@@ -227,7 +234,18 @@ usage error or `WioError`. A refused field of a record is a failed check.
   run.
 - **Then** each command exits 2.
 
-### **AC-6** The hook and the workflows no longer use `records.py`
+### **AC-6** The command works on a real repository
+
+#### A round trip with no injected adapter
+
+- **Given** a repository with a Work and one of its stages, and no injected
+  adapter.
+- **When** `wio trailers <work> <action> <stage>` prints a record, a commit
+  carries it in its message, and `wio trailers check --ref-range HEAD~1..HEAD`
+  and `wio trailers fold block HEAD~1..HEAD` run.
+- **Then** each exits 0 and the fold prints that record.
+
+### **AC-7** The hook and the workflows no longer use `records.py`
 
 #### The script and its references are gone
 
@@ -241,7 +259,8 @@ usage error or `WioError`. A refused field of a record is a failed check.
 
 The fold rules and the readers are specified in
 [concepts.md](../../../../docs/concepts.md#records), the baseline the children
-implement. The hook and workflow change is the `22j7aw` child's; the reader
-choice, the exempt subjects, the reviewed-commit boundaries and the checks of
-each field belong to the `check`, `write` and `fold` children, and the adapters
-and the command to the history and command leaves.
+implement. The hook and workflow change is `22j7aw`'s; the reader choice, the
+exempt subjects, the reviewed-commit boundaries and the checks of each field
+belong to the `check`, `write` and `fold` children; the git adapters are
+`chqy1s`'s, the `Contracts` adapter is `jzvrtx`'s, and the command and its
+wiring are `37vw05`'s.
