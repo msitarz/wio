@@ -2,8 +2,8 @@
 
 The component behind `wio trailers`: it prints, judges and folds the records of
 commits, finds the commit a gate reviewed and records a gate's result, and runs
-as one command, so that
-every command that handles a record reads and writes it the same way. A
+as one command, so that every command that handles a record reads and writes it
+the same way. A
 [record](../../../GLOSSARY.md) is a paragraph of `Wio-*` trailers, and
 [Records](../../../docs/concepts.md#records) says what each key means. The
 component reads the Works through the `Contracts` port of
@@ -65,9 +65,10 @@ reads.
 
 `run_write` and `configure_write` in [`write.py`](write.py) are the write form
 of `wio trailers`, `wio trailers <work> <action> <stage>`, which prints the
-record that an agent adds to its commit message. `wio.cli` dispatches on the
-first argument, wires the ports and turns an error into the exit code 2, so this
-module holds only what the form does and is run in a test with fakes. Their
+record that an agent adds to its commit message. [The command](#the-command)
+dispatches on the first argument, `wio.cli` wires the ports and turns an error
+into the exit code 2, so this module holds only what the form does and is run in
+a test with fakes. Their
 docstrings say what each takes, prints and raises, and the
 [tests](../../../tests/unit/trailers/test_write.py) say how each case reads.
 
@@ -107,8 +108,8 @@ docstrings say what each takes, prints and raises, and the
   A missing stage, an unknown option or a config that cannot be read are refused
   by argparse and by the loader, so a mistake in how the command is called is
   never mistaken for a record that does not hold. The dispatch on the first
-  argument and the turning of every such error into the exit code 2 belong to
-  the command that wires the forms together, in `wio.cli`, and not to this
+  argument belongs to [the command](#the-command) that joins the forms, and the
+  turning of every such error into the exit code 2 to `wio.cli`, and not to this
   module.
 - **A stage outside the Work's pipeline is a warning here as well.** The record
   is printed and the warning goes to standard error, as the validator reports
@@ -126,12 +127,12 @@ pull request body and prints it with them at its end. A squash merge keeps only
 the body, so the records of its commits are copied there, and the
 [concepts](../../../docs/concepts.md#records) say what the fold keeps and which
 [reader](../../../docs/concepts.md#reading-records) a folded body belongs to.
-`wio.cli` dispatches, wires the history and turns a usage error into the exit
-code 2, and this module holds what the fold does, so it is run in a test with
-fakes. It prints to standard output and edits no pull request and calls no CI,
-which the command that adopts it in the hook and the workflow does, and the
-revision range that it takes is a provisional way to name the commits. Its
-docstrings say what each takes and returns, and the
+[The command](#the-command) dispatches, `wio.cli` wires the history and turns a
+usage error into the exit code 2, and this module holds what the fold does, so
+it is run in a test with fakes. It prints to standard output and edits no pull
+request and calls no CI, which the command that adopts it in the hook and the
+workflow does, and the revision range that it takes is a provisional way to name
+the commits. Its docstrings say what each takes and returns, and the
 [tests](../../../tests/unit/trailers/test_fold.py) say how each case reads. The
 fold checks no record, which the check commands do, so a record that they would
 refuse has no defined fold.
@@ -186,8 +187,9 @@ refuse has no defined fold.
 in [`check.py`](check.py) are the check form of `wio trailers` in its
 commit-time mode, `check --require [PATH]`, which a commit-msg hook runs. It
 refuses a wrong record before the commit enters the history, so a record never
-has to be repaired afterwards. `wio.cli` dispatches and wires the ports, and
-this module holds what the check does, so it is run in a test with fakes. Its
+has to be repaired afterwards. [The command](#the-command) dispatches, `wio.cli`
+wires the ports, and this module holds what the check does, so it is run in a
+test with fakes. Its
 docstrings say what each takes and returns, and the
 [tests](../../../tests/unit/trailers/test_check.py) say how each case reads. A
 body or a range of commits is checked
@@ -390,8 +392,8 @@ case reads.
 - **A form's parser must not exit the process.** Argparse's own `SystemExit`
   would escape `wio.cli`, so the forms are parsed with a parser that raises
   instead, and the `-h` of a form writes its usage to standard output and exits
-  0. The contract does not mention that help; it is the one way a form's
-  `-h` does not end as a bug.
+  0. The help of a form is not in the contract; without it, a form's `-h` would
+  end as a bug.
 - **There is no `--json`, on purpose.** The write form prints a plain record to
   append to a commit message and a check sends its findings to standard error,
   so the command deviates from the convention that every command declares

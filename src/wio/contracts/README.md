@@ -11,7 +11,7 @@ every subcommand shares, and each subcommand lives in a module of its own.
 
 Every command agrees on what a Work is, what it inherits and what it depends on,
 because the code that finds and reads Works is here and nowhere else. Its
-functions are the ones that the ports of the later `wio trailers`, `wio rules`
+functions are the ones that the ports of `wio trailers`, the later `wio rules`
 and `wio context` can wrap, so none of them needs to read a contract on its own.
 The sections below say how each part works, and these hold for all of them.
 
