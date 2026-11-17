@@ -60,7 +60,11 @@ def check_shape(message: str, reader: Reader) -> list[Finding]:
     """Judge the form of every record of a message.
 
     A record is judged for its keys, the form of each value and the ids of each
-    list, and not against the config or the Works, which the modes check. A
+    list, and not against the config or the Works, which the modes check. A key
+    that is missing, repeated or forbidden in a `Wio-Work: none` record, a
+    `Wio-Judge` with no `Wio-Result`, and a repeated id or a `none` in a list of
+    Works are `malformed`; a `Wio-` key the engine does not define is
+    `unknown-key`. A
     rejected `Wio-` line is an `invisible` finding.
 
     Args:

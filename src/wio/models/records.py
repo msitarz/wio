@@ -1,9 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The types of a record as `wio.formats` reads it, and of a finding about it.
-
-They are plain data with no behavior to specify, so they are written as the
-final `.py` now instead of as a stub.
-"""
+"""The types of a record as `wio.formats` reads it, and of a finding about it."""
 
 from dataclasses import dataclass
 from typing import Literal
@@ -13,8 +9,7 @@ from typing import Literal
 class Trailer:
     """One `Wio-` line of a message.
 
-    It is immutable. Provisional: the implementation stage may rename its
-    fields.
+    It is immutable.
 
     Attributes:
         key: The key as written, such as `Wio-Work`.
@@ -33,8 +28,7 @@ class Trailer:
 class Record:
     """The `Wio-` lines of one paragraph that the configured reader reads.
 
-    It is immutable. Provisional: the implementation stage may rename its
-    fields.
+    It is immutable.
 
     Attributes:
         trailers: The lines in the order of the paragraph, a repeated key
@@ -48,8 +42,7 @@ class Record:
 class Reading:
     """What the configured reader sees in a message.
 
-    It is immutable. Provisional: the implementation stage may rename its
-    fields.
+    It is immutable.
 
     Attributes:
         records: The records in the order of the message.
@@ -67,8 +60,7 @@ class Reading:
 class Finding:
     """One thing wrong with the records of a message.
 
-    It carries no severity, which the mode that uses it decides. It is
-    immutable. Provisional: the implementation stage may rename its fields.
+    It carries no severity, which the mode that uses it decides. It is immutable.
 
     Attributes:
         kind: `malformed` for a record or a value that breaks its form,

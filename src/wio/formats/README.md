@@ -218,6 +218,12 @@ and what a record holds.
   [concepts](../../../docs/concepts.md#identity-and-location) say of an id a
   person writes. An action, a stage and a result are lowercase names of letters,
   digits and hyphens that start with a letter or a digit.
+- **A record's keys are judged as a set.** `Wio-Work` is required, and so are
+  `Wio-Action` and `Wio-Stage` unless the Work is `none`, which allows no other
+  key. A key is never repeated, a `Wio-Judge` needs a `Wio-Result`, and `none`
+  never sits in a list of Works or an id twice. A `Wio-` key the engine does not
+  define is a finding of its own kind, `unknown-key`, and not a malformed
+  record.
 - **The vocabulary of the config and the Works of the tree are not its
   business.** A stage the config does not list, or a result outside
   `gates.results`, passes the shape check, because the commit-time mode checks
@@ -227,6 +233,7 @@ and what a record holds.
   modes.
 - **A finding has no severity.** A `Finding` carries its kind, the key, the line
   as written, its 1-based number in the message and a sentence that says what is
-  wrong, and each mode decides whether it fails the check or warns. A problem of
+  wrong, and each mode decides whether it fails the check or warns, turning the
+  finding into a [diagnostic](../../../GLOSSARY.md) as it does so. A problem of
   a whole record, such as a missing key, is at the first line of the record, and
   the findings come in the order of the message.
