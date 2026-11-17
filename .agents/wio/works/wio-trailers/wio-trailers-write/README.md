@@ -20,8 +20,9 @@ produce the record and the review event itself.
 - A gate's result, judge and cited items are recorded with one command, and the
   commit the review judged is named in the `review` event; a history with no
   reviewed commit is refused.
-- A gate that needs a human is never recorded as judged by an agent, every
-  refusal prints no record and sends no event, and a warning stops neither.
+- A gate that needs a human is never recorded as judged by an agent, and a
+  refused human gate, result or reviewed commit prints no record and sends no
+  event.
 
 ## Non-Goals
 
@@ -48,9 +49,8 @@ to its commit message; the command does not edit a message.
 ## Visuals
 
 The Before diagram is drawn from `9bfd62b` on `main`; the After diagram is the
-design this Work delivers. Every node of the After diagram is new: the
-checked record and the gate's review event have no counterpart in the Before
-diagram.
+design this Work delivers. The nodes marked (new) have no counterpart in the
+Before diagram.
 
 ### Before
 
@@ -110,9 +110,8 @@ flowchart LR
 #### The record and the event carry what was passed
 
 - **Given** a gate stage with `judge = "human"`, a Work with an item `AC-1`,
-  commits on `HEAD` where
-  the latest is a pure gate commit of this gate and the one before is the work
-  commit, and a recording `EventSink`.
+  commits on `HEAD` where the latest is a pure gate commit of this gate and the
+  one before is the work commit, and a recording `EventSink`.
 - **When** `wio trailers <work> <action> <stage> --result pass --judge human
   --items AC-1 --cite AC-1=pass` runs.
 - **Then** the command exits 0, the printed record holds `Wio-Result: pass`,
