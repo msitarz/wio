@@ -16,9 +16,10 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
-from tests.unit.fakes import FakeStdio
+from tests.unit.fakes import FakeFirstParents, FakeRules, FakeStdio, RecordingSink
 from tests.unit.trailers.test_validation import CONFIG, FakeContracts
 from wio.errors import ConfigurationError
+from wio.models.commits import Commit
 from wio.trailers import Services
 from wio.trailers.errors import TrailersError
 from wio.trailers.write import configure_write, run_write
@@ -26,6 +27,12 @@ from wio.trailers.write import configure_write, run_write
 if TYPE_CHECKING:
     from wio.io.ports import FileSystem, History
 lazy from wio.models.config import Config
+
+_WORK_COMMIT = Commit(
+    f"{1:040x}",
+    "feat: x\n\nWio-Work: k3m9xq\nWio-Action: define\nWio-Stage: define",
+)
+"""The work commit under which a recorded gate result finds its artifact."""
 
 
 @dataclass(frozen=True)
@@ -65,9 +72,11 @@ def _run(argv: list[str], settings: FakeSettings | None = None) -> tuple[int, st
     services = Services(
         settings or FakeSettings(),
         FakeContracts(),
-        _NO_HISTORY,
+        cast("History", FakeFirstParents((_WORK_COMMIT,))),
         FakeContracts(),
         _NO_FILES,
+        FakeRules(),
+        RecordingSink(),
     )
     code = run_write(services, args, FakeStdio(stdout=out, stderr=err))
     return code, out.getvalue(), err.getvalue()
@@ -75,8 +84,6 @@ def _run(argv: list[str], settings: FakeSettings | None = None) -> tuple[int, st
 
 _NO_FILES = cast("FileSystem", object())
 """The write form reads no file, so any object stands for the port."""
-_NO_HISTORY = cast("History", object())
-"""The write form reads no history, so any object stands for the port."""
 R = ["k3m9xq", "deliver", "architecture"]
 GATE = ["k3m9xq", "deliver", "architecture-review"]
 
@@ -124,18 +131,6 @@ def test_a_work_that_only_head_has_is_printed() -> None:
     # Then it prints the record of `d4e5f6` and exits 0
     assert out.startswith("Wio-Work: d4e5f6\n")
     assert code == 0
-
-
-def test_a_cited_item_is_ignored() -> None:
-    """AC-1: `--cite` changes neither stream and the exit code."""
-    # Given the gate stage `architecture-review`
-    # When the command runs with and without `--cite AC-1=pass`
-    with_cite = _run([*GATE, "--result", "pass", "--cite", "AC-1=pass"])
-    without = _run([*GATE, "--result", "pass"])
-
-    # Then the exit code and both streams are the same, and the code is 0
-    assert with_cite == without
-    assert with_cite[0] == 0
 
 
 @pytest.mark.parametrize(

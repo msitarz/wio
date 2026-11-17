@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from wio.io.ports import FileSystem, History
-    from wio.ports import Settings
-    from wio.trailers.ports import Contracts
+    from wio.ports import EventSink, Settings
+    from wio.trailers.ports import Contracts, StageRules
 
 
 @dataclass(frozen=True)
@@ -26,6 +26,9 @@ class Services:
             check of a commit message needs them, where `contracts` finds them in
             the working tree and then in `HEAD`.
         files: Reads the file that holds a message to check.
+        rules: Gives the rules that a stage selects for a Work, which a review may
+            cite.
+        events: Takes the `review` event of a recorded gate result.
     """
 
     settings: Settings
@@ -33,3 +36,5 @@ class Services:
     history: History
     staged_contracts: Contracts
     files: FileSystem
+    rules: StageRules
+    events: EventSink

@@ -1,12 +1,13 @@
 # `wio.trailers`
 
 The component behind `wio trailers`: it prints, judges and folds the records of
-commits and finds the commit a gate reviewed, so that every command that handles
-a record reads and writes it the same way. A [record](../../../GLOSSARY.md) is a
-paragraph of `Wio-*` trailers, and [Records](../../../docs/concepts.md#records)
-says what each key means. The component reads the Works through the `Contracts`
-port of [`ports.pyi`](ports.pyi) and the config through the shared ports, and it
-never knows git, the files or the Works directory.
+commits, finds the commit a gate reviewed and records a gate's result, so that
+every command that handles a record reads and writes it the same way. A
+[record](../../../GLOSSARY.md) is a paragraph of `Wio-*` trailers, and
+[Records](../../../docs/concepts.md#records) says what each key means. The
+component reads the Works through the `Contracts` port of
+[`ports.pyi`](ports.pyi) and the config through the shared ports, and it never
+knows git, the files or the Works directory.
 
 ## Validating the fields of a record
 
@@ -111,8 +112,9 @@ docstrings say what each takes, prints and raises, and the
 - **A stage outside the Work's pipeline is a warning here as well.** The record
   is printed and the warning goes to standard error, as the validator reports
   it, because a record of such a stage is odd and not wrong.
-- **A cited item is accepted and ignored.** The gate form that records a result
-  handles it, and accepting it here keeps one set of options for both.
+- **A cited item is recorded by the gate form.** `--cite` is part of the same
+  command, and [recording a gate's result](#recording-a-gates-result) checks it,
+  so one set of options serves both.
 
 ## Folding the records of a range
 
@@ -281,8 +283,10 @@ judged. A gate's own commits carry only the gate's record and sit on top of the
 artifact it reviewed, so the reviewed commit is the first commit, from `HEAD`
 down, that holds something else, and a later reader of a record knows which
 artifact a review saw. It reads the history through the `History` port and
-nothing else: the `--reviewed` override, the comparison with the `context` event
-and the recording of the result belong to the gate form that composes it. Its
+nothing else: the recording of the result belongs to the
+[gate form](#recording-a-gates-result) that composes it, and the `--reviewed`
+override and the comparison with the `context` event are left to a later form.
+Its
 docstring says what it takes and returns, and the
 [tests](../../../tests/unit/trailers/test_reviewed.py) say how each case reads.
 
@@ -304,3 +308,55 @@ docstring says what it takes and returns, and the
 - **The walk follows the first parents, newest first.** A merge commit is one
   commit of that line, as the `History` port gives it, so the finder needs no
   rule of its own for merges.
+
+## Recording a gate's result
+
+`run_review`, `check_cites` and `review_event` in [`gate.py`](gate.py) are the
+gate form of `wio trailers`, the write form with `--result` and `--cite`. A
+review leaves no other trace of the items it cited, of the commit it saw or of
+who judged, so after the fields of the record hold, the form checks what was
+cited, finds the reviewed commit with
+[the finder](#finding-the-reviewed-commit), writes one `review` event and then
+prints the record. `ReviewEvent` in
+[`wio.models.events`](../models/events.py) holds the fields the form writes, and
+the Work that builds `wio log` extends it. The form reads the rules a stage
+selects through the provisional `StageRules` port of [`ports.pyi`](ports.pyi),
+which the rules component will satisfy; until it exists no rule is selected, so
+a cited rule code is refused. The docstrings say what each takes and returns,
+and the [tests](../../../tests/unit/trailers/test_gate.py) say how each case
+reads.
+
+- **The refusals come in order, and the first group that finds something stops
+  the rest.** The print form's field errors come first, then the cites, then a
+  history with no reviewed commit, so a mistake in the record is never reported
+  together with a mistake in the review that depends on it. A refusal prints
+  nothing on standard output, writes no event and exits 1.
+- **A cite is an item of the Work, or a qualified rule that the stage selects.**
+  A key is an item when the Work has it, and otherwise it must be a
+  `ruleset.CODE` that the stage selects, which is stricter than the config
+  choosing the rule and tells an item from a rule without guessing at the form
+  of an id. A result outside `gates.results`, a key cited twice and a cite given
+  without `--result` are refused too.
+- **A refusal names what to fix.** The line is `error: <name>: <message>`, with
+  `--cite` as the name for a cite that is not `KEY=RESULT` with a key and a
+  result and for a `--cite` without `--result`, and the cite's own key for the
+  rest. The offending line is not repeated, because the name already says which
+  cite it is.
+- **The judge is recorded as given, and a gate that needs a human is recorded
+  twice.** `agent` is the default and a human gate is not refused for it, so a
+  reviewer session and the driver each record a result and each write an event
+  that the judge keeps apart. `wio trailers` cannot prove who typed `human`, and
+  deciding whether a human gate passed belongs to the command that reads the
+  records.
+- **The event is written once, after every check passed.** It is written after a
+  warning, such as a stage outside the Work's pipeline, and never on a refusal,
+  so the log holds only reviews whose record was printed. It names the Work, the
+  action, the stage, the reviewed commit as a full sha, the judge, the result
+  and each cited key with its result, and for a rule the hash of its file that
+  the `context` event records, because what is not cited was not judged.
+- **A sink that fails never fails the command.** The `EventSink` port reports
+  its own warning and does not raise, so the record is printed and the exit code
+  is 0, because a log that cannot be written must not block a review.
+- **A history with no reviewed commit is an error.** The event has nothing to
+  name, so the form prints `error: Wio-Work: no reviewed commit was found` and
+  records nothing.

@@ -8,9 +8,9 @@ is the oldest and the highest number is `HEAD`. A gate record is the record of
 `Wio-Result: pass`, and the reader is `scan` unless a scenario says otherwise.
 """
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
+from tests.unit.fakes import FakeFirstParents
 from tests.unit.trailers.test_fold import _commit, _id
 from wio.trailers.reviewed import reviewed_commit
 
@@ -25,25 +25,6 @@ GATE = (
 WORK = "Wio-Work: k3m9xq\nWio-Action: define\nWio-Stage: define"
 
 
-@dataclass(frozen=True)
-class FirstParents:
-    """A `History` port over a line of commits, which gives them newest first."""
-
-    commits: tuple[Commit, ...]
-
-    def first_parents(self, revision: str) -> tuple[Commit, ...]:
-        """List the commits, newest first.
-
-        Args:
-            revision: The revision, which must be `HEAD`.
-
-        Returns:
-            The commits from `HEAD` down.
-        """
-        assert revision == "HEAD"
-        return tuple(reversed(self.commits))
-
-
 def _find(*commits: Commit, reader: Reader = "scan") -> str | None:
     """Find the commit that the gate `review-contract` of `define` reviewed.
 
@@ -54,7 +35,7 @@ def _find(*commits: Commit, reader: Reader = "scan") -> str | None:
     Returns:
         What `reviewed_commit` returns.
     """
-    history = cast("History", FirstParents(commits))
+    history = cast("History", FakeFirstParents(commits))
     return reviewed_commit("define", "review-contract", history, reader)
 
 

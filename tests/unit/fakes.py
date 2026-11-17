@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, TextIO
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
+
+    from wio.models.commits import Commit
+    from wio.models.events import Event
 
 ROOT = Path("/repo")
 
@@ -222,3 +225,80 @@ class FakeEntropy:
         """
         self.counts.append(count)
         return self.calls[min(len(self.counts), len(self.calls)) - 1]
+
+
+@dataclass
+class RecordingSink:
+    """An `EventSink` that keeps the events it is given.
+
+    Attributes:
+        events: The events written, in order.
+        warning: What a write reports on `stderr` and still does not raise, or
+            `None` for a sink that writes.
+        stderr: Where the warning is reported.
+    """
+
+    events: list[Event] = field(default_factory=list)
+    warning: str | None = None
+    stderr: TextIO = field(default_factory=io.StringIO)
+
+    def write(self, event: Event) -> None:
+        """Keep the event, or report that the write failed.
+
+        Args:
+            event: The event to record.
+        """
+        if self.warning is None:
+            self.events.append(event)
+        else:
+            self.stderr.write(f"warning: {self.warning}\n")
+
+
+@dataclass(frozen=True)
+class FakeRules:
+    """A `StageRules` port over a table of the rules of each stage of a Work.
+
+    Attributes:
+        rules: For a Work, an action and a stage, the qualified code of each rule
+            it selects with its hash; a stage that is not a key selects none.
+    """
+
+    rules: Mapping[tuple[str, str, str], Mapping[str, str]] = field(
+        default_factory=dict
+    )
+
+    def selected(self, work_id: str, action: str, stage: str) -> Mapping[str, str]:
+        """Give the rules that a stage of a Work selects.
+
+        Args:
+            work_id: The Work's id.
+            action: The action.
+            stage: The stage.
+
+        Returns:
+            The rules of the table for it, or none.
+        """
+        return self.rules.get((work_id, action, stage), {})
+
+
+@dataclass(frozen=True)
+class FakeFirstParents:
+    """A `History` port over a line of commits, which gives them newest first.
+
+    Attributes:
+        commits: The commits from the oldest.
+    """
+
+    commits: tuple[Commit, ...]
+
+    def first_parents(self, revision: str) -> tuple[Commit, ...]:
+        """List the commits, newest first.
+
+        Args:
+            revision: The revision, which must be `HEAD`.
+
+        Returns:
+            The commits from `HEAD` down.
+        """
+        assert revision == "HEAD"
+        return tuple(reversed(self.commits))

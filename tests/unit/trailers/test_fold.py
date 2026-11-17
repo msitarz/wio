@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
-from tests.unit.fakes import FakeStdio
+from tests.unit.fakes import FakeRules, FakeStdio, RecordingSink
 from tests.unit.trailers.test_validation import FakeContracts
 from tests.unit.trailers.test_write import FakeSettings
 from wio.models.commits import Commit
@@ -142,6 +142,8 @@ def _run(
         history,
         FakeContracts(),
         cast("FileSystem", object()),
+        FakeRules(),
+        RecordingSink(),
     )
     code = run_fold(services, args, FakeStdio(io.StringIO(body), out, err))
     assert code == 0
