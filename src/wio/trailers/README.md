@@ -295,8 +295,9 @@ docstring says what it takes and returns, and the
 - **The reader decides what a record is.** A gate record that the configured
   reader cannot see is not a record, so under `git` a gate record that is not in
   the last paragraph does not make a gate commit, and the commit is the
-  reviewed one. The finder judges the records that the reader sees and ignores
-  the lines it rejects.
+  reviewed one unless another record that the reader sees makes it a gate
+  commit. The finder judges the records that the reader sees and ignores the
+  lines it rejects.
 - **No reviewed commit is a result, not an error.** A history of only gate
   commits, and an empty one, give `None`, so the caller decides what a gate with
   nothing under it means.
