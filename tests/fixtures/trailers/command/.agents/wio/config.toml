@@ -1,0 +1,16 @@
+# A project with a gate that needs a human, and a Work whose `deliver` lists a stage
+# and that gate.
+
+[actions.deliver]
+description = "Build what the Work says."
+
+[stages.architecture]
+goal = "Write the boundaries."
+
+[stages.architecture-review]
+gate = true
+judge = "human"
+goal = "Judge the boundaries."
+
+[templates.kinds]
+feature = "t.leaf"

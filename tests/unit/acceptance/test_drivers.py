@@ -21,18 +21,33 @@ if TYPE_CHECKING:
 class FakeDriver:
     """A test driver that returns a fixed result."""
 
-    def run(self, args: Sequence[str], directory: str | None = None) -> RunResult:
+    def run(
+        self, args: Sequence[str], directory: str | None = None, stdin: str = ""
+    ) -> RunResult:
         """Answer with a fixed result whatever the arguments.
 
         Args:
             args: The arguments, ignored.
             directory: The directory, ignored.
+            stdin: What standard input holds, ignored.
 
         Returns:
             The fixed result.
         """
-        del args, directory
+        del args, directory, stdin
         return RunResult("usage\n", "warning\n", 3)
+
+    def git(self, args: Sequence[str]) -> RunResult:
+        """Answer with a silent success.
+
+        Args:
+            args: The arguments, ignored.
+
+        Returns:
+            A silent success.
+        """
+        del args
+        return RunResult("", "", 0)
 
     def install(self, fixture: str) -> None:
         """Install nothing.
@@ -157,21 +172,39 @@ class RecordingDriver:
         """Start with nothing recorded."""
         self.arguments: list[Sequence[str]] = []
         self.directories: list[str | None] = []
+        self.inputs: list[str] = []
+        self.git_calls: list[Sequence[str]] = []
         self.installed: list[str] = []
         self.written: dict[str, bytes] = {}
 
-    def run(self, args: Sequence[str], directory: str | None = None) -> RunResult:
-        """Record the arguments and the directory.
+    def run(
+        self, args: Sequence[str], directory: str | None = None, stdin: str = ""
+    ) -> RunResult:
+        """Record the arguments, the directory and the standard input.
 
         Args:
             args: The arguments after the program name.
             directory: The directory the facade asked to run in.
+            stdin: What the facade gave as standard input.
 
         Returns:
             A silent success.
         """
         self.arguments.append(args)
         self.directories.append(directory)
+        self.inputs.append(stdin)
+        return RunResult("", "", 0)
+
+    def git(self, args: Sequence[str]) -> RunResult:
+        """Record the arguments of a git call.
+
+        Args:
+            args: The arguments after `git`.
+
+        Returns:
+            A silent success.
+        """
+        self.git_calls.append(args)
         return RunResult("", "", 0)
 
     def install(self, fixture: str) -> None:
@@ -240,6 +273,39 @@ def test_the_facade_passes_the_directory_to_the_driver() -> None:
 
     # Then the driver was given the directory, and none for the second
     assert driver.directories == ["p", None]
+
+
+def test_the_facade_gives_the_driver_the_standard_input() -> None:
+    """`run` hands the standard input on, and an empty one without it."""
+    # Given a facade over a recording driver
+    driver = RecordingDriver()
+    wio = Wio(driver)
+
+    # When a command runs with a message on standard input and another without
+    wio.run(["trailers", "check", "-"], stdin="feat: x\n")
+    wio.run(["trailers", "check", "f"])
+
+    # Then the driver was given the message, and an empty input for the second
+    assert driver.inputs == ["feat: x\n", ""]
+
+
+def test_the_facade_commits_everything_as_the_sandbox() -> None:
+    """`commit` stages all and commits with the message, allowing an empty one."""
+    # Given a facade over a recording driver
+    driver = RecordingDriver()
+    wio = Wio(driver)
+
+    # When a scenario commits a message, and then an empty gate commit
+    wio.commit("feat: x")
+    wio.commit("chore: gate", empty=True)
+
+    # Then git was asked to stage everything and to commit with that message
+    assert driver.git_calls == [
+        ["add", "-A"],
+        ["commit", "--quiet", "-m", "feat: x"],
+        ["add", "-A"],
+        ["commit", "--quiet", "--allow-empty", "-m", "chore: gate"],
+    ]
 
 
 def test_the_facade_installs_a_fixture_by_name() -> None:

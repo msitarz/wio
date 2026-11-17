@@ -78,7 +78,9 @@ class Wio:
         """
         return self.driver.read(path)
 
-    def run(self, args: Sequence[str], directory: str | None = None) -> Output:
+    def run(
+        self, args: Sequence[str], directory: str | None = None, stdin: str = ""
+    ) -> Output:
         """Run `wio` with some arguments.
 
         Args:
@@ -86,16 +88,35 @@ class Wio:
                 `["config", "show", "works"]`.
             directory: A directory below the root of the repository to run in,
                 or `None` to run at the root.
+            stdin: What standard input holds.
 
         Returns:
             Both output streams and the exit code.
         """
-        result = self.driver.run(args, directory)
+        result = self.driver.run(args, directory, stdin)
         return Output(
             stdout=result.stdout,
             stderr=result.stderr,
             exit_code=result.exit_code,
         )
+
+    def commit(self, message: str, *, empty: bool = False) -> None:
+        """Stage everything and commit it, as the fixed identity of the sandbox.
+
+        Only the CLI channel has a git repository.
+
+        Args:
+            message: The whole commit message.
+            empty: Whether to allow a commit that changes nothing, as a gate's own
+                commit does.
+
+        Raises:
+            AssertionError: If git refused the commit.
+        """
+        self.driver.git(["add", "-A"])
+        flags = ["--allow-empty"] if empty else []
+        done = self.driver.git(["commit", "--quiet", *flags, "-m", message])
+        assert done.exit_code == 0, done.stderr
 
     def check_config(self, fixture: str) -> Output:
         """Run `wio config check` on a static sample repository.

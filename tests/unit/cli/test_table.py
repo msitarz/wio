@@ -4,17 +4,18 @@
 import sys
 import types
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from wio.cli.table import component_entry
+import pytest
+
+from wio.cli.table import _root, component_entry
+from wio.trailers.errors import TrailersError
 
 if TYPE_CHECKING:
     from argparse import Namespace
 
-    import pytest
-
     from wio.cli.ports import Command, CommandSpec
-    from wio.io.ports import Stdio
+    from wio.io.ports import Repository, Stdio
 
 SRC = Path(__file__).resolve().parents[3] / "src" / "wio"
 NOT_COMPONENTS = {"cli", "env", "errors", "formats", "io", "models", "ports"}
@@ -72,3 +73,26 @@ def test_describing_an_entry_does_not_wire_it(monkeypatch: pytest.MonkeyPatch) -
     # Then it returns that spec and wire was not called
     assert described is spec
     assert wired == []
+
+
+class OutsideRepository:
+    """A `Repository` port whose working directory is not in a repository."""
+
+    def root(self) -> Path:
+        """Refuse, as the git adapter does outside a repository.
+
+        Raises:
+            RuntimeError: Always.
+        """
+        message = "not inside a git repository"
+        raise RuntimeError(message)
+
+
+def test_a_working_directory_outside_a_repository_is_a_usage_error() -> None:
+    """`wio trailers` outside a repository raises a `TrailersError`, not a bug."""
+    # Given a repository port whose root is refused for a directory outside a
+    # repository
+    # When the root is looked up for `wio trailers`
+    # Then the refusal is a `TrailersError`, which exits 2
+    with pytest.raises(TrailersError):
+        _root(cast("Repository", OutsideRepository()))
