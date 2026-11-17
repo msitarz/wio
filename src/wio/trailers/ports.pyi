@@ -5,7 +5,7 @@ Provisional: the architecture review may rename them. The component that
 satisfies each is wired in by `wio.cli`; `wio.trailers` never imports it.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Protocol
 
 from wio.models.events import ContextEvent
@@ -65,5 +65,27 @@ class Events(Protocol):
             earliest one from the same working directory since the latest
             `review` event when the session id is unknown; `None` when there is
             none.
+        """
+        ...
+
+class StageRules(Protocol):
+    """The rules that a stage selects for a Work."""
+
+    def selected(self, work_id: str, action: str, stage: str) -> Mapping[str, str]:
+        """Find the rules that a stage selects for a Work.
+
+        The component that selects the rules satisfies it; until it exists,
+        `wio trailers` wires an adapter that selects none, so a cited rule code is
+        refused.
+
+        Args:
+            work_id: The Work's id.
+            action: The action.
+            stage: The stage.
+
+        Returns:
+            The qualified code of each rule the stage selects, such as
+            `docs.DOC001`, with the hash of the rule's file that the `context`
+            event records, and empty when the stage selects none.
         """
         ...
