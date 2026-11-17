@@ -14,17 +14,17 @@ sink's warning and never the command's failure.
 `configure_write` gives `--cite` its meaning, which the print leaf accepted and
 ignored, and `run_write` calls `run_review` once every field holds and has no error,
 only when `--result` or `--cite` is given. `wio.trailers.Services` has the fields
-`rules`, the `StageRules` port, and `events`, the `EventSink` port, which `wio.cli`
-wires with an adapter that selects no rule and one that drops the events until
-their components exist.
-
-The form composes the check of the cites, the finder of the reviewed commit and the
-event sink, and the leaves that check the cites and build the event are stubbed.
+`rules`, the `StageRules` port, and `events`, the `EventSink` port, which the
+command that wires the forms gives an adapter that selects no rule and one that
+drops the events until their components exist. The form composes the check of the
+cites, the finder of the reviewed commit and the event sink.
 """
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.models.events import ReviewEvent
+from wio.models.records import Finding
 from wio.trailers.reviewed import reviewed_commit
 
 if TYPE_CHECKING:
@@ -32,8 +32,6 @@ if TYPE_CHECKING:
 
     from wio.io.ports import Stdio
     from wio.models.config import Config
-    from wio.models.events import ReviewEvent
-    from wio.models.records import Finding
     from wio.trailers import Services
 
 
@@ -70,9 +68,9 @@ def check_cites(
     own key otherwise; the `line` of a finding is the cite as written and its `number`
     the 1-based place among the cites, and the line is not written. The refusals are
     a cite with no `=`, an empty key or result, a key repeated, a result outside
-    `gates.results`, an item the Work lacks, a code
-    that is not qualified or that the stage does not select, and `--cite` without
-    `--result`, and one finding is given for each cite at most, in the order given.
+    `gates.results`, an item the Work lacks, a code that is not qualified or that the
+    stage does not select, and `--cite` without `--result`, and one finding is given
+    for each cite at most, in the order given.
 
     Args:
         raw: The values of `--cite`, each `KEY=RESULT`, in the order given.
@@ -85,7 +83,73 @@ def check_cites(
         The cites in the order given and no finding when every cite holds, and no
         cites and the findings otherwise.
     """
-    raise NotImplementedError
+    seen: set[str] = set()
+    refusals = [
+        _refusal(text, (known, seen), config, has_result=has_result) for text in raw
+    ]
+    findings = [
+        Finding("malformed", refusal[0], text, number, refusal[1])
+        for number, (text, refusal) in enumerate(zip(raw, refusals, strict=True), 1)
+        if refusal is not None
+    ]
+    if findings:
+        return [], findings
+    return [Cite(*text.split("=", 1)) for text in raw], []
+
+
+def _refusal(
+    text: str,
+    context: tuple[tuple[frozenset[str], Mapping[str, str]], set[str]],
+    config: Config,
+    *,
+    has_result: bool,
+) -> tuple[str, str] | None:
+    """Say why one `--cite` value is refused, if it is, and remember its key.
+
+    Args:
+        text: The value, `KEY=RESULT`.
+        context: The item ids of the Work with the rules that the stage selects, and
+            the keys of the cites already seen, to which a key that holds is added.
+        config: The config, for `gates.results`.
+        has_result: Whether `--result` was given.
+
+    Returns:
+        The name to print after `error: ` and the message, or `None` for a value
+        that holds. The name is `--cite` for a value that is not `KEY=RESULT` with
+        a key and a result and for a call with no `--result`, and the key otherwise.
+    """
+    key, _, result = text.partition("=")
+    if not has_result:
+        return ("--cite", "`--cite` needs a `--result`.")
+    if not (key and result and "=" in text):
+        return ("--cite", f"`{text}` is not `KEY=RESULT` with a key and a result.")
+    if result not in config.gates.results:
+        return (key, f"`{result}` is not a result of the config.")
+    if key in context[1]:
+        return (key, f"`{key}` is cited more than once.")
+    context[1].add(key)
+    return _unknown_key(key, context[0])
+
+
+def _unknown_key(
+    key: str, known: tuple[frozenset[str], Mapping[str, str]]
+) -> tuple[str, str] | None:
+    """Say why a cited key is neither an item of the Work nor a selected rule.
+
+    Args:
+        key: The key of a cite.
+        known: The item ids of the Work and the rules that the stage selects.
+
+    Returns:
+        The name to print after `error: ` and the message, or `None` for an item or a
+        rule that the stage selects.
+    """
+    items, rules = known
+    if key in items or key in rules:
+        return None
+    if "." in key:
+        return (key, f"The stage does not select the rule `{key}`.")
+    return (key, f"`{key}` is neither an item of the Work nor a qualified rule code.")
 
 
 def review_event(
@@ -108,7 +172,16 @@ def review_event(
         The event, with each cited key and its result in the order given, and the
         hash of each cited rule.
     """
-    raise NotImplementedError
+    return ReviewEvent(
+        record["Wio-Work"],
+        record["Wio-Action"],
+        record["Wio-Stage"],
+        commit,
+        record["Wio-Judge"],
+        record["Wio-Result"],
+        {cite.key: cite.result for cite in cites},
+        {cite.key: rules[cite.key] for cite in cites if cite.key in rules},
+    )
 
 
 def run_review(

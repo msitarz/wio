@@ -33,9 +33,6 @@ _WORK_COMMIT = Commit(
     "feat: x\n\nWio-Work: k3m9xq\nWio-Action: define\nWio-Stage: define",
 )
 """The work commit under which a recorded gate result finds its artifact."""
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
 
 
 @dataclass(frozen=True)
@@ -106,7 +103,6 @@ def test_a_valid_record_is_printed() -> None:
     assert (code, err) == (0, "")
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("extra", "judge"),
     [([], "agent"), (["--judge", "human"], "human"), (["--judge", "agent"], "agent")],

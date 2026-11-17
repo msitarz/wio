@@ -32,9 +32,6 @@ if TYPE_CHECKING:
     from wio.io.ports import FileSystem, History
     from wio.models.commits import Commit
 
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
 STAGES = {
     **CONFIG.stages,
     "docs-review": Stage(goal="d", gate=True, judge="human"),
@@ -136,7 +133,6 @@ def _event(judge: str, result: str, cited: dict[str, str]) -> ReviewEvent:
     )
 
 
-@PENDING
 def test_a_human_gate_holds_the_result_of_an_agent_and_of_a_human() -> None:
     """AC-1: two events, the first judged by an agent and the second by a human."""
     # Given `k3m9xq` and `docs-review`
@@ -159,7 +155,6 @@ def test_a_human_gate_holds_the_result_of_an_agent_and_of_a_human() -> None:
     ]
 
 
-@PENDING
 def test_an_agent_that_fails_the_gate_records_a_fail() -> None:
     """AC-1: `--result fail --judge agent` is recorded and printed."""
     # Given the same gate
@@ -174,7 +169,6 @@ def test_an_agent_that_fails_the_gate_records_a_fail() -> None:
     assert sink.events == [_event("agent", "fail", {})]
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("cites", "name"),
     [
@@ -220,7 +214,6 @@ def test_a_cite_that_is_refused_writes_no_event(cites: list[str], name: str) -> 
     assert sink.events == []
 
 
-@PENDING
 def test_a_cite_without_a_result_is_refused() -> None:
     """AC-2: `--cite` on a stage that is not a gate needs a `--result`."""
     # Given `k3m9xq` and the stage `architecture`, which is not a gate
@@ -237,7 +230,6 @@ def test_a_cite_without_a_result_is_refused() -> None:
     assert sink.events == []
 
 
-@PENDING
 def test_a_cite_that_is_accepted_is_in_the_event() -> None:
     """AC-2: `AC-1` and `docs.DOC001` with its hash `h1` are cited."""
     # Given `k3m9xq` and the gate `docs-review`
@@ -255,7 +247,6 @@ def test_a_cite_that_is_accepted_is_in_the_event() -> None:
     assert sink.events == [_event("human", "pass", cited)]
 
 
-@PENDING
 def test_the_event_names_the_reviewed_commit_and_the_judgment() -> None:
     """AC-3: the full sha of `c1`, under the pure gate commit `c2`."""
     # Given `k3m9xq`, a history of the pure gate commit `c2` above the work commit
@@ -270,7 +261,6 @@ def test_the_event_names_the_reviewed_commit_and_the_judgment() -> None:
     assert sink.events == [_event("human", "pass", {"AC-1": "pass"})]
 
 
-@PENDING
 def test_a_history_with_no_reviewed_commit_writes_no_event() -> None:
     """AC-3: `error: Wio-Work: no reviewed commit was found`, and no event."""
     # Given a history of commits that each carry only a gate record
@@ -289,7 +279,6 @@ def test_a_history_with_no_reviewed_commit_writes_no_event() -> None:
     assert sink.events == []
 
 
-@PENDING
 def test_a_stage_outside_the_pipeline_is_a_warning_and_the_event_is_written() -> None:
     """AC-4: the warning names `system-review`, and the sink gets one event."""
     # Given the gate `system-review`, which is outside the `typed-boundary` preset
@@ -307,7 +296,6 @@ def test_a_stage_outside_the_pipeline_is_a_warning_and_the_event_is_written() ->
     assert len(sink.events) == 1
 
 
-@PENDING
 def test_a_failing_sink_never_fails_the_command() -> None:
     """AC-5: the sink's warning, the record and exit 0."""
     # Given a sink whose write fails and which reports the failure itself as a
