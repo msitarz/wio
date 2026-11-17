@@ -45,7 +45,9 @@ already needs.
   `message: str`, the full message as git stores it, subject, body and trailers,
   without its trailing newline.
 - **`GitRepository.show_index` and `is_dirty`** — the two members that the
-  adapter leaves to the trailers Work, which this leaf implements.
+  adapter leaves to the trailers Work, which this leaf implements. `is_dirty`
+  takes no optional lock and writes nothing, such as the index that a plain
+  `git status` refreshes.
 
 ## Acceptance criteria
 
@@ -102,8 +104,9 @@ commit has a message of its own with a subject, a body and a trailer paragraph.
 
 #### A staged file that differs from the tree and from `HEAD`
 
-- **Given** a file `a.txt` that is staged with one content, changed in the
-  working tree and different in `HEAD`, and a file `new.txt` that is not staged.
+- **Given** the repository, with a file `a.txt` that is staged with one content,
+  changed in the working tree and different in `HEAD`, and a file `new.txt` that
+  is not staged.
 - **When** `show_index("a.txt")` and `show_index("new.txt")` run, and then
   `show_index("a.txt")` runs again with the working directory set to `sub`.
 - **Then** the first returns the staged content, the second returns `None` and
@@ -114,8 +117,9 @@ commit has a message of its own with a subject, a body and a trailer paragraph.
 
 #### Changes of every kind
 
-- **Given** a clean repository, then in turn a modified tracked file, a newly
-  added staged file, an untracked file and an untracked file that is ignored.
+- **Given** a clean repository, whose ignore rule is committed, then in turn a
+  modified tracked file, a newly added staged file, an untracked file and an
+  untracked file that the rule ignores.
 - **When** `is_dirty()` runs on each.
 - **Then** it returns false for the clean one and for the ignored file, and true
   for the others.
