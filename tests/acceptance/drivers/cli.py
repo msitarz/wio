@@ -21,12 +21,15 @@ class CliDriver(SandboxedDriver):
     shell is involved.
     """
 
-    def run(self, args: Sequence[str], directory: str | None = None) -> RunResult:
+    def run(
+        self, args: Sequence[str], directory: str | None = None, stdin: str = ""
+    ) -> RunResult:
         """Run the command in the sandbox's directory and environment.
 
         Args:
             args: The arguments after the program name.
             directory: A directory below the sandbox's root to run in, or `None`.
+            stdin: What standard input holds.
 
         Returns:
             The decoded streams and the exit code of the process.
@@ -34,6 +37,26 @@ class CliDriver(SandboxedDriver):
         done = subprocess.run(
             [str(SCRIPT), *args],
             cwd=self._directory(directory),
+            env=self._sandbox.env,
+            input=stdin,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return RunResult(done.stdout, done.stderr, done.returncode)
+
+    def git(self, args: Sequence[str]) -> RunResult:
+        """Run git in the sandbox's repository and environment.
+
+        Args:
+            args: The arguments after `git`.
+
+        Returns:
+            The decoded streams and the exit code of the process.
+        """
+        done = subprocess.run(
+            ["git", *args],
+            cwd=self._sandbox.root,
             env=self._sandbox.env,
             capture_output=True,
             text=True,

@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests of the `wio trailers` command, run through `wio.cli.main` with fakes.
+"""Tests of the `wio trailers` command, run with fakes of its ports.
+
+The forms run through the group, and the calls that must reach the exit code 2 or
+the help run through `wio.cli.main`.
 
 The examples use a Work `k3m9xq` with the item `AC-1` and a `deliver` that lists
 `architecture` and `architecture-review`. R is the record `Wio-Work: k3m9xq`,
@@ -26,9 +29,6 @@ from wio.trailers.errors import TrailersError
 if TYPE_CHECKING:
     from wio.trailers import Services
 
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
 R = "Wio-Work: k3m9xq\nWio-Action: deliver\nWio-Stage: architecture"
 MESSAGE = "feat: add x"
 
@@ -81,7 +81,6 @@ def _wio(argv: list[str], *, stdin: str = "") -> tuple[int, str, str]:
     return code, out.getvalue(), err.getvalue()
 
 
-@PENDING
 def test_the_write_form_prints_the_record_of_its_work() -> None:
     """AC-1: a first argument that is not a form is the Work of the write form."""
     # Given a Work `k3m9xq`
@@ -92,7 +91,6 @@ def test_the_write_form_prints_the_record_of_its_work() -> None:
     assert (code, out, err) == (0, f"{R}\n", "")
 
 
-@PENDING
 def test_check_without_require_passes_a_message_with_no_record() -> None:
     """AC-1: the later mode of `check` needs no record."""
     # Given the message file `msg.txt`, which has no record
@@ -103,7 +101,6 @@ def test_check_without_require_passes_a_message_with_no_record() -> None:
     assert (code, out, err) == (0, "", "")
 
 
-@PENDING
 @pytest.mark.parametrize("source", ["file", "standard input"])
 def test_check_with_require_refuses_a_message_with_no_record(source: str) -> None:
     """AC-1: the commit-time mode of `check` needs a record."""
@@ -120,7 +117,6 @@ def test_check_with_require_refuses_a_message_with_no_record(source: str) -> Non
     assert err == "error: 1: no record was found\n"
 
 
-@PENDING
 def test_fold_prints_the_block_and_the_body() -> None:
     """AC-1: `fold block` and `fold body` fold the records of the range."""
     # Given the range `a..b`, whose one commit has the record R, and a body
@@ -159,7 +155,6 @@ def test_a_call_that_names_no_form_exits_2(argv: list[str]) -> None:
     assert "error" in err
 
 
-@PENDING
 @pytest.mark.parametrize(
     "forms",
     [["fold", "nosuch"], ["check", "--nosuch"]],
@@ -186,3 +181,19 @@ def test_the_help_lists_the_forms() -> None:
     assert "<work> <action> <stage>" in out
     assert "check " in out
     assert "fold " in out
+
+
+@pytest.mark.parametrize(
+    "form", [["check", "-h"], ["fold", "-h"], ["fold", "block", "-h"]]
+)
+def test_the_help_of_a_form_is_written_and_exits_0(form: list[str]) -> None:
+    """A form's `-h` prints its usage to standard output and is not an error."""
+    # Given a form that is asked for its help
+    # When the group runs it
+    code, out, err = _form(form)
+
+    # Then it exits 0, writes the usage of the form to standard output and nothing
+    # to standard error
+    assert code == 0
+    assert out.startswith(f"usage: wio trailers {form[0]}")
+    assert err == ""

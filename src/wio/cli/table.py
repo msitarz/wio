@@ -19,6 +19,7 @@ lazy from wio.io import views
 lazy from wio.templates import TemplatesCatalog, TemplatesCommand
 lazy from wio.trailers import Services as TrailersServices
 lazy from wio.trailers import TrailersCommand
+lazy from wio.trailers.errors import TrailersError
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -131,6 +132,8 @@ def _trailers() -> Command:
 
     Raises:
         TrailersError: If the working directory is not inside a git repository.
+        ConfigurationError: If the config cannot be loaded, because the Works
+            directory that the index view lists comes from it.
     """
     environment = env.ProcessEnvironment()
     repository = io.GitRepository(environment)
@@ -162,7 +165,10 @@ def _root(repository: Repository) -> Path:
     Raises:
         TrailersError: If the working directory is not inside a repository.
     """
-    raise NotImplementedError
+    try:
+        return repository.root()
+    except RuntimeError as error:
+        raise TrailersError(str(error)) from error
 
 
 COMMANDS: Final[Sequence[Entry]] = (

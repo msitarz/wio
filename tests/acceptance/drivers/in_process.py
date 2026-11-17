@@ -102,19 +102,22 @@ class InProcessDriver(SandboxedDriver):
     A scenario that needs a real repository, or none, runs on the CLI channel.
     """
 
-    def run(self, args: Sequence[str], directory: str | None = None) -> RunResult:
+    def run(
+        self, args: Sequence[str], directory: str | None = None, stdin: str = ""
+    ) -> RunResult:
         """Call `wio.cli.main` inside the sandbox.
 
         Args:
             args: The arguments after the program name.
             directory: A directory below the sandbox's root to run in, or `None`.
                 The repository's root is the sandbox's either way.
+            stdin: What standard input holds.
 
         Returns:
             The text the call wrote to its streams and its exit code.
         """
         out, err = io.StringIO(), io.StringIO()
-        stdio = MemoryStdio(io.StringIO(), out, err)
+        stdio = MemoryStdio(io.StringIO(stdin), out, err)
         root = self._sandbox.root
         with (
             contextlib.chdir(self._directory(directory)),
@@ -125,3 +128,14 @@ class InProcessDriver(SandboxedDriver):
         ):
             code = cli.main(list(args), stdio)
         return RunResult(out.getvalue(), err.getvalue(), code)
+
+    def git(self, args: Sequence[str]) -> RunResult:
+        """Refuse: the sandbox of this channel is not a git repository.
+
+        Args:
+            args: The arguments after `git`, ignored.
+
+        Raises:
+            NotImplementedError: Always; run the scenario on the CLI channel.
+        """
+        raise NotImplementedError(str(args))

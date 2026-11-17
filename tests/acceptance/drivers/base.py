@@ -38,13 +38,30 @@ class WioDriver(Protocol):
     kind of value.
     """
 
-    def run(self, args: Sequence[str], directory: str | None = None) -> RunResult:
+    def run(
+        self, args: Sequence[str], directory: str | None = None, stdin: str = ""
+    ) -> RunResult:
         """Run `wio` with the given arguments in the driver's sandbox.
 
         Args:
             args: The arguments after the program name.
             directory: A directory below the root of the sandbox to run in, or
                 `None` to run at the root. The repository stays the sandbox.
+            stdin: What standard input holds.
+
+        Returns:
+            The streams and exit code of the run.
+        """
+        ...
+
+    def git(self, args: Sequence[str]) -> RunResult:
+        """Run git with the given arguments in the root of the sandbox.
+
+        Only a channel that has a real repository implements it; the committer is
+        the fixed identity of the sandbox.
+
+        Args:
+            args: The arguments after `git`.
 
         Returns:
             The streams and exit code of the run.
