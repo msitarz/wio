@@ -105,8 +105,9 @@ def run_later(services: Services, args: Namespace, stdio: Stdio) -> int:
     With `--ref-range` the commits of the range come from the `History` port,
     oldest first, and otherwise the body is read from the file `path`, or from
     standard input when it is `-` or absent. Each diagnostic is written to standard
-    error as `<severity>: <where>: <message>`, one to a line, in the order above, and
-    nothing is written to standard output.
+    error as `<severity>: <where>: <message>`, one to a line, in the order of
+    `check_afterwards` for a body and of `check_range` for a range, and nothing is
+    written to standard output.
 
     Args:
         services: The ports the form reads the config, the body and the history

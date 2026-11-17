@@ -154,34 +154,43 @@ def test_a_malformed_record_fails_a_body_and_a_range() -> None:
 
     # Then each exits 1, the body's diagnostic begins `error: 3:`, the range's begins
     # `error:` followed by the full id of `c2` and `:3:`, and `c1` and `c3` add no
-    # error
+    # error; the commits come oldest first, the malformed record of `c2` is not also
+    # warned about, and the unknown name of `c3` is a warning at its line
     assert body[0] == ranged[0] == 1
     assert body[1].startswith("error: 3:")
-    assert ranged[1].startswith(f"error: {_id(2)}:3:")
-    assert ranged[1].count("error:") == 1
+    lines = ranged[1].splitlines()
+    assert len(lines) == 2
+    assert lines[0].startswith(f"error: {_id(2)}:3:")
+    assert lines[1].startswith(f"warning: {_id(3)}:5:")
+    assert "nosuch" in lines[1]
 
 
 @pytest.mark.parametrize(
-    ("record", "name"),
+    ("record", "name", "line"),
     [
-        (R.replace("architecture", "nosuch"), "nosuch"),
-        (R.replace("deliver", "nosuch"), "nosuch"),
+        (R.replace("architecture", "nosuch"), "nosuch", 5),
+        (R.replace("deliver", "nosuch"), "nosuch", 4),
         (
             R.replace("architecture", "architecture-review") + "\nWio-Result: maybe",
             "maybe",
+            6,
         ),
     ],
     ids=["stage", "action", "result"],
 )
-def test_a_name_the_config_no_longer_has_is_a_warning(record: str, name: str) -> None:
+def test_a_name_the_config_no_longer_has_is_a_warning(
+    record: str, name: str, line: int
+) -> None:
     """AC-3: `nosuch`, `nosuch` and `maybe` are warned about, never refused."""
     # Given B with a name the config does not have
     # When `check` reads it
     code, err = _run([], body=f"Fix the bug.\n\n{record}")
 
-    # Then it exits 0 and prints a `warning:` that names the name
+    # Then it exits 0 and prints one `warning:` at the line of the field that names the
+    # name
     assert code == 0
-    assert err.startswith("warning:")
+    assert len(err.splitlines()) == 1
+    assert err.startswith(f"warning: {line}:")
     assert name in err
 
 
