@@ -21,7 +21,7 @@ from wio.trailers.errors import TrailersError
 from wio.trailers.fold import configure_fold, run_fold
 
 if TYPE_CHECKING:
-    from wio.io.ports import History
+    from wio.io.ports import FileSystem, History
 
 
 @dataclass(frozen=True)
@@ -136,7 +136,13 @@ def _run(
     args = parser.parse_args([form, revision_range])
     out, err = io.StringIO(), io.StringIO()
     history = cast("History", FakeHistory(commits))
-    services = Services(FakeSettings(), FakeContracts(), history)
+    services = Services(
+        FakeSettings(),
+        FakeContracts(),
+        history,
+        FakeContracts(),
+        cast("FileSystem", object()),
+    )
     code = run_fold(services, args, FakeStdio(io.StringIO(body), out, err))
     assert code == 0
     return out.getvalue(), err.getvalue()
