@@ -503,3 +503,54 @@ what inherits and why.
   the body.
 - **The view reads and never writes, and the same Work gives the same text.**
   Line endings are LF whatever the files hold.
+
+## Looking up a Work for a record
+
+`WorkLookup` in [`lookup.py`](lookup.py) finds the item ids and the pipeline of
+the Work that a record names, for the commands of `wio trailers`. It satisfies
+the `Contracts` port of [`wio.trailers`](../trailers/ports.pyi) without
+importing it, and `wio.cli` wires it in, as it does the template catalog. Its
+docstrings say what each member takes, returns and raises, and its
+[tests](../../../tests/integration/contracts/test_lookup.py) say how each case
+reads.
+
+- **A Work is found the way every other command finds one.** The lookup runs
+  `discover_works` and `find_work` on a `FileSystem`, so a Work that discovery
+  would not list is not found, and the lookup owns no second reading of the
+  Works directory.
+- **The views are tried in order, and the first that has the Work answers.** The
+  lookup for the working tree reads the working tree and then `HEAD`, and the
+  lookup for the index reads the
+  [index view](../io/README.md#the-views-of-the-index-and-of-a-revision) and
+  then `HEAD`. `HEAD` comes last so that a Work that the commit being made
+  deletes is still found, and so that its record can be checked. The config and
+  the templates are always the working tree's, because a commit carries neither
+  as a Work does.
+- **A shared id answers absent, and the next view is not asked.** When two Works
+  of a view have one id, discovery refuses to guess, and an older copy in `HEAD`
+  must not stand in for the Work the person meant. The contracts component
+  reports the shared id, and the lookup never does.
+- **Absent and empty are different answers.** An id that no view has gives
+  `None` for the items and for the pipeline. A Work that has no item in its own
+  sections gives an empty set, so a record that cites an item is refused for
+  that item and not for the Work.
+- **The items are the Work's own.** They are the ids that the `pattern`
+  directives of the Work's template give the sections of its own contract, found
+  with the same finder as the check of the body, so a constraint a parent
+  writes is never an item of its children. A Work with no template, or with one
+  that cannot be used, has none.
+- **The pipeline is resolved as `wio contracts show` resolves it.** The Work's
+  own `[actions]` replace its template's, or the config defaults for a Work with
+  no template, and a stage preset is expanded from the config. An action that
+  the Work removed, one that it does not have and one that names a stage preset
+  the config does not declare have no pipeline.
+- **The lookup finds what it can.** A file that cannot be read, a malformed
+  contract and a missing template are reported by the commands that check them,
+  so the lookup leaves such a Work out or gives it no items, and one bad file
+  never keeps another Work from being found. It reads and writes nothing else.
+- **A Work that is staged but is neither in the working tree nor in `HEAD` is
+  not found,** because the index cannot be listed through the ports; the index
+  view takes its candidates from the working tree and `HEAD`. A lookup also
+  reads each candidate of the index one by one, so its cost grows with the
+  number of Works, and a view reads its listing once, so a new lookup sees a
+  later change.

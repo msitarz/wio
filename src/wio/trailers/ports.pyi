@@ -19,9 +19,8 @@ class Contracts(Protocol):
         The ids are those that the `pattern` directives of the Work's template
         give the Work's own sections, whatever the sections mean; an inherited
         section's ids are not included. The Work is looked up in the working
-        tree first and then in `HEAD`, which is where a Work that the commit
-        deletes still is. Checking the index at commit time is the contract
-        component's to decide, with `Repository.show_index`.
+        tree or in the index, as the adapter was built, and then in `HEAD`,
+        which is where a Work that the commit deletes still is.
 
         Args:
             work_id: The Work's id.
