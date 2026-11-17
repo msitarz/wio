@@ -66,10 +66,13 @@ def test_the_work_value_is_judged(message: str) -> None:
     """AC-2: an invalid id, an invalid list and a record with no Work."""
     # Given a record whose `Wio-Work` is wrong
     # When `check_shape` reads it
-    kinds = _kinds(message)
+    findings = check_shape(message, "scan")
 
-    # Then it returns one `malformed` finding with the key `Wio-Work`
-    assert kinds == [("malformed", "Wio-Work")]
+    # Then it returns one `malformed` finding with the key `Wio-Work` and the
+    # first line, which holds the value or opens the record
+    assert [(f.kind, f.key, f.number) for f in findings] == [
+        ("malformed", "Wio-Work", 1)
+    ]
 
 
 @PENDING
@@ -91,6 +94,21 @@ def test_the_other_keys_are_judged(message: str, key: str) -> None:
 
     # Then it returns one `malformed` finding with that key
     assert kinds == [("malformed", key)]
+
+
+@PENDING
+def test_a_repeated_key_is_found_at_its_second_line() -> None:
+    """AC-3: the finding names the line of the second `Wio-Stage`."""
+    # Given R with a second `Wio-Stage: wiring` line, the fourth of the message
+    message = f"{R}\nWio-Stage: wiring"
+
+    # When `check_shape` reads it with the `scan` reader
+    findings = check_shape(message, "scan")
+
+    # Then it returns one `malformed` finding with the key `Wio-Stage` and line 4
+    assert [(f.kind, f.key, f.number) for f in findings] == [
+        ("malformed", "Wio-Stage", 4)
+    ]
 
 
 @PENDING
@@ -147,7 +165,8 @@ def test_an_unknown_key_is_a_finding_of_its_own() -> None:
     # Then the first gives one `unknown-key` finding, and the second also a
     # `malformed` finding for the forbidden key
     assert plain == [("unknown-key", "Wio-Criteria")]
-    assert ("unknown-key", "Wio-Criteria") in none
+    assert none[0] == ("unknown-key", "Wio-Criteria")
+    assert none[1][0] == "malformed"
     assert len(none) == 2
 
 
@@ -192,8 +211,8 @@ def test_findings_say_what_is_wrong_and_where() -> None:
     # Then the `malformed` finding comes before the `unknown-key` one, each with
     # its 1-based line number and a non-empty message
     assert [(f.kind, f.number) for f in findings] == [
-        ("malformed", 9),
-        ("unknown-key", 10),
+        ("malformed", 8),
+        ("unknown-key", 9),
     ]
     assert all(f.message for f in findings)
 

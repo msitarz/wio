@@ -6,6 +6,7 @@ through `check_shape`, so no command has its own idea of either. The skeleton
 composes them, and the leaves that do the work are stubbed.
 """
 
+from operator import attrgetter
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -56,7 +57,8 @@ def check_shape(message: str, reader: Reader) -> list[Finding]:
     """
     reading = read(message, reader)
     findings = [f for record in reading.records for f in _judge_record(record)]
-    return [*findings, *map(_invisible, reading.rejected)]
+    rejected = map(_invisible, reading.rejected)
+    return sorted([*findings, *rejected], key=attrgetter("number"))
 
 
 def _paragraphs(message: str, *, last_only: bool) -> Reading:
