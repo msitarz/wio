@@ -20,8 +20,9 @@ from typing import TYPE_CHECKING
 from wio.formats import read, render
 from wio.trailers.errors import TrailersError
 
-_REVERT = re.compile(r"^This reverts commit ([0-9a-fA-F]+)\.$", re.MULTILINE)
-"""A line that `git revert` writes, with the id of the commit it takes back."""
+_REVERT = re.compile(r"^This reverts commit ([0-9a-fA-F]+)[.,]", re.MULTILINE)
+"""A line that `git revert` writes, with the id of the commit it takes back, which
+ends with a comma when the revert is of a merge, as `git revert -m` writes it."""
 _TRAILER = re.compile(r"[A-Za-z][A-Za-z0-9-]*:.*")
 """A line of a record paragraph: a `Key: value` trailer."""
 _REVERT_PARAGRAPH = re.compile(r"This reverts commit [0-9a-fA-F]+\.")
@@ -152,7 +153,7 @@ def fold_body(body: str, folded: Folded) -> str | None:
         folded: The fold of the range.
 
     Returns:
-        The prose, without the line ends after it and otherwise unchanged, a blank
+        The prose, without the whitespace after it and otherwise unchanged, a blank
         line and the folded paragraphs, or `None` when the body already ends with
         exactly those paragraphs, so that a second run prints nothing, which is also
         the case for a body that ends with none when the fold has none.
@@ -501,12 +502,14 @@ def _by_work(records: list[FoldedRecord]) -> list[FoldedRecord]:
 
     Returns:
         The records, a run with one action, stage, items, result and judge made one
-        record for a list of the Works in the order of the history.
+        record for a list of the Works in the order of the history. A Work that a
+        list already names starts the next record, because a list names no Work
+        twice, so the Works `a, b, a, b` fold to the records `a, b` and `a, b`.
     """
     merged: list[FoldedRecord] = []
     for record in records:
         last = merged[-1] if merged else None
-        if last and last.works[-1:] != record.works and _same_but_work(last, record):
+        if last and record.works[0] not in last.works and _same_but_work(last, record):
             merged[-1] = FoldedRecord(
                 (*last.works, *record.works),
                 record.action,
@@ -582,7 +585,7 @@ def _split_body(body: str) -> tuple[str, str]:
         body: A pull request body.
 
     Returns:
-        The prose without the line ends after it, and the trailing record and
+        The prose without the whitespace after it, and the trailing record and
         revert paragraphs laid out as `render_block` lays out a block.
     """
     lines = body.splitlines(keepends=True)
@@ -590,12 +593,12 @@ def _split_body(body: str) -> tuple[str, str]:
     end = len(lines)
     while (span := _last_paragraph(lines, end)) is not None:
         first, last = span
-        text = [line.rstrip("\r\n") for line in lines[first:last]]
+        text = [line.rstrip() for line in lines[first:last]]
         if not _is_trailing(text):
             break
         paragraphs.insert(0, "\n".join(text) + "\n")
         end = first
-    return "".join(lines[:end]).rstrip("\r\n"), "\n".join(paragraphs)
+    return "".join(lines[:end]).rstrip(), "\n".join(paragraphs)
 
 
 def _last_paragraph(lines: list[str], end: int) -> tuple[int, int] | None:

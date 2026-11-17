@@ -392,3 +392,126 @@ def test_neighbors_that_differ_in_the_judge_stay_apart() -> None:
 
     # Then there are two records
     assert len(out.rstrip("\n").split("\n\n")) == 2
+
+
+def test_a_work_that_a_list_already_names_starts_the_next_record() -> None:
+    """The second step merges neighbors only, and a list names no Work twice."""
+    # Given four commits of one stage for the Works `a`, `b`, `a` and `b`
+    commits = tuple(_commit(n, _record(w)) for n, w in enumerate("abab", start=1))
+
+    # When the block is folded
+    out, _ = _run("block", commits)
+
+    # Then there are two records, each for `a, b`
+    records = out.rstrip("\n").split("\n\n")
+    assert [r.splitlines()[0] for r in records] == ["Wio-Work: a, b"] * 2
+
+
+def test_the_revert_of_a_merge_takes_its_commit_back() -> None:
+    """`git revert -m` ends the line with a comma and says which parent."""
+    # Given a commit and a revert that `git revert -m` wrote for it
+    revert = Commit(
+        _id(2),
+        f'Revert "x"\n\nThis reverts commit {_id(1)}, reversing\nchanges made to x.',
+    )
+
+    # When the block is folded
+    out, _ = _run("block", (_commit(1, _record("a")), revert))
+
+    # Then nothing is printed
+    assert out == ""
+
+
+def test_an_upper_case_abbreviated_id_names_a_commit_of_the_range() -> None:
+    """The id of a revert is matched without regard to the case of its digits."""
+    # Given a commit whose id has letters and a revert that writes a prefix of it in
+    # upper case
+    first = Commit("ab" * 20, f"feat: x\n\n{_record('a')}")
+
+    # When the block is folded
+    out, _ = _run("block", (first, _revert(2, "ABABAB")))
+
+    # Then the record is gone
+    assert out == ""
+
+
+def test_a_prefix_that_two_commits_share_names_no_commit_of_the_range() -> None:
+    """An ambiguous id counts as a commit outside the range and stays visible."""
+    # Given two commits whose ids start alike and a revert that names that prefix
+    commits = (_commit(1, _record("a")), _commit(2, _record("b")))
+    revert = _revert(3, _id(1)[:7])
+
+    # When the block is folded
+    out, _ = _run("block", (*commits, revert))
+
+    # Then the revert line is printed and both records stay
+    assert out.startswith(f"This reverts commit {_id(1)[:7]}.\n\n")
+    assert "Wio-Work: a, b" in out
+
+
+def test_a_revert_of_a_later_commit_names_a_commit_outside_the_range() -> None:
+    """A revert can only take back what came before it."""
+    # Given a revert that names a commit that comes after it
+    commits = (_revert(1, _id(2)), _commit(2, _record("a")))
+
+    # When the block is folded
+    out, _ = _run("block", commits)
+
+    # Then the revert line is kept and the record stays
+    assert out == f"This reverts commit {_id(2)}.\n\n{A_IMPL}"
+
+
+def test_a_revert_of_a_revert_of_a_revert_drops_the_record_again() -> None:
+    """Each revert takes back the one before it."""
+    # Given a commit and three reverts, each of the one before
+    commits = (
+        _commit(1, _record("a")),
+        _revert(2, _id(1)),
+        _revert(3, _id(2)),
+        _revert(4, _id(3)),
+    )
+
+    # When the block is folded
+    out, _ = _run("block", commits)
+
+    # Then nothing is printed
+    assert out == ""
+
+
+def test_the_reverts_of_outside_work_come_in_the_order_of_the_history() -> None:
+    """Each revert paragraph is its own, in the order of the commits."""
+    # Given two reverts of commits outside the range
+    commits = (_revert(1, "2222222"), _revert(2, "1111111"))
+
+    # When the block is folded
+    out, _ = _run("block", commits)
+
+    # Then the paragraphs are in that order
+    assert out == "This reverts commit 2222222.\n\nThis reverts commit 1111111.\n"
+
+
+def test_the_line_ends_of_the_prose_are_kept_and_a_second_run_prints_nothing() -> None:
+    """A body with CRLF line ends keeps them in the prose and folds once."""
+    # Given a body of prose with CRLF line ends
+    commits = (_commit(1, _record("a")),)
+    first, _ = _run("body", commits, body="Fix.\r\nMore.")
+
+    # When it is folded, and the result is folded again
+    second, _ = _run("body", commits, body=first)
+
+    # Then the prose keeps its line ends, and the second run prints nothing
+    assert first == f"Fix.\r\nMore.\n\n{A_IMPL}"
+    assert second == ""
+
+
+def test_whitespace_before_the_tail_and_after_it_is_not_part_of_either() -> None:
+    """A blank line with spaces and trailing spaces do not change the fold."""
+    # Given a body with a line of spaces after the prose and spaces after the tail
+    commits = (_commit(1, _record("a")),)
+    body = f"Fix.\n   \n{A_IMPL.rstrip()}   \n"
+
+    # When it is folded
+    out, _ = _run("body", commits, body=body)
+
+    # Then the body already ends with the block, so nothing is printed
+    assert out == ""
