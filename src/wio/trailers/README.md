@@ -302,9 +302,10 @@ flowchart LR
 ```
 
 - **A name the config lacks is an error while the commit can still be fixed, and
-  a warning afterwards.** A stage that the config does not have refuses the
-  commit at commit time. Once the commit is written, the config may have moved
-  on and the commit cannot change, so the same record only warns.
+  a warning afterwards.** An action, a stage or a result that the config does
+  not have refuses the commit at commit time. Once the commit is written, the
+  config may have moved on and the commit cannot change, so the same record only
+  warns.
 - **A record is required unless git wrote the subject, and only at commit
   time.** A body or a commit of no Work has no record, so the afterwards mode
   asks for none.
