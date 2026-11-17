@@ -15,9 +15,12 @@ def read(message: str, reader: Literal["scan", "git"]) -> Reading:
     """Read the records of a message the way the configured reader does.
 
     The `scan` reader takes every paragraph made only of `Wio-` lines, outside
-    fenced code blocks and not after a `#`; the `git` reader takes only the
-    trailers of the last paragraph, as `git interpret-trailers` does. A `Wio-`
-    line that the reader does not take is kept as rejected, never dropped.
+    fenced code blocks and leaving out lines that start with `#`; the `git`
+    reader takes only the trailers of the last paragraph, as
+    `git interpret-trailers` does. A `Wio-` line that the reader would take for
+    a record but does not, such as one in a paragraph with prose, is kept as
+    rejected. A line it would never take, in a fenced code block or starting
+    with `#`, is not.
 
     Args:
         message: The whole commit message, or a pull request body.
@@ -41,7 +44,7 @@ def check_shape(message: str, reader: Literal["scan", "git"]) -> list[Finding]:
         reader: The reader the project configured.
 
     Returns:
-        The findings in the order of the message, none for a valid message, one
-        for a message with no record. Never raises for a message.
+        The findings in the order of the message; none for a valid message and
+        none for a message with no record, which a mode requires or not.
     """
     ...

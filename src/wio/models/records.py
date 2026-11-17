@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The types of a record as `wio.formats` reads it, and of a finding about it."""
+"""The types of a record as `wio.formats` reads it, and of a finding about it.
+
+They are plain data with no behavior to specify, so they are written as the
+final `.py` now instead of as a stub.
+"""
 
 from dataclasses import dataclass
 from typing import Literal
