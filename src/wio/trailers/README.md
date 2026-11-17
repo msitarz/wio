@@ -121,12 +121,17 @@ docstrings say what each takes, prints and raises, and the
 prints the records of a range of commits folded, and `fold body <range>` reads a
 pull request body and prints it with them at its end. A squash merge keeps only
 the body, so the records of its commits are copied there, and the
-[concepts](../../../docs/concepts.md#reading-records) say what the fold keeps.
-`wio.cli` dispatches and wires the history, and this module holds what the fold
-does, so it is run in a test with fakes. Its docstrings say what each takes and
-returns, and the [tests](../../../tests/unit/trailers/test_fold.py) say how each
-case reads. The fold checks no record, which the check commands do, so a record
-that they would refuse has no defined fold.
+[concepts](../../../docs/concepts.md#records) say what the fold keeps and which
+[reader](../../../docs/concepts.md#reading-records) a folded body belongs to.
+`wio.cli` dispatches, wires the history and turns a usage error into the exit
+code 2, and this module holds what the fold does, so it is run in a test with
+fakes. It prints to standard output and edits no pull request and calls no CI,
+which the command that adopts it in the hook and the workflow does, and the
+revision range that it takes is a provisional way to name the commits. Its
+docstrings say what each takes and returns, and the
+[tests](../../../tests/unit/trailers/test_fold.py) say how each case reads. The
+fold checks no record, which the check commands do, so a record that they would
+refuse has no defined fold.
 
 - **The fold is a function of the commits.** The same range gives the same
   records, so a reader may rely on the latest record of each Work, action and

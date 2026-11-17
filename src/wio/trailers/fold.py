@@ -8,9 +8,8 @@ request body on standard input and prints it with them at its end. `wio.cli`
 dispatches on the first argument and wires the ports, and this module holds what
 the form does, so it is run in a test with fakes of the ports. The records are
 read with the reader of the config and written with the shared renderer, and the
-form checks none of them, which the check commands do. The form composes the
-reading of the history, the fold and the layout, and the leaves that settle the
-reverts, merge the records and cut a body are stubbed.
+form checks none of them, which the check commands do. The form reads the
+history, settles the reverts, folds the records, lays them out and cuts a body.
 """
 
 import re
