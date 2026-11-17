@@ -9,13 +9,15 @@ live here and neither mode imports the other.
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from wio.models.diagnostics import Diagnostic
 from wio.trailers.errors import TrailersError
+from wio.trailers.validation import Field
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from wio.io.ports import Stdio
-    from wio.models.diagnostics import Diagnostic
+    from wio.models.records import Finding, Record
     from wio.trailers import Services
 
 
@@ -71,3 +73,50 @@ def write_diagnostics(diagnostics: Sequence[Diagnostic], stdio: Stdio) -> int:
         line = f"{diagnostic.severity}: {diagnostic.where}: {diagnostic.message}\n"
         stdio.stderr.write(line)
     return 1 if any(d.severity == "error" for d in diagnostics) else 0
+
+
+def record_lines(record: Record) -> set[int]:
+    """Give the lines that a record spans.
+
+    Args:
+        record: A record of the reading.
+
+    Returns:
+        The line number of each of its fields.
+    """
+    return {trailer.number for trailer in record.trailers}
+
+
+def record_fields(record: Record) -> list[Field]:
+    """Give the fields of a record, each with its line in the message.
+
+    Args:
+        record: A record of the reading.
+
+    Returns:
+        A field for each `Wio-` line, with the line number as its place.
+    """
+    return [Field(t.key, t.value, t.number) for t in record.trailers]
+
+
+def shape_diagnostics(
+    findings: Sequence[Finding], errors: frozenset[str]
+) -> list[Diagnostic]:
+    """Turn the findings of the shape check into diagnostics.
+
+    Args:
+        findings: What `check_shape` found.
+        errors: The kinds of finding that are errors, where the mode decides this;
+            every other kind is a warning.
+
+    Returns:
+        A diagnostic for each finding, at the line of the finding.
+    """
+    return [
+        Diagnostic(
+            "error" if finding.kind in errors else "warning",
+            str(finding.number),
+            finding.message,
+        )
+        for finding in findings
+    ]

@@ -10,14 +10,23 @@ and it never requires a record, because a body or a commit of no Work has none. 
 shares the check form with the commit-time mode of `wio.trailers.check`, which
 chooses this mode when `--require` is absent, and it imports nothing from it: what
 the two share is in `wio.trailers.report`. The mode composes the reading, the
-judgment and the report, and the leaves that judge and read a range are stubbed.
+judgment of a body, the range of commits and the report.
 """
 
 from dataclasses import replace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from wio.formats import check_shape, read
-from wio.trailers.report import by_line, read_message, write_diagnostics
+from wio.trailers.errors import TrailersError
+from wio.trailers.report import (
+    by_line,
+    read_message,
+    record_fields,
+    record_lines,
+    shape_diagnostics,
+    write_diagnostics,
+)
+from wio.trailers.validation import validate_names
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -29,6 +38,9 @@ if TYPE_CHECKING:
     from wio.models.diagnostics import Diagnostic
     from wio.models.records import Finding, Reading
     from wio.trailers import Services
+
+_ERRORS: Final = frozenset({"malformed"})
+"""The kinds of finding that fail a later check; the others are warnings."""
 
 
 def check_afterwards(message: str, config: Config) -> list[Diagnostic]:
@@ -57,7 +69,7 @@ def check_afterwards(message: str, config: Config) -> list[Diagnostic]:
     reader = config.trailers.reader
     reading, findings = read(message, reader), check_shape(message, reader)
     found = [
-        *_shape_diagnostics(findings),
+        *shape_diagnostics(findings, _ERRORS),
         *_name_warnings(reading, findings, config),
     ]
     return sorted(found, key=by_line)
@@ -135,7 +147,9 @@ def _one_input(path: str | None, revision_range: str | None) -> None:
         TrailersError: If both are given, because a file and a range are read
             differently.
     """
-    raise NotImplementedError
+    if path is not None and revision_range is not None:
+        message = "a path and --ref-range read different inputs; give only one."
+        raise TrailersError(message)
 
 
 def _commits_of(history: History, text: str) -> Sequence[Commit]:
@@ -152,20 +166,10 @@ def _commits_of(history: History, text: str) -> Sequence[Commit]:
         TrailersError: If the port refuses the range with a `ValueError` or cannot
             reach a repository with a `RuntimeError`, with the port's message.
     """
-    raise NotImplementedError
-
-
-def _shape_diagnostics(findings: list[Finding]) -> list[Diagnostic]:
-    """Turn the findings of the shape check into diagnostics.
-
-    Args:
-        findings: What `check_shape` found.
-
-    Returns:
-        An error for a `malformed` finding and a warning for an `invisible` or an
-        `unknown-key` finding, each at the line of the finding.
-    """
-    raise NotImplementedError
+    try:
+        return history.history(text)
+    except (ValueError, RuntimeError) as error:
+        raise TrailersError(str(error)) from error
 
 
 def _name_warnings(
@@ -182,4 +186,10 @@ def _name_warnings(
         A warning for each error of `validate_names` on a record that has no
         `malformed` finding, with the line of the field as its place.
     """
-    raise NotImplementedError
+    malformed = {f.number for f in findings if f.kind == "malformed"}
+    sound = [r for r in reading.records if record_lines(r).isdisjoint(malformed)]
+    return [
+        replace(diagnostic, severity="warning")
+        for record in sound
+        for diagnostic in validate_names(record_fields(record), config)
+    ]

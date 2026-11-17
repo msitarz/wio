@@ -16,8 +16,15 @@ from wio.formats import check_shape, read
 from wio.models.diagnostics import Diagnostic
 from wio.trailers.errors import TrailersError
 from wio.trailers.later import run_later
-from wio.trailers.report import by_line, read_message, write_diagnostics
-from wio.trailers.validation import Field, validate_record
+from wio.trailers.report import (
+    by_line,
+    read_message,
+    record_fields,
+    record_lines,
+    shape_diagnostics,
+    write_diagnostics,
+)
+from wio.trailers.validation import validate_record
 
 _EXEMPT: Final = ("Merge ", "Revert ", "Reapply ", "fixup! ", "squash! ")
 """The starts of the subjects that git writes, each with the space that follows."""
@@ -27,9 +34,12 @@ if TYPE_CHECKING:
 
     from wio.io.ports import Stdio
     from wio.models.config import Config
-    from wio.models.records import Finding, Reading, Record
+    from wio.models.records import Finding, Reading
     from wio.trailers import Services
     from wio.trailers.ports import Contracts
+
+_ERRORS: Final = frozenset({"malformed", "invisible"})
+"""The kinds of finding that refuse a commit message; `unknown-key` only warns."""
 
 
 def has_exempt_subject(message: str) -> bool:
@@ -96,7 +106,7 @@ def check_commit_message(
     reader = config.trailers.reader
     reading, findings = read(message, reader), check_shape(message, reader)
     found = [
-        *_shape_diagnostics(findings),
+        *shape_diagnostics(findings, _ERRORS),
         *_record_diagnostics(reading, findings, (contracts, config)),
         *_missing_record(message, reading),
     ]
@@ -163,26 +173,6 @@ def run_check(services: Services, args: Namespace, stdio: Stdio) -> int:
     return write_diagnostics(diagnostics, stdio)
 
 
-def _shape_diagnostics(findings: list[Finding]) -> list[Diagnostic]:
-    """Turn the findings of the shape check into diagnostics.
-
-    Args:
-        findings: What `check_shape` found.
-
-    Returns:
-        An error for a `malformed` or `invisible` finding and a warning for an
-        `unknown-key` finding, each at the line of the finding.
-    """
-    return [
-        Diagnostic(
-            "warning" if finding.kind == "unknown-key" else "error",
-            str(finding.number),
-            finding.message,
-        )
-        for finding in findings
-    ]
-
-
 def _record_diagnostics(
     reading: Reading, findings: list[Finding], judge: tuple[Contracts, Config]
 ) -> list[Diagnostic]:
@@ -200,36 +190,12 @@ def _record_diagnostics(
     """
     contracts, config = judge
     malformed = {f.number for f in findings if f.kind == "malformed"}
-    sound = [r for r in reading.records if _lines(r).isdisjoint(malformed)]
+    sound = [r for r in reading.records if record_lines(r).isdisjoint(malformed)]
     return [
         diagnostic
         for record in sound
-        for diagnostic in validate_record(_fields(record), contracts, config)
+        for diagnostic in validate_record(record_fields(record), contracts, config)
     ]
-
-
-def _lines(record: Record) -> set[int]:
-    """Give the lines that a record spans.
-
-    Args:
-        record: A record of the reading.
-
-    Returns:
-        The line number of each of its fields.
-    """
-    return {trailer.number for trailer in record.trailers}
-
-
-def _fields(record: Record) -> list[Field]:
-    """Give the fields of a record, each with its line in the message.
-
-    Args:
-        record: A record of the reading.
-
-    Returns:
-        A field for each `Wio-` line, with the line number as its place.
-    """
-    return [Field(t.key, t.value, t.number) for t in record.trailers]
 
 
 def _missing_record(message: str, reading: Reading) -> list[Diagnostic]:

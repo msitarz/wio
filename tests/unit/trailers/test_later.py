@@ -5,9 +5,7 @@ The examples use a body B of the line `Fix the bug.`, a blank line and R, the
 paragraph `Wio-Work: k3m9xq`, `Wio-Action: deliver` and `Wio-Stage: architecture`, so
 that R's lines are 3 to 5. A range has the commits `c1`, `c2` and `c3` from the
 oldest, each of the message B. The config's results are `pass`, `fail` and `unknown`,
-and its reader is `scan` unless a scenario says otherwise. The tests fail with
-`NotImplementedError` until the implementation stage, which removes the marker,
-except those that argparse or the wired dispatch answer.
+and its reader is `scan` unless a scenario says otherwise.
 """
 
 import io
@@ -29,9 +27,6 @@ from wio.trailers.errors import TrailersError
 if TYPE_CHECKING:
     from wio.models.commits import Commit
 
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
 R = "Wio-Work: k3m9xq\nWio-Action: deliver\nWio-Stage: architecture"
 B = f"Fix the bug.\n\n{R}"
 GIT_CONFIG = replace(CONFIG, trailers=Trailers(reader="git"))
@@ -86,7 +81,6 @@ def _run(
     return code, err.getvalue()
 
 
-@PENDING
 def test_a_body_from_a_file_and_from_standard_input_gives_one_diagnostic() -> None:
     """AC-1: the same `error: 3:` line from a file, `-` and no path."""
     # Given B with `Wio-Work: k3 m9xq`, in a file and on standard input
@@ -106,7 +100,6 @@ def test_a_body_from_a_file_and_from_standard_input_gives_one_diagnostic() -> No
     assert results[0][1].startswith("error: 3:")
 
 
-@PENDING
 def test_a_file_that_does_not_exist_is_a_usage_error() -> None:
     """AC-1: a path that cannot be read raises `TrailersError`."""
     # Given a path that does not exist
@@ -116,7 +109,6 @@ def test_a_file_that_does_not_exist_is_a_usage_error() -> None:
         _run(["nope.txt"])
 
 
-@PENDING
 def test_a_path_with_a_range_is_a_usage_error() -> None:
     """AC-1 and A-2: the two read different inputs."""
     # Given a call that gives a path and `--ref-range`
@@ -126,7 +118,6 @@ def test_a_path_with_a_range_is_a_usage_error() -> None:
         _run(["body.txt", "--ref-range", "a..b"])
 
 
-@PENDING
 def test_a_range_that_does_not_resolve_is_a_usage_error() -> None:
     """AC-1: `nosuch..nosuch2` is refused by the port with a `ValueError`."""
     # Given a range `nosuch..nosuch2`
@@ -136,7 +127,6 @@ def test_a_range_that_does_not_resolve_is_a_usage_error() -> None:
         _run(["--ref-range", "nosuch..nosuch2"])
 
 
-@PENDING
 def test_a_directory_that_is_not_in_a_repository_is_a_usage_error() -> None:
     """AC-1: the port's `RuntimeError` is a usage error."""
     # Given a directory that is not in a repository
@@ -146,7 +136,6 @@ def test_a_directory_that_is_not_in_a_repository_is_a_usage_error() -> None:
         _run(["--ref-range", "main..HEAD"], history=LostHistory())
 
 
-@PENDING
 def test_a_malformed_record_fails_a_body_and_a_range() -> None:
     """AC-2: `error: 3:` for the body, `error: <id of c2>:3:` for the range."""
     # Given B with `Wio-Work: k3 m9xq`, and a range whose `c2` has that message while
@@ -172,7 +161,6 @@ def test_a_malformed_record_fails_a_body_and_a_range() -> None:
     assert ranged[1].count("error:") == 1
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("record", "name"),
     [
@@ -197,7 +185,6 @@ def test_a_name_the_config_no_longer_has_is_a_warning(record: str, name: str) ->
     assert name in err
 
 
-@PENDING
 def test_a_work_that_was_deleted_is_not_looked_up() -> None:
     """AC-3: `d4e5f6` and `AC-99` print nothing."""
     # Given B with `Wio-Work: d4e5f6`, which is in no tree, and `Wio-Items: AC-99`
@@ -210,7 +197,6 @@ def test_a_work_that_was_deleted_is_not_looked_up() -> None:
     assert (code, err) == (0, "")
 
 
-@PENDING
 def test_a_line_the_reader_cannot_see_is_a_warning() -> None:
     """AC-4: prose in the paragraph under `scan`, a second paragraph under `git`."""
     # Given B whose paragraph also holds the prose line `Fixes the login bug`, with
@@ -233,7 +219,6 @@ def test_a_line_the_reader_cannot_see_is_a_warning() -> None:
     assert all(line.startswith("warning:") for line in ranged[1].splitlines())
 
 
-@PENDING
 def test_a_name_the_engine_does_not_define_is_a_warning() -> None:
     """AC-4: `warning: 6:` names `Wio-Criteria`."""
     # Given B with a `Wio-Criteria: AC-1` line as line 6 of R's paragraph
@@ -246,7 +231,6 @@ def test_a_name_the_engine_does_not_define_is_a_warning() -> None:
     assert "Wio-Criteria" in err
 
 
-@PENDING
 @pytest.mark.parametrize("what", ["body", "commit", "empty"])
 def test_no_record_is_not_a_failure(what: str) -> None:
     """AC-5: a body, a commit and an empty range print nothing."""
