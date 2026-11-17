@@ -515,3 +515,28 @@ def test_whitespace_before_the_tail_and_after_it_is_not_part_of_either() -> None
 
     # Then the body already ends with the block, so nothing is printed
     assert out == ""
+
+
+@pytest.mark.parametrize(
+    ("works", "expected"),
+    [
+        (["a", "b", "c"], ["a, b, c"]),
+        (["a", "b", "b", "a"], ["a, b", "a"]),
+        (["a, b", "b"], ["a, b"]),
+        (["b", "a, b"], ["b, a", "b"]),
+    ],
+    ids=["three", "repeat", "list-then-member", "member-then-list"],
+)
+def test_neighbors_merge_into_lists_that_name_no_work_twice(
+    works: list[str], expected: list[str]
+) -> None:
+    """The second step keeps each list free of a repeated Work, in history order."""
+    # Given commits of one stage whose records name the Works given, a list at a time
+    commits = tuple(_commit(n, _record(w)) for n, w in enumerate(works, start=1))
+
+    # When the block is folded
+    out, _ = _run("block", commits)
+
+    # Then the records name the Works as expected
+    records = out.rstrip("\n").split("\n\n")
+    assert [r.splitlines()[0].removeprefix("Wio-Work: ") for r in records] == expected

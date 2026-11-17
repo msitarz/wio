@@ -100,8 +100,10 @@ def fold_commits(commits: Sequence[Commit], reader: Reader) -> Folded:
     of appearance and the result and the judge of the later record, or the earlier
     one's when the later has none. Then consecutive records that differ only in the
     Work, which have the same action, stage, items, result and judge, become one
-    record for a list of Works. Records that are not consecutive stay apart,
-    because a record between two others can make the earlier one stale.
+    record for a list of Works, unless the list already names the Work, which starts
+    the next record, because a list names no Work twice. Records that are not
+    consecutive stay apart, because a record between two others can make the earlier
+    one stale.
 
     The fold is a function of the commits, so folding the same range again gives
     the same value. It judges no record: a record that the check would refuse has
