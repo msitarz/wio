@@ -74,9 +74,9 @@ commits.
   pipelines, and its adapter is built by `jzvrtx`.
 - **`EventSink` port** — accepts the `review` event.
 - **Stage-rules port** — provisional, gives the rules a stage selects with their
-  hashes, which the rules Work satisfies; `jyhy64` consumes it. Until the rules
-  Work exists, `wio trailers` wires a null adapter that selects no rule, so a
-  cited rule code is refused.
+  hashes, which the rules Work satisfies; `jyhy64` declares and consumes it.
+  Until the rules Work exists, `wio trailers` wires a null adapter that selects
+  no rule, so a cited rule code is refused.
 - **The `wio trailers` command** — in `wio.cli`, built by `37vw05`, which wires
   every adapter and the no-op `EventSink`.
 
