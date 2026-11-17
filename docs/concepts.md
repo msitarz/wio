@@ -1444,8 +1444,8 @@ needs a human's judgment, and the bundle's header says that a person must
 judge. `wio trailers` does not refuse `agent` for it: the reviewer session that
 the stage's goal or skill starts records its own result with `agent`, and the
 driver then records theirs with `human`, each a record and each an event. The
-gate is passed only when its latest record was judged by a human, which `wio
-next` reads from the history in v0.2. Until then the driver reads it. This is a
+gate is passed by a result that a human judged, and `wio next` reads from the
+history in v0.2 which record counts. Until then the driver reads it. This is a
 stated claim, not a proof: an agent could type `--judge human`. But the claim is
 explicit and reviewable, and the tool's default cannot produce it by accident.
 

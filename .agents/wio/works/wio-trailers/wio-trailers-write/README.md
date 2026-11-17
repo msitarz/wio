@@ -28,6 +28,8 @@ produce the record and the review event itself.
 
 - Writing one record for a list of Works and `wio trailers none`.
 - Writing the review event to the event log; see C-4 of `3jbrzz`.
+- Deciding whether a gate that needs a human has passed; `wio next` reads that
+  from the records later.
 
 ## Assumptions
 
