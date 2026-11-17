@@ -23,8 +23,8 @@ wrong, so the engine hands it a record whose fields are known to hold.
 ## Non-Goals
 
 - Writing one record for a list of Works and `wio trailers none`.
-- Refusing `agent` for a gate that needs a human, the cited items, the reviewed
-  commit and the `review` event; the gate leaf adds them.
+- The cited items, the reviewed commit and the `review` event; the gate leaf
+  adds them.
 
 ## Assumptions
 

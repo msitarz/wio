@@ -31,8 +31,8 @@ for, so a wrong record is refused before it enters the history.
 - Checking a pull request body or a range of commits; the later check does
   that.
 - Writing a record; `wio trailers <work> <action> <stage>` does that.
-- Refusing `agent` as the judge of a gate that needs a human; the gate leaf does
-  that when a result is recorded.
+- Judging who judged a gate; the gate leaf records the judge, and `wio next`
+  reads whether a gate that needs a human has passed.
 
 ## Assumptions
 

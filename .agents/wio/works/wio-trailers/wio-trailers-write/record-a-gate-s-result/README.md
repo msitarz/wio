@@ -9,13 +9,14 @@ depends_on = ["eh62g6", "92xps9"]
 
 ## Purpose
 
-A gate that needs a human can be recorded as judged by an agent, and a review
-leaves no trace of the items it cited or of the commit it saw, so the engine
-refuses that judge and records the citations and the reviewed commit.
+A review leaves no trace of the items it cited or of the commit it saw, and a
+gate that needs a human holds two judgments, the reviewer's and the driver's,
+so the engine records the citations, the reviewed commit and who judged.
 
 ## Goals
 
-- A gate that needs a human is never recorded as judged by an agent.
+- A gate that needs a human can be recorded as judged by an agent and then by a
+  human, each with its own event.
 - The items and rules a review cites are checked and sent with the result.
 - The commit a review judged is named in the `review` event.
 - The event is written once after every check passed, and a sink that fails
@@ -32,8 +33,10 @@ refuses that judge and records the citations and the reviewed commit.
   with the `context` event.
 - Writing the event to the event log, which constraint C-4 of the top parent
   defers to `wio log`.
-- Stopping an agent from claiming a human judged; `wio trailers` refuses
-  `agent` for a human gate and cannot prove who typed `human`.
+- Deciding whether a gate that needs a human has passed; `wio next` reads that
+  from the records later.
+- Stopping an agent from claiming a human judged; `wio trailers` cannot prove
+  who typed `human`.
 - Making the agent wait for the driver before the next stage.
 
 ## Assumptions
@@ -61,8 +64,7 @@ records, and the rules Work settles how it is computed.
   — extends the print leaf's command, with `--cite` repeatable, and replaces the
   print leaf's scenario "A cited item is ignored".
 - **The order of refusals** — the print leaf's field errors come first, then the
-  human-gate refusal, then the cite refusals, and the first group that finds
-  something prints and stops.
+  cite refusals, and the first group that finds something prints and stops.
 - **Cite refusals** — a cite with no `=`, an empty key or result, a key
   repeated, a result outside `gates.results`, an item the Work lacks, a code
   that is not qualified or that the stage does not select, and `--cite` without
@@ -70,9 +72,10 @@ records, and the rules Work settles how it is computed.
   on standard error, the name being `--cite` for a cite with no `=`, an empty
   name or an empty result and for `--cite` without `--result`, and the cite's
   own name otherwise.
-- **Human-gate refusal** — read from the stage's `judge = "human"`, an `agent`
-  judge, given or by default, is refused with `error: Wio-Judge: <message>`,
-  and wins over a cite refusal.
+- **A gate that needs a human** — the stage's `judge = "human"` changes nothing
+  for this command: it records the judge as given, `agent` by default, and does
+  not refuse either, so a reviewer session and the driver each record their
+  own result and event.
 - **Stage rules port** — a provisional port of `wio.trailers` that gives the
   qualified codes of the rules a stage selects for a Work with the hash of each
   rule's file, which the rules component satisfies and which the criteria fake.
@@ -80,12 +83,13 @@ records, and the rules Work settles how it is computed.
   reviewed-commit leaf from the action and the stage, and when it returns `None`
   the command exits 1, prints nothing on standard output and prints
   `error: Wio-Work: no reviewed commit was found`.
-- **The event** — `EventSink.write(ReviewEvent)` holds the Work, the action, the
-  stage, the reviewed commit as a full sha, the judge, the result, each cited
-  key with its result and, for a rule, its hash; it is written once after every
-  check passed, never on a refusal, still after a warning, and a sink whose
-  write fails is reported as a warning on standard error without changing the
-  exit code.
+- **The event** — one per call, so an agent's and a human's events for the same
+  gate stay apart by their judge. `EventSink.write(ReviewEvent)` holds the Work,
+  the action, the stage, the reviewed commit as a full sha, the judge, the
+  result, each cited key with its result and, for a rule, its hash; it is
+  written once after every check passed, never on a refusal, still after a
+  warning, and a sink whose write fails is reported as a warning on standard
+  error without changing the exit code.
 
 ## Acceptance criteria
 
@@ -95,30 +99,23 @@ and the stage rules port, faked, gives `docs.DOC001` with the hash `h1` for it
 and no `contracts.CON001`. A recording `EventSink` is injected, and the history
 holds a work commit under a pure gate commit.
 
-### **AC-1** A human gate refuses an agent
+### **AC-1** A human gate holds the result of an agent and of a human
 
-#### An agent for a gate with `judge = "human"`
+#### An agent and then a human for a gate with `judge = "human"`
 
 - **Given** `k3m9xq` and `docs-review`.
 - **When** `wio trailers k3m9xq deliver docs-review --result pass` runs, and
-  again with `--judge agent`.
-- **Then** each exits 1, prints nothing on standard output, prints
-  `error: Wio-Judge:` on standard error and the sink receives no event.
+  then again with `--judge human`.
+- **Then** each exits 0; the first prints `Wio-Judge: agent` and the second
+  `Wio-Judge: human`, and the sink receives two events, the first with the judge
+  `agent` and the second with the judge `human`.
 
-#### The human-gate refusal comes before a cite refusal
-
-- **Given** the same gate.
-- **When** `wio trailers k3m9xq deliver docs-review --result pass --cite
-  AC-99=pass` runs, with no `--judge`.
-- **Then** it exits 1, prints `error: Wio-Judge:` on standard error and no line
-  about `AC-99`.
-
-#### A human for the same gate
+#### An agent that fails the gate
 
 - **Given** the same gate.
-- **When** the command runs with `--judge human`.
-- **Then** the printed record holds `Wio-Judge: human`, it exits 0 and the sink
-  receives one event.
+- **When** the command runs with `--result fail --judge agent`.
+- **Then** it exits 0, prints `Wio-Result: fail` and `Wio-Judge: agent`, and the
+  sink receives one event with the result `fail`.
 
 ### **AC-2** The cited items and rules are checked
 

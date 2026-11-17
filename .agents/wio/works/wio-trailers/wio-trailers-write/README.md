@@ -20,8 +20,8 @@ produce the record and the review event itself.
 - A gate's result, judge and cited items are recorded with one command, and the
   commit the review judged is named in the `review` event; a history with no
   reviewed commit is refused.
-- A gate that needs a human is never recorded as judged by an agent, and a
-  refused human gate, result or reviewed commit prints no record and sends no
+- A gate that needs a human can be recorded as judged by an agent and then by a
+  human, and a refused result or reviewed commit prints no record and sends no
   event.
 
 ## Non-Goals
@@ -73,18 +73,18 @@ flowchart LR
 
 ## Acceptance criteria
 
-### **AC-1** A human gate refuses an agent and a missing reviewed commit
+### **AC-1** A human gate takes both judges, and no reviewed commit is refused
 
-#### An agent judge for a gate that needs a human
+#### An agent and then a human for a gate that needs a human
 
 - **Given** a gate stage with `judge = "human"`, a Work, commits on `HEAD` where
   the latest is a pure gate commit of this gate and the one before is the work
   commit, and a recording `EventSink`.
 - **When** `wio trailers <work> <action> <stage> --result pass` runs, and then
   `wio trailers <work> <action> <stage> --result pass --judge human` runs.
-- **Then** the first exits 1, prints no record and the sink receives no event;
-  the second exits 0, prints a record with `Wio-Judge: human` and the sink
-  receives one `review` event.
+- **Then** each exits 0; the first prints a record with `Wio-Judge: agent` and
+  the second with `Wio-Judge: human`, and the sink receives two `review` events,
+  the first with the judge `agent` and the second with the judge `human`.
 
 #### A history with no reviewed commit
 
