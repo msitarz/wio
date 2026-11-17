@@ -283,8 +283,10 @@ judged. A gate's own commits carry only the gate's record and sit on top of the
 artifact it reviewed, so the reviewed commit is the first commit, from `HEAD`
 down, that holds something else, and a later reader of a record knows which
 artifact a review saw. It reads the history through the `History` port and
-nothing else: the `--reviewed` override, the comparison with the `context` event
-and the recording of the result belong to the gate form that composes it. Its
+nothing else: the recording of the result belongs to the
+[gate form](#recording-a-gates-result) that composes it, and the `--reviewed`
+override and the comparison with the `context` event are left to a later form.
+Its
 docstring says what it takes and returns, and the
 [tests](../../../tests/unit/trailers/test_reviewed.py) say how each case reads.
 
@@ -350,8 +352,8 @@ reads.
   warning, such as a stage outside the Work's pipeline, and never on a refusal,
   so the log holds only reviews whose record was printed. It names the Work, the
   action, the stage, the reviewed commit as a full sha, the judge, the result
-  and each cited key with its result, and for a rule the hash of its file,
-  because what is not cited was not judged.
+  and each cited key with its result, and for a rule the hash of its file that
+  the `context` event records, because what is not cited was not judged.
 - **A sink that fails never fails the command.** The `EventSink` port reports
   its own warning and does not raise, so the record is printed and the exit code
   is 0, because a log that cannot be written must not block a review.
