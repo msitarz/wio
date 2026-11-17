@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 # One group per directory under `tests/`. The marker of a group is its name.
-GROUPS = ("acceptance", "integration", "packaging", "scripts", "tooling", "unit")
+GROUPS = ("acceptance", "integration", "packaging", "tooling", "unit")
 
 _TESTS = Path(__file__).parent
 

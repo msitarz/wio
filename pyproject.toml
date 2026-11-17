@@ -88,7 +88,6 @@ markers = [
     "acceptance: tests/acceptance, behaviour asserted through the DSL",
     "tooling: tests/tooling, the repository's configuration and hygiene",
     "packaging: tests/packaging, the built wheel and sdist",
-    "scripts: tests/scripts, the scripts of the repository",
 ]
 addopts = [
   "-ra",

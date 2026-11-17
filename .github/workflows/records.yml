@@ -40,7 +40,7 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
-        run: uv run python scripts/records.py commits "$BASE..$HEAD"
+        run: uv run wio trailers check --ref-range "$BASE..$HEAD"
       - name: Copy the records to the body
         # The records are folded (see "Records" in docs/concepts.md). The token
         # of a pull request from a fork cannot edit the body.
@@ -53,7 +53,7 @@ jobs:
           BODY: ${{ github.event.pull_request.body }}
         run: |
           printf '%s' "$BODY" > "$RUNNER_TEMP/old.md"
-          uv run python scripts/records.py body "$BASE..$HEAD" \
+          uv run wio trailers fold body "$BASE..$HEAD" \
             < "$RUNNER_TEMP/old.md" > "$RUNNER_TEMP/new.md"
           if [ -s "$RUNNER_TEMP/new.md" ]; then
             gh pr edit "$NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/new.md"
@@ -68,14 +68,14 @@ jobs:
           BODY: ${{ github.event.pull_request.body }}
         run: |
           printf '%s' "$BODY" > "$RUNNER_TEMP/old.md"
-          uv run python scripts/records.py body "$BASE..$HEAD" \
+          uv run wio trailers fold body "$BASE..$HEAD" \
             < "$RUNNER_TEMP/old.md" > "$RUNNER_TEMP/new.md"
           if [ -s "$RUNNER_TEMP/new.md" ]; then
             {
               echo "Add these paragraphs to the end of the pull request body:"
               echo
               echo '```text'
-              uv run python scripts/records.py block "$BASE..$HEAD"
+              uv run wio trailers fold block "$BASE..$HEAD"
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::error::The body lacks the commits' records; see the job summary."

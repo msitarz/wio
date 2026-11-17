@@ -143,11 +143,6 @@ depends_on = ["tests.acceptance.drivers"]
 path = "tests.acceptance.drivers"
 depends_on = ["tests.sandbox", "wio.cli", "wio.io"]
 
-# Tests of `scripts`: they never use the acceptance setup.
-[[modules]]
-path = "tests.scripts"
-depends_on = ["scripts", "tests.sandbox", "tests.support"]
-
 [[modules]]
 path = "tests.packaging"
 depends_on = []
