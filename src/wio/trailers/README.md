@@ -1,7 +1,8 @@
 # `wio.trailers`
 
 The component behind `wio trailers`: it prints, judges and folds the records of
-commits, finds the commit a gate reviewed and records a gate's result, so that
+commits, finds the commit a gate reviewed and records a gate's result, and runs
+as one command, so that
 every command that handles a record reads and writes it the same way. A
 [record](../../../GLOSSARY.md) is a paragraph of `Wio-*` trailers, and
 [Records](../../../docs/concepts.md#records) says what each key means. The
@@ -360,3 +361,51 @@ reads.
 - **A history with no reviewed commit is an error.** The event has nothing to
   name, so the form prints `error: Wio-Work: no reviewed commit was found` and
   records nothing.
+
+## The command
+
+`TrailersCommand` in [`command.py`](command.py) and `TrailersSpec` in
+[`__init__.py`](__init__.py) are `wio trailers`, the one command that runs the
+write form, `check` and `fold`. A person or an agent reaches the forms only
+through it, so it tells them apart, reaches the repository and reports a usage
+mistake the same way for every form. `wio.cli` wires its ports in
+[`table.py`](../cli/table.py), and this package never imports an adapter. The
+docstrings say what each takes and returns, and the
+[tests](../../../tests/unit/trailers/test_command.py) and the
+[scenarios](../../../tests/acceptance/trailers/test_command.py) say how each
+case reads.
+
+- **The first argument chooses the form.** `check` and `fold` select those
+  forms and any other value is the Work of the write form, so a Work cannot be
+  named `check` or `fold`, though `wio contracts` does not forbid such an id.
+  The form is chosen by the first argument, so an option before it is refused by
+  the parser of the command itself, and an option after it belongs to the form.
+- **A usage mistake exits 2, whichever form it is in.** A call with no
+  argument, an unknown option, a missing or unknown argument and a form's own
+  parse error raise a `TrailersError`, which `wio.cli` turns into the exit code
+  2, because it turns any other code than 0 and 1 that a command returns into
+  70. Nothing is written to standard output and the message says what is wrong.
+  A call with no argument is a usage mistake, unlike bare `wio` and `wio
+  contracts`, because the write form needs a Work, an action and a stage.
+- **A form's parser must not exit the process.** Argparse's own `SystemExit`
+  would escape `wio.cli`, so the forms are parsed with a parser that raises
+  instead, and the `-h` of a form writes its usage to standard output and exits
+  0. The contract does not mention that help; it is the one way a form's
+  `-h` does not end as a bug.
+- **There is no `--json`, on purpose.** The write form prints a plain record to
+  append to a commit message and a check sends its findings to standard error,
+  so the command deviates from the convention that every command declares
+  `--json`.
+- **The ports are wired in `wio.cli`.** The git adapter gives the history, the
+  contracts component finds a Work in the working tree and then in `HEAD`, and,
+  for a commit message, in the index and then in `HEAD`, so a commit that
+  deletes a Work still carries its record. Where a component does not exist yet
+  the command wires a null adapter from [`null.py`](../cli/null.py): a port that
+  selects no rule, so a cited rule code is refused as not selected, and a sink
+  that drops every event, so a recorded gate result leaves nothing in the Wio
+  home until `wio log` exists.
+- **A working directory outside a repository is a usage mistake.** The git
+  adapter refuses it with a `RuntimeError`, which the wiring turns into a
+  `TrailersError` so that it exits 2 and not 70. The wiring reads the config for
+  the Works directory that the index view lists, so a config that cannot be read
+  is reported before any form runs, the help of a form included.

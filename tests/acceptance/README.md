@@ -29,7 +29,10 @@ package only when a second consumer (for example `wio-eval`) needs it.
 
 Wio does not lint Markdown, so a scenario never needs `rumdl` or a diagram
 renderer. Where a scenario needs git (for example a commit message with
-records), it creates a real repository in `tmp_path`.
+records), it creates a real repository in `tmp_path`, on the CLI channel, and
+commits with `wio.commit(message)`, which stages everything as the fixed
+identity of the sandbox. `wio.run(args, stdin=...)` gives a command its standard
+input.
 
 ## 3. The DSL
 
