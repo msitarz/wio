@@ -1,8 +1,8 @@
 # `wio.trailers`
 
-The component behind `wio trailers`: it writes and checks the records of commits
-against the config and the Works, so that every command that handles a record
-judges it the same way. A [record](../../../GLOSSARY.md) is a paragraph of
+The component behind `wio trailers`: it judges the records of commits against
+the config and the Works, so that every command that handles a record judges it
+the same way. A [record](../../../GLOSSARY.md) is a paragraph of
 `Wio-*` trailers, and [Records](../../../docs/concepts.md#records) says what
 each key means. The component reads the Works through the `Contracts` port of
 [`ports.pyi`](ports.pyi) and the config through the shared ports, and it never
@@ -34,15 +34,19 @@ reads.
   or a stage that the config does not have is refused once. A stage that the
   config has but that the Work's pipeline for the action does not list, and an
   action that the config has and the Work lacks, are warnings, because a record
-  of such a stage is odd and not wrong, and an action that the Work lacks is one
-  warning for the Work and not also one for the stage.
+  of such a stage is odd and not wrong. An action that the Work lacks is one
+  warning for the Work and not also one for the stage, because a Work without
+  the action has no pipeline to list the stage in.
 - **Items are each Work's own.** An item that a Work does not have is an error
   that names the item and the Work, and a list of Works is judged Work by Work.
 - **A result is present exactly on a gate.** A gate without a result and a
   result on a stage that is not a gate are errors, and a result that the
-  config's `gates.results` does not list is one more, which is independent of
-  whether the stage is a gate. A stage that the config lacks gets no check of
-  its result, so the one error for the stage stands alone.
+  config's `gates.results` does not list is one more. The two are independent,
+  because each says something different about the record, whether a result may
+  be there and whether it is a result at all, and a person fixes them one at a
+  time. The messages `result required` and `not a gate` are fixed wording, which
+  the commands report as they are. A stage that the config lacks gets no check
+  of its result, so the one error for the stage stands alone.
 - **The diagnostics come in the order of the fields.** The Work, the action, the
   stage, the items and then the result, an absent field at the place it would
   have, and a warning of a field before an error of a later one, so that the
