@@ -2,7 +2,7 @@
 id = "22j7aw"
 template = "feature.leaf"
 roots = ["repo"]
-depends_on = ["570wa9", "frspda", "x4vs3k"]
+depends_on = ["570wa9", "frspda", "x4vs3k", "37vw05"]
 
 [actions]
 deliver = ["implementation", "implementation-review"]

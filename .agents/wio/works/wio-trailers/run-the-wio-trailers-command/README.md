@@ -25,13 +25,25 @@ reaches the repository and follows one contract for its failures.
 - What each form does; its own leaf specifies that.
 - A real event sink; constraint C-4 of the top parent keeps it a no-op until
   `wio log` exists.
+- A `--json` option. The command prints a plain record to append to a commit
+  message and sends the findings of a check to standard error, so it deviates
+  on purpose from the convention of `wio.cli` that every command declares
+  `--json`; the driver confirms this at the gate.
 
 ## Assumptions
 
 ### A-1
 
 A first argument that is `check` or `fold` selects that subcommand, and any
-other value is a Work id, so a Work cannot be named `check` or `fold`.
+other value is a Work id, so a Work cannot be named `check` or `fold`, though
+`wio contracts` does not forbid such an id. The form is chosen by the first
+argument, so an option before it is a usage error.
+
+### A-3
+
+`wio trailers` with no argument is a usage error, because the write form needs a
+Work, an action and a stage, and so it exits 2 as the other usage mistakes do,
+unlike `wio` and `wio contracts`, which print their help and exit 0.
 
 ### A-2
 
@@ -42,34 +54,47 @@ refused as not selected.
 ## Mechanisms
 
 - **The `wio trailers` group** — in `wio.cli`, which dispatches on the first
-  argument and gives every form the exit codes 0, 1 and 2.
-- **The wiring** — of the adapters of the `History` and `Contracts` ports, the
-  no-op `EventSink` and the port for the rules of a stage, built in `wio.cli`
-  and never imported by `wio.trailers`.
+  argument and gives every form the exit codes 0, 1 and 2. It reaches 2 by
+  raising a `WioError` or by argparse, because `wio.cli` turns any other code
+  than 0 or 1 that a command returns into 70.
+- **The wiring** — of the adapters of the `History` port (the git adapter) and
+  the `Contracts` port (the adapter of the contracts component), the no-op
+  `EventSink` and the port for the rules of a stage, which `wio.trailers` owns
+  and whose null adapter, selecting no rule, is built in `wio.cli`. They are
+  built in `wio.cli` and never imported by `wio.trailers`.
 - **The help** — `wio trailers --help` lists the three forms and exits 0.
 
 ## Acceptance criteria
 
-The examples use a temporary repository with a Work `k3m9xq` that has an item
-`AC-1` and a `deliver` that lists `architecture`.
+The examples use a temporary repository whose config declares the gate
+`architecture-review`, with `judge = "human"`, and a Work `k3m9xq` that has an
+item `AC-1` and a `deliver` that lists `architecture` and `architecture-review`.
+`HEAD` carries a record for `k3m9xq`.
 
 ### **AC-1** The arguments select the form
 
 #### The write form, check and fold
 
-- **Given** the repository, and a commit message file and a pull request body.
+- **Given** the repository, a commit message file with no record and a pull
+  request body on standard input.
 - **When** `wio trailers k3m9xq deliver architecture`,
-  `wio trailers check <file>` and `wio trailers fold block HEAD~1..HEAD` run.
-- **Then** the first prints a record, the second checks the file and the third
-  prints the folded records of the range, each exiting 0.
+  `wio trailers check <file>`, `wio trailers check --require <file>`,
+  `wio trailers check --require -` with the same message on standard input,
+  `wio trailers fold block HEAD~1..HEAD` and
+  `wio trailers fold body HEAD~1..HEAD` run.
+- **Then** the first prints the record of `k3m9xq`, the second exits 0 because
+  a message without a record passes, the third and the fourth exit 1 because
+  it has none, the fifth prints the folded record of `HEAD`, and the last prints
+  the body with that record at its end; the others exit 0.
 
 ### **AC-2** A usage mistake exits 2
 
 #### Calls that no form accepts
 
 - **Given** the repository.
-- **When** `wio trailers`, `wio trailers check --nosuch`, `wio trailers fold`,
-  `wio trailers fold body` and `wio trailers k3m9xq deliver` run.
+- **When** `wio trailers`, `wio trailers fold nosuch`,
+  `wio trailers check --nosuch` and `wio trailers --items AC-1 k3m9xq deliver
+  architecture` run.
 - **Then** each exits 2, prints nothing on standard output and says on standard
   error what is wrong.
 
@@ -85,11 +110,19 @@ The examples use a temporary repository with a Work `k3m9xq` that has an item
 
 #### A gate result with the no-op sink
 
-- **Given** the repository with a gate stage and a work commit under a pure gate
-  commit.
-- **When** `wio trailers k3m9xq deliver <gate> --result pass --judge human`
-  runs.
-- **Then** it prints the record, exits 0 and writes no event anywhere.
+- **Given** the repository, with a work commit under a pure gate commit of
+  `architecture-review`, and an empty Wio home.
+- **When** `wio trailers k3m9xq deliver architecture-review --result pass
+  --judge human` runs.
+- **Then** it prints the record, exits 0 and leaves the Wio home empty.
+
+#### A cited rule code with the null rules port
+
+- **Given** the repository, with no injected adapter.
+- **When** `wio trailers k3m9xq deliver architecture-review --result pass
+  --judge human --cite docs.DOC001=fail` runs.
+- **Then** it exits 1, names `docs.DOC001` as not selected on standard error and
+  prints nothing on standard output.
 
 ### **AC-4** The help lists the forms
 
