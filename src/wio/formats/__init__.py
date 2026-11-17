@@ -25,6 +25,7 @@ lazy from wio.formats.errors import (
 lazy from wio.formats.items import find_items, judge_items
 lazy from wio.formats.outline import read_outline
 lazy from wio.formats.records import check_shape, read
+lazy from wio.formats.rendering import render
 lazy from wio.formats.setkeys import set_block_keys
 lazy from wio.formats.skeleton import prepare_skeleton
 lazy from wio.formats.toml import decode_toml
@@ -51,6 +52,7 @@ __all__ = [
     "read_metadata_block",
     "read_outline",
     "remove_directive_list",
+    "render",
     "render_check",
     "render_json",
     "render_text",

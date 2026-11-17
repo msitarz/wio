@@ -38,7 +38,7 @@ PIPELINE = ["architecture", "architecture-review"]
 
 @dataclass(frozen=True)
 class FakeContracts:
-    """The `Contracts` port over three Works, `k3m9xq`, `a7b2c4` and `b8c9d0`."""
+    """The `Contracts` port over `k3m9xq`, `a7b2c4`, `b8c9d0` and `d4e5f6`."""
 
     def items(self, work_id: str) -> frozenset[str] | None:
         """Find the items of a Work.
@@ -53,6 +53,7 @@ class FakeContracts:
             "k3m9xq": frozenset({"AC-1", "AC-3"}),
             "a7b2c4": frozenset({"AC-1"}),
             "b8c9d0": frozenset(),
+            "d4e5f6": frozenset({"AC-1"}),
         }.get(work_id)
 
     def pipeline(self, work_id: str, action: str) -> Sequence[str] | None:

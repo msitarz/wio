@@ -1,8 +1,8 @@
 # `wio.trailers`
 
-The component behind `wio trailers`: it judges the records of commits against
-the config and the Works, so that every command that handles a record judges it
-the same way. A [record](../../../GLOSSARY.md) is a paragraph of
+The component behind `wio trailers`: it prints and judges the records of commits
+against the config and the Works, so that every command that handles a record
+judges it the same way. A [record](../../../GLOSSARY.md) is a paragraph of
 `Wio-*` trailers, and [Records](../../../docs/concepts.md#records) says what
 each key means. The component reads the Works through the `Contracts` port of
 [`ports.pyi`](ports.pyi) and the config through the shared ports, and it never
@@ -58,3 +58,58 @@ reads.
   that `gates.results` does not list, whatever the stage is, and never reads a
   Work, so that the check of a range of commits can turn them into warnings and
   not fail on a record that was valid when it was written.
+
+## Printing a record
+
+`run_write` and `configure_write` in [`write.py`](write.py) are the write form
+of `wio trailers`, `wio trailers <work> <action> <stage>`, which prints the
+record that an agent adds to its commit message. `wio.cli` dispatches on the
+first argument, wires the ports and turns an error into the exit code 2, so this
+module holds only what the form does and is run in a test with fakes. Their
+docstrings say what each takes, prints and raises, and the
+[tests](../../../tests/unit/trailers/test_write.py) say how each case reads.
+
+- **A record is printed only when every field holds, and then alone.** Nothing
+  is written to standard output when anything is an error, so an agent that
+  appends the output to a message never appends half a record. The findings go
+  to standard error.
+- **The record is built from the arguments and laid out by the shared
+  renderer.** The `--items` ids are joined by a comma and one space in the order
+  given, the judge is `agent` when a result is given and no judge is, and the
+  lines come in the order of the keys whatever the order of the options. The
+  form never lays out a line itself, so no second layout can disagree with the
+  parser's.
+- **An argument cannot add a line to the record.** An argument that is empty or
+  holds a line end, and a judge without a result, are refused as the finding of
+  their field before the record is rendered, one finding at most for a field and
+  the empty or line-end one first, and the offending line shows a line end as an
+  escape, so that what is printed to refuse an argument is one line too.
+- **The checks run in order, and the first that finds something stops the
+  rest.** The refusal of an argument, then the shape check with the reader of
+  the config, and only when that finds nothing the
+  [validator](#validating-the-fields-of-a-record), so a record of a wrong form
+  never reaches the validator, and a finding is never reported twice. A Work
+  that only `HEAD` has, because the commit being made deletes it, is still
+  found, for the `Contracts` port looks in `HEAD` after the working tree, so the
+  commit that retires or abandons a Work can carry its record.
+- **A finding is a line on standard error that names its field.** A finding of
+  form is `error: <key>: <message>` followed by the offending line, and a
+  diagnostic of the validator is `<severity>: <where>: <message>` with the key
+  of the field as `<where>`, because a record built from arguments has no lines.
+  A warning does not stop the record, which is printed with the exit code 0, and
+  a refused field is the exit code 1.
+- **A call that no form accepts is a usage error and exits 2.** A Work that is a
+  list or `none` is refused before the config is loaded. The
+  [concepts](../../../docs/concepts.md#records) allow both for a record, but
+  this form writes one record for one Work, and a later form may write the rest.
+  A missing stage, an unknown option or a config that cannot be read are refused
+  by argparse and by the loader, so a mistake in how the command is called is
+  never mistaken for a record that does not hold. The dispatch on the first
+  argument and the turning of every such error into the exit code 2 belong to
+  the command that wires the forms together, in `wio.cli`, and not to this
+  module.
+- **A stage outside the Work's pipeline is a warning here as well.** The record
+  is printed and the warning goes to standard error, as the validator reports
+  it, because a record of such a stage is odd and not wrong.
+- **A cited item is accepted and ignored.** The gate form that records a result
+  handles it, and accepting it here keeps one set of options for both.

@@ -237,3 +237,25 @@ and what a record holds.
   finding into a [diagnostic](../../../GLOSSARY.md) as it does so. A problem of
   a whole record, such as a missing key, is at the first line of the record, and
   the findings come in the order of the message.
+
+## Rendering a record
+
+`render` in [`rendering.py`](rendering.py) is the one renderer of the `Wio-*`
+records of a message, as the reader above is the one parser, so the commands
+that print a record never lay one out on their own. Its docstring says what it
+takes, returns and raises, and its
+[tests](../../../tests/unit/formats/test_render.py) say how each case reads.
+
+- **The order of the keys is the renderer's, not the caller's.** The six lines
+  come in the order that a record lists them whatever the order of the mapping
+  given, and a key that is not given has no line, so the optional fields of a
+  record cost the caller nothing.
+- **A key outside the six is refused by name.** A caller that mistypes a key
+  learns which, and no record is printed with a line that no reader would take
+  for a record.
+- **It lays out and judges nothing.** A value is written as it is, so a value
+  with a line end is the caller's to refuse, and whether a field holds is the
+  business of the shape check and of the validator of `wio.trailers`.
+- **The list of keys is shared.** `KEYS` is the one list that the renderer lays
+  out and the reader takes as known, so a key cannot be one that a record prints
+  and the shape check calls unknown.

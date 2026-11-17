@@ -11,6 +11,7 @@ from itertools import groupby
 from operator import attrgetter
 from typing import TYPE_CHECKING, Literal
 
+from wio.formats.rendering import KEYS
 from wio.models.records import Finding, Reading, Record, Trailer
 
 if TYPE_CHECKING:
@@ -24,9 +25,7 @@ type _Block = list[tuple[int, str]]
 _TRAILER = re.compile(r"(?P<key>[A-Za-z][A-Za-z0-9-]*):[ \t]*(?P<value>.*?)[ \t]*")
 _FENCE = re.compile(r" {0,3}(```|~~~)")
 _NAME = re.compile(r"[a-z0-9][a-z0-9-]*")
-_KNOWN = frozenset(
-    ("Wio-Work", "Wio-Action", "Wio-Stage", "Wio-Items", "Wio-Result", "Wio-Judge")
-)
+_KNOWN = frozenset(KEYS)
 _NEEDS_WORK = ("Wio-Action", "Wio-Stage")
 
 
