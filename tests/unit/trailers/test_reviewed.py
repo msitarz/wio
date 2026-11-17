@@ -11,8 +11,6 @@ is the oldest and the highest number is `HEAD`. A gate record is the record of
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
-import pytest
-
 from tests.unit.trailers.test_fold import _commit, _id
 from wio.trailers.reviewed import reviewed_commit
 
@@ -21,9 +19,6 @@ if TYPE_CHECKING:
     from wio.models.commits import Commit
     from wio.models.config import Reader
 
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
 GATE = (
     "Wio-Work: k3m9xq\nWio-Action: define\nWio-Stage: review-contract\nWio-Result: pass"
 )
@@ -63,7 +58,6 @@ def _find(*commits: Commit, reader: Reader = "scan") -> str | None:
     return reviewed_commit("define", "review-contract", history, reader)
 
 
-@PENDING
 def test_pure_gate_commits_above_the_work_commit_are_skipped() -> None:
     """AC-1: `c3` and `c2` carry only a gate record, so `c1` is returned."""
     # Given `c3` and `c2` that carry only a gate record, and `c1`, the work commit,
@@ -78,7 +72,6 @@ def test_pure_gate_commits_above_the_work_commit_are_skipped() -> None:
     assert found == _id(1)
 
 
-@PENDING
 def test_a_commit_that_is_pure_for_other_works_is_skipped() -> None:
     """AC-1: a gate record for `a7b2c4, b8c9d0` is still the gate's own."""
     # Given `c2` whose record is for `Wio-Work: a7b2c4, b8c9d0` with
@@ -93,7 +86,6 @@ def test_a_commit_that_is_pure_for_other_works_is_skipped() -> None:
     assert found == _id(1)
 
 
-@PENDING
 def test_another_record_beside_the_gate_s_holds_the_artifact() -> None:
     """AC-2: `c2` carries the gate record and a work record, so it is returned."""
     # Given `c2` that carries the gate record and also the record `Wio-Work:
@@ -107,7 +99,6 @@ def test_another_record_beside_the_gate_s_holds_the_artifact() -> None:
     assert found == _id(2)
 
 
-@PENDING
 def test_a_commit_with_no_record_is_not_skipped() -> None:
     """AC-2: `c3` is the gate's, `c2` has no record, so `c2` is returned."""
     # Given `c3` that carries the gate record, `c2` with no record, and `c1`
@@ -120,7 +111,6 @@ def test_a_commit_with_no_record_is_not_skipped() -> None:
     assert found == _id(2)
 
 
-@PENDING
 def test_a_record_of_no_work_is_not_skipped() -> None:
     """AC-2: `Wio-Work: none` belongs to no gate, so `c2` is returned."""
     # Given `c2` whose only record is `Wio-Work: none`, and `c1` below it
@@ -133,7 +123,6 @@ def test_a_record_of_no_work_is_not_skipped() -> None:
     assert found == _id(2)
 
 
-@PENDING
 def test_a_history_of_only_gate_commits_has_no_reviewed_commit() -> None:
     """AC-3: `None` for a history of pure gate commits."""
     # Given a history of commits that each carry only a gate record
@@ -156,7 +145,6 @@ def test_an_empty_history_has_no_reviewed_commit() -> None:
     assert found is None
 
 
-@PENDING
 def test_a_record_the_reader_cannot_see_does_not_make_a_gate_commit() -> None:
     """AC-4: under `git`, a gate record before a trailing paragraph is invisible."""
     # Given `c2` whose message holds a gate record, a blank line and then the

@@ -7,14 +7,17 @@ down, that holds something else. `reviewed_commit` finds it from the history alo
 so a later reader of a record knows which artifact the review judged. It never
 looks at the `context` event and has no override; the gate form of `wio trailers`
 composes it. The finder walks the history and asks the leaf that judges a commit,
-which is stubbed.
+which reads the records of its message.
 """
 
 from typing import TYPE_CHECKING
 
+from wio.formats import read
+
 if TYPE_CHECKING:
     from wio.io.ports import History
     from wio.models.config import Reader
+    from wio.models.records import Record
 
 
 def reviewed_commit(
@@ -70,4 +73,21 @@ def _is_gate_commit(message: str, gate: tuple[str, str], reader: Reader) -> bool
         of another action or stage, and for a gate record that the reader cannot
         see.
     """
-    raise NotImplementedError
+    records = read(message, reader).records
+    return bool(records) and all(_belongs_to(record, gate) for record in records)
+
+
+def _belongs_to(record: Record, gate: tuple[str, str]) -> bool:
+    """Tell whether a record is the record of a gate.
+
+    Args:
+        record: A record of the message.
+        gate: The action and the stage of the gate.
+
+    Returns:
+        `True` when the record names the gate's action and stage, for any Work or
+        list of Works, and `False` for one that lacks either key, such as a record
+        of `Wio-Work: none`.
+    """
+    seen = {trailer.key: trailer.value for trailer in record.trailers}
+    return (seen.get("Wio-Action"), seen.get("Wio-Stage")) == gate
