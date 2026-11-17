@@ -279,6 +279,43 @@ the other. The docstrings say what each takes and returns, and the
   inputs, and an empty `--ref-range` is still a range, so it is never read as no
   range and replaced by a body from standard input.
 
+## The two modes of the check
+
+`wio trailers check` judges a record by the time it is made, and the two modes
+above are one check at two moments. The commit-msg hook calls the commit-time
+mode, `check --require`, and CI calls the afterwards mode on a pull request body
+or on the commits of a range, as [Records](../../../docs/concepts.md#records)
+describes. They share the shape check of [`wio.formats`](../formats/README.md),
+so the same record is read and judged for its form the same way, and they differ
+in what they do with the rest. The
+[scenarios](../../../tests/acceptance/trailers/test_check.py) run both on a real
+repository.
+
+```mermaid
+flowchart LR
+  M[Commit message] --> C["wio trailers check --require"]
+  B[Pull request body] --> P["wio trailers check [PATH]"]
+  R[Range of commits] --> A["wio trailers check --ref-range"]
+  C --> S["Shape check"]
+  P --> S
+  A --> S
+```
+
+- **A name the config lacks is an error while the commit can still be fixed, and
+  a warning afterwards.** A stage that the config does not have refuses the
+  commit at commit time. Once the commit is written, the config may have moved
+  on and the commit cannot change, so the same record only warns.
+- **A record is required unless git wrote the subject, and only at commit
+  time.** A body or a commit of no Work has no record, so the afterwards mode
+  asks for none.
+- **A line the reader cannot see is reported in both modes.** It is an error at
+  commit time and a warning afterwards, and both name the line, because a record
+  that no one reads is a record that was not written.
+- **A Work or an item is looked up at commit time and never afterwards.** The
+  commit-time mode finds a Work in the index and then in `HEAD`, and the later
+  mode never asks, because Works are deleted after they are delivered and the
+  readers ignore ids they do not know.
+
 ## Finding the reviewed commit
 
 `reviewed_commit` in [`reviewed.py`](reviewed.py) finds the commit that a gate
