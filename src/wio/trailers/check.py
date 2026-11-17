@@ -5,17 +5,18 @@
 and the Works it was written for, so that a wrong record is refused before it
 enters the history. `wio.cli` dispatches on the first argument and wires the
 ports, and this module holds what the form does, so it is run in a test with
-fakes. The later check of a body or a range shares the form and adds its own mode,
-which makes the option `--require` optional. The records are read and their form is
+fakes. The later check of a body or a range, `wio.trailers.later`, shares the form and
+is chosen when `--require` is absent. The records are read and their form is
 judged by `wio.formats`, and their fields by the validator of this package.
 """
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from wio.formats import check_shape, read
 from wio.models.diagnostics import Diagnostic
 from wio.trailers.errors import TrailersError
+from wio.trailers.later import run_later
+from wio.trailers.report import by_line, read_message, write_diagnostics
 from wio.trailers.validation import Field, validate_record
 
 _EXEMPT: Final = ("Merge ", "Revert ", "Reapply ", "fixup! ", "squash! ")
@@ -99,15 +100,17 @@ def check_commit_message(
         *_record_diagnostics(reading, findings, (contracts, config)),
         *_missing_record(message, reading),
     ]
-    return sorted(found, key=_order)
+    return sorted(found, key=by_line)
 
 
 def configure_check(parser: ArgumentParser) -> None:
     """Add the arguments of the check form to its parser.
 
-    It does no I/O. `path` is optional: the file that holds the message, or standard
-    input when it is `-` or absent. `--require` selects the commit-time mode, which
-    requires a record, and is required until the later check adds its own mode.
+    It does no I/O. `path` is optional: the file that holds the message or the body,
+    or standard input when it is `-` or absent. `--require` selects the commit-time
+    mode, which requires a record, and `--ref-range` selects the later check of the
+    commits of a range, which is a provisional name as the parent's third assumption
+    says. Neither is given for the later check of a body.
 
     Args:
         parser: The parser that `wio.cli` created for `check`.
@@ -116,18 +119,22 @@ def configure_check(parser: ArgumentParser) -> None:
     parser.add_argument(
         "--require",
         action="store_true",
-        required=True,
         help="Judge a commit message, which needs a record unless git wrote it.",
+    )
+    parser.add_argument(
+        "--ref-range",
+        help="Check the commits of a git revision range, such as main..HEAD.",
     )
 
 
 def run_check(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Check the commit message of the arguments.
+    """Check the commit message, the body or the range of the arguments.
 
-    The message is read from the file or from standard input, and each diagnostic of
-    `check_commit_message` is written to standard error as
-    `<severity>: <where>: <message>`, one to a line, in its order. Nothing is
-    written to standard output.
+    With `--require` the commit-time mode judges the commit message that is read from
+    the file or from standard input, and otherwise the later check judges a body or,
+    with `--ref-range`, the commits of a range, which `run_later` does. Each
+    diagnostic is written to standard error as `<severity>: <where>: <message>`, one
+    to a line, in its order, and nothing is written to standard output.
 
     Args:
         services: The ports the form reads the config, the message and the Works
@@ -141,30 +148,19 @@ def run_check(services: Services, args: Namespace, stdio: Stdio) -> int:
         the exit code.
 
     Raises:
-        TrailersError: If the file cannot be read or decoded.
+        TrailersError: If `--require` is given with `--ref-range`, which is not a
+            call of any mode, or if the file cannot be read or decoded.
         ConfigurationError: If the config cannot be read.
     """
+    if not args.require:
+        return run_later(services, args, stdio)
+    if args.ref_range:
+        message = "--require checks one commit message and cannot be given --ref-range."
+        raise TrailersError(message)
     config = services.settings.load()
-    message = _read_message(services, args.path, stdio)
+    message = read_message(services, args.path, stdio)
     diagnostics = check_commit_message(message, services.staged_contracts, config)
-    for diagnostic in diagnostics:
-        line = f"{diagnostic.severity}: {diagnostic.where}: {diagnostic.message}\n"
-        stdio.stderr.write(line)
-    return 1 if any(d.severity == "error" for d in diagnostics) else 0
-
-
-def _order(diagnostic: Diagnostic) -> tuple[int, int, str]:
-    """Give the key that orders the diagnostics of a message.
-
-    Args:
-        diagnostic: A diagnostic whose `where` is a line number.
-
-    Returns:
-        The line as a number, so that line 10 follows line 9, then 0 for an error and
-        1 for a warning, then the message.
-    """
-    rank = 0 if diagnostic.severity == "error" else 1
-    return (int(diagnostic.where), rank, diagnostic.message)
+    return write_diagnostics(diagnostics, stdio)
 
 
 def _shape_diagnostics(findings: list[Finding]) -> list[Diagnostic]:
@@ -250,26 +246,3 @@ def _missing_record(message: str, reading: Reading) -> list[Diagnostic]:
     if reading.records or has_exempt_subject(message):
         return []
     return [Diagnostic("error", "1", "no record was found")]
-
-
-def _read_message(services: Services, path: str | None, stdio: Stdio) -> str:
-    """Read the commit message to check.
-
-    Args:
-        services: The ports, of which `files` reads the file.
-        path: The file, or `-` or `None` for standard input.
-        stdio: Where standard input is read.
-
-    Returns:
-        The text of the message.
-
-    Raises:
-        TrailersError: If the file cannot be read or decoded.
-    """
-    if path is None or path == "-":
-        return stdio.stdin.read()
-    try:
-        return services.files.read_text(Path(path))
-    except (OSError, UnicodeDecodeError) as error:
-        message = f"cannot read the message in {path}: {error}"
-        raise TrailersError(message) from error

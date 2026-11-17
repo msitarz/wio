@@ -71,6 +71,32 @@ class Settings:
         return self.config
 
 
+def services(
+    config: Config = CONFIG,
+    *,
+    history: object | None = None,
+    files: dict[Path, str] | None = None,
+) -> Services:
+    """Build the services of the check form over fakes.
+
+    Args:
+        config: The config the settings load.
+        history: The `History` port, or `None` for one that is never read.
+        files: The files of the file system, by path.
+
+    Returns:
+        The services, whose staged `Contracts` is the index lookup of the examples and
+        whose working-tree `Contracts` lacks `d4e5f6`.
+    """
+    return Services(
+        Settings(config),
+        WorkingTree(),
+        cast("History", history or object()),
+        FakeContracts(),
+        cast("FileSystem", MemoryFileSystem(files or {})),
+    )
+
+
 def _run(
     message: str,
     *,
@@ -93,14 +119,9 @@ def _run(
     configure_check(parser)
     args = parser.parse_args([*([path] if path is not None else []), "--require"])
     out, err = io.StringIO(), io.StringIO()
-    services = Services(
-        Settings(config),
-        WorkingTree(),
-        cast("History", object()),
-        FakeContracts(),
-        cast("FileSystem", MemoryFileSystem(files or {})),
+    code = run_check(
+        services(config, files=files), args, FakeStdio(io.StringIO(message), out, err)
     )
-    code = run_check(services, args, FakeStdio(io.StringIO(message), out, err))
     assert out.getvalue() == ""
     return code, err.getvalue()
 
@@ -156,17 +177,19 @@ def test_a_file_that_cannot_be_read_is_a_usage_error() -> None:
         _run("", path="nope.txt")
 
 
-def test_the_option_require_is_required_until_the_later_check_adds_its_mode() -> None:
-    """The form of this leaf is the commit-time mode only."""
-    # Given the parser of the check form
+def test_require_with_a_range_is_a_usage_error() -> None:
+    """`--require` checks one commit message, so a range is no call of any mode."""
+    # Given the parser of the check form and a call with `--require` and a range
     parser = ArgumentParser(prog="wio trailers check")
     configure_check(parser)
+    args = parser.parse_args(["--require", "--ref-range", "main..HEAD"])
 
-    # When it parses a call without `--require`
-    # Then argparse refuses it with the usage error 2
-    with pytest.raises(SystemExit) as caught:
-        parser.parse_args(["msg.txt"])
-    assert caught.value.code == 2
+    # When the check runs
+    # Then it raises a `TrailersError`, which exits 2
+    with pytest.raises(TrailersError):
+        run_check(
+            services(), args, FakeStdio(io.StringIO(""), io.StringIO(), io.StringIO())
+        )
 
 
 @pytest.mark.parametrize(
