@@ -1,17 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of the reader and the shape check of records in `wio.formats`.
 
-Each test is one criterion of the Work that builds them. They fail with
-`NotImplementedError` until the implementation stage, which removes the marker.
+Each test is one criterion of the Work that builds them.
 """
 
 import pytest
 
 from wio.formats import check_shape, read
 
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
 R = "Wio-Work: k3m9xq\nWio-Action: deliver\nWio-Stage: architecture"
 
 
@@ -27,7 +23,6 @@ def _kinds(message: str) -> list[tuple[str, str | None]]:
     return [(f.kind, f.key) for f in check_shape(message, "scan")]
 
 
-@PENDING
 @pytest.mark.parametrize(
     "message",
     [
@@ -51,7 +46,6 @@ def test_a_valid_message_has_no_finding(message: str) -> None:
     assert findings == []
 
 
-@PENDING
 @pytest.mark.parametrize(
     "message",
     [
@@ -75,7 +69,6 @@ def test_the_work_value_is_judged(message: str) -> None:
     ]
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("message", "key"),
     [
@@ -96,7 +89,6 @@ def test_the_other_keys_are_judged(message: str, key: str) -> None:
     assert kinds == [("malformed", key)]
 
 
-@PENDING
 def test_a_repeated_key_is_found_at_its_second_line() -> None:
     """AC-3: the finding names the line of the second `Wio-Stage`."""
     # Given R with a second `Wio-Stage: wiring` line, the fourth of the message
@@ -111,7 +103,6 @@ def test_a_repeated_key_is_found_at_its_second_line() -> None:
     ]
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("message", "key"),
     [
@@ -133,7 +124,6 @@ def test_a_value_of_the_wrong_form_is_malformed(message: str, key: str) -> None:
     assert kinds == [("malformed", key)]
 
 
-@PENDING
 @pytest.mark.parametrize(
     "message",
     [
@@ -152,7 +142,6 @@ def test_a_name_the_config_may_not_list_is_not_judged(message: str) -> None:
     assert findings == []
 
 
-@PENDING
 def test_an_unknown_key_is_a_finding_of_its_own() -> None:
     """AC-5: `Wio-Criteria` is `unknown-key`, and a `none` record also breaks."""
     # Given R with a `Wio-Criteria` line, and `Wio-Work: none` with the same line
@@ -165,12 +154,12 @@ def test_an_unknown_key_is_a_finding_of_its_own() -> None:
     # Then the first gives one `unknown-key` finding, and the second also a
     # `malformed` finding for the forbidden key
     assert plain == [("unknown-key", "Wio-Criteria")]
-    assert none[0] == ("unknown-key", "Wio-Criteria")
-    assert none[1][0] == "malformed"
-    assert len(none) == 2
+    assert sorted(none) == [
+        ("malformed", "Wio-Criteria"),
+        ("unknown-key", "Wio-Criteria"),
+    ]
 
 
-@PENDING
 def test_a_line_in_a_paragraph_with_prose_is_invisible_under_scan() -> None:
     """AC-6: each `Wio-` line of a paragraph that also holds prose is found."""
     # Given a paragraph that holds R and the prose line `Fixes the login bug`
@@ -183,7 +172,6 @@ def test_a_line_in_a_paragraph_with_prose_is_invisible_under_scan() -> None:
     assert [kind for kind, _ in kinds] == ["invisible"] * 3
 
 
-@PENDING
 def test_a_record_before_the_last_paragraph_is_invisible_under_git() -> None:
     """AC-6: R followed by another record is not seen, the last one is."""
     # Given R, a blank line, and a second record that git sees as the last
@@ -199,7 +187,6 @@ def test_a_record_before_the_last_paragraph_is_invisible_under_git() -> None:
     assert [f.number for f in findings] == [1, 2, 3]
 
 
-@PENDING
 def test_findings_say_what_is_wrong_and_where() -> None:
     """AC-7: line numbers, non-empty messages and the order of the message."""
     # Given a subject, a body paragraph and R with bad items and an unknown key
@@ -217,7 +204,6 @@ def test_findings_say_what_is_wrong_and_where() -> None:
     assert all(f.message for f in findings)
 
 
-@PENDING
 def test_the_scan_reader_decides_what_is_a_record() -> None:
     """AC-8: only the middle record is read, with no rejected line."""
     # Given R in the middle, another in a fenced block and a `# Wio-Work` line
@@ -233,7 +219,6 @@ def test_the_scan_reader_decides_what_is_a_record() -> None:
     assert reading.rejected == ()
 
 
-@PENDING
 def test_the_git_reader_decides_what_is_a_record() -> None:
     """AC-8: R before a `Co-authored-by` paragraph is rejected, not read."""
     # Given R, a blank line and a `Co-authored-by` paragraph
@@ -246,3 +231,40 @@ def test_the_git_reader_decides_what_is_a_record() -> None:
     # rejected lines
     assert reading.records == ()
     assert [t.number for t in reading.rejected] == [1, 2, 3]
+
+
+def test_a_comment_line_is_left_out_under_scan_and_not_under_git() -> None:
+    """A `#` line does not break a record under `scan`."""
+    # Given R with a `#` comment line inside its paragraph
+    message = f"{R}\n# a comment"
+
+    # When `check_shape` reads it with the `scan` reader
+    findings = check_shape(message, "scan")
+
+    # Then it returns no finding
+    assert findings == []
+
+
+def test_a_last_paragraph_with_prose_is_not_a_record_under_git() -> None:
+    """The `git` reader rejects the `Wio-` lines of a last paragraph with prose."""
+    # Given R followed by a prose line in the last paragraph
+    message = f"feat: x\n\n{R}\nwrapped prose"
+
+    # When `read` reads it with the `git` reader
+    reading = read(message, "git")
+
+    # Then it holds no record and the three `Wio-` lines as rejected
+    assert reading.records == ()
+    assert [t.number for t in reading.rejected] == [3, 4, 5]
+
+
+def test_a_rejected_line_is_ordered_with_the_records() -> None:
+    """Findings of records and of rejected lines come in the message's order."""
+    # Given a rejected line before a record with a bad value
+    message = f"Wio-Work: a7b2c4\nprose\n\n{R}\nWio-Items: AC-1,AC-3"
+
+    # When `check_shape` reads it with the `scan` reader
+    numbers = [f.number for f in check_shape(message, "scan")]
+
+    # Then the numbers rise
+    assert numbers == [1, 7]
