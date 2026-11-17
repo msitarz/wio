@@ -171,8 +171,8 @@ def _lookups(root: Path) -> Project:
     files = adapters.LocalFileSystem()
     settings = ConfigSettings(repository, files)
     catalog = TemplatesCatalog(settings, repository, files)
-    head = HeadFiles(root, history)
-    index = IndexFiles(root, repository, history, files, WORKS)
+    head = HeadFiles(history, root)
+    index = IndexFiles(repository, history, files, root, WORKS)
     return Project(
         root,
         WorkLookup(settings, repository, catalog, files, [files, head]),
@@ -266,12 +266,15 @@ def test_the_items_of_the_working_tree_and_the_index_may_differ(
 ) -> None:
     """AC-3: each adapter reads its own tree before `HEAD`."""
     # Given `k3m9xq` with the item `AC-3` in the working tree and without it in
-    # the index
+    # the index, which differs from `HEAD`, so that the index adapter cannot be
+    # told from `HEAD`
     project = _project(
         sandbox,
         monkeypatch,
-        {"parent/k3m9xq/README.md": _work("k3m9xq", items=("AC-1",))},
+        {"parent/k3m9xq/README.md": _work("k3m9xq", items=("AC-1", "AC-9"))},
     )
+    _write(project.root, "parent/k3m9xq/README.md", _work("k3m9xq", items=("AC-1",)))
+    git(sandbox, "add", "-A", check=True)
     _write(
         project.root, "parent/k3m9xq/README.md", _work("k3m9xq", items=("AC-1", "AC-3"))
     )

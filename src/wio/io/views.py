@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from wio.io.ports import FileSystem, History, Repository
 
 
-@dataclass(eq=False)
 class ReadOnlyFiles(ABC):
     """What the views share: a `FileSystem` over a set of files that is read-only.
 
@@ -29,9 +28,9 @@ class ReadOnlyFiles(ABC):
     holds files only, so a directory exists when a file lies below it, and a
     symbolic link never exists.
 
-    Attributes:
-        root: The absolute path of the repository root, which the paths of the
-            view are relative to.
+    A subclass is a dataclass that has a `root` field, the absolute path of the
+    repository root that the paths of the view are relative to, among the fields
+    it needs, in the order that suits its caller.
     """
 
     root: Path
@@ -206,10 +205,12 @@ class HeadFiles(ReadOnlyFiles):
 
     Attributes:
         history: The port that lists and reads the revision.
+        root: The absolute path of the repository root.
         revision: The revision, `HEAD` by default.
     """
 
     history: History
+    root: Path
     revision: str = "HEAD"
     _listing: frozenset[Path] | None = field(default=None, init=False, repr=False)
 
@@ -249,6 +250,7 @@ class IndexFiles(ReadOnlyFiles):
         repository: The port that reads a staged file.
         history: The port that lists the files of `HEAD`.
         working: The file system of the working tree, listed for candidates.
+        root: The absolute path of the repository root.
         below: The directory, relative to the root, below which the view lists
             files, such as the Works directory.
     """
@@ -256,6 +258,7 @@ class IndexFiles(ReadOnlyFiles):
     repository: Repository
     history: History
     working: FileSystem
+    root: Path
     below: Path
 
     def paths(self) -> frozenset[Path]:
