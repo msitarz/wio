@@ -8,15 +8,14 @@ not a gate, and `architecture-review`, which is a gate. The config also has the 
 are `pass`, `fail` and `unknown` and its reader is `scan` unless a scenario says
 otherwise. R is the paragraph `Wio-Work: k3m9xq`, `Wio-Action: deliver` and
 `Wio-Stage: architecture`, and M is the subject `feat: add x`, a blank line and R, so
-R's lines are 3 to 5. The tests fail with `NotImplementedError` until the
-implementation stage, which removes the marker, except those that argparse answers.
+R's lines are 3 to 5.
 """
 
 import io
 from argparse import ArgumentParser
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, override
 
 import pytest
 
@@ -35,12 +34,26 @@ from wio.trailers.errors import TrailersError
 if TYPE_CHECKING:
     from wio.io.ports import FileSystem, History
 
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
 R = "Wio-Work: k3m9xq\nWio-Action: deliver\nWio-Stage: architecture"
 M = f"feat: add x\n\n{R}"
 GIT_CONFIG = replace(CONFIG, trailers=Trailers(reader="git"))
+
+
+@dataclass(frozen=True)
+class WorkingTree(FakeContracts):
+    """The `Contracts` port over the working tree, which lacks `d4e5f6`."""
+
+    @override
+    def items(self, work_id: str) -> frozenset[str] | None:
+        """Find the items of a Work, none for `d4e5f6`.
+
+        Args:
+            work_id: The Work's id.
+
+        Returns:
+            Its items, or `None` for a Work that the working tree lacks.
+        """
+        return None if work_id == "d4e5f6" else super().items(work_id)
 
 
 @dataclass(frozen=True)
@@ -79,17 +92,16 @@ def _run(
     parser = ArgumentParser(prog="wio trailers check")
     configure_check(parser)
     args = parser.parse_args([*([path] if path is not None else []), "--require"])
-    err = io.StringIO()
+    out, err = io.StringIO(), io.StringIO()
     services = Services(
         Settings(config),
-        FakeContracts(),
+        WorkingTree(),
         cast("History", object()),
         FakeContracts(),
         cast("FileSystem", MemoryFileSystem(files or {})),
     )
-    code = run_check(
-        services, args, FakeStdio(io.StringIO(message), io.StringIO(), err)
-    )
+    code = run_check(services, args, FakeStdio(io.StringIO(message), out, err))
+    assert out.getvalue() == ""
     return code, err.getvalue()
 
 
@@ -107,7 +119,6 @@ def _messages(*, stage: str = "architecture", extra: str = "") -> str:
     return f"feat: add x\n\n{paragraph}"
 
 
-@PENDING
 def test_a_message_from_a_file_and_from_standard_input_gives_one_diagnostic() -> None:
     """AC-1: the same `error: 5:` line from both inputs."""
     # Given M with `Wio-Stage: nosuch`, in a file and on standard input
@@ -125,7 +136,6 @@ def test_a_message_from_a_file_and_from_standard_input_gives_one_diagnostic() ->
     assert "nosuch" in from_file[1]
 
 
-@PENDING
 def test_a_message_with_no_path_is_read_from_standard_input() -> None:
     """AC-1: `check --require` alone."""
     # Given the same message on standard input
@@ -137,7 +147,6 @@ def test_a_message_with_no_path_is_read_from_standard_input() -> None:
     assert err.startswith("error: 5:")
 
 
-@PENDING
 def test_a_file_that_cannot_be_read_is_a_usage_error() -> None:
     """AC-1: a path that does not exist."""
     # Given a path that does not exist
@@ -160,7 +169,6 @@ def test_the_option_require_is_required_until_the_later_check_adds_its_mode() ->
     assert caught.value.code == 2
 
 
-@PENDING
 @pytest.mark.parametrize(
     "message", [M, "feat: add x\n\nWio-Work: none"], ids=["record", "none"]
 )
@@ -174,7 +182,6 @@ def test_a_valid_record_and_a_record_of_no_work_pass(message: str) -> None:
     assert (code, err) == (0, "")
 
 
-@PENDING
 def test_a_list_of_two_valid_works_passes() -> None:
     """AC-2: `k3m9xq, a7b2c4`."""
     # Given a second Work `a7b2c4` in the index and M with `Wio-Work: k3m9xq, a7b2c4`
@@ -187,7 +194,6 @@ def test_a_list_of_two_valid_works_passes() -> None:
     assert (code, err) == (0, "")
 
 
-@PENDING
 @pytest.mark.parametrize(
     "message", [M.replace("deliver", "nosuch"), _messages(stage="nosuch")]
 )
@@ -202,7 +208,6 @@ def test_an_action_or_a_stage_the_config_lacks_is_an_error(message: str) -> None
     assert "nosuch" in err
 
 
-@PENDING
 def test_a_work_that_exists_nowhere_is_an_error() -> None:
     """AC-4: `zz9zz9` is in neither the index nor `HEAD`."""
     # Given M with `Wio-Work: zz9zz9`
@@ -214,7 +219,6 @@ def test_a_work_that_exists_nowhere_is_an_error() -> None:
     assert "zz9zz9" in err
 
 
-@PENDING
 def test_a_work_that_the_commit_deletes_is_found_in_head() -> None:
     """AC-4: `d4e5f6` is in `HEAD` and not in the index."""
     # Given M with `Wio-Work: d4e5f6`, whose `deliver` lists `architecture`
@@ -225,7 +229,6 @@ def test_a_work_that_the_commit_deletes_is_found_in_head() -> None:
     assert (code, err) == (0, "")
 
 
-@PENDING
 @pytest.mark.parametrize("work", ["k3m9xq", "d4e5f6"])
 def test_an_item_id_outside_the_work_is_an_error(work: str) -> None:
     """AC-4: `AC-99` for `k3m9xq` and for `d4e5f6`."""
@@ -238,7 +241,6 @@ def test_an_item_id_outside_the_work_is_an_error(work: str) -> None:
     assert "AC-99" in err
 
 
-@PENDING
 def test_a_list_with_one_work_that_does_not_exist_is_an_error() -> None:
     """AC-4: `k3m9xq, zz9zz9`."""
     # Given M with `Wio-Work: k3m9xq, zz9zz9`
@@ -250,7 +252,6 @@ def test_a_list_with_one_work_that_does_not_exist_is_an_error() -> None:
     assert "zz9zz9" in err
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("message", "words"),
     [
@@ -274,7 +275,6 @@ def test_a_result_must_be_present_exactly_on_a_gate_and_listed(
     assert words in err
 
 
-@PENDING
 @pytest.mark.parametrize("message", ["feat: add x", ""], ids=["subject", "empty"])
 def test_a_message_with_no_record_is_refused_on_line_one(message: str) -> None:
     """AC-6: a subject with no record, and an empty message."""
@@ -288,7 +288,6 @@ def test_a_message_with_no_record_is_refused_on_line_one(message: str) -> None:
     assert "no record was found" in err
 
 
-@PENDING
 @pytest.mark.parametrize("subject", ["Merge", "Revert", "Reapply", "fixup!", "squash!"])
 def test_a_subject_that_git_writes_needs_no_record(subject: str) -> None:
     """AC-6: each of the five, followed by a space."""
@@ -300,7 +299,6 @@ def test_a_subject_that_git_writes_needs_no_record(subject: str) -> None:
     assert (code, err) == (0, "")
 
 
-@PENDING
 def test_the_subject_is_the_first_line_that_is_not_a_comment() -> None:
     """AC-6: `# comment` before `Merge branch x`, and before `feat: add x`."""
     # Given two messages with a comment line before the subject, with no record
@@ -315,7 +313,6 @@ def test_the_subject_is_the_first_line_that_is_not_a_comment() -> None:
     assert "no record was found" in feature[1]
 
 
-@PENDING
 @pytest.mark.parametrize("subject", ["amend! x", "fixup!x", "Merged x"])
 def test_a_subject_that_only_looks_like_one_needs_a_record(subject: str) -> None:
     """AC-6: three subjects that git does not write."""
@@ -328,7 +325,6 @@ def test_a_subject_that_only_looks_like_one_needs_a_record(subject: str) -> None
     assert "no record was found" in err
 
 
-@PENDING
 def test_an_exempt_subject_with_a_malformed_record_is_still_refused() -> None:
     """AC-6: the exemption is only from the requirement."""
     # Given a message with the subject `Merge branch x` and R with `Wio-Work: k3 m9xq`
@@ -342,7 +338,6 @@ def test_an_exempt_subject_with_a_malformed_record_is_still_refused() -> None:
     assert err.startswith("error: 3:")
 
 
-@PENDING
 def test_a_malformed_or_invisible_record_is_an_error() -> None:
     """AC-7: line 3, and lines 3, 4 and 5 with no record found."""
     # Given M with `Wio-Work: k3 m9xq`, and M with a prose line added to R's paragraph
@@ -359,7 +354,6 @@ def test_a_malformed_or_invisible_record_is_an_error() -> None:
     assert "no record was found" in invisible[1].splitlines()[0]
 
 
-@PENDING
 def test_a_record_outside_the_last_paragraph_is_invisible_under_git() -> None:
     """AC-7: with the reader `git`."""
     # Given the config's reader is `git`, and M, a blank line and a second record
@@ -374,7 +368,6 @@ def test_a_record_outside_the_last_paragraph_is_invisible_under_git() -> None:
     assert (code, lines) == (1, ["3", "4", "5"])
 
 
-@PENDING
 def test_any_bad_record_of_a_message_is_an_error() -> None:
     """AC-7: the second record's `Wio-Stage` on line 9."""
     # Given M, a blank line and a second record with `Wio-Stage: nosuch`
@@ -388,7 +381,6 @@ def test_any_bad_record_of_a_message_is_an_error() -> None:
     assert err.startswith("error: 9:")
 
 
-@PENDING
 def test_an_unknown_key_is_a_warning() -> None:
     """AC-7: `Wio-Criteria` is warned about and the exit code is 0."""
     # Given M with a `Wio-Criteria: AC-1` line
@@ -401,7 +393,6 @@ def test_an_unknown_key_is_a_warning() -> None:
     assert "Wio-Criteria" in err
 
 
-@PENDING
 def test_an_unknown_key_does_not_hide_a_bad_stage() -> None:
     """AC-7: the record with only a warning is still validated."""
     # Given M with a `Wio-Criteria: AC-1` line and `Wio-Stage: nosuch`
@@ -414,23 +405,21 @@ def test_an_unknown_key_does_not_hide_a_bad_stage() -> None:
     assert "warning:" in err
 
 
-@PENDING
 def test_diagnostics_are_sorted_by_line_as_numbers() -> None:
     """AC-1: line 9 comes before line 10."""
-    # Given a message with a bad record on line 9 and another on line 10
-    first = "Wio-Work: k3m9xq\nWio-Action: nosuch\nWio-Stage: architecture"
-    message = f"feat: x\n\n{R}\n\nbody line\n\n{first}\n"
+    # Given a message with a Work that does not exist on line 9 and an action that
+    # the config lacks on line 10
+    record = "Wio-Work: zz9zz9\nWio-Action: nosuch\nWio-Stage: architecture"
+    message = f"feat: x\n\n{R}\n\nbody\n\n{record}\n"
 
     # When `check --require` reads it
     code, err = _run(message)
 
-    # Then the diagnostics are in the order of their line numbers
+    # Then the diagnostic of line 9 is printed before that of line 10
     lines = [int(line.split(":")[1]) for line in err.splitlines()]
-    assert code == 1
-    assert lines == sorted(lines)
+    assert (code, lines) == (1, [9, 10])
 
 
-@PENDING
 def test_a_record_of_no_work_is_not_judged_by_the_validator() -> None:
     """AC-2: `Wio-Work: none` has nothing to check."""
     # Given a message with the paragraph `Wio-Work: none`
@@ -441,7 +430,6 @@ def test_a_record_of_no_work_is_not_judged_by_the_validator() -> None:
     assert found == []
 
 
-@PENDING
 def test_a_stage_outside_the_pipeline_is_a_warning() -> None:
     """AC-8: `integration`."""
     # Given M with `Wio-Stage: integration`
@@ -454,7 +442,6 @@ def test_a_stage_outside_the_pipeline_is_a_warning() -> None:
     assert "integration" in err
 
 
-@PENDING
 @pytest.mark.parametrize(
     ("message", "exempt"),
     [

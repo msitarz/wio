@@ -7,22 +7,26 @@ enters the history. `wio.cli` dispatches on the first argument and wires the
 ports, and this module holds what the form does, so it is run in a test with
 fakes. The later check of a body or a range shares the form and adds its own mode,
 which makes the option `--require` optional. The records are read and their form is
-judged by `wio.formats`, and their fields by the validator of this package. The
-form composes the reading, the three judgments and the report, and the leaves that
-judge are stubbed.
+judged by `wio.formats`, and their fields by the validator of this package.
 """
 
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Final
 
 from wio.formats import check_shape, read
+from wio.models.diagnostics import Diagnostic
+from wio.trailers.errors import TrailersError
+from wio.trailers.validation import Field, validate_record
+
+_EXEMPT: Final = ("Merge ", "Revert ", "Reapply ", "fixup! ", "squash! ")
+"""The starts of the subjects that git writes, each with the space that follows."""
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
 
     from wio.io.ports import Stdio
     from wio.models.config import Config
-    from wio.models.diagnostics import Diagnostic
-    from wio.models.records import Finding, Reading
+    from wio.models.records import Finding, Reading, Record
     from wio.trailers import Services
     from wio.trailers.ports import Contracts
 
@@ -46,7 +50,8 @@ def has_exempt_subject(message: str) -> bool:
         Whether the subject is one that git writes. A message with no subject, such
         as an empty one, has none.
     """
-    raise NotImplementedError
+    subject = next((line for line in message.splitlines() if line[:1] != "#"), None)
+    return subject is not None and subject.startswith(_EXEMPT)
 
 
 def check_commit_message(
@@ -172,7 +177,14 @@ def _shape_diagnostics(findings: list[Finding]) -> list[Diagnostic]:
         An error for a `malformed` or `invisible` finding and a warning for an
         `unknown-key` finding, each at the line of the finding.
     """
-    raise NotImplementedError
+    return [
+        Diagnostic(
+            "warning" if finding.kind == "unknown-key" else "error",
+            str(finding.number),
+            finding.message,
+        )
+        for finding in findings
+    ]
 
 
 def _record_diagnostics(
@@ -190,7 +202,38 @@ def _record_diagnostics(
         The diagnostics of `validate_record` for each record that has no `malformed`
         finding, with the line of each field as its place.
     """
-    raise NotImplementedError
+    contracts, config = judge
+    malformed = {f.number for f in findings if f.kind == "malformed"}
+    sound = [r for r in reading.records if _lines(r).isdisjoint(malformed)]
+    return [
+        diagnostic
+        for record in sound
+        for diagnostic in validate_record(_fields(record), contracts, config)
+    ]
+
+
+def _lines(record: Record) -> set[int]:
+    """Give the lines that a record spans.
+
+    Args:
+        record: A record of the reading.
+
+    Returns:
+        The line number of each of its fields.
+    """
+    return {trailer.number for trailer in record.trailers}
+
+
+def _fields(record: Record) -> list[Field]:
+    """Give the fields of a record, each with its line in the message.
+
+    Args:
+        record: A record of the reading.
+
+    Returns:
+        A field for each `Wio-` line, with the line number as its place.
+    """
+    return [Field(t.key, t.value, t.number) for t in record.trailers]
 
 
 def _missing_record(message: str, reading: Reading) -> list[Diagnostic]:
@@ -204,7 +247,9 @@ def _missing_record(message: str, reading: Reading) -> list[Diagnostic]:
         The error `no record was found` at line 1 when the reading has no record
         and the subject is not exempt, and none otherwise.
     """
-    raise NotImplementedError
+    if reading.records or has_exempt_subject(message):
+        return []
+    return [Diagnostic("error", "1", "no record was found")]
 
 
 def _read_message(services: Services, path: str | None, stdio: Stdio) -> str:
@@ -221,4 +266,10 @@ def _read_message(services: Services, path: str | None, stdio: Stdio) -> str:
     Raises:
         TrailersError: If the file cannot be read or decoded.
     """
-    raise NotImplementedError
+    if path is None or path == "-":
+        return stdio.stdin.read()
+    try:
+        return services.files.read_text(Path(path))
+    except (OSError, UnicodeDecodeError) as error:
+        message = f"cannot read the message in {path}: {error}"
+        raise TrailersError(message) from error
