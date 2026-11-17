@@ -5,9 +5,7 @@ The examples use a Work `k3m9xq`, a leaf under a parent that has a constraint
 `C-1`, with the items `AC-1` and `AC-3` in its own sections, whose `deliver` is
 the `typed-boundary` stage preset. The config and the templates are those of this
 repository. "The working-tree adapter" is the lookup over the working tree and
-`HEAD`, and "the index adapter" is the lookup over the index and `HEAD`. The
-tests fail with `NotImplementedError` until the implementation stage, which
-removes the marker.
+`HEAD`, and "the index adapter" is the lookup over the index and `HEAD`.
 """
 
 import json
@@ -29,9 +27,6 @@ from wio.templates import TemplatesCatalog
 if TYPE_CHECKING:
     from tests.sandbox import Sandbox
 
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="implementation stage"
-)
 REPO = Path(__file__).resolve().parents[3]
 WORKS = Path(".agents/wio/works")
 TYPED_BOUNDARY = [
@@ -110,6 +105,8 @@ def _project(
     sandbox: Sandbox,
     monkeypatch: pytest.MonkeyPatch,
     works: dict[str, str] | None = None,
+    *,
+    commit: bool = True,
 ) -> Project:
     """Create a repository with the Works of the examples and commit it.
 
@@ -118,6 +115,7 @@ def _project(
         monkeypatch: The test's monkeypatch, which enters the sandbox.
         works: The Works to write instead of the defaults, by path below the
             Works directory.
+        commit: Whether to commit them, so that `HEAD` has them.
 
     Returns:
         The lookups over it.
@@ -137,7 +135,8 @@ def _project(
     for name, text in (works or defaults).items():
         _write(root, name, text)
     git(sandbox, "add", "-A", check=True)
-    git(sandbox, "commit", "-q", "-m", "base", check=True)
+    if commit:
+        git(sandbox, "commit", "-q", "-m", "base", check=True)
     enter(sandbox, monkeypatch)
     return _lookups(root)
 
@@ -180,7 +179,6 @@ def _lookups(root: Path) -> Project:
     )
 
 
-@PENDING
 @pytest.mark.slow
 def test_the_items_of_a_work_are_its_own(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -196,7 +194,6 @@ def test_the_items_of_a_work_are_its_own(
     assert items == frozenset({"AC-1", "AC-3"})
 
 
-@PENDING
 @pytest.mark.slow
 def test_the_pipeline_of_an_action_is_found_in_order(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -215,7 +212,6 @@ def test_the_pipeline_of_an_action_is_found_in_order(
     assert missing is None
 
 
-@PENDING
 @pytest.mark.slow
 def test_a_work_whose_contract_overrides_an_action_uses_its_own(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -237,7 +233,6 @@ def test_a_work_whose_contract_overrides_an_action_uses_its_own(
     assert list(stages or []) == both
 
 
-@PENDING
 @pytest.mark.slow
 def test_a_work_that_only_head_has_is_found_by_both_adapters(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -259,7 +254,6 @@ def test_a_work_that_only_head_has_is_found_by_both_adapters(
     assert found == [(frozenset({"AC-1"}), ["implementation"])] * 2
 
 
-@PENDING
 @pytest.mark.slow
 def test_the_items_of_the_working_tree_and_the_index_may_differ(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -288,7 +282,6 @@ def test_the_items_of_the_working_tree_and_the_index_may_differ(
     assert (working, index) == (frozenset({"AC-1", "AC-3"}), frozenset({"AC-1"}))
 
 
-@PENDING
 @pytest.mark.slow
 def test_the_pipelines_of_the_working_tree_and_the_index_may_differ(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -318,7 +311,6 @@ def test_the_pipelines_of_the_working_tree_and_the_index_may_differ(
     assert (list(working or []), list(index or [])) == (["implementation"], both)
 
 
-@PENDING
 @pytest.mark.slow
 def test_a_work_with_no_items_has_an_empty_set_and_not_none(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -334,7 +326,6 @@ def test_a_work_with_no_items_has_an_empty_set_and_not_none(
     assert items == frozenset()
 
 
-@PENDING
 @pytest.mark.slow
 def test_an_action_that_the_work_removed_is_none(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -385,3 +376,20 @@ def test_an_id_that_two_works_share_is_absent_and_not_read_from_head(
 
     # Then it returns `None`, although `HEAD` holds exactly one such Work
     assert items is None
+
+
+@pytest.mark.slow
+def test_a_repository_with_no_commit_is_looked_up_without_an_error(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The first commit of a repository finds the staged Works and no old one."""
+    # Given a repository whose Works are staged and that has no commit
+    project = _project(sandbox, monkeypatch, commit=False)
+
+    # When a Work and an unknown id are looked up on each adapter
+    found = [lookup.items("k3m9xq") for lookup in (project.working, project.index)]
+    unknown = [lookup.items("zz9zz9") for lookup in (project.working, project.index)]
+
+    # Then the Work is found, and the unknown id is absent and raises nothing
+    assert found == [frozenset({"AC-1", "AC-3"})] * 2
+    assert unknown == [None, None]

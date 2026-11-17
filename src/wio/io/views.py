@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from wio.io.walk import walk_markdown
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -101,7 +103,17 @@ class ReadOnlyFiles(ABC):
         """
         raise _read_only(path)
 
-    append_text = write_text
+    def append_text(self, path: Path, text: str) -> None:
+        """Refuse to append, because a view only reads.
+
+        Args:
+            path: The file.
+            text: The text.
+
+        Raises:
+            PermissionError: Always.
+        """
+        self.write_text(path, text)
 
     def exists(self, path: Path) -> bool:
         """Tell whether a file or a directory of the view exists.
@@ -183,7 +195,8 @@ class ReadOnlyFiles(ABC):
         """Make a path relative to the root of the view.
 
         Args:
-            path: An absolute path, or one that is relative to the root.
+            path: An absolute path. A relative one, like one outside the root, is
+                no path of the view.
 
         Returns:
             The path below the root, which no file of the view has when the path
@@ -218,10 +231,15 @@ class HeadFiles(ReadOnlyFiles):
         """List the files of the revision.
 
         Returns:
-            Their paths relative to the root, read once.
+            Their paths relative to the root, read once. A revision that cannot
+            be listed, such as `HEAD` in a repository with no commit, holds no
+            file.
         """
         if self._listing is None:
-            self._listing = frozenset(self.history.list_files(self.revision))
+            try:
+                self._listing = frozenset(self.history.list_files(self.revision))
+            except ValueError:
+                self._listing = frozenset()
         return self._listing
 
     def content(self, path: Path) -> str | None:
@@ -260,24 +278,42 @@ class IndexFiles(ReadOnlyFiles):
     working: FileSystem
     root: Path
     below: Path
+    _listing: frozenset[Path] | None = field(default=None, init=False, repr=False)
 
     def paths(self) -> frozenset[Path]:
         """List the files below the directory that the index holds.
 
         Returns:
-            Their paths relative to the root.
+            Their paths relative to the root, read once.
         """
-        held = (c for c in self.candidates() if self.content(c) is not None)
-        return frozenset(held)
+        if self._listing is None:
+            held = (c for c in self.candidates() if self.content(c) is not None)
+            self._listing = frozenset(held)
+        return self._listing
 
     def candidates(self) -> frozenset[Path]:
         """List the files below the directory that the working tree or `HEAD` has.
+
+        The working tree gives the Markdown files that `walk_markdown` finds, and
+        `HEAD` every file below the directory, and a repository with no commit
+        gives none.
 
         Returns:
             Their paths relative to the root, whether or not the index holds
             them.
         """
-        raise NotImplementedError
+        directory = self.root / self.below
+        walked = (
+            walk_markdown(directory, self.working)
+            if self.working.is_dir(directory)
+            else ()
+        )
+        try:
+            listed = self.history.list_files("HEAD")
+        except ValueError:
+            listed = ()
+        below = (path for path in listed if path.is_relative_to(self.below))
+        return frozenset(p.relative_to(self.root) for p in walked) | frozenset(below)
 
     def content(self, path: Path) -> str | None:
         """Read one staged file.

@@ -12,7 +12,11 @@ commands find one.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.contracts.body import BodyChecker
 from wio.contracts.discovery import discover_works, find_work
+from wio.contracts.showing import shown_actions
+from wio.formats import read_metadata_block
+from wio.formats.errors import MetadataBlockError
 from wio.models.works import Work
 
 if TYPE_CHECKING:
@@ -184,10 +188,18 @@ def _own_items(found: _Found, reading: _Reading) -> frozenset[str]:
 
     Returns:
         The ids that the template's `pattern` directives give the sections of the
-        Work's own contract, empty for a Work with no template or a template that
-        cannot be read.
+        Work's own contract, empty for a Work with no template, a template that
+        cannot be used, or a file that cannot be read again.
     """
-    raise NotImplementedError
+    work = found.work
+    try:
+        block = read_metadata_block(found.files.read_text(reading.root / work.path))
+    except UnicodeDecodeError, OSError, MetadataBlockError:
+        return frozenset()
+    template = None if work.template is None else reading.catalog.find(work.template)
+    if block is None:
+        return frozenset()
+    return BodyChecker(reading.root, reading.templates).items(block, template)
 
 
 def _stages(
@@ -205,4 +217,10 @@ def _stages(
         The stages in order, or `None` when the Work has no such action, removed
         it, or names a stage preset that the config does not declare.
     """
-    raise NotImplementedError
+    actions = shown_actions(
+        work, config, reading.catalog, reading.root, reading.templates
+    )
+    named = next((a for a in actions if a.name == action), None)
+    if named is None or named.removed or not named.stages:
+        return None
+    return list(named.stages)
