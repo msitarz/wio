@@ -4,8 +4,7 @@
 The write command and the commit-time check judge a record against the config and
 the Works with the one `validate_record`, so a record cannot pass one and fail
 the other. It judges nothing about the record's own form, which the shape check of
-`wio.formats` has judged, and finds no Work, which the `Contracts` port does. The
-validator composes its checks, and the leaves that do the judging are stubbed.
+`wio.formats` has judged, and finds no Work, which the `Contracts` port does.
 """
 
 from dataclasses import dataclass
@@ -106,7 +105,8 @@ def validate_record(
     the stage against the config's actions and stages, the items against the items
     of each Work named, and the result against the config's `gates.results` and
     against whether the stage is a gate. A `Wio-Work: none` record names no Work,
-    action or stage and has nothing to check.
+    and the shape check has refused any other key on it, so it has nothing to
+    check.
 
     A Work that no view has gets its own error and no check of its items or its
     pipeline, an action or a stage that the config lacks gets an error and no
