@@ -313,3 +313,33 @@ def test_a_failing_sink_never_fails_the_command() -> None:
     assert code == 0
     assert out.startswith("Wio-Work: k3m9xq\n")
     assert "warning: the event log cannot be written" in err.getvalue() + errors
+
+
+def test_a_cite_is_refused_before_the_reviewed_commit_is_looked_up() -> None:
+    """AC-2 and AC-3: a refused cite is reported even when no commit was judged."""
+    # Given a history of commits that each carry only a gate record
+    history = _history(_commit(1, GATE_RECORD), _commit(2, GATE_RECORD))
+
+    # When the command runs with `--cite AC-99=pass`
+    argv = [*DOCS, "--result", "pass", "--judge", "human", "--cite", "AC-99=pass"]
+    code, _, err, sink = _run(argv, history=history)
+
+    # Then it exits 1 with the refusal of the cite and not the missing commit
+    assert code == 1
+    assert "error: AC-99:" in err
+    assert "no reviewed commit" not in err
+    assert sink.events == []
+
+
+def test_a_result_with_an_equals_sign_is_not_a_result() -> None:
+    """AC-2: only the first `=` splits a cite, so `pass=x` is not a result."""
+    # Given `k3m9xq` and the gate `docs-review`
+    # When the command runs with `--cite AC-1=pass=x`
+    argv = [*DOCS, "--result", "pass", "--judge", "human", "--cite", "AC-1=pass=x"]
+    code, out, err, sink = _run(argv)
+
+    # Then it exits 1, prints nothing on standard output and names `AC-1`
+    assert code == 1
+    assert out == ""
+    assert "error: AC-1:" in err
+    assert sink.events == []

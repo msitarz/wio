@@ -121,7 +121,7 @@ def _refusal(
     key, _, result = text.partition("=")
     if not has_result:
         return ("--cite", "`--cite` needs a `--result`.")
-    if not (key and result and "=" in text):
+    if not (key and result):
         return ("--cite", f"`{text}` is not `KEY=RESULT` with a key and a result.")
     if result not in config.gates.results:
         return (key, f"`{result}` is not a result of the config.")
