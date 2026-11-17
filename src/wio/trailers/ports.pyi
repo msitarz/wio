@@ -26,13 +26,15 @@ class Contracts(Protocol):
             work_id: The Work's id.
 
         Returns:
-            The Work's item ids, such as `AC-1`, or `None` when no such Work
-            exists in either place.
+            The Work's item ids, such as `AC-1`, empty for a Work that has
+            none, or `None` when no view has such a Work.
         """
         ...
 
     def pipeline(self, work_id: str, action: str) -> Sequence[str] | None:
         """Find the stages of a Work's action.
+
+        The Work is looked up where `items` looks it up.
 
         Args:
             work_id: The Work's id.
