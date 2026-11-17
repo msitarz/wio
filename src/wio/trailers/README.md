@@ -1,10 +1,10 @@
 # `wio.trailers`
 
-The component behind `wio trailers`: it prints and judges the records of commits
-against the config and the Works, so that every command that handles a record
-judges it the same way. A [record](../../../GLOSSARY.md) is a paragraph of
-`Wio-*` trailers, and [Records](../../../docs/concepts.md#records) says what
-each key means. The component reads the Works through the `Contracts` port of
+The component behind `wio trailers`: it prints, judges and folds the records of
+commits, so that every command that handles a record reads and writes it the
+same way. A [record](../../../GLOSSARY.md) is a paragraph of `Wio-*` trailers,
+and [Records](../../../docs/concepts.md#records) says what each key means. The
+component reads the Works through the `Contracts` port of
 [`ports.pyi`](ports.pyi) and the config through the shared ports, and it never
 knows git, the files or the Works directory.
 
@@ -113,3 +113,61 @@ docstrings say what each takes, prints and raises, and the
   it, because a record of such a stage is odd and not wrong.
 - **A cited item is accepted and ignored.** The gate form that records a result
   handles it, and accepting it here keeps one set of options for both.
+
+## Folding the records of a range
+
+`fold_commits`, `render_block`, `fold_body` and `run_fold` in
+[`fold.py`](fold.py) are the fold form of `wio trailers`: `fold block <range>`
+prints the records of a range of commits folded, and `fold body <range>` reads a
+pull request body and prints it with them at its end. A squash merge keeps only
+the body, so the records of its commits are copied there, and the
+[concepts](../../../docs/concepts.md#reading-records) say what the fold keeps.
+`wio.cli` dispatches and wires the history, and this module holds what the fold
+does, so it is run in a test with fakes. Its docstrings say what each takes and
+returns, and the [tests](../../../tests/unit/trailers/test_fold.py) say how each
+case reads. The fold checks no record, which the check commands do, so a record
+that they would refuse has no defined fold.
+
+- **The fold is a function of the commits.** The same range gives the same
+  records, so a reader may rely on the latest record of each Work, action and
+  stage, its items and the order of the records, and a second run gives the same
+  text. How many times a stage was recorded is lost, and a stage done again
+  after another is not, because another record stands between the two.
+- **Only neighbors merge, in two steps.** Consecutive records of one Work,
+  action and stage become one at the later position, with the items united in
+  order of appearance and the later result and judge, or the earlier one's when
+  the later has none. Then consecutive records that differ only in the Work
+  become one list. A record between two others is never merged across, because a
+  child that is delivered again after its parent integrated makes the parent
+  stale, and merging the two deliveries would move one past that record.
+- **A list names no Work twice.** A Work that a list already names starts the
+  next record, so the Works `a, b, a, b` fold to `a, b` and `a, b`, which keeps
+  the fold's own output valid under the check.
+- **A list of Works folds like a Work at a time, and `none` is dropped.** A
+  record for `a, b` is the record of `a` and then the record of `b`, so the
+  later steps never meet a list, and a record that belongs to no Work has
+  nothing to show.
+- **A revert takes its commit's records back, and is not a record.** A commit
+  that a revert in the range names leaves no record, a revert of a revert
+  restores it, and a revert carries no record of its own, whatever its message
+  holds. This is settled before anything is folded, so the neighbors of a
+  dropped commit become consecutive. A revert is found by its line
+  `This reverts commit <id>.`, which `git revert` of a merge ends with a comma,
+  and the id may be abbreviated, since the pull request writes the ids it was
+  given.
+- **A revert of work outside the range stays visible.** The records of that work
+  are not in the range, so the revert line is kept as its own paragraph before
+  the records, in the block and in the body, and a reader of the body sees that
+  work was undone. An id that two commits of the range share, or that names a
+  later commit, names no commit of the range and is kept the same way.
+- **The body ends with the fold and is left alone when it already does.** The
+  paragraphs a body ends with that are records or revert lines are taken off and
+  the folded ones put in their place, so an older fold is replaced and a record
+  that sits inside the prose stays. They are found by their shape, and not with
+  the reader of the config, because a folded body holds several paragraphs,
+  which the `git` reader does not read. A body that already ends with exactly
+  the folded paragraphs prints nothing, so running the fold on a body twice is
+  safe in CI. The prose is kept as written, apart from the whitespace after it.
+- **A range that does not resolve prints nothing.** The history port refuses it
+  before anything is written, and the form turns that into the usage error that
+  exits 2, so a failed fold never leaves a half-written body to be pasted.
