@@ -187,9 +187,10 @@ has to be repaired afterwards. `wio.cli` dispatches and wires the ports, and
 this module holds what the check does, so it is run in a test with fakes. Its
 docstrings say what each takes and returns, and the
 [tests](../../../tests/unit/trailers/test_check.py) say how each case reads. A
-body or a range of commits is checked later, by a mode that shares the form and
-judges the same findings more leniently, because a record that was valid when it
-was written must not fail after the config or the Works have changed.
+body or a range of commits is checked
+[later](#checking-a-body-or-a-range-afterwards), by a mode that shares the form
+and judges the same findings more leniently, because a record that was valid
+when it was written must not fail after the config or the Works have changed.
 
 - **The records are read and judged by form first, and by the config and the
   Works second.** The shape check judges each record's own form with the reader
@@ -225,5 +226,50 @@ was written must not fail after the config or the Works have changed.
   file or, for `-` or no path, from standard input, and a file that cannot be
   read or decoded raises the usage error that `wio.cli` turns into exit 2, so a
   mistake in how the hook is called is never mistaken for a message that does
-  not hold. The option `--require` is required until the later check adds its
-  mode.
+  not hold. A call that gives `--require` with `--ref-range` is a usage error
+  too, because the commit-time mode judges one message.
+
+## Checking a body or a range afterwards
+
+`check_afterwards`, `check_range` and `run_later` in [`later.py`](later.py) are
+the check form of `wio trailers` in its later mode, `check [PATH]` for a pull
+request body and `check --ref-range RANGE` for the commits of a range. The form
+chooses it when `--require` is absent, and the revision range is a provisional
+way to name the commits. The two modes share what they both do through
+[`report.py`](report.py), which reads a message, orders and writes the
+diagnostics and turns the shape findings into diagnostics, so neither imports
+the other. The docstrings say what each takes and returns, and the
+[tests](../../../tests/unit/trailers/test_later.py) say how each case reads.
+
+- **A record that was valid when it was written does not fail now.** The mode
+  judges each record's form and warns about the rest, so a change of the config
+  or the Works after the record was written never makes an old body or commit
+  fail.
+- **Only a malformed record is an error.** A line the reader cannot see and a
+  key the engine does not define are warnings, unlike the commit-time mode,
+  where the first is an error: a commit that is being made can still be fixed,
+  and one that was merged cannot.
+- **A name the config lacks is a warning.** The records that are not malformed
+  are judged by `validate_names`, and each error it returns is turned into a
+  warning, so a stage, an action or a result that the config no longer has is
+  reported at its line and the check still passes. A malformed record is not
+  also warned about, because its fields cannot be trusted.
+- **A Work or an item is never looked up, and no record is required.** Works are
+  deleted after they are delivered and the readers ignore ids they do not know,
+  and a body or commit of no Work has no record. A body with no record, a commit
+  with none and an empty range pass and print nothing.
+- **A range is checked commit by commit, oldest first.** The diagnostics of a
+  commit are sorted by the line as a number, then errors before warnings, and
+  the place of each is the full id of the commit and the line in its message as
+  `<id>:<line>`. The reader that the config names reads each message, so a
+  commit whose records the `git` reader cannot see is warned about at its lines.
+- **Each diagnostic is a line on standard error, and nothing goes to standard
+  output.** It is `<severity>: <where>: <message>`. An error exits 1, a warning
+  never changes the exit code, and the config is read once.
+- **An input that cannot be read is a usage error and exits 2.** A file that
+  does not exist, a range that the history port refuses and a directory that is
+  not in a repository raise the usage error that `wio.cli` turns into the exit
+  code 2, so a mistake in the call is never mistaken for a body that does not
+  hold. A path and a range are refused together because they read different
+  inputs, and an empty `--ref-range` is still a range, so it is never read as no
+  range and replaced by a body from standard input.

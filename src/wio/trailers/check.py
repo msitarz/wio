@@ -5,18 +5,26 @@
 and the Works it was written for, so that a wrong record is refused before it
 enters the history. `wio.cli` dispatches on the first argument and wires the
 ports, and this module holds what the form does, so it is run in a test with
-fakes. The later check of a body or a range shares the form and adds its own mode,
-which makes the option `--require` optional. The records are read and their form is
+fakes. The later check of a body or a range, `wio.trailers.later`, shares the form and
+is chosen when `--require` is absent. The records are read and their form is
 judged by `wio.formats`, and their fields by the validator of this package.
 """
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from wio.formats import check_shape, read
 from wio.models.diagnostics import Diagnostic
 from wio.trailers.errors import TrailersError
-from wio.trailers.validation import Field, validate_record
+from wio.trailers.later import run_later
+from wio.trailers.report import (
+    by_line,
+    read_message,
+    record_fields,
+    record_lines,
+    shape_diagnostics,
+    write_diagnostics,
+)
+from wio.trailers.validation import validate_record
 
 _EXEMPT: Final = ("Merge ", "Revert ", "Reapply ", "fixup! ", "squash! ")
 """The starts of the subjects that git writes, each with the space that follows."""
@@ -26,9 +34,12 @@ if TYPE_CHECKING:
 
     from wio.io.ports import Stdio
     from wio.models.config import Config
-    from wio.models.records import Finding, Reading, Record
+    from wio.models.records import Finding, Reading
     from wio.trailers import Services
     from wio.trailers.ports import Contracts
+
+_ERRORS: Final = frozenset({"malformed", "invisible"})
+"""The kinds of finding that refuse a commit message; `unknown-key` only warns."""
 
 
 def has_exempt_subject(message: str) -> bool:
@@ -95,19 +106,21 @@ def check_commit_message(
     reader = config.trailers.reader
     reading, findings = read(message, reader), check_shape(message, reader)
     found = [
-        *_shape_diagnostics(findings),
+        *shape_diagnostics(findings, _ERRORS),
         *_record_diagnostics(reading, findings, (contracts, config)),
         *_missing_record(message, reading),
     ]
-    return sorted(found, key=_order)
+    return sorted(found, key=by_line)
 
 
 def configure_check(parser: ArgumentParser) -> None:
     """Add the arguments of the check form to its parser.
 
-    It does no I/O. `path` is optional: the file that holds the message, or standard
-    input when it is `-` or absent. `--require` selects the commit-time mode, which
-    requires a record, and is required until the later check adds its own mode.
+    It does no I/O. `path` is optional: the file that holds the message or the body,
+    or standard input when it is `-` or absent. `--require` selects the commit-time
+    mode, which requires a record, and `--ref-range` selects the later check of the
+    commits of a range, which is a provisional name as the parent's third assumption
+    says. Neither is given for the later check of a body.
 
     Args:
         parser: The parser that `wio.cli` created for `check`.
@@ -116,18 +129,22 @@ def configure_check(parser: ArgumentParser) -> None:
     parser.add_argument(
         "--require",
         action="store_true",
-        required=True,
         help="Judge a commit message, which needs a record unless git wrote it.",
+    )
+    parser.add_argument(
+        "--ref-range",
+        help="Check the commits of a git revision range, such as main..HEAD.",
     )
 
 
 def run_check(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Check the commit message of the arguments.
+    """Check the commit message, the body or the range of the arguments.
 
-    The message is read from the file or from standard input, and each diagnostic of
-    `check_commit_message` is written to standard error as
-    `<severity>: <where>: <message>`, one to a line, in its order. Nothing is
-    written to standard output.
+    With `--require` the commit-time mode judges the commit message that is read from
+    the file or from standard input, and otherwise the later check judges a body or,
+    with `--ref-range`, the commits of a range, which `run_later` does. Each
+    diagnostic is written to standard error as `<severity>: <where>: <message>`, one
+    to a line, in its order, and nothing is written to standard output.
 
     Args:
         services: The ports the form reads the config, the message and the Works
@@ -141,50 +158,19 @@ def run_check(services: Services, args: Namespace, stdio: Stdio) -> int:
         the exit code.
 
     Raises:
-        TrailersError: If the file cannot be read or decoded.
+        TrailersError: If `--require` is given with `--ref-range`, which is not a
+            call of any mode, or if the file cannot be read or decoded.
         ConfigurationError: If the config cannot be read.
     """
+    if not args.require:
+        return run_later(services, args, stdio)
+    if args.ref_range is not None:
+        message = "--require checks one commit message and cannot be given --ref-range."
+        raise TrailersError(message)
     config = services.settings.load()
-    message = _read_message(services, args.path, stdio)
+    message = read_message(services, args.path, stdio)
     diagnostics = check_commit_message(message, services.staged_contracts, config)
-    for diagnostic in diagnostics:
-        line = f"{diagnostic.severity}: {diagnostic.where}: {diagnostic.message}\n"
-        stdio.stderr.write(line)
-    return 1 if any(d.severity == "error" for d in diagnostics) else 0
-
-
-def _order(diagnostic: Diagnostic) -> tuple[int, int, str]:
-    """Give the key that orders the diagnostics of a message.
-
-    Args:
-        diagnostic: A diagnostic whose `where` is a line number.
-
-    Returns:
-        The line as a number, so that line 10 follows line 9, then 0 for an error and
-        1 for a warning, then the message.
-    """
-    rank = 0 if diagnostic.severity == "error" else 1
-    return (int(diagnostic.where), rank, diagnostic.message)
-
-
-def _shape_diagnostics(findings: list[Finding]) -> list[Diagnostic]:
-    """Turn the findings of the shape check into diagnostics.
-
-    Args:
-        findings: What `check_shape` found.
-
-    Returns:
-        An error for a `malformed` or `invisible` finding and a warning for an
-        `unknown-key` finding, each at the line of the finding.
-    """
-    return [
-        Diagnostic(
-            "warning" if finding.kind == "unknown-key" else "error",
-            str(finding.number),
-            finding.message,
-        )
-        for finding in findings
-    ]
+    return write_diagnostics(diagnostics, stdio)
 
 
 def _record_diagnostics(
@@ -204,36 +190,12 @@ def _record_diagnostics(
     """
     contracts, config = judge
     malformed = {f.number for f in findings if f.kind == "malformed"}
-    sound = [r for r in reading.records if _lines(r).isdisjoint(malformed)]
+    sound = [r for r in reading.records if record_lines(r).isdisjoint(malformed)]
     return [
         diagnostic
         for record in sound
-        for diagnostic in validate_record(_fields(record), contracts, config)
+        for diagnostic in validate_record(record_fields(record), contracts, config)
     ]
-
-
-def _lines(record: Record) -> set[int]:
-    """Give the lines that a record spans.
-
-    Args:
-        record: A record of the reading.
-
-    Returns:
-        The line number of each of its fields.
-    """
-    return {trailer.number for trailer in record.trailers}
-
-
-def _fields(record: Record) -> list[Field]:
-    """Give the fields of a record, each with its line in the message.
-
-    Args:
-        record: A record of the reading.
-
-    Returns:
-        A field for each `Wio-` line, with the line number as its place.
-    """
-    return [Field(t.key, t.value, t.number) for t in record.trailers]
 
 
 def _missing_record(message: str, reading: Reading) -> list[Diagnostic]:
@@ -250,26 +212,3 @@ def _missing_record(message: str, reading: Reading) -> list[Diagnostic]:
     if reading.records or has_exempt_subject(message):
         return []
     return [Diagnostic("error", "1", "no record was found")]
-
-
-def _read_message(services: Services, path: str | None, stdio: Stdio) -> str:
-    """Read the commit message to check.
-
-    Args:
-        services: The ports, of which `files` reads the file.
-        path: The file, or `-` or `None` for standard input.
-        stdio: Where standard input is read.
-
-    Returns:
-        The text of the message.
-
-    Raises:
-        TrailersError: If the file cannot be read or decoded.
-    """
-    if path is None or path == "-":
-        return stdio.stdin.read()
-    try:
-        return services.files.read_text(Path(path))
-    except (OSError, UnicodeDecodeError) as error:
-        message = f"cannot read the message in {path}: {error}"
-        raise TrailersError(message) from error
