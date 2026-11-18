@@ -64,15 +64,16 @@ def run_write(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Print the record of the arguments, or say why it is refused.
 
     The Work is checked first: a value that holds a comma, which is a list of Works,
-    or that is exactly `none` is a usage error, before the config is loaded or
-    anything is judged, and any other value, such as one with a space, is judged by
-    form like the other fields. The record is then built from the arguments, with
-    the `--items` ids joined by a comma and one space in the order given and the
-    judge `agent` when a result is given and no judge is, and it is judged in this
-    order. An argument that is empty or holds a line end is refused as the finding
-    of its field, so no argument can add a line to the record, and a `--judge`
-    without a result is refused the same way, as the finding of `Wio-Judge`, before
-    the record is rendered. The record is rendered and `check_shape` judges it
+    is a usage error, before the config is loaded or anything is judged, and any
+    other value, such as one with a space, is judged by form like the other fields.
+    `none` never reaches this form, because the command gives it a form of its own.
+    The record is then built from the arguments, with the `--items` ids joined by a
+    comma and one space in the order given and the judge `agent` when a result is
+    given and no judge is, and it is judged in this order. An argument that is
+    empty or holds a line end is refused as the finding of its field, so no
+    argument can add a line to the record, and a `--judge` without a result is
+    refused the same way, as the finding of `Wio-Judge`, before the record is
+    rendered. The record is rendered and `check_shape` judges it
     with the reader of the config, and only when that finds nothing does
     `validate_record` judge its fields against the config and the Works, which the
     `Contracts` port finds in the working tree and then in `HEAD`.
@@ -96,8 +97,8 @@ def run_write(services: Services, args: Namespace, stdio: Stdio) -> int:
         that is refused.
 
     Raises:
-        TrailersError: If the Work is a list of ids or `none`, which this form does
-            not write.
+        TrailersError: If the Work is a list of ids, which this form does not
+            write.
         ConfigurationError: If the config cannot be read.
     """
     _one_work(args.work)

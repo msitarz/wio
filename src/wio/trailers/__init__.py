@@ -46,7 +46,8 @@ class Services:
 
 
 _FORMS = """\
-Print a checked record, check a message, a body or a range, or fold a range.
+Print a checked record, check a message, a body or a range, fold a range, or print
+the record of a commit with no Work.
 
 forms:
   <work> <action> <stage>  Print the record of a Work, an action and a stage.
@@ -72,8 +73,8 @@ class TrailersSpec:
         no form takes there, is refused by argparse as an unrecognized argument with
         the exit code 2, while an option after it is captured for its form. The
         description is formatted with `RawDescriptionHelpFormatter` and lists the
-        write form, `check` and `fold`, one line each, so `wio trailers --help`
-        shows the three forms and exits 0.
+        write form, `check`, `fold` and `none`, one line each, so `wio trailers
+        --help` shows the four forms and exits 0.
 
         Args:
             parser: The subparser that `wio.cli` created for `trailers`.
