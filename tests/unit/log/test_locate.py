@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for `wio.log.locate` against fakes of its ports."""
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import Mock
@@ -8,10 +9,11 @@ from unittest.mock import Mock
 import pytest
 
 from wio.log import locate
+from wio.log.locate import EVENTS_FILE, log_directory, log_files
 
 if TYPE_CHECKING:
     from wio.env.ports import Directories
-    from wio.io.ports import Repository
+    from wio.io.ports import FileSystem, Repository
 
 
 def _repository(identity: Path | Exception) -> Repository:
@@ -90,76 +92,164 @@ def test_the_error_of_the_repository_reaches_the_caller() -> None:
     assert raised.value is error
 
 
-@pytest.mark.skip(reason="stub of the architecture stage")
+def _filesystem(
+    entries: list[str], directories: frozenset[str] = frozenset()
+) -> FileSystem:
+    """Make a `FileSystem` whose `list_dir` gives entries, in the order given.
+
+    Args:
+        entries: The names of the entries of the directory, in the order `list_dir`
+            gives them.
+        directories: The names among them that are directories.
+
+    Returns:
+        A mock, which type checking takes for the port.
+    """
+    filesystem = Mock()
+    filesystem.list_dir.return_value = [Path("/log") / name for name in entries]
+
+    def is_file(path: Path) -> bool:
+        """Tell whether an entry is a file, which it is unless a directory.
+
+        Args:
+            path: The entry.
+
+        Returns:
+            False for the names that are directories.
+        """
+        return path.name not in directories
+
+    filesystem.is_file.side_effect = is_file
+    return filesystem
+
+
 def test_two_clones_have_two_locations_under_one_home() -> None:
     """AC-1: the identities `/w/app/.git` and `/w/other/.git` have two digests."""
     # Given the identities of two clones and one home
+    home = Path("/h")
+
     # When log_directory runs for each
+    app = log_directory(Path("/w/app/.git"), home)
+    other = log_directory(Path("/w/other/.git"), home)
+
     # Then they give /h/log/app-6f8609bd196b and /h/log/other-58e6d3787679
+    assert app == Path("/h/log/app-6f8609bd196b")
+    assert other == Path("/h/log/other-58e6d3787679")
 
 
-@pytest.mark.skip(reason="stub of the architecture stage")
 def test_one_clone_under_two_homes_keeps_its_name() -> None:
     """AC-1: only the home differs between the two results."""
-    # Given the identity /w/app/.git and the homes /h1 and /h2
-    # When log_directory runs for each
+    # Given the identity /w/app/.git
+    identity = Path("/w/app/.git")
+
+    # When log_directory runs for the homes /h1 and /h2
+    first = log_directory(identity, Path("/h1"))
+    second = log_directory(identity, Path("/h2"))
+
     # Then the results are /h1/log/app-6f8609bd196b and /h2/log/app-6f8609bd196b
+    assert first == Path("/h1/log/app-6f8609bd196b")
+    assert second == Path("/h2/log/app-6f8609bd196b")
 
 
-@pytest.mark.skip(reason="stub of the architecture stage")
-def test_the_name_of_a_log_tells_which_repository_it_is_for() -> None:
+@pytest.mark.parametrize(
+    ("identity", "prefix"),
+    [
+        ("/Users/x/Code/My App/.git", "my-app-"),
+        ("/srv/git/app.git", "app-"),
+        ("/w/.git", "w-"),
+        ("/w/\u65e5\u672c/.git", "repo-"),
+        ("/.git", "repo-"),
+    ],
+)
+def test_the_name_of_a_log_tells_which_repository_it_is_for(
+    identity: str, prefix: str
+) -> None:
     """AC-2: names are slugs, `repo` when nothing is left, each ends in a digest."""
-    # Given the identities /Users/x/Code/My App/.git, /srv/git/app.git, /w/.git,
-    # /w/日本/.git and /.git, each with the home /h
-    # When log_directory runs for each
-    # Then the last components start with my-app-, app-, w-, repo- and repo-, and
-    # each ends in 12 lowercase hexadecimal characters
+    # Given an identity of a clone and the home /h
+    # When log_directory runs for it
+    found = log_directory(Path(identity), Path("/h"))
+
+    # Then the last component starts with the name and ends in 12 hex characters
+    assert found.parent == Path("/h/log")
+    assert re.fullmatch(re.escape(prefix) + "[0-9a-f]{12}", found.name)
 
 
-@pytest.mark.skip(reason="stub of the architecture stage")
 def test_a_long_name_is_cut_without_the_dash_that_ends_it() -> None:
     """AC-2: a 59-character name is cut to 40 characters and trimmed of `-`."""
-    # Given an identity whose repository name has a `-` as its 40th character
+    # Given an identity whose repository name has 59 characters and a `-` as its 40th
+    identity = Path("/w/" + "-".join(["a" * 9] * 6) + "/.git")
+
     # When log_directory runs for it
-    # Then the name is the first 40 characters without that `-`
+    found = log_directory(identity, Path("/h"))
+
+    # Then the name is the first 40 characters without the `-` that ends them
+    assert found.name.rsplit("-", 1)[0] == "-".join(["a" * 9] * 4)
 
 
-@pytest.mark.skip(reason="stub of the architecture stage")
 def test_the_digest_decides_the_identity() -> None:
     """AC-2: two identities with one name differ in their digests."""
     # Given /a/b/app/.git and /a/c/app/.git
     # When log_directory runs for each
+    first = log_directory(Path("/a/b/app/.git"), Path("/h"))
+    second = log_directory(Path("/a/c/app/.git"), Path("/h"))
+
     # Then both names start with app- and the digests differ
+    assert first.name.startswith("app-")
+    assert second.name.startswith("app-")
+    assert first.name != second.name
 
 
-@pytest.mark.skip(reason="stub of the architecture stage")
 def test_the_files_of_a_log_are_the_lowercase_jsonl_files_in_order() -> None:
     """AC-3: other names, `B.JSONL` and a directory are left out."""
     # Given a FileSystem fake whose list_dir gives events.jsonl, a.jsonl, notes.txt,
-    # B.JSONL and a directory c.jsonl in its sorted order
+    # B.JSONL and a directory c.jsonl, in the order of the fake
+    filesystem = _filesystem(
+        ["a.jsonl", "B.JSONL", "c.jsonl", "events.jsonl", "notes.txt"],
+        frozenset({"c.jsonl"}),
+    )
+
     # When log_files runs for it
+    found = log_files(Path("/log"), filesystem)
+
     # Then it gives a.jsonl and events.jsonl, in that order
+    assert found == (Path("/log/a.jsonl"), Path("/log/events.jsonl"))
 
 
-@pytest.mark.skip(reason="stub of the architecture stage")
 def test_the_file_the_sink_appends_to_is_events_jsonl() -> None:
     """AC-3: `EVENTS_FILE` names the file a log holds."""
-    # Given a directory that holds events.jsonl
+    # Given a FileSystem fake whose directory holds events.jsonl
+    filesystem = _filesystem(["events.jsonl"])
+
     # When log_files runs for it
+    found = log_files(Path("/log"), filesystem)
+
     # Then the result holds EVENTS_FILE, whose value is events.jsonl
+    assert Path("/log") / EVENTS_FILE in found
+    assert EVENTS_FILE == "events.jsonl"
 
 
-@pytest.mark.skip(reason="stub of the architecture stage")
 def test_a_missing_directory_has_no_files() -> None:
     """AC-3: a directory the port reports as missing has no file."""
     # Given a FileSystem fake whose directory does not exist
+    filesystem = Mock()
+    filesystem.list_dir.side_effect = FileNotFoundError
+
     # When log_files runs for it
+    found = log_files(Path("/log"), filesystem)
+
     # Then it gives no file
+    assert found == ()
 
 
-@pytest.mark.skip(reason="stub of the architecture stage")
 def test_a_path_that_is_a_file_raises_the_error_of_the_port() -> None:
     """AC-3: the `NotADirectoryError` of the port reaches the caller."""
-    # Given a path that is a file
+    # Given a FileSystem fake whose list_dir raises NotADirectoryError
+    error = NotADirectoryError("a file")
+    filesystem = Mock()
+    filesystem.list_dir.side_effect = error
+
     # When log_files runs for it
     # Then the NotADirectoryError of the port is raised unchanged
+    with pytest.raises(NotADirectoryError) as raised:
+        log_files(Path("/log"), filesystem)
+    assert raised.value is error

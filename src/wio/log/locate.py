@@ -7,6 +7,9 @@ clone, and by no other clone. Nothing here creates a file or a directory; the
 first write does.
 """
 
+import hashlib
+import os
+import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -18,6 +21,30 @@ if TYPE_CHECKING:
 
 EVENTS_FILE = "events.jsonl"
 """The one file the sink appends to."""
+
+_DIGEST_LENGTH = 12
+_SLUG_LENGTH = 40
+_FALLBACK_NAME = "repo"
+_GIT_DIRECTORY = ".git"
+_LOG_SUFFIX = ".jsonl"
+
+
+def _name(identity: Path) -> str:
+    """Make the name of a log, for a person, from the identity of its clone.
+
+    Args:
+        identity: What `Repository.identity` gives.
+
+    Returns:
+        The slug of the last component, or of the one before it when that is
+        `.git`, without a trailing `.git`; `repo` when nothing is left.
+    """
+    component = (
+        identity.parent.name if identity.name == _GIT_DIRECTORY else identity.name
+    )
+    component = component.removesuffix(_GIT_DIRECTORY)
+    slug = re.sub(r"[^a-z0-9]+", "-", component.lower())[:_SLUG_LENGTH].strip("-")
+    return slug or _FALLBACK_NAME
 
 
 def log_directory(identity: Path, home: Path) -> Path:
@@ -38,10 +65,8 @@ def log_directory(identity: Path, home: Path) -> Path:
     Returns:
         The directory, which may not exist.
     """
-    del identity
-    del home
-    msg = "log_directory"
-    raise NotImplementedError(msg)
+    digest = hashlib.sha256(os.fsencode(identity)).hexdigest()[:_DIGEST_LENGTH]
+    return home / "log" / f"{_name(identity)}-{digest}"
 
 
 def locate_log(repository: Repository, directories: Directories) -> Path:
@@ -81,7 +106,12 @@ def log_files(directory: Path, filesystem: FileSystem) -> Sequence[Path]:
     Raises:
         NotADirectoryError: As `FileSystem.list_dir` does, for a file.
     """
-    del directory
-    del filesystem
-    msg = "log_files"
-    raise NotImplementedError(msg)
+    try:
+        entries = filesystem.list_dir(directory)
+    except FileNotFoundError:
+        return ()
+    return tuple(
+        entry
+        for entry in entries
+        if entry.name.endswith(_LOG_SUFFIX) and filesystem.is_file(entry)
+    )
