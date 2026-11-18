@@ -20,8 +20,7 @@ repo. It covers the test layers, the directory layout and the conventions.
 | Acceptance | `tests/acceptance/` (mirrors features) | Behaviour a user or skill relies on: rule selection, contract check results, config validation, record checks, exit codes | Exhaustive input tables, flag parsing details |
 | Golden | `tests/golden/` (expected files only) | Byte-stable output (context bundles, rendered templates) | Anything with timestamps or ordering that is not deterministic. Update goldens deliberately and review the diff |
 
-The `tests/packaging/` and `tests/scripts/` directories are two more groups,
-for the built package and for the scripts of the repository.
+The `tests/packaging/` directory is one more group, for the built package.
 
 **Which group a test belongs to.** Ask in this order, and take the first yes:
 
