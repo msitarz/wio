@@ -125,7 +125,8 @@ secret in a variable the config does not name.
 ### C-2
 
 Writing the log raises nothing and does not change a command's exit code: a
-failure is a warning that names the path. `$WIO_LOG=off` writes nothing, creates
+failure is a warning that names the events file when it is known and otherwise
+says what could not be found. `$WIO_LOG=off` writes nothing, creates
 nothing and warns of nothing, and any other value of it that is set and not
 empty is a warning and leaves the log on. Each child that writes verifies its
 own failure, and the system-level tests verify a command that succeeds on an

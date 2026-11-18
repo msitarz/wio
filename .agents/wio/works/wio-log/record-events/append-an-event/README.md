@@ -46,10 +46,9 @@ The text of the working directory in the envelope is `str` of the path that
 
 ## Mechanisms
 
-- **`LogSink`** — in `wio.log`, an `EventSink` built from the ports
-  `Environment`, `Clock`, `Directories`, `Repository`, `FileSystem` and `Stdio`,
-  and a `Log`, with the real `Environment`, `Clock` and `Directories` of
-  `hnakzm`.
+- **`LogSink(environment, clock, directories, repository, filesystem, stdio,
+  log)`** — in `wio.log`, an `EventSink` over the ports `Environment`, `Clock`,
+  `Directories`, `Repository`, `FileSystem` and `Stdio`, and a `Log`.
 - **The order of the steps** — `write` reads `$WIO_LOG`, then calls
   `locate_log(Repository, Directories)`, then `identify`, then builds the
   `Envelope`, encodes the line and appends it.
@@ -61,14 +60,13 @@ The text of the working directory in the envelope is `str` of the path that
   `EVENTS_FILE` in the directory that `locate_log` gives.
 - **The variables read** — `WIO_LOG` and `WIO_HOME` through `Environment.get`,
   an empty `WIO_HOME` counting as unset, besides those that `identify` reads.
-- **`$WIO_LOG`** — `off` switches the log off: nothing is read from the
-  repository, the directories or the clock, nothing is written or created and
-  nothing is warned. An unset or empty value leaves it on, and any other value
-  leaves it on with the warning `warning: WIO_LOG must be "off" to switch the
+- **`$WIO_LOG`** — what C-2 of `t8embw` says, with `off` also asking nothing of
+  the repository, the directories or the clock, and a value that is not
+  recognized writing the warning `warning: WIO_LOG must be "off" to switch the
   log off; the log stays on`, which never repeats the value.
-- **A failure** — an `OSError`, a `ValueError` or a `RuntimeError` of the
-  location, the encoding or the append is a warning, nothing is appended and
-  nothing is raised.
+- **A failure** — an `OSError`, a `ValueError` or a `RuntimeError` anywhere
+  after the check of `$WIO_LOG` is a warning, nothing is appended and nothing is
+  raised.
 - **The message of an error** — its `strerror` when it is an `OSError` that has
   one, and its text otherwise.
 - **The warning of a failed location** — `warning: the event log could not be
@@ -77,24 +75,27 @@ The text of the working directory in the envelope is `str` of the path that
   found.
 - **The warning of a failed write** — `warning: the event log could not be
   written: <path>: <message>` on standard error, where `<path>` is the events
-  file, for a failure of the encoding or of the append.
-- **The hint** — a `PermissionError` or a read-only file system, with
-  `$WIO_HOME` unset or empty, adds to the warning of a failed write a second
-  line on standard error that starts with `hint: add an exception to your
-  harness's configuration`, holds `~/.agents/wio` and `$WIO_HOME`, and ends with
+  file, for a failure after the location, whether of the identification, the
+  stamp, the encoding or the append.
+- **The hint** — a `PermissionError`, or an `OSError` whose `errno` is `EROFS`,
+  with `$WIO_HOME` unset or empty, adds to the warning of a failed write a
+  second line on standard error that starts with
+  `hint: add an exception to your harness's configuration`, holds
+  `~/.agents/wio` and `$WIO_HOME`, and ends with
   `directory your harness allows`.
-- **Wiring, provisional** — `wio.cli` builds the sink in the `wire()` of `wio
-  trailers` in place of `NoEvents`, which stays for tests that need a sink that
-  drops, with a `SystemStdio()`, which binds the streams that `dispatch` has
-  redirected to the `Stdio` of the command, and `ConfigSettings(...).load().log`
-  as the `Log`.
+- **Wiring, provisional** — `wio.cli` builds the sink in the `wire()` of
+  `wio trailers` in place of `NoEvents`, which stays for tests that need a sink
+  that drops, with the real `Environment`, `Clock` and `Directories` of `hnakzm`
+  and a `SystemStdio()`, which binds the streams that `dispatch` has redirected
+  to the `Stdio` of the command, and `ConfigSettings(...).load().log` as the
+  `Log`.
 
 ## Acceptance criteria
 
 The examples use fakes of the ports: a clock at `1795000000.0`, the working
-directory `/w/app/sub`, the identity `/w/app/.git`, the home `/h`, the variables
-`CLAUDE_CODE_SESSION_ID=c1` and `AI_AGENT=x`, and a `FileSystem` that records
-each append. The directory of the log is then `/h/log/app-6f8609bd196b`.
+directory `/w/app/sub`, the identity `/w/app/.git`, the Wio home `/h`, the
+variables `CLAUDE_CODE_SESSION_ID=c1` and `AI_AGENT=x`, and a `FileSystem` that
+records each append. The directory of the log is then `/h/log/app-6f8609bd196b`.
 
 ### **AC-1** An event is stamped and appended as one line
 
@@ -159,8 +160,8 @@ do, and never stops a command.
 #### An empty `$WIO_HOME` and a read-only file system
 
 - **Given** `$WIO_HOME` set to an empty string and an append that raises
-  `PermissionError`, and then one that raises `OSError(30, "Read-only file
-  system")`.
+  `PermissionError(13, "Permission denied")`, and then one that raises
+  `OSError(30, "Read-only file system")`.
 - **When** `write` receives an event for each.
 - **Then** each warning is followed by the hint.
 
@@ -178,13 +179,14 @@ do, and never stops a command.
 - **When** `write` receives an event.
 - **Then** the warning ends in `events.jsonl: boom`.
 
-#### An encoding that fails
+#### A step after the location that fails
 
-- **Given** a clock that returns `float("nan")`.
+- **Given** an `Environment` whose `working_directory()` raises
+  `FileNotFoundError(2, "No such file or directory")`.
 - **When** `write` receives an event.
 - **Then** nothing was appended, nothing is raised, and standard error holds
   `warning: the event log could not be written:
-  /h/log/app-6f8609bd196b/events.jsonl:` and the message of the error.
+  /h/log/app-6f8609bd196b/events.jsonl: No such file or directory`.
 
 #### A location that fails
 
