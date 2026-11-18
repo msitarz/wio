@@ -10,7 +10,7 @@ import pytest
 from wio.env import adapters
 
 if TYPE_CHECKING:
-    from wio.env.ports import Environment
+    from wio.env.ports import Clock, Directories, Environment
 
 PENDING = pytest.mark.xfail(
     raises=NotImplementedError,
@@ -26,6 +26,35 @@ def _wired() -> Environment:
         A `ProcessEnvironment`, which type checking accepts as an `Environment`.
     """
     return adapters.ProcessEnvironment()
+
+
+def _wired_clock() -> Clock:
+    """Wire the clock adapter where the port is expected.
+
+    Returns:
+        A `SystemClock`, which type checking accepts as a `Clock`.
+    """
+    return adapters.SystemClock()
+
+
+def _wired_directories() -> Directories:
+    """Wire the directories adapter where the port is expected.
+
+    Returns:
+        A `ProcessDirectories`, which type checking accepts as `Directories`.
+    """
+    return adapters.ProcessDirectories(adapters.ProcessEnvironment())
+
+
+def test_the_adapters_are_wired_where_their_ports_are_expected() -> None:
+    """C-1: the adapters satisfy the ports that the other Works read them through."""
+    # Given the adapters wired where the ports are expected
+    # When they are built
+    clock, directories = _wired_clock(), _wired_directories()
+
+    # Then they are the adapters of the module
+    assert isinstance(clock, adapters.SystemClock)
+    assert isinstance(directories, adapters.ProcessDirectories)
 
 
 def test_the_working_directory_is_the_absolute_directory_of_the_process(

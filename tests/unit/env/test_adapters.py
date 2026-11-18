@@ -61,9 +61,13 @@ def test_the_entropy_gives_exactly_the_bytes_asked_for() -> None:
 
 
 @PENDING
-def test_the_wio_home_is_read_from_the_environment_it_is_given(tmp_path: Path) -> None:
+def test_the_wio_home_is_read_from_the_environment_it_is_given(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """AC-3: a fake `Environment` decides the home, and the home is not created."""
-    # Given a ProcessDirectories built with a fake whose WIO_HOME is fake-home
+    # Given a process with another WIO_HOME, and a ProcessDirectories built with
+    # a fake whose WIO_HOME is fake-home
+    monkeypatch.setenv("WIO_HOME", str(tmp_path / "process-home"))
     home = tmp_path / "fake-home"
     directories = adapters.ProcessDirectories(
         FakeEnvironment(tmp_path, {"WIO_HOME": str(home)})
