@@ -1,14 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The `wio trailers` command: the group of its three forms.
+"""The `wio trailers` command: the group of its four forms.
 
-`wio trailers` runs the write form, `check` and `fold` from its arguments, so a
-person or an agent reaches them as one command that tells them apart and reports a
-usage mistake the same way for every form. The first argument chooses the form: the
-word `check` or `fold` selects that subcommand, and any other value is the Work of
-the write form, so a Work cannot be named `check` or `fold`. An option before the
-first argument is a usage error. The group takes the arguments after `trailers` as
-they are and parses them with the parser of the chosen form, `configure_write`,
-`configure_check` or `configure_fold`, whose own mistakes, and a call with no
+`wio trailers` runs the write form, `check`, `fold` and `none` from its arguments,
+so a person or an agent reaches them as one command that tells them apart and
+reports a usage mistake the same way for every form. The first argument chooses
+the form: the word `check`, `fold` or `none` selects that subcommand, and any other
+value is the Work of the write form, so a Work cannot be named `check`, `fold` or
+`none`. An option before the first argument is a usage error. The group takes the
+arguments after `trailers` as they are and parses them with the parser of the
+chosen form, `configure_write`, `configure_check`, `configure_fold` or
+`configure_nowork`, whose own mistakes, and a call with no
 argument at all, raise a `TrailersError` that `wio.cli` turns into the exit code 2.
 It has no `--json` option on purpose: the write form prints a plain record to append
 to a commit message and a check sends its findings to standard error.
@@ -29,6 +30,7 @@ from typing import TYPE_CHECKING, NoReturn, override
 from wio.trailers.check import configure_check, run_check
 from wio.trailers.errors import TrailersError
 from wio.trailers.fold import configure_fold, run_fold
+from wio.trailers.nowork import configure_nowork, run_nowork
 from wio.trailers.write import configure_write, run_write
 
 if TYPE_CHECKING:
@@ -130,6 +132,7 @@ class TrailersCommand:
 _FORMS: dict[str, tuple[Callable[[ArgumentParser], None], _Runner]] = {
     "check": (configure_check, run_check),
     "fold": (configure_fold, run_fold),
+    "none": (configure_nowork, run_nowork),
 }
 """The forms that a first argument names, with how each is configured and run; any
 other first argument is the Work of the write form."""

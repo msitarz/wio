@@ -10,10 +10,10 @@ import pytest
 from tests.unit.trailers.test_command import _form
 from wio.trailers.errors import TrailersError
 
-ARCHITECTURE_STUB = "architecture stub: the form is declared in nowork.pyi"
+LEAF = "run_nowork is a stubbed leaf until the implementation stage"
 
 
-@pytest.mark.skip(reason=ARCHITECTURE_STUB)
+@pytest.mark.xfail(reason=LEAF, raises=NotImplementedError, strict=True)
 def test_the_none_form_prints_the_record_for_no_work() -> None:
     """AC-1: `none` alone prints `Wio-Work: none` and a newline."""
     # Given the services of the command
@@ -24,7 +24,6 @@ def test_the_none_form_prints_the_record_for_no_work() -> None:
     assert (code, out, err) == (0, "Wio-Work: none\n", "")
 
 
-@pytest.mark.skip(reason=ARCHITECTURE_STUB)
 @pytest.mark.parametrize(
     "forms",
     [

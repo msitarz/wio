@@ -16,7 +16,10 @@ if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
 
 FIXTURE = "trailers/command"
-STUB = pytest.mark.skip(reason="architecture stub: the form is declared in nowork.pyi")
+LEAF = "run_nowork is a stubbed leaf, so the command exits 70 until the implementation"
+REWORD = "_one_work still words its refusal as a list of Works or none"
+STUB = pytest.mark.xfail(reason=LEAF, raises=AssertionError, strict=True)
+LIST = pytest.mark.xfail(reason=REWORD, raises=AssertionError, strict=True)
 
 
 def _project(wio: Wio) -> None:
@@ -48,7 +51,6 @@ def test_a_record_for_no_work_is_printed_and_accepted_by_the_check(wio: Wio) -> 
     assert checked.exit_code == 0
 
 
-@STUB
 @pytest.mark.channels(Channel.CLI)
 @pytest.mark.parametrize(
     "call",
@@ -75,7 +77,7 @@ def test_a_none_with_anything_more_is_refused(wio: Wio, call: list[str]) -> None
     assert "error" in output.stderr
 
 
-@STUB
+@LIST
 @pytest.mark.channels(Channel.CLI)
 @pytest.mark.parametrize(
     "call",
@@ -100,9 +102,9 @@ def test_a_list_of_works_is_refused(wio: Wio, call: list[str]) -> None:
     assert output.stdout == ""
     assert "list of Works" in output.stderr
     assert "name one Work" in output.stderr
+    assert "list of Works or none" not in output.stderr
 
 
-@STUB
 @pytest.mark.channels(Channel.CLI)
 def test_a_config_that_cannot_be_read_exits_2(wio: Wio) -> None:
     """AC-4: `none` is wired like the other forms, so a bad config stops it."""

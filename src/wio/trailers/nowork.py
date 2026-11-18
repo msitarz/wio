@@ -7,10 +7,14 @@ no action, stage or option. `wio.cli` wires the ports and the config is read the
 as for every form, so this form loads nothing.
 """
 
-from argparse import ArgumentParser, Namespace
+from typing import TYPE_CHECKING
 
-from wio.io.ports import Stdio
-from wio.trailers import Services
+if TYPE_CHECKING:
+    from argparse import ArgumentParser, Namespace
+
+    from wio.io.ports import Stdio
+    from wio.trailers import Services
+
 
 def configure_nowork(parser: ArgumentParser) -> None:
     """Add the arguments of the `none` form to its parser, which are none.
@@ -22,7 +26,8 @@ def configure_nowork(parser: ArgumentParser) -> None:
     Args:
         parser: The parser that the command created for the form.
     """
-    ...
+    del parser
+
 
 def run_nowork(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Print the record of a commit that belongs to no Work.
@@ -38,5 +43,8 @@ def run_nowork(services: Services, args: Namespace, stdio: Stdio) -> int:
 
     Returns:
         0, always.
+
+    Raises:
+        NotImplementedError: Until the implementation stage fills it in.
     """
-    ...
+    raise NotImplementedError
