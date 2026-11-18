@@ -1,27 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the adapters of `wio.env`."""
 
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import pytest
 
+from tests.fakes import FakeEnvironment
 from wio.env import adapters
 
-if TYPE_CHECKING:
-    from wio.env.ports import Environment
+PENDING = pytest.mark.xfail(
+    raises=NotImplementedError,
+    strict=True,
+    reason="implemented by the implementation stage of hnakzm",
+)
 
 
-def _wired() -> Environment:
-    """Wire the adapter where the port is expected.
-
-    Returns:
-        A `ProcessEnvironment`, which type checking accepts as an `Environment`.
-    """
-    return adapters.ProcessEnvironment()
-
-
-def test_the_module_holds_the_adapters_of_the_ports_that_have_one() -> None:
-    """AC-5: `Environment` and `Entropy` have an adapter; the others wait for a Work."""
+def test_the_module_holds_the_adapters_of_the_ports() -> None:
+    """The adapters of the environment, the clock, the directories and randomness."""
     # Given the module that holds the adapters of the environment component
 
     # When its public classes are listed
@@ -31,20 +26,24 @@ def test_the_module_holds_the_adapters_of_the_ports_that_have_one() -> None:
         if isinstance(value, type) and value.__module__ == adapters.__name__
     ]
 
-    # Then the adapters of the environment and of randomness are the only ones
-    assert public == ["ProcessEnvironment", "SystemEntropy"]
+    # Then the adapters of the four ports are the only ones
+    assert public == [
+        "ProcessEnvironment",
+        "SystemEntropy",
+        "SystemClock",
+        "ProcessDirectories",
+    ]
 
 
-def test_the_other_members_name_themselves_and_the_work_that_implements_them() -> None:
-    """AC-5: `get` raises `NotImplementedError` and says who implements it."""
-    # Given a ProcessEnvironment
-    environment = _wired()
+def test_the_temporary_directory_names_itself_when_it_is_asked_for() -> None:
+    """AC-4: `temp_dir` raises `NotImplementedError` and its message holds the name."""
+    # Given a ProcessDirectories
+    directories = adapters.ProcessDirectories(FakeEnvironment(Path()))
 
-    # When each member other than the working directory runs
-    # Then it raises NotImplementedError naming the member and the Work
-    with pytest.raises(NotImplementedError) as caught:
-        environment.get("HOME")
-    assert str(caught.value) == "get is implemented by the Work that first needs it"
+    # When the temporary directory is asked for
+    # Then it raises NotImplementedError whose message holds temp_dir
+    with pytest.raises(NotImplementedError, match="temp_dir"):
+        directories.temp_dir()
 
 
 def test_the_entropy_gives_exactly_the_bytes_asked_for() -> None:
@@ -59,3 +58,50 @@ def test_the_entropy_gives_exactly_the_bytes_asked_for() -> None:
     assert (len(first), len(second)) == (6, 6)
     assert first != second
     assert entropy.random_bytes(0) == none
+
+
+@PENDING
+def test_the_wio_home_is_read_from_the_environment_it_is_given(tmp_path: Path) -> None:
+    """AC-3: a fake `Environment` decides the home, and the home is not created."""
+    # Given a ProcessDirectories built with a fake whose WIO_HOME is fake-home
+    home = tmp_path / "fake-home"
+    directories = adapters.ProcessDirectories(
+        FakeEnvironment(tmp_path, {"WIO_HOME": str(home)})
+    )
+
+    # When the Wio home is asked for
+    found = directories.wio_home()
+
+    # Then it is the path of the fake, and nothing was created
+    assert found == home
+    assert not home.exists()
+
+
+@PENDING
+def test_the_wio_home_follows_the_environment_at_each_call(tmp_path: Path) -> None:
+    """AC-3: one `ProcessDirectories` gives `a` and then `b` as the fake changes."""
+    # Given one ProcessDirectories whose fake Environment names a
+    fake = FakeEnvironment(tmp_path, {"WIO_HOME": str(tmp_path / "a")})
+    directories = adapters.ProcessDirectories(fake)
+
+    # When it runs, the fake is changed to name b, and it runs again
+    first = directories.wio_home()
+    fake.variables["WIO_HOME"] = str(tmp_path / "b")
+    second = directories.wio_home()
+
+    # Then the first gives a and the second b
+    assert (first, second) == (tmp_path / "a", tmp_path / "b")
+
+
+@PENDING
+def test_a_relative_wio_home_is_refused_by_name(tmp_path: Path) -> None:
+    """AC-3: a relative `WIO_HOME` raises a `ValueError` naming it and `absolute`."""
+    # Given a ProcessDirectories whose WIO_HOME is relative
+    directories = adapters.ProcessDirectories(
+        FakeEnvironment(tmp_path, {"WIO_HOME": "relative/dir"})
+    )
+
+    # When the Wio home is asked for
+    # Then it raises a ValueError that names WIO_HOME and holds absolute
+    with pytest.raises(ValueError, match=r"WIO_HOME.*absolute"):
+        directories.wio_home()
