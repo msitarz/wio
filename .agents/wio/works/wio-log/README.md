@@ -33,8 +33,8 @@ that a project can learn what each stage cost and when a session started it.
 ### Envelope
 
 What every line of the log wraps around its event: the format version, the event
-type, the time, the working directory, the harness session, the harnesses whose
-variables were set and the raw values of the variables that identify it. The
+type, the time, the working directory, the harness session, the harnesses that
+matched and the raw values of the variables that identify it. The
 sink stamps it, so an event type carries only what the session knows.
 
 ### Harness

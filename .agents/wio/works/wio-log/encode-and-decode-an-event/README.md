@@ -58,7 +58,7 @@ opaque strings, and a time is finite and not negative.
 - **`Envelope`** — in `wio.models.events`, frozen: `time: float` (seconds since
   the epoch, in UTC), `directory: str`, `harness: str | None`,
   `session: str | None`, `parent: str | None`, `matches: tuple[str, ...]` (the
-  names of the harnesses whose variables were set, in config order) and
+  names of the harnesses that matched, in config order) and
   `ids: Mapping[str, str]` (the mapped variables that were set, with their
   values).
 - **`encode_line(envelope: Envelope, event: Event) -> str`** — in `wio.formats`,
