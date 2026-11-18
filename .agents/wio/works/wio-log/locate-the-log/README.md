@@ -19,7 +19,8 @@ of the same clone; the engine needs one location for each clone.
 - The log of a repository has one location, shared by every worktree of its
   clone and by no other clone.
 - A person who lists the Wio home can tell which repository a log is for.
-- Every `.jsonl` file of a log is found from its location, in a fixed order.
+- Every lowercase `.jsonl` file of a log is found from its location, in a fixed
+  order.
 - Finding the location creates nothing.
 
 ## Non-Goals
@@ -43,9 +44,10 @@ common directory, so a symlinked checkout and its target are one clone.
 - **The digest** — the first 12 lowercase hexadecimal characters of the SHA-256
   of the identity's path as the file system encodes it (`os.fsencode`), which is
   all that identifies the clone.
-- **The name** — for a person and not for identity: the slug of the last
-  component of the identity, or of the one before it when that is `.git`,
-  without a trailing `.git`.
+- **The name** — for a person and not for identity: take the last component
+  of the identity, or the one before it when that is `.git`, strip a trailing
+  `.git` from it, and slug it; the component before `/.git` is the root, which
+  has an empty name, so the slug is `repo`.
 - **The slug** — lowercase, each run of characters outside `a-z0-9` replaced by
   one `-`, cut to 40 characters, then trimmed of `-` at both ends, and `repo`
   when nothing is left.
@@ -54,21 +56,31 @@ common directory, so a symlinked checkout and its target are one clone.
   directories.wio_home())`, and raises what either port raises.
 - **`EVENTS_FILE = "events.jsonl"`** — the one file the sink appends to.
 - **`log_files(directory: Path, filesystem: FileSystem) -> Sequence[Path]`** —
-  the regular files of the directory whose name ends in a lowercase `.jsonl`,
-  in the order that `FileSystem.list_dir` gives, and an empty sequence when the
-  directory does not exist.
+  the entries of the directory whose name ends in a lowercase `.jsonl` and
+  that `FileSystem.is_file` accepts, which follows a symlink to a file, in the
+  order that `FileSystem.list_dir` gives. It gives an empty sequence when the
+  directory does not exist, and raises the `NotADirectoryError` of the port when
+  the path is a file.
 
 ## Acceptance criteria
 
 ### **AC-1** Worktrees of one clone share a location and clones do not
 
-#### Two checkouts of one clone, and another clone
+#### Two clones
 
-- **Given** the identity `/w/app/.git` for the main checkout and for a worktree
-  of it, `/w/other/.git` for another clone, and the home `/h`.
+- **Given** the identities `/w/app/.git` and `/w/other/.git`, and the home `/h`.
 - **When** `log_directory` runs for each.
-- **Then** the first two give `/h/log/app-6f8609bd196b`, and the third
+- **Then** they give `/h/log/app-6f8609bd196b` and
   `/h/log/other-58e6d3787679`.
+
+#### Worktrees of one clone
+
+- **Given** a real clone with a commit, a worktree of it made with `git worktree
+  add`, and an empty `$WIO_HOME`.
+- **When** `locate_log` runs with the `Repository` of git and the real
+  `Directories`, once with the main checkout as the working directory and once
+  with the worktree.
+- **Then** both give the same path.
 
 #### The same clone under two homes
 
@@ -123,6 +135,19 @@ common directory, so a symlinked checkout and its target are one clone.
 - **When** `log_files` runs for it.
 - **Then** it gives no file and creates nothing.
 
+#### A path that is a file
+
+- **Given** a path that is a file.
+- **When** `log_files` runs for it.
+- **Then** the `NotADirectoryError` of the port is raised unchanged.
+
+#### A symlink to a file
+
+- **Given** a directory that holds `link.jsonl`, a symlink to a file, and
+  `dir.jsonl`, a symlink to a directory.
+- **When** `log_files` runs for it.
+- **Then** it gives `link.jsonl` and not `dir.jsonl`.
+
 ### **AC-4** Finding a location creates nothing and fails like the port
 
 #### No directory appears
@@ -139,3 +164,10 @@ common directory, so a symlinked checkout and its target are one clone.
 - **When** `locate_log` runs with the `Repository` of git.
 - **Then** the `RuntimeError` of the port is raised unchanged, so a caller can
   tell the person what it says.
+
+#### A relative `$WIO_HOME`
+
+- **Given** a real clone and `$WIO_HOME` set to `relative/dir`.
+- **When** `locate_log` runs with the `Repository` of git and the real
+  `Directories`.
+- **Then** the `ValueError` of the port is raised unchanged.
