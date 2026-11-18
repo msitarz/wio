@@ -25,12 +25,13 @@ def test_the_none_form_prints_the_record_for_no_work() -> None:
     "forms",
     [
         ["none", "deliver", "architecture"],
+        ["none", "deliver"],
         ["none", "--items", "AC-1"],
         ["none", "--result", "pass"],
         ["none", "--judge", "human"],
         ["none", "--cite", "AC-1=pass"],
     ],
-    ids=["action and stage", "items", "result", "judge", "cite"],
+    ids=["action and stage", "action", "items", "result", "judge", "cite"],
 )
 def test_the_none_form_takes_no_argument(forms: list[str]) -> None:
     """AC-2: an action, a stage or an option after `none` is a usage mistake."""
