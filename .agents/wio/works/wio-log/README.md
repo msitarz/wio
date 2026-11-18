@@ -136,7 +136,7 @@ damaged line.
 
 The log holds ids, hashes, codes, times, the working directory and the values of
 the variables that the config names for it, and no prompts, no code, no free
-text and no other environment variable. AC-7 verifies it with a secret in a
+text and no other environment variable. AC-8 verifies it with a secret in a
 variable the config does not name.
 
 ### C-2
@@ -147,24 +147,25 @@ known. `$WIO_LOG=off` writes nothing, creates nothing and warns of nothing, and
 any other value of it that is set and not empty is a warning that names the
 variable and leaves the log on. A config that cannot be loaded, including one
 with an error in `[log]`, is out of its scope and exits 2 as for every command.
-Each child that writes verifies its own failure, and AC-4 verifies the switch
-end to end.
+Each child that writes verifies its own failure, `wt49bz` AC-4 is the check of a
+failure in a real process, and AC-4 verifies the switch end to end.
 
 ### C-3
 
 Each event is one line, written with one append, and wio never rewrites or
 deletes a line. A reader skips a line that it does not understand, such as a
 torn last line, an unknown event type or a higher version, and the format starts
-at version 1. AC-5 and AC-6 verify the single append and the skipping reader,
-`5pes9b` verifies the line format, and a reviewer checks that no code opens the
-log except through `append_text`.
+at version 1. AC-5 and AC-7 verify the single append and the skipping reader,
+`5pes9b` verifies the line format, and a reviewer checks that no code appends to
+the log except through `append_text`.
 
 ### C-4
 
 Components reach the log only through the `EventSink` port, and `wio.log`
-reaches the environment, the clock, the Wio home and the repository only through
-their ports, so no module outside `wio.cli` imports an adapter. `uv run tach
-check` and a reviewer's reading of the imports verify it.
+reaches the environment, the clock and the Wio home only through the ports that
+`hnakzm` C-1 names and the repository through its port, so no module outside
+`wio.cli` imports an adapter. `uv run tach check` and a reviewer's reading of
+the imports verify it.
 
 ## Visuals
 
@@ -187,10 +188,10 @@ flowchart LR
     CLI["wio.cli\n(builds the sink)"] -.-> K
     T["wio trailers --result"] --> K["LogSink\n(new, replaces NoEvents)"]
     R["wio log review\n(new)"] --> K
-    C["wio context\n(later)"] -.-> K
     K -- "1 locate" --> L["log directory\n(new)"]
     K -- "2 identify" --> H["identify the harness session\n(new)"]
-    H --> A["Environment, Clock, Directories\n(real adapters, new)"]
+    K --> A["Environment, Clock, Directories\n(real adapters, new)"]
+    H --> A
     K -- "3 encode" --> F["encode_line\n(new)"]
     K -- "4 append" --> E["events.jsonl"]
     E --> W["wio log show\n(new)"]
@@ -231,8 +232,10 @@ directory it was written from.
 - **Given** the same repository and a command run from a subdirectory of it.
 - **When** `wio trailers <work> <action> <gate> --result pass` runs.
 - **Then** the line in `events.jsonl` decodes with `decode_lines` to an envelope
-  whose time is between the times taken before and after the command and whose
-  directory is that subdirectory.
+  whose time, compared to the millisecond, is between the truncated time taken
+  before the command and the time taken after it, and whose directory is that
+  subdirectory as the process reports it, the two paths compared after
+  resolving them.
 
 ### **AC-3** A review recorded without records leaves the same event
 
@@ -284,11 +287,10 @@ as one whole line.
 - **Then** every line of `events.jsonl` decodes to a `review` event, and there
   are twenty lines.
 
-### **AC-6** A written `context` event is read back, and a damaged log still reads
+### **AC-6** A written `context` event is read back
 
 A `context` event with every field filled in survives the real sink and the real
-reader, and `wio log show` still lists the events around a line it cannot
-understand.
+reader, so `wio context` only has to build it.
 
 #### A `context` event with every field
 
@@ -300,14 +302,19 @@ understand.
   `events.jsonl` decodes with `decode_lines` to a `ContextEvent` equal to the
   one written, its `rules` in the order given.
 
+### **AC-7** A damaged log still reads
+
+`wio log show` still lists the events around a line it cannot understand.
+
 #### A damaged line
 
 - **Given** a log that the real sink wrote with two events, and a torn line and
-  a line of a higher version added by hand to `events.jsonl` between them.
+  a line of a higher version, each ending in a newline, inserted between the two
+  lines of `events.jsonl`.
 - **When** `wio log show --json` runs.
 - **Then** it exits 0, lists both events, and says `"skipped": 2`.
 
-### **AC-7** Only what the config names reaches the log
+### **AC-8** Only what the config names reaches the log
 
 No environment variable except those the config names for the log reaches it.
 
@@ -317,8 +324,7 @@ No environment variable except those the config names for the log reaches it.
   of the command, and the variables of exactly one harness, and a `$WIO_HOME`
   that names an empty directory.
 - **When** `wio trailers <work> <action> <gate> --result pass` runs.
-- **Then** the value of `SECRET_TOKEN` is in no file under the Wio home, and the
-  event carries that harness and its session.
+- **Then** the value of `SECRET_TOKEN` is in no file under the Wio home.
 
 ## Additional context
 
