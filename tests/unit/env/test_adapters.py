@@ -8,12 +8,6 @@ import pytest
 from tests.fakes import FakeEnvironment
 from wio.env import adapters
 
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=True,
-    reason="implemented by the implementation stage of hnakzm",
-)
-
 
 def test_the_module_holds_the_adapters_of_the_ports() -> None:
     """The adapters of the environment, the clock, the directories and randomness."""
@@ -27,11 +21,11 @@ def test_the_module_holds_the_adapters_of_the_ports() -> None:
     ]
 
     # Then the adapters of the four ports are the only ones
-    assert public == [
-        "ProcessEnvironment",
-        "SystemEntropy",
-        "SystemClock",
+    assert sorted(public) == [
         "ProcessDirectories",
+        "ProcessEnvironment",
+        "SystemClock",
+        "SystemEntropy",
     ]
 
 
@@ -60,7 +54,6 @@ def test_the_entropy_gives_exactly_the_bytes_asked_for() -> None:
     assert entropy.random_bytes(0) == none
 
 
-@PENDING
 def test_the_wio_home_is_read_from_the_environment_it_is_given(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -81,7 +74,6 @@ def test_the_wio_home_is_read_from_the_environment_it_is_given(
     assert not home.exists()
 
 
-@PENDING
 def test_the_wio_home_follows_the_environment_at_each_call(tmp_path: Path) -> None:
     """AC-3: one `ProcessDirectories` gives `a` and then `b` as the fake changes."""
     # Given one ProcessDirectories whose fake Environment names a
@@ -97,7 +89,6 @@ def test_the_wio_home_follows_the_environment_at_each_call(tmp_path: Path) -> No
     assert (first, second) == (tmp_path / "a", tmp_path / "b")
 
 
-@PENDING
 def test_a_relative_wio_home_is_refused_by_name(tmp_path: Path) -> None:
     """AC-3: a relative `WIO_HOME` raises a `ValueError` naming it and `absolute`."""
     # Given a ProcessDirectories whose WIO_HOME is relative

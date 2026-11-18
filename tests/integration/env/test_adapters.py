@@ -12,12 +12,6 @@ from wio.env import adapters
 if TYPE_CHECKING:
     from wio.env.ports import Clock, Directories, Environment
 
-PENDING = pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=True,
-    reason="implemented by the implementation stage of hnakzm",
-)
-
 
 def _wired() -> Environment:
     """Wire the adapter where the port is expected.
@@ -60,7 +54,7 @@ def test_the_adapters_are_wired_where_their_ports_are_expected() -> None:
 def test_the_working_directory_is_the_absolute_directory_of_the_process(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """AC-5: `working_directory()` is where the process runs, as an absolute path."""
+    """`working_directory()` is where the process runs, as an absolute path."""
     # Given a process running in a directory
     monkeypatch.chdir(tmp_path)
 
@@ -90,7 +84,6 @@ def _home_failing(*, relative: bool) -> Path:
     raise RuntimeError(message)
 
 
-@PENDING
 def test_a_variable_is_read_as_it_is_at_the_time_of_the_call(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -111,7 +104,6 @@ def test_a_variable_is_read_as_it_is_at_the_time_of_the_call(
     assert (values, empty, again) == (["abc", None], "", "def")
 
 
-@PENDING
 def test_the_clock_gives_seconds_since_the_epoch() -> None:
     """AC-2: a reading lies between the system's times around the call."""
     # Given the times that time.time() gives around the call
@@ -126,7 +118,6 @@ def test_the_clock_gives_seconds_since_the_epoch() -> None:
     assert before <= reading <= after
 
 
-@PENDING
 def test_the_wio_home_is_the_one_that_the_process_names(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -144,7 +135,6 @@ def test_the_wio_home_is_the_one_that_the_process_names(
     assert not home.exists()
 
 
-@PENDING
 def test_a_wio_home_that_cannot_be_written_is_given_as_it_is(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -163,7 +153,6 @@ def test_a_wio_home_that_cannot_be_written_is_given_as_it_is(
     assert found == home
 
 
-@PENDING
 @pytest.mark.parametrize("value", [None, ""])
 def test_the_default_wio_home_is_under_the_home_of_the_user(
     value: str | None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -186,7 +175,6 @@ def test_the_default_wio_home_is_under_the_home_of_the_user(
     assert not user_home.exists()
 
 
-@PENDING
 def test_the_home_of_the_user_is_read_only_when_it_is_needed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -204,7 +192,6 @@ def test_the_home_of_the_user_is_read_only_when_it_is_needed(
     assert found == home
 
 
-@PENDING
 @pytest.mark.parametrize("relative", [False, True])
 def test_a_user_home_that_is_missing_or_relative_is_an_oserror(
     monkeypatch: pytest.MonkeyPatch, *, relative: bool

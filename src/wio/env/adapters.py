@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """The real adapters of the ports of `wio.env`."""
 
+import os
 import secrets
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -27,7 +29,7 @@ class ProcessEnvironment:
             Its value, `None` when it is not set, and `""` when it is set to an
             empty string, which the caller decides how to read.
         """
-        raise NotImplementedError
+        return os.getenv(name)
 
     def working_directory(self) -> Path:
         """Find the directory the process runs in.
@@ -66,7 +68,7 @@ class SystemClock:
         Returns:
             Seconds since the Unix epoch, in UTC, as `time.time()` gives them.
         """
-        raise NotImplementedError
+        return time.time()
 
 
 @dataclass(frozen=True)
@@ -105,4 +107,31 @@ class ProcessDirectories:
             OSError: If the user's home directory cannot be found or is not
                 absolute.
         """
-        raise NotImplementedError
+        named = self.environment.get("WIO_HOME")
+        if not named:
+            return _user_home() / ".agents" / "wio"
+        home = Path(named)
+        if not home.is_absolute():
+            message = f"WIO_HOME must be an absolute path, not {named!r}"
+            raise ValueError(message)
+        return home
+
+
+def _user_home() -> Path:
+    """Find the user's home directory.
+
+    Returns:
+        The absolute home directory of the user.
+
+    Raises:
+        OSError: If `Path.home()` cannot find it, or gives a relative path.
+    """
+    try:
+        home = Path.home()
+    except RuntimeError as error:
+        message = f"cannot find the user's home directory: {error}"
+        raise OSError(message) from error
+    if not home.is_absolute():
+        message = f"the user's home directory is not absolute: {home}"
+        raise OSError(message)
+    return home
