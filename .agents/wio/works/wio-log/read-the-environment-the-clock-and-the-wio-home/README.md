@@ -23,8 +23,8 @@ before a sink can write its first line.
   epoch.
 - A component finds the Wio home through `Directories.wio_home`, by the rule of
   `docs/concepts.md`, without anything being created or tested.
-- A member of an adapter that is not implemented yet fails loudly and names
-  itself.
+- `ProcessDirectories.temp_dir`, which is not implemented yet, fails loudly and
+  names itself.
 
 ## Non-Goals
 
@@ -40,10 +40,6 @@ before a sink can write its first line.
 `Path.home()` finds the user's home directory on Linux and macOS, and fails with
 a `RuntimeError` when it cannot.
 
-### A-2
-
-`Path.home()` returns an absolute path.
-
 ## Mechanisms
 
 - **`ProcessEnvironment.get(name)`** — in `wio.env`, gives
@@ -57,9 +53,10 @@ a `RuntimeError` when it cannot.
 - **`ProcessDirectories.wio_home()`** — implements the rule of
   [The Wio home](../../../../../docs/concepts.md#the-wio-home) and of the
   `Directories.wio_home` docstring, and turns the `RuntimeError` of
-  `Path.home()` into an `OSError`.
-- **The names** — the behaviors here are required, and the names of the classes
-  are provisional, so the architecture stage may rename them.
+  `Path.home()`, and a relative result of it, into an `OSError`.
+- **The names** — the behaviors here are required, and the names of the new
+  classes `SystemClock` and `ProcessDirectories` are provisional, so the
+  architecture stage may rename them.
 - **`ProcessDirectories.temp_dir()`** — raises a `NotImplementedError` that
   names `temp_dir`, until the Work that first needs it implements it.
 
@@ -89,8 +86,8 @@ callers see what the process has.
 #### A value that changes
 
 - **Given** a process in which `WIO_TEST_VALUE` is set to `abc`.
-- **When** `get` reads it, the process sets it to `def`, and `get` reads it
-  again.
+- **When** a `ProcessEnvironment` reads it, the process sets it to `def`, and
+  the same `ProcessEnvironment` reads it again.
 - **Then** the two reads give `"abc"` and then `"def"`.
 
 ### **AC-2** The clock gives the time as seconds since the epoch
@@ -112,9 +109,26 @@ user, and nothing is created or tested.
 
 #### A home that `$WIO_HOME` names
 
-- **Given** `$WIO_HOME` set to `/tmp/wio-home-test`, a path that does not exist.
+- **Given** `$WIO_HOME` set to `wio-home-test` under a fresh temporary
+  directory, a path that does not exist.
 - **When** `wio_home()` runs.
-- **Then** it gives `/tmp/wio-home-test`, and the path still does not exist.
+- **Then** it gives that path, and the path still does not exist.
+
+#### The environment it is given
+
+- **Given** a `ProcessDirectories` built with a fake `Environment` whose
+  `WIO_HOME` is `fake-home` under a fresh temporary directory, while the
+  process's own `$WIO_HOME` is another path.
+- **When** `wio_home()` runs.
+- **Then** it gives the path of the fake `Environment`.
+
+#### A home that changes
+
+- **Given** one `ProcessDirectories` built with a fake `Environment` whose
+  `WIO_HOME` is `a` under a fresh temporary directory.
+- **When** `wio_home()` runs, the fake `Environment` is changed to give `b`
+  under the same directory, and `wio_home()` runs again.
+- **Then** the first gives `a` and the second `b`.
 
 #### A home that cannot be written
 
@@ -125,17 +139,18 @@ user, and nothing is created or tested.
 #### The default home
 
 - **Given** `$WIO_HOME` unset, then set to an empty string, and `Path.home()`
-  patched to return `/tmp/user-home-test`, a path that does not exist.
+  patched to return `user-home-test` under a fresh temporary directory, a path
+  that does not exist.
 - **When** `wio_home()` runs for each.
-- **Then** both give `/tmp/user-home-test/.agents/wio`, and
-  `/tmp/user-home-test` does not exist afterwards.
+- **Then** both give that path with `.agents/wio` below it, and `user-home-test`
+  does not exist afterwards.
 
 #### The user's home is read only when it is needed
 
-- **Given** `$WIO_HOME` set to `/tmp/wio-home-test` and a `Path.home()` that
-  raises `RuntimeError`.
+- **Given** `$WIO_HOME` set to `wio-home-test` under a fresh temporary
+  directory and a `Path.home()` that raises `RuntimeError`.
 - **When** `wio_home()` runs.
-- **Then** it gives `/tmp/wio-home-test`.
+- **Then** it gives that path.
 
 #### A relative home
 
@@ -147,6 +162,12 @@ user, and nothing is created or tested.
 #### A user home that cannot be found
 
 - **Given** `$WIO_HOME` unset and a `Path.home()` that raises `RuntimeError`.
+- **When** `wio_home()` runs.
+- **Then** it raises an `OSError`.
+
+#### A user home that is relative
+
+- **Given** `$WIO_HOME` unset and a `Path.home()` that returns `Path("rel")`.
 - **When** `wio_home()` runs.
 - **Then** it raises an `OSError`.
 
