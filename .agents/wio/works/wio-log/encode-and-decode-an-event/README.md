@@ -19,7 +19,7 @@ can grow without rewriting an old line.
 - `ContextEvent` carries every field of the `context` event of concepts.md, so
   `wio context` only builds it.
 - An event and its envelope are written as one line of JSON that decodes back to
-  the same event and envelope.
+  the same event and the same envelope, with its time to the millisecond.
 - A reader skips a line it cannot understand, counts it, and goes on with the
   rest.
 - A later field can be added to a line without breaking a reader of version 1.
@@ -36,6 +36,11 @@ can grow without rewriting an old line.
 
 The size of a bundle is its length in bytes, because concepts.md gives no unit
 and a harness truncates by length.
+
+### A-2
+
+A time kept to the millisecond is enough to order the events of one person, so
+the line does not carry more digits.
 
 ## Mechanisms
 
@@ -54,15 +59,22 @@ and a harness truncates by length.
 - **`encode_line(envelope: Envelope, event: Event) -> str`** — in `wio.formats`,
   one JSON object and a newline, built with the shared JSON encoding of
   `wio.formats`: `"v": 1`, `"type"` (`context` or `review`), `"time"` as an RFC
-  3339 string in UTC with millisecond precision, `"directory"`, the session
-  fields left out when they are `None` or empty, and the fields of the event.
+  3339 string in UTC truncated to the millisecond, `"directory"` and the fields
+  of the event.
+- **The optional fields** — `harness`, `session`, `parent`, `matches`, `ids`,
+  and `start` and `dirty` of a `context` event are left out when they are `None`
+  or empty, and a line without them decodes to `None` or to an empty value.
+  Every other field is written, an empty `rules`, `cited` or `hashes` as `{}`.
 - **`decode_lines(text: str) -> Decoding`** — in `wio.formats`;
   `Decoding(entries: tuple[Entry, ...], skipped: int)` and `Entry(envelope:
-  Envelope, event: Event)`, with the entries in line order. A line is skipped,
-  and counted, when it is not a JSON object, has a version other than 1, has an
-  unknown type, lacks a field of its version or has a field of the wrong type. A
-  field that version 1 does not name is ignored, and a blank line is neither an
-  entry nor skipped.
+  Envelope, event: Event)`, with the entries in line order.
+- **A line that is skipped** — and counted, when it is not a JSON object, has a
+  version other than 1, has an unknown type, lacks a field that is not optional,
+  has a `time` that is not an RFC 3339 string in UTC, or has a field of the
+  wrong type, where a `size` that is a boolean is of the wrong type and the
+  value of a mapping must be a string.
+- **A line that is not skipped** — a field that version 1 does not name is
+  ignored, and a blank line is neither an entry nor skipped.
 
 ## Constraints
 
@@ -70,23 +82,32 @@ and a harness truncates by length.
 
 A field that version 1 adds later is optional and ignored by a reader that does
 not know it, and a change that removes or reinterprets a field raises the
-version. A reviewer judges it from the next change to the format.
+version. AC-4 checks that a reader ignores a field it does not know, and a
+reviewer checks the raising of the version in the next change to the format.
 
 ## Acceptance criteria
 
-### **AC-1** A `review` event round-trips
+### **AC-1** A `review` event leaves the log and comes back the same
+
+A `review` event with its envelope is written as a line and read back with
+every field equal, so a reader sees what the writer recorded.
 
 #### Every field
 
 - **Given** a `ReviewEvent` of the Work `k3m9xq`, the action `deliver`, the
   stage `implementation-review`, a commit, the judge `agent`, the result
   `fail`, the cited `{"ARC001": "fail", "AC-2": "pass"}` and the hashes
-  `{"ARC001": "h1"}`, and an envelope with every field set.
+  `{"ARC001": "h1"}`, and an envelope with every field set and the time
+  `1795000000.123`.
 - **When** it is encoded and the line is decoded.
 - **Then** the decoding has one entry equal to the event and the envelope, with
-  the cited items in the order given, and no line was skipped.
+  the time equal to the millisecond and the cited items in the order given, and
+  no line was skipped.
 
-### **AC-2** A `context` event round-trips
+### **AC-2** A `context` event leaves the log and comes back the same
+
+A `context` event with every field filled in is written and read back with
+every field equal, so `wio context` only has to build it.
 
 #### A gate and a stage that is not a gate
 
@@ -96,7 +117,18 @@ version. A reviewer judges it from the next change to the format.
 - **Then** each decodes to an event equal to the one given, and the second keeps
   its `None` fields.
 
-### **AC-3** An event is one line
+#### The order of the rules
+
+- **Given** a `ContextEvent` whose `rules` are, in this order,
+  `{"contracts.CON002": "h2", "contracts.ACC001": "h1"}`.
+- **When** it is encoded and decoded.
+- **Then** the keys of the decoded `rules` are `contracts.CON002` and then
+  `contracts.ACC001`.
+
+### **AC-3** An event is one line, and what is empty is left out
+
+Each event takes one line whatever its values hold, so a reader can find an
+event by its line, and a field with nothing to say takes no room.
 
 #### A value that holds a newline
 
@@ -105,23 +137,29 @@ version. A reviewer judges it from the next change to the format.
 - **Then** the text ends in one newline and holds no other, and decoding it
   gives the same directory.
 
-#### The session fields
+#### The optional fields
 
-- **Given** an envelope with no harness, session or parent and no matches.
-- **When** it is encoded.
-- **Then** the line holds none of `harness`, `session`, `parent` and `matches`,
-  and decoding it gives `None`, `None`, `None` and an empty tuple.
+- **Given** an envelope with no harness, session or parent, no matches and no
+  ids, and a `context` event of a stage that is not a gate.
+- **When** it is encoded and the line is decoded.
+- **Then** the line holds none of `harness`, `session`, `parent`, `matches`,
+  `ids`, `start` and `dirty`, the decoding gives `None`, `None`, `None`, an
+  empty tuple, an empty mapping, `None` and `None`, and no line was skipped.
 
 ### **AC-4** A line that cannot be understood is skipped and counted
+
+A reader goes on past a line it cannot understand and says how many it
+skipped, so one bad line never hides the events around it.
 
 #### A damaged log
 
 - **Given** a text of lines: a complete `review` event, `{"v": 1, "type": "re`,
   a line with `"v": 2`, a line with `"type": "other"`, a `review` line without
-  its `result`, a `review` line whose `cited` is a list, a blank line, and a
-  complete `context` event.
+  its `result`, a `review` line whose `cited` is a list, a `review` line whose
+  `time` is `"yesterday"`, a `context` line whose `size` is `true`, a blank
+  line, and a complete `context` event.
 - **When** `decode_lines` runs on it.
-- **Then** it gives two entries, in line order, and the count 5.
+- **Then** it gives two entries, in line order, and the count 7.
 
 #### A field that is not known
 
@@ -129,11 +167,14 @@ version. A reviewer judges it from the next change to the format.
 - **When** `decode_lines` runs on it.
 - **Then** it gives one entry and skips nothing.
 
-### **AC-5** The time is exact and in UTC
+### **AC-5** The time is written to the millisecond, truncated, in UTC
 
-#### A time with milliseconds
+The time of an event is written as a UTC string that any tool reads, to the
+millisecond and never rounded up.
 
-- **Given** an envelope with the time `1795000000.123456`.
-- **When** it is encoded.
+#### A time with more than milliseconds
+
+- **Given** an envelope with the time `1795000000.123956`.
+- **When** it is encoded and the line is decoded.
 - **Then** the line holds `"time": "2026-11-18T11:06:40.123Z"`, and decoding
-  gives the time `1795000000.123`.
+  gives the time `1795000000.123` to the millisecond.
