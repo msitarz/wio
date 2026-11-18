@@ -402,6 +402,30 @@ reads.
   name, so the form prints `error: Wio-Work: no reviewed commit was found` and
   records nothing.
 
+## The write form as a whole
+
+The print form,
+[the finder of the reviewed commit](#finding-the-reviewed-commit) and
+[the gate form](#recording-a-gates-result) are one write form, and what holds of
+it holds of the three together. A person or an agent gets a record that the
+engine checked, and a gate's review leaves a trace of the commit it judged. The
+[scenarios](../../../tests/acceptance/trailers/test_write.py) run it on a real
+repository, and the
+[tests with a recording sink](../../../tests/integration/trailers/test_write.py)
+read the events that no scenario can, because `wio.cli` wires a sink that drops
+them until `wio log` exists.
+
+- **A refusal leaves nothing behind.** A result outside `gates.results`, and a
+  history with no reviewed commit, print no record, send no event and exit 1,
+  so a record in a commit message and an event in the log always agree.
+- **Each judge of a gate that needs a human is recorded once.** The same call
+  with `--judge human` after the agent's prints the human's record and sends a
+  second event of the same reviewed commit, and `wio trailers` does not decide
+  whether the gate passed.
+- **The command does not edit a message.** The agent adds the printed paragraph
+  to its commit message, and the commit that carries a gate's record is a pure
+  gate commit, so the next review still finds the work under it.
+
 ## The command
 
 `TrailersCommand` in [`command.py`](command.py) and `TrailersSpec` in
