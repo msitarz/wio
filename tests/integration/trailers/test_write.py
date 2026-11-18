@@ -192,3 +192,36 @@ def test_the_event_names_the_commit_and_the_cites(
     assert code == 0
     assert isinstance(event, ReviewEvent)
     assert (event.commit, dict(event.cited)) == (work, {"AC-1": "pass"})
+
+
+def test_a_gate_result_is_taken_back_by_the_check_and_the_fold(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-4 of `3jbrzz`: the record, the check, the fold and the event agree."""
+    # Given a human gate with a work commit under a pure gate commit, and an item
+    # `AC-1`
+    work = _project(sandbox, monkeypatch)
+    sink = _Sink()
+
+    # When the result is recorded with `--items AC-1 --cite AC-1=pass`, that record
+    # is the paragraph of a message that `check --require` reads, and `fold block`
+    # runs on a range with a commit that carries it
+    code, record = _run(
+        sink, *ARGS, "--result", "pass", "--judge", "human", "--items", "AC-1",
+        "--cite", "AC-1=pass",
+    )  # fmt: skip
+    (sandbox.root / "msg.txt").write_text(f"chore: judge\n\n{record}")
+    checked, _ = _run(sink, "trailers", "check", "--require", "msg.txt")
+    _commit(sandbox, f"chore: judge\n\n{record}", empty=True)
+    folded, block = _run(sink, "trailers", "fold", "block", "HEAD~1..HEAD")
+
+    # Then the record holds the result, the judge and the item, the check exits 0, the
+    # fold prints the record and the sink received one event of the work commit
+    (event,) = sink.events
+    assert (code, checked, folded) == (0, 0, 0)
+    assert {"Wio-Result: pass", "Wio-Judge: human", "Wio-Items: AC-1"} <= set(
+        record.splitlines()
+    )
+    assert block == record
+    assert isinstance(event, ReviewEvent)
+    assert (event.commit, dict(event.cited)) == (work, {"AC-1": "pass"})
