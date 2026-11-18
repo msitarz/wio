@@ -171,20 +171,21 @@ def test_a_mistake_inside_a_form_is_a_usage_error(forms: list[str]) -> None:
 
 
 def test_the_help_lists_the_forms() -> None:
-    """AC-4: `wio trailers --help` lists the write form, `check` and `fold`."""
+    """AC-4: `wio trailers --help` lists the write form, `check`, `fold` and `none`."""
     # Given the command
     # When `wio trailers --help` runs
     code, out, err = _wio(["trailers", "--help"])
 
-    # Then it exits 0 and lists the write form, `check` and `fold`
+    # Then it exits 0 and lists the write form, `check`, `fold` and `none`
     assert (code, err) == (0, "")
     assert "<work> <action> <stage>" in out
     assert "check " in out
     assert "fold " in out
+    assert "none " in out
 
 
 @pytest.mark.parametrize(
-    "form", [["check", "-h"], ["fold", "-h"], ["fold", "block", "-h"]]
+    "form", [["check", "-h"], ["fold", "-h"], ["fold", "block", "-h"], ["none", "-h"]]
 )
 def test_the_help_of_a_form_is_written_and_exits_0(form: list[str]) -> None:
     """A form's `-h` prints its usage to standard output and is not an error."""

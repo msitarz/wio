@@ -52,6 +52,7 @@ forms:
   <work> <action> <stage>  Print the record of a Work, an action and a stage.
   check                    Check a commit message, a body or a range of commits.
   fold                     Fold the records of a range into a block or a body.
+  none                     Print the record of a commit that belongs to no Work.
 """
 """What `wio trailers --help` says, with one line for each form."""
 

@@ -304,14 +304,13 @@ def test_a_call_with_no_stage_is_a_usage_error() -> None:
     assert caught.value.code == 2
 
 
-@pytest.mark.parametrize("work", ["k3m9xq,a7b2c4", "none"])
-def test_a_list_of_works_and_none_are_usage_errors(work: str) -> None:
-    """AC-5: the form refuses them with a `TrailersError`, which exits 2."""
-    # Given the Work value `k3m9xq,a7b2c4` and the Work value `none`
-    # When the command runs on each
-    # Then it raises a `TrailersError` and writes nothing
-    with pytest.raises(TrailersError):
-        _run([work, "deliver", "architecture"])
+def test_a_list_of_works_is_a_usage_error() -> None:
+    """AC-5: the form refuses it with a `TrailersError`, which exits 2."""
+    # Given the Work value `k3m9xq,a7b2c4`
+    # When the command runs on it
+    # Then it raises a `TrailersError` that says a list of Works is not written
+    with pytest.raises(TrailersError, match="list of Works, which"):
+        _run(["k3m9xq,a7b2c4", "deliver", "architecture"])
 
 
 def test_an_unknown_option_is_a_usage_error() -> None:
@@ -324,16 +323,15 @@ def test_an_unknown_option_is_a_usage_error() -> None:
     assert caught.value.code == 2
 
 
-@pytest.mark.parametrize("work", ["k3m9xq,a7b2c4", "none"])
-def test_a_list_of_works_is_refused_before_the_config_is_loaded(work: str) -> None:
+def test_a_list_of_works_is_refused_before_the_config_is_loaded() -> None:
     """AC-5: the `TrailersError` comes first, so a bad config does not hide it."""
     # Given settings that raise a `ConfigurationError`
     settings = FakeSettings(ConfigurationError("The config is not valid TOML."))
 
-    # When the command runs on a list of Works and on `none`
+    # When the command runs on a list of Works
     # Then it raises a `TrailersError` and not the `ConfigurationError`
     with pytest.raises(TrailersError):
-        _run([work, "deliver", "architecture"], settings)
+        _run(["k3m9xq,a7b2c4", "deliver", "architecture"], settings)
 
 
 def test_a_config_that_cannot_be_read_is_a_usage_error() -> None:

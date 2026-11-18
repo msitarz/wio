@@ -9,6 +9,8 @@ as for every form, so this form loads nothing.
 
 from typing import TYPE_CHECKING
 
+from wio.formats import render
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
 
@@ -43,8 +45,7 @@ def run_nowork(services: Services, args: Namespace, stdio: Stdio) -> int:
 
     Returns:
         0, always.
-
-    Raises:
-        NotImplementedError: Until the implementation stage fills it in.
     """
-    raise NotImplementedError
+    del services, args
+    stdio.stdout.write(render({"Wio-Work": "none"}))
+    return 0

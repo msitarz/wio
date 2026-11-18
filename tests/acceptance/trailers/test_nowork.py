@@ -16,10 +16,6 @@ if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
 
 FIXTURE = "trailers/command"
-LEAF = "run_nowork is a stubbed leaf, so the command exits 70 until the implementation"
-REWORD = "_one_work still words its refusal as a list of Works or none"
-STUB = pytest.mark.xfail(reason=LEAF, raises=AssertionError, strict=True)
-LIST = pytest.mark.xfail(reason=REWORD, raises=AssertionError, strict=True)
 
 
 def _project(wio: Wio) -> None:
@@ -32,7 +28,6 @@ def _project(wio: Wio) -> None:
     wio.commit("feat: add the Work")
 
 
-@STUB
 @pytest.mark.channels(Channel.CLI)
 def test_a_record_for_no_work_is_printed_and_accepted_by_the_check(wio: Wio) -> None:
     """AC-1: the printed record is the paragraph that `check --require` accepts."""
@@ -77,7 +72,6 @@ def test_a_none_with_anything_more_is_refused(wio: Wio, call: list[str]) -> None
     assert "error" in output.stderr
 
 
-@LIST
 @pytest.mark.channels(Channel.CLI)
 @pytest.mark.parametrize(
     "call",

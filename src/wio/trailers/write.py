@@ -147,13 +147,13 @@ def _one_work(work: str) -> None:
         work: The Work argument as given.
 
     Raises:
-        TrailersError: If it holds a comma, which makes it a list of Works, or is
-            exactly `none`.
+        TrailersError: If it holds a comma, which makes it a list of Works. `none`
+            never reaches this form, because the command gives it a form of its own.
     """
-    if "," in work or work == "none":
+    if "," in work:
         message = (
-            f"`{work}` is a list of Works or none, which `wio trailers` does not write "
-            "for a record; name one Work."
+            f"`{work}` is a list of Works, which `wio trailers` does not write for "
+            "a record; name one Work."
         )
         raise TrailersError(message)
 
