@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
     from wio.cli.ports import Command, CommandSpec
     from wio.io.ports import Repository
+    from wio.ports import EventSink
 
 type Component = Literal[
     "config", "contracts", "templates", "rules", "trailers", "log", "context"
@@ -121,14 +122,30 @@ def _contracts() -> Command:
 
 
 def _trailers() -> Command:
-    """Wire `wio trailers` to git, the contracts component and the null adapters.
+    """Wire `wio trailers` with the sink that drops the events.
+
+    Returns:
+        The command of `trailers_command` over `NoEvents`, until the component of
+        the event log exists.
+
+    Raises:
+        TrailersError: If the working directory is not inside a git repository.
+        ConfigurationError: If the config cannot be loaded.
+    """
+    return trailers_command(NoEvents())
+
+
+def trailers_command(events: EventSink) -> Command:
+    """Wire `wio trailers` to git, the contracts component and a sink.
+
+    Args:
+        events: Takes the `review` event of a recorded gate result.
 
     Returns:
         The command, whose forms read the config, the history and the Works through
         the adapters, look a Work up in the working tree and then in `HEAD` and, for
         a commit message, in the index and then in `HEAD`, and wire a port that
-        selects no rule and a sink that drops the events until their components
-        exist.
+        selects no rule until its component exists.
 
     Raises:
         TrailersError: If the working directory is not inside a git repository.
@@ -148,7 +165,7 @@ def _trailers() -> Command:
     tree = WorkLookup(settings, repository, catalog, files, [files, head])
     staged = WorkLookup(settings, repository, catalog, files, [index, head])
     services = TrailersServices(
-        settings, tree, history, staged, files, NoRules(), NoEvents()
+        settings, tree, history, staged, files, NoRules(), events
     )
     return TrailersCommand(services)
 
