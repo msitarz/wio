@@ -82,7 +82,7 @@ The examples use a git repository with a config that declares the action
 - **When** `wio trailers k3m9xq,a7b2c4 deliver architecture` and `wio trailers
   none,k3m9xq deliver architecture` run.
 - **Then** each exits 2, prints nothing on standard output and says on standard
-  error that a list of Works is not written.
+  error that a list of Works is not written and asks for one Work.
 
 ### **AC-4** A config that cannot be read exits 2
 
