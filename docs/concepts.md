@@ -2230,15 +2230,19 @@ in `HEAD` is one that the change being committed deletes, so the commit that
 retires or abandons a Work still carries its record, and its ids are checked
 against `HEAD`'s contract.
 
+In v0.1 the write form takes one Work and refuses a list of Works and `none`;
+the list form that this section describes comes later.
+
 With `--result` it also writes the `review` event to the event log, with the
 items `--cite` names (such as `--cite ARC001=fail --cite AC-2=pass`), so a
 reviewer records everything with one command. For a list of Works, each cited
 item id must be one of every Work's own item ids, the event is written once per
 Work, and the comparison with the `context` event below runs for each Work. Each
-item is checked: one whose form is a rule code must name a rule the config
-chooses, and any other must be one of the Work's own item ids, and its result
-must be in the vocabulary. The **reviewed commit** is worked out from the
-history: starting at `HEAD` and following first parents, wio skips the
+item is checked: a key is an item id when the Work has it, and otherwise it must
+be a rule code qualified with its ruleset, `ruleset.CODE`, that the stage
+selects, so an item is told from a rule without guessing at the form of an id,
+and its result must be in the vocabulary. The **reviewed commit** is worked out
+from the history: starting at `HEAD` and following first parents, wio skips the
 **pure gate commits** of this gate, those with at least one record, all of which
 belong to its action and stage once the lists are expanded (for this Work or for
 others, as when one gate approves a parent and its children), and the first
@@ -2250,15 +2254,17 @@ gate that takes several commits finds the same commit, and a gate records its
 result on each of its commits, because only the latest record counts. The walk
 reads records with the configured reader; it is the one place v0.1 reads records
 from the history. `--reviewed <sha>` overrides the rule, for example for a
-review of an older commit. `wio trailers --result` warns when the commit it
-works out differs from the one recorded by the gate's `context` event, because
-then the artifact changed while it was under review, and when the review started
-on a tree with uncommitted changes, because then no commit holds all of what was
-judged. The event it compares with is this session's first `context` event for
-the gate, where the review started. When wio cannot see the session id, it is
-the earliest `context` event for the same Work, action and stage from the same
-working directory since the latest `review` event for them, so a bundle injected
-again after the artifact changed does not move the start of the review.
+review of an older commit. In v0.1 the override and the warnings that follow are
+not built, and the event reaches a sink that drops it until `wio log` exists.
+`wio trailers --result` warns when the commit it works out differs from the one
+recorded by the gate's `context` event, because then the artifact changed while
+it was under review, and when the review started on a tree with uncommitted
+changes, because then no commit holds all of what was judged. The event it
+compares with is this session's first `context` event for the gate, where the
+review started. When wio cannot see the session id, it is the earliest `context`
+event for the same Work, action and stage from the same working directory since
+the latest `review` event for them, so a bundle injected again after the
+artifact changed does not move the start of the review.
 
 `wio trailers check` reads a commit message or a pull request body. It has two
 modes, because a message is checked either when it is written or long after.
@@ -2548,10 +2554,6 @@ and its own selection give it.
   every item of a section is cited by some stage's records before a gate. v0.1
   only carries ids ([Item ids](#item-ids)), and records already hold what such
   a check would read, so adding it later breaks nothing.
-- How `--cite` tells an item id from a rule code when a template's `pattern`
-  yields ids that look like rule codes, such as `ARC1`. "By form" needs the form
-  of a code stated precisely, and then either `wio contracts check` rejects item
-  ids of that form or a cited rule is always qualified with its ruleset.
 - Recipes for harness hooks that inject the bundle again after compaction.
 - A lock file for the whole workflow, like `uv.lock`, for v0.3 or later.
   `.agents/wio/wio.lock` records everything `wio context` compiles bundles from:
