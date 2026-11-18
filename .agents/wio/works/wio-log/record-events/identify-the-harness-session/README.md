@@ -59,12 +59,13 @@ and not an id.
   Mapping[str, str])`, whose fields are those of the `Envelope` of `5pes9b`; it
   warns on standard error through `stdio`.
 - **The variables read** — every name in the `session` and `parent` lists of
-  every harness and in `record_env_vars`, and `WIO_PREFER_HARNESS` whose value
-  never reaches `ids`, through `Environment.get`, and no other.
+  every harness and in `record_env_vars`, and `WIO_PREFER_HARNESS`, which is
+  read only as the preference and never reaches `ids`, even when a list names
+  it, through `Environment.get`, and no other.
 - **A variable that is set** — one whose value is not empty.
 - **The shape of a value** — one to 128 characters of `A-Za-z0-9._:-`; a set
-  value of another shape is dropped, with a warning that names the variable and
-  never its value.
+  value of another shape is dropped, with exactly one warning for the variable,
+  however many times it is named, that names the variable and never its value.
 - **`ids`** — each variable that is set and well shaped, with its value, first
   for each harness in the order of the config its `session` and then its
   `parent` variables, then for `record_env_vars`, and a variable named more than
@@ -74,12 +75,13 @@ and not an id.
   well shaped or not, and `matches` lists the matching harnesses in the order of
   the config: the built-ins first, a replaced built-in in its built-in place,
   and the harnesses of the file after them in the order of the file.
-- **The preference** — `$WIO_PREFER_HARNESS` when it is set and not empty, and
-  otherwise `Log.prefer_harness`.
-- **The variable's list** — comma-separated harness names whose items are
-  trimmed, with empty items ignored, and `none` standing for an empty list only
-  when it is the whole value; a name that is not a harness, and `none` inside a
-  longer list, is ignored with a warning that names it, on every run.
+- **The preference** — `$WIO_PREFER_HARNESS` when it holds at least one item
+  that is not empty after trimming, and otherwise `Log.prefer_harness`.
+- **The variable's list** — comma-separated harness names, matched exactly and
+  case-sensitively, whose items are trimmed, with empty items ignored, and
+  `none` standing for an empty list only when it is the whole value; a name that
+  is not a harness, and `none` inside a longer list, is ignored with a warning
+  that names it, on every run, and a name that is repeated does no harm.
 - **The resolution** — with one match, that harness; with several, the first
   name of the preference that matches; with none, or with no preference that
   matches, no harness, session or parent.
@@ -114,7 +116,7 @@ and, for Codex, its parent.
 - **Then** the first gives the session `s1` and no parent, and the second the
   session `t2` and the parent `s1`.
 
-#### Codex with the session id alone
+#### Codex without a thread id
 
 - **Given** `CODEX_SESSION_ID=s1` only.
 - **When** `identify` runs.
@@ -164,10 +166,11 @@ run.
 
 #### An empty variable
 
-- **Given** `$WIO_PREFER_HARNESS` set to an empty string and `prefer_harness =
-  ["codex"]`, and the three variables of AC-2.
-- **When** `identify` runs.
-- **Then** the config's preference applies, and the harness is `codex`.
+- **Given** `$WIO_PREFER_HARNESS` set to an empty string, to `" "` and to `","`,
+  and `prefer_harness = ["codex"]`, and the three variables of AC-2.
+- **When** `identify` runs for each.
+- **Then** the config's preference applies to each, and the harness is
+  `codex`.
 
 #### A preference that does not decide
 
@@ -193,20 +196,37 @@ never repeats it.
 
 #### A value of the wrong shape
 
-- **Given** `CLAUDE_CODE_SESSION_ID` set to `a b`, then to a value of 200
+- **Given** `CLAUDE_CODE_SESSION_ID` set to `bad value!`, then to a value of 200
   characters, then to `x/y`.
 - **When** `identify` runs for each.
 - **Then** each gives the harness `claude-code` and the session `None`,
-  `matches` is `("claude-code",)`, `ids` lacks the variable, and a warning names
-  `CLAUDE_CODE_SESSION_ID` and holds none of the value.
+  `matches` is `("claude-code",)`, `ids` lacks the variable, and exactly one
+  warning names `CLAUDE_CODE_SESSION_ID` and holds none of the value.
 
 #### A subagent whose thread id is malformed
 
-- **Given** `CODEX_THREAD_ID=a b` and `CODEX_SESSION_ID=s1`.
+- **Given** `CODEX_THREAD_ID=bad value!` and `CODEX_SESSION_ID=s1`.
 - **When** `identify` runs.
 - **Then** the harness is `codex`, the session and the parent are `None`, `ids`
   is `{"CODEX_SESSION_ID": "s1"}`, and a warning names `CODEX_THREAD_ID`, so the
   subagent is not taken for its main session.
+
+#### A malformed parent and a malformed recorded variable
+
+- **Given** `CODEX_THREAD_ID=t2`, `CODEX_SESSION_ID=bad value!` and
+  `AI_AGENT=x/y`.
+- **When** `identify` runs.
+- **Then** the harness is `codex`, the session `t2`, the parent `None`, `ids` is
+  `{"CODEX_THREAD_ID": "t2"}`, and exactly two warnings name
+  `CODEX_SESSION_ID` and `AI_AGENT`, with neither value.
+
+#### A malformed variable that is named twice
+
+- **Given** `[log.harnesses.cursor]` with `session = ["AI_AGENT"]`, and
+  `AI_AGENT=x/y`.
+- **When** `identify` runs.
+- **Then** exactly one warning names `AI_AGENT`, although the default
+  `record_env_vars` names it too.
 
 #### The boundaries of the shape
 
