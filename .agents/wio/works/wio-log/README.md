@@ -236,14 +236,16 @@ cannot be written, and with `$WIO_LOG` set, as it does when it can.
 
 ### **AC-4** Sessions that write at once lose no event
 
-Events that several processes write at the same time are all readable.
+Events that several processes write at the same time are all in the log, each
+as one whole line.
 
 #### Concurrent writers
 
 - **Given** one repository and a Wio home.
 - **When** many processes each record a review at the same moment.
-- **Then** `wio log show --json` lists every review, and each line of the log is
-  a complete JSON object.
+- **Then** every line of `events.jsonl` under the Wio home is a complete JSON
+  object that decodes to a `review` event, and there is one line for each
+  process.
 
 ### **AC-5** A written `context` event is read back, and a damaged log still reads
 
