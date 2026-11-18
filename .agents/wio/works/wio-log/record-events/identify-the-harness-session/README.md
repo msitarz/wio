@@ -80,6 +80,9 @@ The examples use the built-in harnesses and no `[log]` table, and an
 
 ### **AC-1** One harness gives the session
 
+A run that shows the variables of one harness is identified with its session
+and, for Codex, its parent.
+
 #### Claude Code
 
 - **Given** `CLAUDE_CODE_SESSION_ID=c1` and `AI_AGENT=claude-code_2`.
@@ -103,6 +106,9 @@ The examples use the built-in harnesses and no `[log]` table, and an
 
 ### **AC-2** Nothing is guessed when several harnesses match
 
+A run that shows the variables of several harnesses is left unresolved instead
+of guessed.
+
 #### A nested run
 
 - **Given** `CLAUDE_CODE_SESSION_ID=c1`, `CODEX_THREAD_ID=t2` and
@@ -119,6 +125,9 @@ The examples use the built-in harnesses and no `[log]` table, and an
   empty and `ids` is `{"AI_AGENT": "x"}`.
 
 ### **AC-3** A preference resolves a nested run
+
+A preference from the config or from `$WIO_PREFER_HARNESS` resolves a nested
+run.
 
 #### The config and the variable
 
@@ -138,6 +147,9 @@ The examples use the built-in harnesses and no `[log]` table, and an
 
 ### **AC-4** A value that is not an id is dropped
 
+A value that is not shaped like an id never reaches the log, and the warning
+never repeats it.
+
 #### A value of the wrong shape
 
 - **Given** `CODEX_THREAD_ID=a b`, then a value of 200 characters, then `x/y`.
@@ -146,6 +158,9 @@ The examples use the built-in harnesses and no `[log]` table, and an
   warning that names `CODEX_THREAD_ID` and holds none of the value.
 
 ### **AC-5** Only the named variables are read
+
+Only the variables the config names are read, so nothing else in the environment
+can reach an event.
 
 #### A secret in the environment
 

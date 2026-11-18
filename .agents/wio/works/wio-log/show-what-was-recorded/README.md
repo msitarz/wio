@@ -77,6 +77,9 @@ holds with the lines given.
 
 ### **AC-1** `wio log` is a command
 
+A person reaches the commands of the log through `wio log` and finds `show` in
+its help.
+
 #### Bare
 
 - **Given** any working directory.
@@ -84,6 +87,8 @@ holds with the lines given.
 - **Then** each prints help that names `show` and exits 0.
 
 ### **AC-2** The last time each stage was entered is shown
+
+A person sees when each stage of a Work was last entered, and by which session.
 
 #### Several events of a stage
 
@@ -104,6 +109,9 @@ holds with the lines given.
 
 ### **AC-3** The latest review of each judge is shown
 
+A person sees the latest review of each gate for each judge, with the commit it
+judged.
+
 #### An agent and a human
 
 - **Given** `review` events of the gate `docs-review` by the judge `agent` with
@@ -115,6 +123,9 @@ holds with the lines given.
   the full commits and the cited items of the human's.
 
 ### **AC-4** A Work or the log can be missing
+
+A Work with no events, a clone with no log and a directory with no repository
+each have a defined result.
 
 #### A Work that has no events, and one that is gone
 
@@ -131,6 +142,9 @@ holds with the lines given.
 
 ### **AC-5** Damaged lines are skipped and noted
 
+A damaged log still shows the events around its damaged lines, and says how many
+it skipped.
+
 #### A log with a torn line
 
 - **Given** two complete events, a torn line and a line of a higher version.
@@ -139,6 +153,8 @@ holds with the lines given.
   lines of the event log` on standard error and the second with `"skipped": 2`.
 
 ### **AC-6** Every file of the directory is read
+
+Events spread over several files of a log are shown as one history.
 
 #### Two files
 

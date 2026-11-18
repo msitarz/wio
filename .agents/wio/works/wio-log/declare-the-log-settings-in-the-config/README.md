@@ -89,6 +89,9 @@ The examples use a config that sets nothing under `[log]` unless they say so.
 
 ### **AC-1** The built-in harnesses need no configuration
 
+A project gets the Claude Code and Codex harnesses without writing any
+configuration.
+
 #### The defaults
 
 - **Given** a config with no `[log]` table.
@@ -101,6 +104,9 @@ The examples use a config that sets nothing under `[log]` unless they say so.
   with the source `default`, and `wio config check` exits 0.
 
 ### **AC-2** A configured harness is added, or replaces a built-in
+
+A project adds a harness, or replaces a built-in one, with a table in its
+config.
 
 #### A new harness
 
@@ -124,6 +130,9 @@ The examples use a config that sets nothing under `[log]` unless they say so.
 
 ### **AC-3** The preference and the reserved name are checked
 
+A project says which harness wins a nested run, and a mistake in that choice is
+refused.
+
 #### A preference that names harnesses
 
 - **Given** a config with `prefer_harness = ["codex", "claude-code"]` under
@@ -143,6 +152,8 @@ The examples use a config that sets nothing under `[log]` unless they say so.
 
 ### **AC-4** The further variables to record are read
 
+A project names further variables to record as they are, or none.
+
 #### A list of variables
 
 - **Given** a config with `record_env_vars = ["MY_VAR"]` under `[log]`.
@@ -158,6 +169,9 @@ The examples use a config that sets nothing under `[log]` unless they say so.
   0.
 
 ### **AC-5** A mistake in the log settings is reported
+
+A mistake in the log settings is reported by `wio config check` and stops the
+commands that need the config.
 
 #### A mistake in a harness table or in the variables
 

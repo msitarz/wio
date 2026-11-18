@@ -66,6 +66,8 @@ common directory, so a symlinked checkout and its target are one clone.
 
 ### **AC-1** Worktrees of one clone share a location and clones do not
 
+Every worktree of a clone finds the same log, and another clone finds another.
+
 #### Two clones
 
 - **Given** the identities `/w/app/.git` and `/w/other/.git`, and the home `/h`.
@@ -91,6 +93,9 @@ common directory, so a symlinked checkout and its target are one clone.
 
 ### **AC-2** The name tells a person which repository it is
 
+A person who lists the Wio home can tell from a log's name which repository it
+is for.
+
 #### Names of a clone
 
 - **Given** the identities `/Users/x/Code/My App/.git`, `/srv/git/app.git`,
@@ -115,6 +120,8 @@ common directory, so a symlinked checkout and its target are one clone.
 - **Then** both names start with `app-`, and the digests differ.
 
 ### **AC-3** The files of a log are found in a fixed order
+
+A reader finds every `.jsonl` file of a log in the same order every time.
 
 #### A directory with several files
 
@@ -149,6 +156,9 @@ common directory, so a symlinked checkout and its target are one clone.
 - **Then** it gives `link.jsonl` and not `dir.jsonl`.
 
 ### **AC-4** Finding a location creates nothing and fails like the port
+
+Finding a log's location changes nothing on disk and reports a failure as its
+port does.
 
 #### No directory appears
 

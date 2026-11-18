@@ -72,6 +72,9 @@ append.
 
 ### **AC-1** An event is stamped and appended as one line
 
+An event written to the sink reaches the log of its repository as one stamped
+line.
+
 #### A review event
 
 - **Given** the fakes above.
@@ -89,6 +92,9 @@ append.
   the file.
 
 ### **AC-2** A failure is a warning
+
+A failure to write is a warning that tells the person what to do, and never
+stops a command.
 
 #### An unwritable home
 
@@ -115,6 +121,9 @@ append.
 
 ### **AC-3** The log can be switched off
 
+A user switches the log off with `$WIO_LOG=off`, and a value that is not
+recognized never stops it.
+
 #### Off
 
 - **Given** `$WIO_LOG=off`.
@@ -130,6 +139,8 @@ append.
   second appends it and warns of nothing.
 
 ### **AC-4** `wio trailers` writes to the real log
+
+`wio trailers` writes its events to the real log, from any worktree of a clone.
 
 #### A review on a real repository
 

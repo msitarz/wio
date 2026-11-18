@@ -79,6 +79,9 @@ flowchart LR
 
 ### **AC-1** A real review carries the real session
 
+An event written on a real repository carries the harness session that the real
+environment shows.
+
 #### Claude Code
 
 - **Given** a real clone, a Work whose pipeline has a gate, an empty
@@ -96,6 +99,9 @@ flowchart LR
   `s1`.
 
 ### **AC-2** The config decides what a stamp holds
+
+A new harness and a preference for a nested run change what a stamp holds
+without a code change.
 
 #### A harness of the config
 

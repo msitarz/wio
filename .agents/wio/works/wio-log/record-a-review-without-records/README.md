@@ -58,6 +58,9 @@ gate commit, and a recording `EventSink`.
 
 ### **AC-1** The event is the one `wio trailers` writes
 
+A review recorded without records leaves exactly the event that
+`wio trailers --result` leaves.
+
 #### The same arguments, the two commands
 
 - **Given** the two commands with the arguments `k3m9xq deliver docs-review
@@ -69,6 +72,9 @@ gate commit, and a recording `EventSink`.
 
 ### **AC-2** It prints nothing, or a JSON document
 
+A person or a script reads the result of the command as nothing or as one JSON
+document.
+
 #### The output
 
 - **Given** the arguments of AC-1 without `--judge`.
@@ -77,6 +83,8 @@ gate commit, and a recording `EventSink`.
   object with the event, whose judge is `agent`.
 
 ### **AC-3** A refusal writes nothing
+
+A review that `wio trailers` refuses is refused here too, and writes nothing.
 
 #### What `wio trailers` refuses
 
@@ -90,6 +98,8 @@ gate commit, and a recording `EventSink`.
 
 ### **AC-4** A usage mistake exits 2
 
+A usage mistake is told apart from a refused review by its exit code.
+
 #### A missing argument and a list of Works
 
 - **Given** the same history.
@@ -99,6 +109,9 @@ gate commit, and a recording `EventSink`.
   on standard error, and the sink received no event.
 
 ### **AC-5** A review reaches the log and is shown
+
+A review recorded without records is shown by `wio log show` on a real
+repository.
 
 #### On a real repository
 
