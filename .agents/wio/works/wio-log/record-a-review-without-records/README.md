@@ -30,6 +30,8 @@ review in the log alone.
 - The `--reviewed` override.
 - Accepting a cited rule code, which `wio trailers` refuses as not selected
   until the rules component exists, and this command with it.
+- The Work `none`, which `wio trailers none` handles with a form of its own and
+  which `wio log review` refuses, as the field checks of `wio trailers` do.
 - Deciding whether a gate has passed.
 
 ## Assumptions
@@ -108,10 +110,11 @@ flowchart LR
 ```mermaid
 flowchart LR
     T["wio trailers --result"] --> C["checks of a review\n(factored out, new)"]
-    C --> S["EventSink"]
+    C -- "Accepted or Refusal" --> T
+    T --> S["EventSink"]
     L["wio log review\n(new)"] --> P["ReviewChecker port\n(new)"]
     CLI["wio.cli\n(wires the port)"] -.-> P
-    P --> C
+    P -.-> C
     L --> S
 ```
 
@@ -177,12 +180,19 @@ and writes nothing.
 - **When** `wio log review` runs, each time with `--result pass` unless it names
   another, with `--result maybe`, with `--judge bogus`, with the stage
   `nonesuch`, with the Work `nope99`, with `--cite AC-99=pass`, with
-  `--cite AC-1=pass --cite AC-1=fail`, with `--cite docs.DOC001=fail`, and on a
-  history of commits that each carry only a gate record.
+  `--cite AC-1=pass --cite AC-1=fail` and with `--cite docs.DOC001=fail`.
 - **Then** each exits 1, prints nothing on standard output, prints on standard
   error the lines that `wio trailers` prints for the same arguments, which the
-  criterion compares, among them `error: Wio-Work: no reviewed commit was found`
-  for the last, and the sink received no event.
+  criterion compares, and the sink received no event.
+
+#### A history with no reviewed commit
+
+- **Given** the gate and the Work above, and a history of commits that each
+  carry only a gate record.
+- **When** `wio log review k3m9xq deliver docs-review --result pass` runs.
+- **Then** it exits 1, prints nothing on standard output, prints
+  `error: Wio-Work: no reviewed commit was found` on standard error, and the
+  sink received no event.
 
 #### The first group of refusals stops the rest
 
@@ -204,21 +214,26 @@ A usage mistake is told apart from a refused review by its exit code.
 
 #### Usage mistakes
 
-- **Given** the same history, and a working directory outside a repository.
+- **Given** the gate and the Work above.
 - **When** `wio log review k3m9xq deliver docs-review` runs without `--result`,
-  `wio log review k3m9xq,other1 deliver docs-review --result pass` runs,
-  `wio log review k3m9xq deliver docs-review --result pass --bogus` runs, and
-  `wio log review k3m9xq deliver docs-review --result pass` runs outside a
-  repository.
+  `wio log review k3m9xq,other1 deliver docs-review --result pass` runs, and
+  `wio log review k3m9xq deliver docs-review --result pass --bogus` runs.
 - **Then** each exits 2, prints nothing on standard output, says what is wrong
   on standard error, and the sink received no event.
+
+#### Outside a repository
+
+- **Given** a working directory that is not in a repository.
+- **When** `wio log review k3m9xq deliver docs-review --result pass` runs.
+- **Then** it exits 2, prints nothing on standard output, says what is wrong on
+  standard error, and the sink received no event.
 
 #### A config with an error
 
 - **Given** a config with an error.
 - **When** `wio log review` and `wio trailers` run with the same arguments.
-- **Then** both exit with the same code and print the same lines on standard
-  error.
+- **Then** both exit 2, print the same lines on standard error and nothing on
+  standard output.
 
 ### **AC-6** The help of the command names the subcommand
 
@@ -249,7 +264,7 @@ repository.
 ### **AC-8** A sink that fails never changes the result
 
 The result of the command is the same when the log cannot be written or has been
-switched off.
+switched off; the guarantee of the sink itself is owned by `wt49bz`.
 
 #### An unwritable home
 
@@ -274,6 +289,6 @@ Sharing the checks changes nothing that `wio trailers` prints, exits or records.
 #### The scenarios of `wio trailers`
 
 - **Given** the scenarios of `tests/acceptance/trailers/test_write.py` and the
-  tests of `run_review` with a recording sink.
+  tests of `tests/unit/trailers/test_gate.py` with a recording sink.
 - **When** they run after the checks were factored out.
 - **Then** they pass without any edit.
