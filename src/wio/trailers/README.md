@@ -3,10 +3,9 @@
 The component behind `wio trailers`: it prints, judges and folds the records of
 commits, finds the commit a gate reviewed and records a gate's result, and runs
 as one command, so that every command that handles a record reads and writes it
-the same way. A
-[record](../../../GLOSSARY.md) is a paragraph of `Wio-*` trailers, and
-[Records](../../../docs/concepts.md#records) says what each key means. The
-component reads the Works through the `Contracts` port of
+the same way. A [record](../../../GLOSSARY.md) is a paragraph of `Wio-*`
+trailers, and [Records](../../../docs/concepts.md#records) says what each key
+means. The component reads the Works through the `Contracts` port of
 [`ports.pyi`](ports.pyi) and the config through the shared ports, and it never
 knows git, the files or the Works directory.
 
@@ -327,8 +326,7 @@ artifact a review saw. It reads the history through the `History` port and
 nothing else: the recording of the result belongs to the
 [gate form](#recording-a-gates-result) that composes it, and the `--reviewed`
 override and the comparison with the `context` event are left to a later form.
-Its
-docstring says what it takes and returns, and the
+Its docstring says what it takes and returns, and the
 [tests](../../../tests/unit/trailers/test_reviewed.py) say how each case reads.
 
 - **A pure gate commit has records, and all of them are the gate's.** The
