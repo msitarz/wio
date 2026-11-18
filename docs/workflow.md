@@ -212,14 +212,22 @@ the lasting rules, reasons and diagrams into the `README.md` and `GLOSSARY.md`
 files of the directories the Work touched, linking instead of copying. A
 guarantee that a stub, docstring or test already states is kept by a link to it.
 `docs-review`, judged by a human, checks that no guarantee was lost and that the
-docs restate nothing the source declares. A Work without a parent then deletes
-its contract and those of its descendants in the last commit of the stage, once
-the driver confirms. A Work with a parent only promotes, because the tree is
-kept until its top Work has promoted. Git keeps the deleted contracts, and the
-records keep the progress. An empty `.gitkeep` keeps the Works directory in git
-once every contract is gone, so a root that points at it needs no directory to
-appear first, and the directory holds no document that a reader could take for a
-contract.
+docs restate nothing the source declares, reading the contracts from the working
+tree, which still holds them. A Work without a parent then asks the driver
+whether its contracts are spent, and once they confirm, the commit that records
+the pass also deletes its contract and those of its descendants. A Work with a
+parent only promotes, because the tree is kept until its top Work has passed its
+docs review. Git keeps the deleted contracts, and the records keep the
+progress.
+
+The deletion is in the commit that records the last gate, and not in
+`promote-docs`, because a record is checked against the index and `HEAD` when
+the commit is made, so the deleting commit is the last one that can name a Work
+whose contract it removes. A review that fails deletes nothing, and
+`promote-docs` is done again. An empty `.gitkeep` keeps the Works directory in
+git once every contract is gone, so a root that points at it needs no directory
+to appear first, and the directory holds no document that a reader could take
+for a contract.
 
 ## 5. Changing a contract
 

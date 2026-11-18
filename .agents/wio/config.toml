@@ -223,14 +223,10 @@ goal = """\
 Carry the lasting rules, reasons and diagrams of the contracts this Work \
 promotes into the README.md and GLOSSARY.md of the directories they touched, \
 linking instead of copying. The sources are the Work's contract, those of its \
-descendants, and those of the delivered Works its contract says it retires. A \
-Work with a parent only promotes: it deletes no contract, because the tree is \
-kept until its top Work has promoted. A Work without a parent then asks the \
-driver whether its contracts are spent, and keeps them until the driver \
-confirms. Once the driver confirms, the last commit of the stage deletes the \
-Work's contract, those of its descendants, and those of each Work it retires \
-with that Work's descendants. That confirmation is the driver's own, and is \
-not the judgment of docs-review."""
+descendants, and those of the delivered Works its contract says it retires. The \
+stage only promotes and deletes no contract, because docs-review reads them \
+and a record of a Work is refused once its contract is gone; the commit that \
+records the pass of docs-review retires them."""
 # The docs are written after the code, so the rules for keeping the contract
 # true while writing code, which the repo root brings, do not apply.
 rules_exclude = ["contract-upkeep.UPK"]
@@ -240,14 +236,18 @@ roots = ["repo"]
 gate = true
 judge = "human"
 goal = """\
-Judge whether the docs lost any guarantee of the promoted contracts. Read a \
-contract from the working tree when it was kept, and from the commit before \
-its deletion when it was deleted. Check that every guarantee it states is kept: \
-in the README.md and GLOSSARY.md files with its reason, or in a stub, \
-docstring or test that they link to. Then ask the driver to confirm the review; their confirmation of the deletion does not stand for it. \
+Judge whether the docs lost any guarantee of the promoted contracts. Read \
+each contract from the working tree. Check that every guarantee it states is \
+kept: in the README.md and GLOSSARY.md files with its reason, or in a stub, \
+docstring or test that they link to. Then ask the driver to confirm the review. \
 Record the result with `wio trailers --result --judge human`, and `pass` only \
-once the driver has confirmed. On `fail`, the deletion is reverted and \
-promote-docs is done again."""
+once the driver has confirmed. For a Work without a parent, then ask the driver \
+whether its contracts are spent, which their confirmation of the review does \
+not answer. Once they confirm, the commit that records the pass also deletes \
+the Work's contract, those of its descendants, and those of each Work it \
+retires with that Work's descendants. Otherwise the commit is empty and the \
+contracts stay. On `fail`, nothing is deleted and promote-docs is done \
+again."""
 # The docs are written after the code, so the rules for keeping the contract
 # true while writing code, which the repo root brings, do not apply.
 rules_exclude = ["contract-upkeep.UPK"]
