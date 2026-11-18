@@ -42,7 +42,8 @@ entry, and no new kind of source is needed.
 
 `wio config show` and `wio config list` reach a key inside the table of a
 harness, as `log.harnesses.<name>.session`, as they reach a key of
-`actions.<name>`, and a `parent` that is not set shows as `[]`.
+`actions.<name>`, and a `parent` that is not set shows as `[]`. A harness name
+is a TOML bare key, such as `claude-code`.
 
 ### A-3
 
@@ -54,7 +55,9 @@ sets it, nothing is recorded for it.
 
 - **`[log]` in `config.toml`** — `prefer_harness`, an ordered list of harness
   names, empty by default, and `record_env_vars`, a list of variable names,
-  `["AI_AGENT"]` by default.
+  `["AI_AGENT"]` by default. A configured `record_env_vars` replaces the
+  default and does not extend it, and an empty list is valid and records
+  nothing.
 - **`[log.harnesses.<name>]`** — one harness with `session`, a required list of
   variable names of which the first one set gives the session, and `parent`, an
   optional list of names of which the first one set gives the parent session.
@@ -119,7 +122,7 @@ The examples use a config that sets nothing under `[log]` unless they say so.
   whole, and the second prints `["CLAUDE_CODE_SESSION_ID"]` with the source
   `default`.
 
-### **AC-3** The preference is read and checked
+### **AC-3** The preference and the reserved name are checked
 
 #### A preference that names harnesses
 
@@ -146,6 +149,13 @@ The examples use a config that sets nothing under `[log]` unless they say so.
 - **When** `wio config show log.record_env_vars` and `wio config check` run.
 - **Then** the first prints `["MY_VAR"]` with the source `file`, and the second
   exits 0.
+
+#### An empty list
+
+- **Given** a config with `record_env_vars = []` under `[log]`.
+- **When** `wio config show log.record_env_vars` and `wio config check` run.
+- **Then** the first prints `[]` with the source `file`, and the second exits
+  0.
 
 ### **AC-5** A mistake in the log settings is reported
 
@@ -174,4 +184,5 @@ The examples use a config that sets nothing under `[log]` unless they say so.
 
 - **Given** a config with an error in `[log]`.
 - **When** `wio contracts check` runs.
-- **Then** it refuses to run, as it does for any config with an error.
+- **Then** it exits 2, prints the config's `error:` line on standard error and
+  nothing on standard output.
