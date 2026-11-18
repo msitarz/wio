@@ -21,7 +21,7 @@ what was recorded.
   the session that entered it.
 - For a gate it shows the latest review of each judge for each commit it judged,
   with its result and the items it cited.
-- A log that holds a damaged line, a file that is not there or a Work that is
+- A log that holds a damaged line, a log that is not there or a Work that is
   gone is shown without failing.
 - The same facts are available as one JSON document.
 
@@ -32,8 +32,8 @@ what was recorded.
 - Writing or changing a line of the log.
 - Joining the events to a transcript, or totalling tokens and cost.
 - Filtering by time, harness or session.
-- Showing a log file that cannot be read, which fails with the error of the file
-  system as any command does.
+- Showing a log file that cannot be read, or that vanishes after it was listed,
+  which fails with the error of the file system as any command does.
 
 ## Assumptions
 
@@ -73,9 +73,10 @@ so a Work that was deleted after its events were written is still shown.
 - **The time** — an RFC 3339 string in UTC to the millisecond, written as
   `encode_line` writes it, rounded to the microsecond and then truncated.
 - **The session** — `<harness>:<session>`, with `(parent <parent>)` after it
-  when the event has a parent, `<harness>:unknown` for a harness with no
-  session, `ambiguous (<harness>, <harness>)` for no harness and two or more
-  matches in the order of `matches`, and `unknown session` otherwise.
+  only when the event has a session and a parent, `<harness>:unknown` for a
+  harness with no session, `ambiguous (<harness>, <harness>)` for no harness and
+  two or more matches, joined by a comma and a space in the order of `matches`,
+  and `unknown session` otherwise.
 - **The text form** — a line `<work>` for a Work and, under it and indented by
   two spaces, a line `<action> <stage>  entered <time>  <session>` for each row
   with a `context` event, and a line `<action> <stage>  <judge> <result>
@@ -87,8 +88,8 @@ so a Work that was deleted after its events were written is still shown.
   `null`), `session` (an object of `harness`, `session`, `parent` and `matches`)
   and `reviews`, each a list of `judge`, `result`, `commit` in full, `time` and
   `cited`, a mapping in the order cited; `entered` and `session` are `null`
-  exactly when the row has no `context` event, and white space is not part of
-  the form.
+  exactly when the row has no `context` event, and the criteria compare the
+  parsed document with the order of its keys and not its white space.
 - **The skipped lines** — `n` is the sum over the files of the lines that
   `decode_lines` skipped, whichever Work is shown, and it is `skipped` in the
   JSON form and, when above 0, `note: skipped <n> line of the event log` or
@@ -217,13 +218,34 @@ judged, with the result and the items it cited.
    "reviews": []}
   ```
 
+#### A gate with a `context` event and reviews
+
+- **Given** `context` events of `wiring` at `10:05` and of `docs-review` at
+  `10:00`, and a `review` of `docs-review` by the judge `agent` of the commit of
+  40 `a` with `pass` at `10:10`.
+- **When** `wio log show k3m9xq` runs, and runs with `--json`.
+- **Then** the text is exactly these lines, the `docs-review` row coming after
+  the `wiring` row because its latest event is its review, with its `entered`
+  line before its review line:
+
+  ```text
+  k3m9xq
+    deliver wiring  entered 2026-11-18T10:05:00.000Z  claude-code:c1
+    deliver docs-review  entered 2026-11-18T10:00:00.000Z  claude-code:c1
+    deliver docs-review  agent pass aaaaaaaaaaaa  2026-11-18T10:10:00.000Z
+  ```
+
+  and the JSON row of `docs-review` has the time of its `context` event as
+  `entered`, its `session` and one review.
+
 #### A gate that no `context` event entered
 
-- **Given** only `review` events of `docs-review`, and a `context` event of
-  `wiring` at an earlier time.
+- **Given** only `review` events of `docs-review` at `10:00`, and a `context`
+  event of `wiring` at `10:05`.
 - **When** `wio log show --json` runs.
 - **Then** the `docs-review` row has `entered` and `session` as `null` and its
-  reviews, and it is placed after the `wiring` row.
+  reviews, and it is placed before the `wiring` row, because its latest event is
+  earlier.
 
 ### **AC-4** A Work or the log can be missing
 
@@ -246,10 +268,12 @@ with no repository each have a defined result.
 
 #### No log, and no repository
 
-- **Given** a clone with no log directory, and a directory outside a repository.
-- **When** `wio log show` runs in each.
-- **Then** the first prints nothing and exits 0, and the second exits 2 with the
-  message of the `Repository` port on standard error.
+- **Given** a clone with no log directory, a clone whose log directory holds no
+  file, and a directory outside a repository.
+- **When** `wio log show` and `wio log show --json` run in each.
+- **Then** the first two print nothing in the text form, print
+  `{"works": {}, "skipped": 0}` in the JSON form and exit 0, and the third exits
+  2 with the message of the `Repository` port on standard error.
 
 ### **AC-5** Damaged lines are skipped and noted
 
@@ -266,10 +290,12 @@ it skipped.
 
 #### A byte that is not UTF-8 inside a line that is complete
 
-- **Given** a complete `context` event whose directory holds the byte `0xff`.
-- **When** `wio log show --json` runs.
-- **Then** the event is shown, with the replacement character in place of the
-  byte, and `"skipped": 0`.
+- **Given** a complete `context` event whose session holds the byte `0xff`
+  after `c`.
+- **When** `wio log show` runs, and runs with `--json`.
+- **Then** the event is shown, the row saying `claude-code:c` followed by the
+  replacement character `U+FFFD`, and in the JSON form `session` is `c` followed
+  by `U+FFFD` and `"skipped": 0`.
 
 #### A torn last line before the next file
 

@@ -108,7 +108,17 @@ A usage mistake is told apart from a refused review by its exit code.
 - **Then** each exits 2, prints nothing on standard output, says what is wrong
   on standard error, and the sink received no event.
 
-### **AC-5** A review reaches the log and is shown
+### **AC-5** The help of the command names the subcommand
+
+A person finds `review` in the help of `wio log`, beside `show`.
+
+#### The help
+
+- **Given** any working directory.
+- **When** `wio log -h` runs.
+- **Then** the help names `review` and `show`.
+
+### **AC-6** A review reaches the log and is shown
 
 A review recorded without records is shown by `wio log show` on a real
 repository.
