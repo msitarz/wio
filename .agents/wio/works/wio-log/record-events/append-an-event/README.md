@@ -66,10 +66,12 @@ The text of the working directory in the envelope is `str` of the path that
   recognized writing the warning `warning: WIO_LOG must be "off" to switch the
   log off; the log stays on`, which never repeats the value.
 - **A failure** — any `Exception` that `write` meets, whatever its class and
-  whatever the step, is a warning, nothing is appended and nothing is raised.
+  whatever the step, is a warning, nothing is appended and nothing is raised; a
+  failure of writing a warning, and of reading `WIO_HOME` for the hint, is
+  swallowed too, and the hint is then left out.
 - **The message of an error** — its `strerror` when it is an `OSError` that has
   a non-empty one, its text otherwise, and the name of its class when the text
-  is empty.
+  is empty, with each newline in it replaced by a space.
 - **The warning of a failed location** — `warning: the event log could not be
   located: <message>` on standard error, as exactly one line, for a failure of
   the read of `$WIO_LOG` or of the location, such as a working directory that is
@@ -84,12 +86,13 @@ The text of the working directory in the envelope is `str` of the path that
   `hint: add an exception to your harness's configuration`, holds
   `~/.agents/wio` and `$WIO_HOME`, and ends with
   `directory your harness allows`.
-- **Wiring, provisional** — `wio.cli` builds the sink in the `wire()` of
-  `wio trailers` in place of `NoEvents`, which stays for tests that need a sink
-  that drops, with the real `Environment`, `Clock` and `Directories` of `hnakzm`
-  and a `SystemStdio()`, which binds the streams that `dispatch` has redirected
-  to the `Stdio` of the command, and
-  `ConfigSettings(repository, filesystem).load().log` as the `Log`.
+- **Wiring, provisional** — `wio.cli` builds the sink in `_trailers()` of
+  `table.py` in place of `NoEvents`, which stays for tests that need a sink that
+  drops, after `trailers_command` has found the repository, so that a working
+  directory outside a repository fails as it does today, with the real
+  `Environment`, `Clock` and `Directories` of `hnakzm` and a `SystemStdio()`,
+  which binds the streams that `dispatch` has redirected to the `Stdio` of the
+  command, and `ConfigSettings(repository, filesystem).load().log` as the `Log`.
 
 ## Acceptance criteria
 
@@ -140,7 +143,7 @@ line.
 ### **AC-2** A failure is a warning
 
 A failure to locate or write the log is a warning that tells the person what to
-do, and never stops a command.
+do and that the sink never raises, so no command stops for it.
 
 #### An unwritable home
 
@@ -193,6 +196,14 @@ do, and never stops a command.
   /h/log/app-6f8609bd196b/events.jsonl:` followed by `No such file or
   directory`, `boom`, `'x'` and `ZeroDivisionError`, and none has a hint.
 
+#### An append that fails with another class
+
+- **Given** a `FileSystem` whose append raises `RuntimeError("boom")`.
+- **When** `write` receives an event.
+- **Then** nothing is raised, and standard error holds exactly one warning,
+  `warning: the event log could not be written:
+  /h/log/app-6f8609bd196b/events.jsonl: boom`.
+
 #### A permission failure that is not the append
 
 - **Given** an `Environment` whose `get("CLAUDE_CODE_SESSION_ID")` raises
@@ -211,6 +222,29 @@ do, and never stops a command.
   exactly one line for each, `warning: the event log could not be located: not
   in a repository`, `... : WIO_HOME must be absolute` and `... : home not
   found`, and no hint.
+
+#### A message that holds a newline
+
+- **Given** a `Repository` whose `identity` raises `RuntimeError("a\nb")`.
+- **When** `write` receives an event.
+- **Then** standard error holds exactly one line,
+  `warning: the event log could not be located: a b`.
+
+#### A failure while warning
+
+- **Given** a `Stdio` whose standard error raises `ValueError("closed")` when it
+  is written, and an append that raises `PermissionError(13, "Permission
+  denied")`.
+- **When** `write` receives an event.
+- **Then** it returns and nothing is raised.
+
+#### A hint whose variable cannot be read
+
+- **Given** an append that raises `PermissionError(13, "Permission denied")`,
+  and an `Environment` whose `get("WIO_HOME")` raises `OSError("denied")`.
+- **When** `write` receives an event.
+- **Then** nothing is raised, and standard error holds the warning of a failed
+  write and no hint.
 
 #### A switch that cannot be read
 
@@ -263,6 +297,14 @@ recognized never stops it.
   worktree.
 - **Then** `$WIO_HOME/log/` holds one directory, with one file `events.jsonl`
   of two lines.
+
+#### Outside a repository
+
+- **Given** a working directory that is not in a repository and a `$WIO_HOME`
+  that names an empty directory.
+- **When** `wio trailers <work> <action> <gate> --result pass` runs.
+- **Then** it fails exactly as it did before the sink existed, with the usage
+  error of `wio trailers`, and `$WIO_HOME` is still empty.
 
 #### A warning reaches the stream of the command
 
