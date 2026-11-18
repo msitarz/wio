@@ -38,7 +38,8 @@ def log_directory(identity: Path, home: Path) -> Path:
     Returns:
         The directory, which may not exist.
     """
-    del identity, home
+    del identity
+    del home
     msg = "log_directory"
     raise NotImplementedError(msg)
 

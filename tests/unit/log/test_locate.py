@@ -22,10 +22,12 @@ def test_one_clone_under_two_homes_keeps_its_name() -> None:
 
 @pytest.mark.skip(reason="stub of the architecture stage")
 def test_the_name_of_a_log_tells_which_repository_it_is_for() -> None:
-    """AC-2: names are slugs, `repo` when nothing is left, and each ends in a digest."""
-    # Given five identities, among them one with a space, a `.git` suffix and a root
+    """AC-2: names are slugs, `repo` when nothing is left, each ends in a digest."""
+    # Given the identities /Users/x/Code/My App/.git, /srv/git/app.git, /w/.git,
+    # /w/日本/.git and /.git, each with the home /h
     # When log_directory runs for each
-    # Then the names start with my-app-, app-, w-, repo- and repo-
+    # Then the last components start with my-app-, app-, w-, repo- and repo-, and
+    # each ends in 12 lowercase hexadecimal characters
 
 
 @pytest.mark.skip(reason="stub of the architecture stage")
@@ -47,7 +49,8 @@ def test_the_digest_decides_the_identity() -> None:
 @pytest.mark.skip(reason="stub of the architecture stage")
 def test_the_files_of_a_log_are_the_lowercase_jsonl_files_in_order() -> None:
     """AC-3: other names, `B.JSONL` and a directory are left out."""
-    # Given a directory with events.jsonl, a.jsonl, notes.txt, B.JSONL and c.jsonl/
+    # Given a FileSystem fake whose list_dir gives events.jsonl, a.jsonl, notes.txt,
+    # B.JSONL and a directory c.jsonl in its sorted order
     # When log_files runs for it
     # Then it gives a.jsonl and events.jsonl, in that order
 
@@ -61,11 +64,11 @@ def test_the_file_the_sink_appends_to_is_events_jsonl() -> None:
 
 
 @pytest.mark.skip(reason="stub of the architecture stage")
-def test_a_missing_directory_has_no_files_and_stays_missing() -> None:
-    """AC-3: no file is found and none is created."""
-    # Given a directory that does not exist
+def test_a_missing_directory_has_no_files() -> None:
+    """AC-3: a directory the port reports as missing has no file."""
+    # Given a FileSystem fake whose directory does not exist
     # When log_files runs for it
-    # Then it gives no file and creates nothing
+    # Then it gives no file
 
 
 @pytest.mark.skip(reason="stub of the architecture stage")
@@ -74,11 +77,3 @@ def test_a_path_that_is_a_file_raises_the_error_of_the_port() -> None:
     # Given a path that is a file
     # When log_files runs for it
     # Then the NotADirectoryError of the port is raised unchanged
-
-
-@pytest.mark.skip(reason="stub of the architecture stage")
-def test_a_symlink_to_a_file_is_found_and_one_to_a_directory_is_not() -> None:
-    """AC-3: `is_file` decides, and it follows a symlink."""
-    # Given link.jsonl, a symlink to a file, and dir.jsonl, a symlink to a directory
-    # When log_files runs for the directory
-    # Then it gives link.jsonl and not dir.jsonl

@@ -32,8 +32,26 @@ def test_outside_a_repository_the_error_of_the_port_is_raised() -> None:
 
 
 @pytest.mark.skip(reason="stub of the architecture stage")
+@pytest.mark.slow
 def test_a_relative_wio_home_raises_the_error_of_the_port() -> None:
     """AC-4: the `ValueError` of the directories reaches the caller unchanged."""
     # Given a real clone and $WIO_HOME set to relative/dir
     # When locate_log runs with the real Directories
     # Then the ValueError of the port is raised unchanged
+
+
+@pytest.mark.skip(reason="stub of the architecture stage")
+def test_a_symlink_to_a_file_is_found_and_one_to_a_directory_is_not() -> None:
+    """AC-3: the real `is_file` follows a symlink to a file and not to a directory."""
+    # Given a directory on disk that holds link.jsonl, a symlink to a file, and
+    # dir.jsonl, a symlink to a directory
+    # When log_files runs for it with the real FileSystem
+    # Then it gives link.jsonl and not dir.jsonl
+
+
+@pytest.mark.skip(reason="stub of the architecture stage")
+def test_a_missing_directory_stays_missing() -> None:
+    """AC-3: looking for the files of a log creates nothing."""
+    # Given a path on disk that does not exist
+    # When log_files runs for it with the real FileSystem
+    # Then it gives no file and the path still does not exist
