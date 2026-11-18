@@ -23,6 +23,8 @@ before a sink can write its first line.
   epoch.
 - A component finds the Wio home through `Directories.wio_home`, by the rule of
   `docs/concepts.md`, without anything being created or tested.
+- A member of an adapter that is not implemented yet fails loudly and names
+  itself.
 
 ## Non-Goals
 
@@ -38,6 +40,10 @@ before a sink can write its first line.
 `Path.home()` finds the user's home directory on Linux and macOS, and fails with
 a `RuntimeError` when it cannot.
 
+### A-2
+
+`Path.home()` returns an absolute path.
+
 ## Mechanisms
 
 - **`ProcessEnvironment.get(name)`** — in `wio.env`, gives
@@ -48,12 +54,12 @@ a `RuntimeError` when it cannot.
 - **`ProcessDirectories(environment: Environment)`** — in `wio.env`, the
   `Directories` adapter, whose `wio_home()` reads `WIO_HOME` through the
   environment it is given.
-- **The Wio home** — the path that a non-empty, absolute `$WIO_HOME` names, as
-  it is; `~/.agents/wio` when `$WIO_HOME` is unset or empty, with `~` the
-  directory of `Path.home()`; and a `ValueError` that names `WIO_HOME` and says
-  to use an absolute path when it is relative. An `OSError` is raised when the
-  home directory is needed and cannot be found, and the directory is neither
-  created nor tested.
+- **`ProcessDirectories.wio_home()`** — implements the rule of
+  [The Wio home](../../../../../docs/concepts.md#the-wio-home) and of the
+  `Directories.wio_home` docstring, and turns the `RuntimeError` of
+  `Path.home()` into an `OSError`.
+- **The names** — the behaviors here are required, and the names of the classes
+  are provisional, so the architecture stage may rename them.
 - **`ProcessDirectories.temp_dir()`** — raises a `NotImplementedError` that
   names `temp_dir`, until the Work that first needs it implements it.
 
@@ -110,12 +116,26 @@ user, and nothing is created or tested.
 - **When** `wio_home()` runs.
 - **Then** it gives `/tmp/wio-home-test`, and the path still does not exist.
 
+#### A home that cannot be written
+
+- **Given** `$WIO_HOME` set to a path under a regular file.
+- **When** `wio_home()` runs.
+- **Then** it gives that path as it is and raises nothing.
+
 #### The default home
 
-- **Given** `$WIO_HOME` unset, then set to an empty string, and the user's home
-  directory `/tmp/user-home-test`.
+- **Given** `$WIO_HOME` unset, then set to an empty string, and `Path.home()`
+  patched to return `/tmp/user-home-test`, a path that does not exist.
 - **When** `wio_home()` runs for each.
-- **Then** both give `/tmp/user-home-test/.agents/wio`, and nothing was created.
+- **Then** both give `/tmp/user-home-test/.agents/wio`, and
+  `/tmp/user-home-test` does not exist afterwards.
+
+#### The user's home is read only when it is needed
+
+- **Given** `$WIO_HOME` set to `/tmp/wio-home-test` and a `Path.home()` that
+  raises `RuntimeError`.
+- **When** `wio_home()` runs.
+- **Then** it gives `/tmp/wio-home-test`.
 
 #### A relative home
 
