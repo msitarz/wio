@@ -44,10 +44,10 @@ A person reads the times as UTC, so the text form needs no time zone option.
 - **`wio log`** — the command of `wio.cli` with the subcommand `show` here and
   `review` from `9m32d0`. Bare, it prints its help to standard output and exits
   0. It declares `--json`.
-- **`wio log show [WORK]`** — reads every file of `log_files` for the clone's
-  log directory, in order, decodes it with `decode_lines`, and orders the
-  entries by their envelope's time, and for equal times by file name and line.
-  With a Work id, it shows that Work only.
+- **`wio log show [WORK]`** — reads every file that `log_files` finds in the
+  directory that `locate_log` gives, in order, decodes it with `decode_lines`,
+  and orders the entries by their envelope's time, and for equal times by file
+  name and line. With a Work id, it shows that Work only.
 - **A row** — one for each Work, action and stage of the entries. It holds the
   time and the session of the latest `context` event, and, for each judge, the
   latest `review` event: its result, its commit, its time and its cited items

@@ -48,7 +48,7 @@ of processes that write at once do not interleave, as its docstring says.
   the `SessionIdentity` that `identify` gives.
 - **The append** — one call of `append_text` with the line of `encode_line`, to
   `EVENTS_FILE` in
-  `log_directory(Repository.identity(), Directories.wio_home())`.
+  the directory that `locate_log(Repository, Directories)` gives.
 - **`$WIO_LOG`** — `off` switches the log off: nothing is read from the
   repository, nothing is written or created and nothing is warned. An unset or
   empty value leaves it on, and any other value leaves it on with a warning that
@@ -76,10 +76,10 @@ append.
 
 - **Given** the fakes above.
 - **When** `write` receives a `ReviewEvent`.
-- **Then** one append was made, to `events.jsonl` in `log_directory` of
-  `/w/app/.git` under `/h`, of one line that decodes to the event and to an
-  envelope with the time `2026-11-18T11:06:40.000Z`, the directory `/w/app/sub`,
-  the harness `claude-code` and the session `c1`.
+- **Then** one append was made, to `events.jsonl` in the directory that
+  `locate_log` gives for `/w/app/.git` under `/h`, of one line that decodes to
+  the event and to an envelope with the time `2026-11-18T11:06:40.000Z`, the
+  directory `/w/app/sub`, the harness `claude-code` and the session `c1`.
 
 #### Two events
 
