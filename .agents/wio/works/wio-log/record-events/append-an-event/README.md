@@ -2,7 +2,7 @@
 id = "wt49bz"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["jk2yz0", "5pes9b", "xfy1mq"]
+depends_on = ["jk2yz0", "5pes9b", "xfy1mq", "hnakzm"]
 -->
 
 # Append an event
@@ -27,6 +27,7 @@ stamps an event and appends it, in place of the one that drops it.
 
 - Finding the location, encoding a line or identifying the session, which
   `jk2yz0`, `5pes9b` and `xfy1mq` do.
+- The real `Environment`, `Clock` and `Directories`, which `hnakzm` gives.
 - Rotating the log or bounding its size.
 - Writing a `context` event, which `wio context` builds and this sink writes
   like any other.
@@ -47,7 +48,8 @@ The text of the working directory in the envelope is `str` of the path that
 
 - **`LogSink`** — in `wio.log`, an `EventSink` built from the ports
   `Environment`, `Clock`, `Directories`, `Repository`, `FileSystem` and `Stdio`,
-  and a `Log`.
+  and a `Log`, with the real `Environment`, `Clock` and `Directories` of
+  `hnakzm`.
 - **The order of the steps** — `write` reads `$WIO_LOG`, then calls
   `locate_log(Repository, Directories)`, then `identify`, then builds the
   `Envelope`, encodes the line and appends it.
@@ -62,22 +64,25 @@ The text of the working directory in the envelope is `str` of the path that
 - **`$WIO_LOG`** — `off` switches the log off: nothing is read from the
   repository, the directories or the clock, nothing is written or created and
   nothing is warned. An unset or empty value leaves it on, and any other value
-  leaves it on with a warning that names `WIO_LOG`.
+  leaves it on with the warning `warning: WIO_LOG must be "off" to switch the
+  log off; the log stays on`, which never repeats the value.
 - **A failure** — an `OSError`, a `ValueError` or a `RuntimeError` of the
   location, the encoding or the append is a warning, nothing is appended and
   nothing is raised.
+- **The message of an error** — its `strerror` when it is an `OSError` that has
+  one, and its text otherwise.
 - **The warning of a failed location** — `warning: the event log could not be
-  located: <message>` on standard error, with the message of the error, as for
-  a working directory that is not in a repository or a relative `$WIO_HOME`.
-- **The warning of a failed write** —
-  `warning: the event log could not be written: <path>: <reason>` on standard
-  error, where `<path>` is the events file and `<reason>` is the `strerror` of
-  the error, or its message when it has none.
+  located: <message>` on standard error, as for a working directory that is not
+  in a repository, a relative `$WIO_HOME` or a home directory that cannot be
+  found.
+- **The warning of a failed write** — `warning: the event log could not be
+  written: <path>: <message>` on standard error, where `<path>` is the events
+  file, for a failure of the encoding or of the append.
 - **The hint** — a `PermissionError` or a read-only file system, with
-  `$WIO_HOME` unset or empty, adds to the warning of a failed write that a
-  person should add an exception to the harness's configuration so that sessions
-  can always write to `~/.agents/wio`, or set `$WIO_HOME` to a directory the
-  harness allows.
+  `$WIO_HOME` unset or empty, adds to the warning of a failed write a second
+  line on standard error that starts with `hint: add an exception to your
+  harness's configuration`, holds `~/.agents/wio` and `$WIO_HOME`, and ends with
+  `directory your harness allows`.
 - **Wiring, provisional** — `wio.cli` builds the sink in the `wire()` of `wio
   trailers` in place of `NoEvents`, which stays for tests that need a sink that
   drops, with a `SystemStdio()`, which binds the streams that `dispatch` has
@@ -87,9 +92,9 @@ The text of the working directory in the envelope is `str` of the path that
 ## Acceptance criteria
 
 The examples use fakes of the ports: a clock at `1795000000.0`, the working
-directory `/w/app/sub`, the identity `/w/app/.git`, the home `/h` and the
-variable `CLAUDE_CODE_SESSION_ID=c1`, and a `FileSystem` that records each
-append. The directory of the log is then `/h/log/app-6f8609bd196b`.
+directory `/w/app/sub`, the identity `/w/app/.git`, the home `/h`, the variables
+`CLAUDE_CODE_SESSION_ID=c1` and `AI_AGENT=x`, and a `FileSystem` that records
+each append. The directory of the log is then `/h/log/app-6f8609bd196b`.
 
 ### **AC-1** An event is stamped and appended as one line
 
@@ -103,11 +108,20 @@ line.
 - **Then** one append was made, to `/h/log/app-6f8609bd196b/events.jsonl`, of
   one line that decodes to the event and to an envelope with the time
   `2026-11-18T11:06:40.000Z`, the directory `/w/app/sub`, the harness
-  `claude-code` and the session `c1`.
+  `claude-code`, the session `c1`, no parent, `matches` of `("claude-code",)`
+  and `ids` holding both variables.
+
+#### A Codex subagent
+
+- **Given** `CODEX_SESSION_ID=s1` and `CODEX_THREAD_ID=t2`, and no other mapped
+  variable.
+- **When** `write` receives an event.
+- **Then** the envelope of the line has the harness `codex`, the session `t2`
+  and the parent `s1`.
 
 #### Two events
 
-- **Given** the same fakes.
+- **Given** the fakes above.
 - **When** `write` receives two events.
 - **Then** two appends were made, each of one line, and the sink did no write or
   read of the file other than those two appends.
@@ -133,14 +147,14 @@ do, and never stops a command.
 - **When** `write` receives an event.
 - **Then** it returns, nothing is raised, and standard error holds `warning: the
   event log could not be written:
-  /h/log/app-6f8609bd196b/events.jsonl: Permission denied` followed by the hint
-  to let the harness write to `~/.agents/wio` or to set `$WIO_HOME`.
+  /h/log/app-6f8609bd196b/events.jsonl: Permission denied` and, on the next
+  line, the hint of the mechanism.
 
 #### A home that `$WIO_HOME` names
 
 - **Given** the same failure with `$WIO_HOME=/h`.
 - **When** `write` receives an event.
-- **Then** the warning is the one above and holds no hint.
+- **Then** standard error holds the warning above and no hint.
 
 #### An empty `$WIO_HOME` and a read-only file system
 
@@ -148,7 +162,7 @@ do, and never stops a command.
   `PermissionError`, and then one that raises `OSError(30, "Read-only file
   system")`.
 - **When** `write` receives an event for each.
-- **Then** each warning holds the hint.
+- **Then** each warning is followed by the hint.
 
 #### A failure that the hint does not fit
 
@@ -156,17 +170,32 @@ do, and never stops a command.
   `$WIO_HOME` unset.
 - **When** `write` receives an event.
 - **Then** the warning names the events file and `No space left on device` and
-  holds no hint.
+  has no hint.
+
+#### An error without an errno
+
+- **Given** an append that raises `OSError("boom")`.
+- **When** `write` receives an event.
+- **Then** the warning ends in `events.jsonl: boom`.
+
+#### An encoding that fails
+
+- **Given** a clock that returns `float("nan")`.
+- **When** `write` receives an event.
+- **Then** nothing was appended, nothing is raised, and standard error holds
+  `warning: the event log could not be written:
+  /h/log/app-6f8609bd196b/events.jsonl:` and the message of the error.
 
 #### A location that fails
 
 - **Given** a `Repository` whose `identity` raises `RuntimeError("not in a
-  repository")`, and then `$WIO_HOME` set to `relative/dir`.
+  repository")`, a `Directories` whose `wio_home` raises `ValueError("WIO_HOME
+  must be absolute")`, and one whose `wio_home` raises `OSError(2, "home not
+  found")`.
 - **When** `write` receives an event for each.
 - **Then** each returns and nothing was appended, and standard error holds
-  `warning: the event log could not be located:` and the message of the error,
-  `not in a repository` for the first and the message of the `ValueError` of
-  `Directories` for the second.
+  `warning: the event log could not be located: not in a repository`, `... :
+  WIO_HOME must be absolute` and `... : home not found`.
 
 ### **AC-3** The log can be switched off
 
@@ -185,8 +214,9 @@ recognized never stops it.
 - **Given** `$WIO_LOG=maybe`, then `OFF`, and then `$WIO_LOG` set to an empty
   string.
 - **When** `write` receives an event for each.
-- **Then** the first two append the line and warn, naming `WIO_LOG`, and the
-  third appends it and warns of nothing.
+- **Then** the first two append the line and write `warning: WIO_LOG must be
+  "off" to switch the log off; the log stays on` and nothing of the value, and
+  the third appends it and warns of nothing.
 
 ### **AC-4** `wio trailers` writes to the real log
 

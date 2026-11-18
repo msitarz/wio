@@ -2,7 +2,7 @@
 id = "7v8amt"
 template = "feature.parent"
 roots = ["@descendants"]
-depends_on = ["jk2yz0", "5pes9b", "m7yp42"]
+depends_on = ["jk2yz0", "5pes9b", "m7yp42", "hnakzm"]
 -->
 
 # Record events

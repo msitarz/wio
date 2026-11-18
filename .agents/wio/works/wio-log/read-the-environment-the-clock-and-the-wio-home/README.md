@@ -1,23 +1,142 @@
 <!-- wio
 id = "hnakzm"
-template = "feature.draft"
-roots = []
+template = "feature.leaf"
+roots = ["wio"]
 depends_on = []
 -->
 
-# read the environment, the clock and the Wio home
-
-<!--
-A draft is working space while an intent is captured. Its define stage
-shapes the intent into a feature.leaf or a feature.parent contract and switches
-`template`; the Intent section does not carry over.
--->
+# Read the environment, the clock and the Wio home
 
 ## Purpose
 
-<!-- Why this change is needed, in one sentence. -->
+The components of the event log read the variables of the process, the time and
+the Wio home only through ports, and the engine has those ports but no working
+adapter for them, since `ProcessEnvironment.get` raises `NotImplementedError`
+and no `Clock` or `Directories` adapter exists; the engine needs the real ones
+before a sink can write its first line.
 
-## Intent
+## Goals
 
-<!-- Notes on what the driver asked for and anything already known, such as a
-     split child's seed sentence. Removed when the contract takes its shape. -->
+- A component reads a variable of the process through `Environment.get` and gets
+  its value, or `None` when it is not set.
+- A component reads the time through a `Clock` that gives seconds since the
+  epoch.
+- A component finds the Wio home through `Directories.wio_home`, by the rule of
+  `docs/concepts.md`, without anything being created or tested.
+
+## Non-Goals
+
+- `Directories.temp_dir`, which the Work that first needs it gives its meaning.
+- Creating the Wio home, which the first write does.
+- A clock that can be set, which a test makes with a fake of the port.
+- Reading the user's home directory for anything but the default Wio home.
+
+## Assumptions
+
+### A-1
+
+`Path.home()` finds the user's home directory on Linux and macOS, and fails with
+a `RuntimeError` when it cannot.
+
+## Mechanisms
+
+- **`ProcessEnvironment.get(name)`** — in `wio.env`, gives
+  `os.environ.get(name)` as it is at the time of the call, so a value that is
+  set to an empty string is returned as an empty string and the callers decide
+  what an empty value means.
+- **`SystemClock.now() -> float`** — in `wio.env`, gives `time.time()`.
+- **`ProcessDirectories(environment: Environment)`** — in `wio.env`, the
+  `Directories` adapter, whose `wio_home()` reads `WIO_HOME` through the
+  environment it is given.
+- **The Wio home** — the path that a non-empty, absolute `$WIO_HOME` names, as
+  it is; `~/.agents/wio` when `$WIO_HOME` is unset or empty, with `~` the
+  directory of `Path.home()`; and a `ValueError` that names `WIO_HOME` and says
+  to use an absolute path when it is relative. An `OSError` is raised when the
+  home directory is needed and cannot be found, and the directory is neither
+  created nor tested.
+- **`ProcessDirectories.temp_dir()`** — raises a `NotImplementedError` that
+  names `temp_dir`, until the Work that first needs it implements it.
+
+## Constraints
+
+### C-1
+
+Only these adapters read the variables of the process, the clock and the
+user's home directory, and a component outside `wio.env` gets them through the
+ports. A reviewer's search for `os.environ`, `time.time` and `Path.home` outside
+`wio.env` verifies it.
+
+## Acceptance criteria
+
+### **AC-1** A variable of the process is read as it is at the time of the call
+
+A component that asks for a variable gets its value at that moment, so the
+callers see what the process has.
+
+#### Set, unset and empty
+
+- **Given** a process with `WIO_TEST_VALUE=abc`, a name that is not set, and
+  `WIO_TEST_EMPTY` set to an empty string.
+- **When** `ProcessEnvironment.get` is asked for each.
+- **Then** it gives `"abc"`, `None` and `""`.
+
+#### A value that changes
+
+- **Given** a process in which `WIO_TEST_VALUE` is set to `abc`.
+- **When** `get` reads it, the process sets it to `def`, and `get` reads it
+  again.
+- **Then** the two reads give `"abc"` and then `"def"`.
+
+### **AC-2** The clock gives the time as seconds since the epoch
+
+A component reads the current time as a float that a test can compare with the
+system's.
+
+#### A reading
+
+- **Given** the times `before` and `after` that `time.time()` gives around the
+  call.
+- **When** `SystemClock().now()` runs.
+- **Then** it gives a float `t` with `before <= t <= after`.
+
+### **AC-3** The Wio home follows the rule of the design
+
+A component finds the one directory where wio keeps its private state for the
+user, and nothing is created or tested.
+
+#### A home that `$WIO_HOME` names
+
+- **Given** `$WIO_HOME` set to `/tmp/wio-home-test`, a path that does not exist.
+- **When** `wio_home()` runs.
+- **Then** it gives `/tmp/wio-home-test`, and the path still does not exist.
+
+#### The default home
+
+- **Given** `$WIO_HOME` unset, then set to an empty string, and the user's home
+  directory `/tmp/user-home-test`.
+- **When** `wio_home()` runs for each.
+- **Then** both give `/tmp/user-home-test/.agents/wio`, and nothing was created.
+
+#### A relative home
+
+- **Given** `$WIO_HOME` set to `relative/dir`.
+- **When** `wio_home()` runs.
+- **Then** it raises a `ValueError` whose message names `WIO_HOME` and holds
+  `absolute`.
+
+#### A user home that cannot be found
+
+- **Given** `$WIO_HOME` unset and a `Path.home()` that raises `RuntimeError`.
+- **When** `wio_home()` runs.
+- **Then** it raises an `OSError`.
+
+### **AC-4** The other member of the port is left to the Work that needs it
+
+An adapter that is wired where the port is expected tells a caller of the member
+it does not implement, so a missing implementation is never silent.
+
+#### The temporary directory
+
+- **Given** a `ProcessDirectories`.
+- **When** `temp_dir()` runs.
+- **Then** it raises a `NotImplementedError` whose message holds `temp_dir`.

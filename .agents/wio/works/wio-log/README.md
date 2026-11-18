@@ -98,6 +98,9 @@ enough, so rotating it can wait for a later Work.
   the two events, which `5pes9b` completes.
 - **The `[log]` settings** — the `[log.harnesses.<name>]` tables and the
   `prefer_harness` list of the config, built by `m7yp42`.
+- **The process adapters** — the real `Environment.get`, `Clock` and
+  `Directories.wio_home` that the other children read the surroundings with,
+  built by `hnakzm`.
 - **The log directory** — `$WIO_HOME/log/<name>-<hash>/`, where the hash is of
   the resolved git common directory and the sink appends to `events.jsonl`,
   built by `jk2yz0`; a reader reads every `*.jsonl` file in it.
