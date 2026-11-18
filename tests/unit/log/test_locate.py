@@ -1,7 +1,93 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for `wio.log.locate` against fakes of its ports."""
 
+from pathlib import Path
+from typing import TYPE_CHECKING
+from unittest.mock import Mock
+
 import pytest
+
+from wio.log import locate
+
+if TYPE_CHECKING:
+    from wio.env.ports import Directories
+    from wio.io.ports import Repository
+
+
+def _repository(identity: Path | Exception) -> Repository:
+    """Make a `Repository` that gives an identity, or raises when given an error.
+
+    Args:
+        identity: The identity `identity` gives, or the error it raises.
+
+    Returns:
+        A mock, which type checking takes for the port.
+    """
+    repository = Mock()
+    if isinstance(identity, Exception):
+        repository.identity.side_effect = identity
+    else:
+        repository.identity.return_value = identity
+    return repository
+
+
+def _directories(home: Path) -> Directories:
+    """Make `Directories` whose Wio home is fixed.
+
+    Args:
+        home: The path `wio_home` gives.
+
+    Returns:
+        A mock, which type checking takes for the port.
+    """
+    directories = Mock()
+    directories.wio_home.return_value = home
+    return directories
+
+
+def test_the_location_is_made_of_the_identity_and_the_home(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-1: `locate_log` passes the identity and the home to `log_directory`."""
+    # Given a Repository and Directories fakes and a log_directory that records
+    # what it is given
+    seen: list[tuple[Path, Path]] = []
+
+    def record(identity: Path, home: Path) -> Path:
+        """Record the arguments and give a fixed place.
+
+        Args:
+            identity: The identity given.
+            home: The home given.
+
+        Returns:
+            A fixed place.
+        """
+        seen.append((identity, home))
+        return Path("/place")
+
+    monkeypatch.setattr(locate, "log_directory", record)
+
+    # When locate_log runs
+    found = locate.locate_log(
+        _repository(Path("/w/app/.git")), _directories(Path("/h"))
+    )
+
+    # Then it gives what log_directory gave, for the identity and the home
+    assert found == Path("/place")
+    assert seen == [(Path("/w/app/.git"), Path("/h"))]
+
+
+def test_the_error_of_the_repository_reaches_the_caller() -> None:
+    """AC-4: `locate_log` raises what `Repository.identity` raises, unchanged."""
+    # Given a Repository whose identity fails with a RuntimeError
+    error = RuntimeError("not in a repository")
+
+    # When locate_log runs
+    # Then the same error is raised
+    with pytest.raises(RuntimeError) as raised:
+        locate.locate_log(_repository(error), _directories(Path("/h")))
+    assert raised.value is error
 
 
 @pytest.mark.skip(reason="stub of the architecture stage")

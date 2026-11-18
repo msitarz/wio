@@ -61,8 +61,7 @@ def locate_log(repository: Repository, directories: Directories) -> Path:
         ValueError: As `Directories.wio_home` does, for a relative `$WIO_HOME`.
         OSError: As `Directories.wio_home` does, with no home to find.
     """
-    msg = "locate_log"
-    raise NotImplementedError(msg)
+    return log_directory(repository.identity(), directories.wio_home())
 
 
 def log_files(directory: Path, filesystem: FileSystem) -> Sequence[Path]:
