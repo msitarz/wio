@@ -101,9 +101,11 @@ docstrings say what each takes, prints and raises, and the
   A warning does not stop the record, which is printed with the exit code 0, and
   a refused field is the exit code 1.
 - **A call that no form accepts is a usage error and exits 2.** A Work that is a
-  list or `none` is refused before the config is loaded. The
-  [concepts](../../../docs/concepts.md#records) allow both for a record, but
+  list is refused before the config is loaded. The
+  [concepts](../../../docs/concepts.md#records) allow a list for a record, but
   this form writes one record for one Work, and a later form may write the rest.
+  `none` never reaches this form, because
+  [it has a form of its own](#printing-a-record-for-no-work).
   A missing stage, an unknown option or a config that cannot be read are refused
   by argparse and by the loader, so a mistake in how the command is called is
   never mistaken for a record that does not hold. The dispatch on the first
@@ -116,6 +118,32 @@ docstrings say what each takes, prints and raises, and the
 - **A cited item is recorded by the gate form.** `--cite` is part of the same
   command, and [recording a gate's result](#recording-a-gates-result) checks it,
   so one set of options serves both.
+
+## Printing a record for no Work
+
+`run_nowork` and `configure_nowork` in [`nowork.py`](nowork.py) are the `none`
+form of `wio trailers`, `wio trailers none`, which prints the record of a commit
+that belongs to no Work, so that an agent need not type `Wio-Work: none` by
+hand. [The command](#the-command) dispatches on the first argument and `wio.cli`
+wires the ports, so this module holds only what the form does. The
+[tests](../../../tests/unit/trailers/test_nowork.py) and the
+[scenarios](../../../tests/acceptance/trailers/test_nowork.py) say how each case
+reads.
+
+- **It prints one line and takes nothing else.** The record is `Wio-Work: none`
+  and a newline, rendered by the same renderer as every record, and the
+  [commit-time check](#checking-a-commit-message) accepts it. A record of no
+  Work allows no other key, so the form has no action, stage or option, and one
+  that follows `none` is a usage error that exits 2, because ignoring it would
+  hide a mistake that the shape check would only find later.
+- **It is wired like the other forms.** The config is read when the command is
+  wired, so a config that cannot be read, or a working directory outside a
+  repository, exits 2 before anything is printed. The agent corrects the config
+  in the working tree, which is where it is read from, and the form then works.
+- **A list of Works stays refused.** `none,k3m9xq` is not `none`, so it reaches
+  the write form and is refused like any list, and the message asks for one
+  Work. `none` is the form's name, so a Work cannot be named `none`, as it
+  cannot be named `check` or `fold`.
 
 ## Folding the records of a range
 
@@ -428,20 +456,21 @@ them until `wio log` exists.
 
 `TrailersCommand` in [`command.py`](command.py) and `TrailersSpec` in
 [`__init__.py`](__init__.py) are `wio trailers`, the one command that runs the
-write form, `check` and `fold`. A person or an agent reaches the forms only
-through it, so it tells them apart, reaches the repository and reports a usage
-mistake the same way for every form. `wio.cli` wires its ports in
+write form, `check`, `fold` and `none`. A person or an agent reaches the forms
+only through it, so it tells them apart, reaches the repository and reports a
+usage mistake the same way for every form. `wio.cli` wires its ports in
 [`table.py`](../cli/table.py), and this package never imports an adapter. The
 docstrings say what each takes and returns, and the
 [tests](../../../tests/unit/trailers/test_command.py) and the
 [scenarios](../../../tests/acceptance/trailers/test_command.py) say how each
 case reads.
 
-- **The first argument chooses the form.** `check` and `fold` select those
-  forms and any other value is the Work of the write form, so a Work cannot be
-  named `check` or `fold`, though `wio contracts` does not forbid such an id.
-  The form is chosen by the first argument, so an option before it is refused by
-  the parser of the command itself, and an option after it belongs to the form.
+- **The first argument chooses the form.** `check`, `fold` and `none` select
+  those forms and any other value is the Work of the write form, so a Work
+  cannot be named `check`, `fold` or `none`, though `wio contracts` does not
+  forbid such an id. The form is chosen by the first argument, so an option
+  before it is refused by the parser of the command itself, and an option after
+  it belongs to the form.
 - **A usage mistake exits 2, whichever form it is in.** A call with no
   argument, an unknown option, a missing or unknown argument and a form's own
   parse error raise a `TrailersError`, which `wio.cli` turns into the exit code

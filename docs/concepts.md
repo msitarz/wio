@@ -2230,8 +2230,10 @@ in `HEAD` is one that the change being committed deletes, so the commit that
 retires or abandons a Work still carries its record, and its ids are checked
 against `HEAD`'s contract.
 
-In v0.1 the write form takes one Work and refuses a list of Works and `none`;
-the list form that this section describes comes later.
+In v0.1 the write form takes one Work and refuses a list of Works; the list form
+that this section describes comes later. `wio trailers none` prints
+`Wio-Work: none` for a commit that belongs to no Work, and takes no action,
+stage or option.
 
 With `--result` it also writes the `review` event to the event log, with the
 items `--cite` names (such as `--cite ARC001=fail --cite AC-2=pass`), so a
