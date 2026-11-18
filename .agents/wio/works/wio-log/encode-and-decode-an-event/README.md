@@ -42,6 +42,11 @@ and a harness truncates by length.
 A time kept to the millisecond is enough to order the events of one person, so
 the line does not carry more digits.
 
+### A-3
+
+The keys of a line are the names of the fields, a bundle id and a rule hash are
+opaque strings, and a time is finite and not negative.
+
 ## Mechanisms
 
 - **`ContextEvent`** — in `wio.models.events`, frozen: `work: str`,
@@ -49,7 +54,7 @@ the line does not carry more digits.
   `rules: Mapping[str, str]` (each qualified rule code with the hash of its
   file, in the order of the bundle), `start: str | None` and
   `dirty: bool | None`, which only a gate has, so they are `None` for any other
-  stage. `ReviewEvent` keeps the fields it has.
+  stage, while `ReviewEvent` keeps the fields it has.
 - **`Envelope`** — in `wio.models.events`, frozen: `time: float` (seconds since
   the epoch, in UTC), `directory: str`, `harness: str | None`,
   `session: str | None`, `parent: str | None`, `matches: tuple[str, ...]` (the
@@ -59,12 +64,14 @@ the line does not carry more digits.
 - **`encode_line(envelope: Envelope, event: Event) -> str`** — in `wio.formats`,
   one JSON object and a newline, built with the shared JSON encoding of
   `wio.formats`: `"v": 1`, `"type"` (`context` or `review`), `"time"` as an RFC
-  3339 string in UTC truncated to the millisecond, `"directory"` and the fields
+  3339 string in UTC truncated to the millisecond after the time is rounded to
+  the microsecond, `"directory"` and the fields
   of the event.
-- **The optional fields** — `harness`, `session`, `parent`, `matches`, `ids`,
-  and `start` and `dirty` of a `context` event are left out when they are `None`
-  or empty, and a line without them decodes to `None` or to an empty value.
-  Every other field is written, an empty `rules`, `cited` or `hashes` as `{}`.
+- **The optional fields** — `harness`, `session`, `parent`, `start` and `dirty`
+  are left out when they are `None`, `matches` and `ids` when they are empty,
+  and a line without them decodes to `None` or to an empty value, while every
+  other field is written, an empty `rules`, `cited` or `hashes` as `{}` and an
+  empty string as it is.
 - **`decode_lines(text: str) -> Decoding`** — in `wio.formats`;
   `Decoding(entries: tuple[Entry, ...], skipped: int)` and `Entry(envelope:
   Envelope, event: Event)`, with the entries in line order.
@@ -101,8 +108,8 @@ every field equal, so a reader sees what the writer recorded.
   `1795000000.123`.
 - **When** it is encoded and the line is decoded.
 - **Then** the decoding has one entry equal to the event and the envelope, with
-  the time equal to the millisecond and the cited items in the order given, and
-  no line was skipped.
+  the time equal after rounding to three decimals and the cited items in the
+  order given, and no line was skipped.
 
 ### **AC-2** A `context` event leaves the log and comes back the same
 
@@ -137,6 +144,14 @@ event by its line, and a field with nothing to say takes no room.
 - **Then** the text ends in one newline and holds no other, and decoding it
   gives the same directory.
 
+#### Empty mappings and an empty string
+
+- **Given** a `ReviewEvent` with empty `cited` and `hashes`, and an envelope
+  whose harness is the empty string.
+- **When** it is encoded and the line is decoded.
+- **Then** the line holds `"cited": {}` and `"hashes": {}`, and the decoding
+  gives empty mappings and the harness `""`.
+
 #### The optional fields
 
 - **Given** an envelope with no harness, session or parent, no matches and no
@@ -156,10 +171,12 @@ skipped, so one bad line never hides the events around it.
 - **Given** a text of lines: a complete `review` event, `{"v": 1, "type": "re`,
   a line with `"v": 2`, a line with `"type": "other"`, a `review` line without
   its `result`, a `review` line whose `cited` is a list, a `review` line whose
-  `time` is `"yesterday"`, a `context` line whose `size` is `true`, a blank
-  line, and a complete `context` event.
+  `time` is `"yesterday"`, a `review` line whose `time` is
+  `"2026-11-18T13:06:40.123+02:00"`, a `review` line whose `hashes` holds a
+  number, a `context` line whose `size` is `true`, the line `[1]`, a blank line,
+  and a complete `context` event.
 - **When** `decode_lines` runs on it.
-- **Then** it gives two entries, in line order, and the count 7.
+- **Then** it gives two entries, in line order, and the count 10.
 
 #### A field that is not known
 
@@ -177,4 +194,10 @@ millisecond and never rounded up.
 - **Given** an envelope with the time `1795000000.123956`.
 - **When** it is encoded and the line is decoded.
 - **Then** the line holds `"time": "2026-11-18T11:06:40.123Z"`, and decoding
-  gives the time `1795000000.123` to the millisecond.
+  gives a time that rounds to `1795000000.123`.
+
+#### A time that is already in milliseconds
+
+- **Given** an envelope with the time `1795000000.123`.
+- **When** it is encoded.
+- **Then** the line holds `"time": "2026-11-18T11:06:40.123Z"`.
