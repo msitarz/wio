@@ -184,8 +184,8 @@ with its result, its judge and the commit it judged.
 - **Given** a repository with a Work whose pipeline has a gate, and a commit
   that the gate reviews.
 - **When** `wio trailers <work> <action> <gate> --result pass --cite AC-1=pass`
-  runs, and then `wio log show <work>` runs.
-- **Then** `wio log show` lists the gate with the result `pass`, the judge
+  runs, and then `wio log show --json <work>` runs.
+- **Then** the document lists the gate with the result `pass`, the judge
   `agent`, the full sha of the reviewed commit and the cited item with its
   result.
 

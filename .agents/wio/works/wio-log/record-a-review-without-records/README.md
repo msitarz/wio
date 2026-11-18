@@ -120,5 +120,5 @@ repository.
 - **When** `wio log review <work> <action> <gate> --result pass` runs, and then
   `wio log show <work>` runs.
 - **Then** the first exits 0 and prints nothing, and the second lists the gate
-  with the judge `agent`, the result `pass` and the commit that the gate
-  reviewed.
+  with the judge `agent`, the result `pass` and the first 12 characters of the
+  commit that the gate reviewed.
