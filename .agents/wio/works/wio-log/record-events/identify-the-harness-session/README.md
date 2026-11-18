@@ -52,7 +52,7 @@ shape check can still be a secret, and `wio config check` cannot tell.
   fields are those of the `Envelope` of `5pes9b`. It warns on standard error
   through the `Stdio` port.
 - **The variables read** — every name in the `session` and `parent` lists of
-  every harness and in `record_variables`, through `Environment.get`, and no
+  every harness and in `record_env_vars`, through `Environment.get`, and no
   other. An empty value counts as not set.
 - **The shape of a value** — one to 128 characters of `A-Za-z0-9._:-`. A set
   value of another shape is dropped, as if the variable were not set, with a

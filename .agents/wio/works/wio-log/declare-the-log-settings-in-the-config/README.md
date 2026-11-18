@@ -41,7 +41,7 @@ entry, and no new kind of source is needed.
 ## Mechanisms
 
 - **`[log]` in `config.toml`** — `prefer_harness`, an ordered list of harness
-  names, empty by default, and `record_variables`, a list of variable names,
+  names, empty by default, and `record_env_vars`, a list of variable names,
   `["AI_AGENT"]` by default.
 - **`[log.harnesses.<name>]`** — one harness with `session`, a required list of
   variable names of which the first one set gives the session, and `parent`, an
@@ -53,7 +53,7 @@ entry, and no new kind of source is needed.
 - **`Log` and `Harness`** — frozen dataclasses of `wio.models.config`:
   `Harness(session: tuple[str, ...], parent: tuple[str, ...] = ())` and
   `Log(harnesses: frozendict[str, Harness], prefer_harness: tuple[str, ...] =
-  (), record_variables: tuple[str, ...] = ("AI_AGENT",))`, reached as
+  (), record_env_vars: tuple[str, ...] = ("AI_AGENT",))`, reached as
   `Config.log`.
 - **The check** — in `wio.config`, with the diagnostics of the other settings:
   an error for each problem below, in the form `error: <where>: <message>`, and
@@ -61,8 +61,8 @@ entry, and no new kind of source is needed.
   reports an unknown key elsewhere.
   - A harness table with no `session`, or with an empty one.
   - A variable name that does not match `[A-Za-z_][A-Za-z0-9_]*`, in `session`,
-    `parent` or `record_variables`.
-  - A repeated name in `prefer_harness`, `record_variables`, `session` or
+    `parent` or `record_env_vars`.
+  - A repeated name in `prefer_harness`, `record_env_vars`, `session` or
     `parent`.
   - A name in `prefer_harness` that is not a built-in or a configured harness.
   - A harness named `none`, which `$WIO_PREFER_HARNESS` reserves.
@@ -79,7 +79,7 @@ The examples use a config that sets nothing under `[log]` unless they say so.
 - **When** `wio config show log.harnesses.codex.session`, `wio config show
   log.harnesses.codex.parent`, `wio config show
   log.harnesses.claude-code.session` and `wio config show
-  log.record_variables` run.
+  log.record_env_vars` run.
 - **Then** they print `["CODEX_THREAD_ID", "CODEX_SESSION_ID"]`,
   `["CODEX_SESSION_ID"]`, `["CLAUDE_CODE_SESSION_ID"]` and `["AI_AGENT"]`, each
   with the source `default`, and `wio config check` exits 0.
@@ -126,12 +126,12 @@ The examples use a config that sets nothing under `[log]` unless they say so.
 
 - **Given** configs with `[log.harnesses.a]` and no `session`, with `session =
   []`, with `session = ["bad name"]`, with `parent = ["X", "X"]`, and with
-  `record_variables = ["AI_AGENT", "AI_AGENT"]`.
+  `record_env_vars = ["AI_AGENT", "AI_AGENT"]`.
 - **When** `wio config check` runs on each.
 - **Then** each exits 1 and prints an `error:` line that names, in turn,
   `log.harnesses.a.session`, `log.harnesses.a.session`,
   `log.harnesses.a.session`, `log.harnesses.a.parent` and
-  `log.record_variables`.
+  `log.record_env_vars`.
 
 #### Other commands refuse the config
 
