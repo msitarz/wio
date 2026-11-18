@@ -2,7 +2,7 @@
 id = "wt49bz"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["jk2yz0", "5pes9b", "xfy1mq", "hnakzm"]
+depends_on = ["jk2yz0", "5pes9b", "xfy1mq", "hnakzm", "m7yp42"]
 -->
 
 # Append an event
@@ -50,8 +50,9 @@ The text of the working directory in the envelope is `str` of the path that
   log)`** — in `wio.log`, an `EventSink` over the ports `Environment`, `Clock`,
   `Directories`, `Repository`, `FileSystem` and `Stdio`, and a `Log`.
 - **The order of the steps** — `write` reads `$WIO_LOG`, then calls
-  `locate_log(Repository, Directories)`, then `identify`, then builds the
-  `Envelope`, encodes the line and appends it.
+  `locate_log(Repository, Directories)`, then
+  `identify(log, environment, stdio)` with the sink's own `Log`, `Environment`
+  and `Stdio`, then builds the `Envelope`, encodes the line and appends it.
 - **The stamp** — an `Envelope` whose time is `Clock.now()`, whose directory is
   `Environment.working_directory()` as text, and whose other fields are those of
   the `SessionIdentity` that `identify` gives, whose warnings pass through
@@ -64,22 +65,22 @@ The text of the working directory in the envelope is `str` of the path that
   the repository, the directories or the clock, and a value that is not
   recognized writing the warning `warning: WIO_LOG must be "off" to switch the
   log off; the log stays on`, which never repeats the value.
-- **A failure** — an `OSError`, a `ValueError` or a `RuntimeError` anywhere
-  after the check of `$WIO_LOG` is a warning, nothing is appended and nothing is
-  raised.
+- **A failure** — any `Exception` that `write` meets, whatever its class and
+  whatever the step, is a warning, nothing is appended and nothing is raised.
 - **The message of an error** — its `strerror` when it is an `OSError` that has
-  one, and its text otherwise.
+  a non-empty one, its text otherwise, and the name of its class when the text
+  is empty.
 - **The warning of a failed location** — `warning: the event log could not be
-  located: <message>` on standard error, as for a working directory that is not
-  in a repository, a relative `$WIO_HOME` or a home directory that cannot be
+  located: <message>` on standard error, as exactly one line, for a failure of
+  the read of `$WIO_LOG` or of the location, such as a working directory that is
+  not in a repository, a relative `$WIO_HOME` or a home directory that cannot be
   found.
 - **The warning of a failed write** — `warning: the event log could not be
   written: <path>: <message>` on standard error, where `<path>` is the events
-  file, for a failure after the location, whether of the identification, the
-  stamp, the encoding or the append.
+  file, for a failure of any step after the location.
 - **The hint** — a `PermissionError`, or an `OSError` whose `errno` is `EROFS`,
-  with `$WIO_HOME` unset or empty, adds to the warning of a failed write a
-  second line on standard error that starts with
+  raised by the append, with `$WIO_HOME` unset or empty, adds to the warning of
+  a failed write a second line on standard error that starts with
   `hint: add an exception to your harness's configuration`, holds
   `~/.agents/wio` and `$WIO_HOME`, and ends with
   `directory your harness allows`.
@@ -87,8 +88,8 @@ The text of the working directory in the envelope is `str` of the path that
   `wio trailers` in place of `NoEvents`, which stays for tests that need a sink
   that drops, with the real `Environment`, `Clock` and `Directories` of `hnakzm`
   and a `SystemStdio()`, which binds the streams that `dispatch` has redirected
-  to the `Stdio` of the command, and `ConfigSettings(...).load().log` as the
-  `Log`.
+  to the `Stdio` of the command, and
+  `ConfigSettings(repository, filesystem).load().log` as the `Log`.
 
 ## Acceptance criteria
 
@@ -182,11 +183,22 @@ do, and never stops a command.
 #### A step after the location that fails
 
 - **Given** an `Environment` whose `working_directory()` raises
-  `FileNotFoundError(2, "No such file or directory")`.
-- **When** `write` receives an event.
+  `FileNotFoundError(2, "No such file or directory")`, then one whose
+  `get("CLAUDE_CODE_SESSION_ID")` raises `RuntimeError("boom")`, then a `Clock`
+  whose `now()` raises `KeyError("x")`, then one that raises
+  `ZeroDivisionError()`.
+- **When** `write` receives an event for each.
 - **Then** nothing was appended, nothing is raised, and standard error holds
-  `warning: the event log could not be written:
-  /h/log/app-6f8609bd196b/events.jsonl: No such file or directory`.
+  exactly one warning for each, `warning: the event log could not be written:
+  /h/log/app-6f8609bd196b/events.jsonl:` followed by `No such file or
+  directory`, `boom`, `'x'` and `ZeroDivisionError`, and none has a hint.
+
+#### A permission failure that is not the append
+
+- **Given** an `Environment` whose `get("CLAUDE_CODE_SESSION_ID")` raises
+  `PermissionError(13, "Permission denied")`, and `$WIO_HOME` unset.
+- **When** `write` receives an event.
+- **Then** standard error holds the warning of a failed write and no hint.
 
 #### A location that fails
 
@@ -196,8 +208,16 @@ do, and never stops a command.
   found")`.
 - **When** `write` receives an event for each.
 - **Then** each returns and nothing was appended, and standard error holds
-  `warning: the event log could not be located: not in a repository`, `... :
-  WIO_HOME must be absolute` and `... : home not found`.
+  exactly one line for each, `warning: the event log could not be located: not
+  in a repository`, `... : WIO_HOME must be absolute` and `... : home not
+  found`, and no hint.
+
+#### A switch that cannot be read
+
+- **Given** an `Environment` whose `get("WIO_LOG")` raises `OSError("denied")`.
+- **When** `write` receives an event.
+- **Then** it returns, nothing was appended, and standard error holds exactly
+  one line, `warning: the event log could not be located: denied`.
 
 ### **AC-3** The log can be switched off
 
@@ -206,10 +226,12 @@ recognized never stops it.
 
 #### Off
 
-- **Given** `$WIO_LOG=off`, and a `Repository` whose `identity` raises.
+- **Given** `$WIO_LOG=off`, `CLAUDE_CODE_SESSION_ID=bad value!` and a
+  `Repository` whose `identity` raises.
 - **When** `write` receives an event.
 - **Then** nothing was appended, no directory was created, nothing was warned,
-  and `Repository`, `Directories` and the clock were not asked.
+  `Environment` was asked only for `WIO_LOG`, and `Repository`, `Directories`
+  and the clock were not asked.
 
 #### A value that is not recognized
 
