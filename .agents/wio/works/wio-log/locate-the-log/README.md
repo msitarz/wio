@@ -78,7 +78,7 @@ Every worktree of a clone finds the same log, and another clone finds another.
 #### Worktrees of one clone
 
 - **Given** a real clone with a commit, a worktree of it made with `git worktree
-  add`, and an empty `$WIO_HOME`.
+  add`, and a `$WIO_HOME` that names an empty directory.
 - **When** `locate_log` runs with the `Repository` of git and the real
   `Directories`, once with the main checkout as the working directory and once
   with the worktree.
@@ -162,7 +162,7 @@ port does.
 
 #### No directory appears
 
-- **Given** a real clone and an empty `$WIO_HOME`.
+- **Given** a real clone and a `$WIO_HOME` that names an empty directory.
 - **When** `locate_log` runs with the `Repository` of git and the real
   `Directories`.
 - **Then** it gives a path under `$WIO_HOME/log/`, and `$WIO_HOME` still holds

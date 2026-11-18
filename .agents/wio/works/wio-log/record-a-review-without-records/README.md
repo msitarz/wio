@@ -115,7 +115,8 @@ repository.
 
 #### On a real repository
 
-- **Given** a real clone with the Work and the gate, and an empty `$WIO_HOME`.
+- **Given** a real clone with the Work and the gate, and a `$WIO_HOME` that
+  names an empty directory.
 - **When** `wio log review <work> <action> <gate> --result pass` runs, and then
   `wio log show <work>` runs.
 - **Then** the first exits 0 and prints nothing, and the second lists the gate
