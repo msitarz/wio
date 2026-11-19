@@ -225,3 +225,38 @@ def test_a_gate_result_is_taken_back_by_the_check_and_the_fold(
     assert block == record
     assert isinstance(event, ReviewEvent)
     assert (event.commit, dict(event.cited)) == (work, {"AC-1": "pass"})
+
+
+def test_the_default_command_appends_reviews_from_both_worktrees() -> None:
+    """AC-4 wires the real recording sink to the default command.
+
+    The clone identity gives the main checkout and the linked worktree one log.
+    """
+    # Given a real clone with a reviewed Work commit and a linked worktree.
+    # When the default command records the gate in each checkout.
+    # Then both records print and both review events name the Work, gate and
+    # reviewed commit in the only events.jsonl under the temporary Wio home.
+    pytest.skip("Pending log sink wiring")
+
+
+def test_the_default_command_outside_git_leaves_the_home_empty() -> None:
+    """AC-4 preserves the command error outside a repository.
+
+    An unavailable repository stops the command before it can record.
+    """
+    # Given a working directory outside Git and an empty Wio home.
+    # When the default command attempts to record a result.
+    # Then the original trailers usage error is returned and the home is empty.
+    pytest.skip("Pending log sink wiring")
+
+
+def test_the_default_command_writes_log_warnings_to_its_stderr() -> None:
+    """AC-4 routes recording warnings to the command's supplied streams.
+
+    An unavailable events file leaves the gate result available to the caller.
+    """
+    # Given a real clone and a Wio home beneath a regular file.
+    # When the default CLI entry point records a gate with in-memory Stdio.
+    # Then it exits zero, the record goes to stdout, and stderr warns that the
+    # event log could not be written.
+    pytest.skip("Pending log sink wiring")
