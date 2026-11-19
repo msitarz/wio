@@ -385,8 +385,9 @@ who judged, so after the fields of the record hold, the form checks what was
 cited, finds the reviewed commit with
 [the finder](#finding-the-reviewed-commit), writes one `review` event and then
 prints the record. `ReviewEvent` in
-[`wio.models.events`](../models/events.py) holds the fields the form writes, and
-the Work that builds `wio log` extends it. The form reads the rules a stage
+[`wio.models.events`](../models/events.py) holds the fields the form writes.
+The [log sink](../log/README.md#appending-an-event) applies the common envelope
+and records the event. The form reads the rules a stage
 selects through the provisional `StageRules` port of [`ports.pyi`](ports.pyi),
 which the rules component will satisfy; until it exists no rule is selected, so
 a cited rule code is refused. The docstrings say what each takes and returns,
@@ -437,13 +438,13 @@ it holds of the three together. A person or an agent gets a record that the
 engine checked, and a gate's review leaves a trace of the commit it judged. The
 [scenarios](../../../tests/acceptance/trailers/test_write.py) run it on a real
 repository, and the
-[tests with a recording sink](../../../tests/integration/trailers/test_write.py)
-read the events that no scenario can, because `wio.cli` wires a sink that drops
-them until `wio log` exists.
+[integration tests](../../../tests/integration/trailers/test_write.py)
+examine the recorded review and the command's behavior when the log is
+unavailable.
 
 - **A refusal leaves nothing behind.** A result outside `gates.results`, and a
-  history with no reviewed commit, print no record, send no event and exit 1,
-  so a record in a commit message and an event in the log always agree.
+  history with no reviewed commit, print no record, send no event and exit 1.
+  Only a result that passes the form's checks can produce a review event.
 - **Each judge of a gate that needs a human is recorded once.** The same call
   with `--judge human` after the agent's prints the human's record and sends a
   second event of the same reviewed commit, and `wio trailers` does not decide
@@ -492,9 +493,7 @@ case reads.
   for a commit message, in the index and then in `HEAD`, so a commit that
   deletes a Work still carries its record. Where a component does not exist yet
   the command wires a null adapter from [`null.py`](../cli/null.py): a port that
-  selects no rule, so a cited rule code is refused as not selected, and a sink
-  that drops every event, so a recorded gate result leaves nothing in the Wio
-  home until `wio log` exists.
+  selects no rule, so a cited rule code is refused as not selected.
 - **A working directory outside a repository is a usage mistake.** The git
   adapter refuses it with a `RuntimeError`, which the wiring turns into a
   `TrailersError` so that it exits 2 and not 70. The wiring reads the config for

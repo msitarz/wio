@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, TextIO
 
+from tests.fakes import value_or_raise
+
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
@@ -28,6 +30,9 @@ class MemoryFileSystem:
     failure: Exception | None = None
     calls: list[tuple[str, Path]] = field(default_factory=list)
 
+    appends: list[tuple[Path, str]] = field(default_factory=list)
+    append_failure: Exception | None = None
+
     def read_text(self, path: Path) -> str:
         """Read a file of the dictionary.
 
@@ -42,6 +47,7 @@ class MemoryFileSystem:
             Exception: The `failure` the fake was given, whatever the path, or the
                 one it was given for this path in `broken`.
         """
+        self.calls.append(("read_text", path))
         if self.failure is not None:
             raise self.failure
         if path in self.broken:
@@ -68,6 +74,7 @@ class MemoryFileSystem:
             path: The file to write.
             text: Its content.
         """
+        self.calls.append(("write_text", path))
         self.files[path] = text
 
     def append_text(self, path: Path, text: str) -> None:
@@ -76,7 +83,14 @@ class MemoryFileSystem:
         Args:
             path: The file to append to.
             text: What to add.
+
+        Raises:
+            Exception: The configured append failure, before storing the text.
         """
+        self.calls.append(("append_text", path))
+        self.appends.append((path, text))
+        if self.append_failure is not None:
+            raise self.append_failure
         self.files[path] = self.files.get(path, "") + text
 
     def exists(self, path: Path) -> bool:
@@ -152,6 +166,8 @@ class FakeRepository:
     top: Path | None = ROOT
     message: str = "not inside a git repository: /elsewhere"
 
+    identity_reads: int = 0
+
     def root(self) -> Path:
         """Find the root.
 
@@ -171,6 +187,7 @@ class FakeRepository:
         Returns:
             The path of the `.git` directory.
         """
+        self.identity_reads += 1
         return self.root() / ".git"
 
     def show_index(self, path: Path) -> str | None:  # noqa: ARG002
@@ -191,6 +208,67 @@ class FakeRepository:
             False.
         """
         return False
+
+
+@dataclass
+class FakeClock:
+    """A clock with a fixed time or a configured failure.
+
+    Attributes:
+        seconds: Seconds since the epoch, or the exception to raise.
+        reads: Number of time queries.
+    """
+
+    seconds: float | Exception
+    reads: int = 0
+
+    def now(self) -> float:
+        """Read the configured time.
+
+        Returns:
+            The configured seconds since the epoch.
+
+        Raises:
+            Exception: The configured failure, if any.
+        """
+        self.reads += 1
+        return value_or_raise(self.seconds)
+
+
+@dataclass
+class FakeDirectories:
+    """Fixed directories for tests that need the Wio home or a temporary path.
+
+    Attributes:
+        home: The Wio home, or the exception to raise.
+        temporary: The temporary directory.
+        reads: The directory queries in order.
+    """
+
+    home: Path | Exception
+    temporary: Path = Path("/tmp")
+    reads: list[str] = field(default_factory=list)
+
+    def wio_home(self) -> Path:
+        """Read the configured Wio home.
+
+        Returns:
+            The fixed Wio home.
+
+        Raises:
+            Exception: The configured failure, if any.
+        """
+        self.reads.append("wio_home")
+        return value_or_raise(self.home)
+
+    def temp_dir(self) -> Path:
+        """Read the configured temporary directory.
+
+        Returns:
+            The fixed temporary directory.
+        """
+        self.reads.append("temp_dir")
+        return self.temporary
 
 
 @dataclass

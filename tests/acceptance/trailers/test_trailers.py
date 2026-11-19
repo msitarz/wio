@@ -5,8 +5,7 @@ The scenarios use the project of `test_command.py`: a git repository whose confi
 declares the stages `architecture` and `architecture-review`, a gate that needs a
 human, and a Work `k3m9xq` that has an item `AC-1`. They run on the CLI channel
 only, because the forms read the history, the index and `HEAD` of a git
-repository. The `review` event reaches a sink that the CLI wires to nothing, so
-the event of the gate's result is asserted in
+repository. The event of the gate's result is asserted in
 `tests/integration/trailers/test_write.py`. AC-6, the round trip on a real
 repository, is `test_a_record_round_trips_through_the_real_adapters` of
 `test_command.py`.

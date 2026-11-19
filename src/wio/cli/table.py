@@ -10,12 +10,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Literal
 
-lazy from wio.cli.null import NoEvents, NoRules
+lazy from wio.cli.null import NoRules
 lazy from wio.config import ConfigCommand, ConfigSettings
 lazy from wio.contracts import ContractsCommand, Services, WorkLookup
 lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
 lazy from wio.io import views
+lazy from wio.log.sink import LogSink
 lazy from wio.templates import TemplatesCatalog, TemplatesCommand
 lazy from wio.trailers import Services as TrailersServices
 lazy from wio.trailers import TrailersCommand
@@ -121,25 +122,11 @@ def _contracts() -> Command:
     return ContractsCommand(services)
 
 
-def _trailers() -> Command:
-    """Wire `wio trailers` with the sink that drops the events.
-
-    Returns:
-        The command of `trailers_command` over `NoEvents`, until the component of
-        the event log exists.
-
-    Raises:
-        TrailersError: If the working directory is not inside a git repository.
-        ConfigurationError: If the config cannot be loaded.
-    """
-    return trailers_command(NoEvents())
-
-
-def trailers_command(events: EventSink) -> Command:
+def trailers_command(events: EventSink | None = None) -> Command:
     """Wire `wio trailers` to git, the contracts component and a sink.
 
     Args:
-        events: Takes the `review` event of a recorded gate result.
+        events: An override for the clone log that receives recorded reviews.
 
     Returns:
         The command, whose forms read the config, the history and the Works through
@@ -160,10 +147,21 @@ def trailers_command(events: EventSink) -> Command:
     catalog = TemplatesCatalog(settings, repository, files)
     root = _root(repository)
     head = views.HeadFiles(history, root)
-    works = Path(settings.load().works.dir)
+    config = settings.load()
+    works = Path(config.works.dir)
     index = views.IndexFiles(repository, history, files, root, works)
     tree = WorkLookup(settings, repository, catalog, files, [files, head])
     staged = WorkLookup(settings, repository, catalog, files, [index, head])
+    if events is None:
+        events = LogSink(
+            environment,
+            env.SystemClock(),
+            env.ProcessDirectories(environment),
+            repository,
+            files,
+            io.SystemStdio(),
+            config.log,
+        )
     services = TrailersServices(
         settings, tree, history, staged, files, NoRules(), events
     )
@@ -192,6 +190,6 @@ COMMANDS: Final[Sequence[Entry]] = (
     component_entry("config", _config),
     component_entry("contracts", _contracts),
     component_entry("templates", _templates),
-    component_entry("trailers", _trailers),
+    component_entry("trailers", trailers_command),
 )
 """Every subcommand of wio, one entry for each component that has a command."""

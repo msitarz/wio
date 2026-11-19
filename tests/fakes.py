@@ -10,10 +10,20 @@ if TYPE_CHECKING:
 
 @dataclass
 class FakeEnvironment:
-    """An `Environment` with a fixed working directory and the given variables."""
+    """A configurable environment that records variable and directory reads.
+
+    Attributes:
+        directory: The working directory.
+        variables: The values of set variables.
+        errors: Failures keyed by variable name, with None for the directory.
+        reads: Variable names queried in order, with None for a directory query.
+    """
 
     directory: Path
     variables: dict[str, str] = field(default_factory=dict)
+
+    errors: dict[str | None, Exception] = field(default_factory=dict)
+    reads: list[str | None] = field(default_factory=list)
 
     def get(self, name: str) -> str | None:
         """Read a variable of the fake.
@@ -23,7 +33,11 @@ class FakeEnvironment:
 
         Returns:
             Its value, or None when the fake has no such variable.
+
+        Raises:
+            Exception: The configured failure for this variable.
         """
+        self._record_read(name)
         return self.variables.get(name)
 
     def working_directory(self) -> Path:
@@ -31,5 +45,39 @@ class FakeEnvironment:
 
         Returns:
             The directory the fake was given.
+
+        Raises:
+            Exception: The configured working-directory failure.
         """
+        self._record_read(None)
         return self.directory
+
+    def _record_read(self, name: str | None) -> None:
+        """Record a query and raise any configured error.
+
+        Args:
+            name: The queried variable, or None for the working directory.
+
+        Raises:
+            Exception: The configured error for this query, if any.
+        """
+        self.reads.append(name)
+        if name in self.errors:
+            raise self.errors[name]
+
+
+def value_or_raise[T](result: T | Exception) -> T:
+    """Return a fake port's configured value or raise its configured error.
+
+    Args:
+        result: The value or exception prepared by the test.
+
+    Returns:
+        The value prepared by the test.
+
+    Raises:
+        Exception: The configured error when the result is an exception.
+    """
+    if isinstance(result, Exception):
+        raise result
+    return result
