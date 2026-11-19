@@ -1,11 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 """Acceptance scenarios for the event-log settings of a config."""
 
+from typing import TYPE_CHECKING
+
 import pytest
 
 from tests.acceptance.channels import Channel
 
+if TYPE_CHECKING:
+    from tests.acceptance.dsl.wio import Wio
+
 pytestmark = pytest.mark.usefixtures("wio")
+CONFIG = ".agents/wio/config.toml"
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -45,13 +51,23 @@ def test_harness_preference_names_are_checked() -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-def test_additional_environment_variables_replace_the_default() -> None:
+@pytest.mark.parametrize("value", ['["MY_VAR"]', "[]"])
+def test_additional_environment_variables_replace_the_default(
+    wio: Wio, value: str
+) -> None:
     """AC-4: A project can select extra variables or select none."""
     # Given configs that set record_env_vars to ["MY_VAR"] and [].
+    wio.fixture("config/rich")
+    wio.put(CONFIG, f"[log]\nrecord_env_vars = {value}\n".encode())
+
     # When each list is shown and its config is checked.
+    shown = wio.run(["config", "show", "log.record_env_vars"])
+    checked = wio.run(["config", "check"])
+
     # Then show reports ["MY_VAR"] and [] with source file, and both checks
     # exit 0.
-    pytest.skip("Pending log settings wiring")
+    assert shown.lines[0] == f"log.record_env_vars = {value}  # file"
+    assert shown.exit_code == checked.exit_code == 0
 
 
 @pytest.mark.channels(Channel.CLI)
