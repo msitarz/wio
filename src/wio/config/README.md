@@ -102,10 +102,12 @@ flowchart LR
     shape["shape of the file (loader)"] --> pipelines["pipelines"]
     shape --> rules["rule selection"]
     shape --> paths["paths and skills"]
+    shape --> log["log settings"]
     shape --> out["diagnostics, sorted"]
     pipelines --> out
     rules --> out
     paths --> out
+    log --> out
     out --> check["wio config check"]
     out --> load["Settings.load: errors only"]
 ```
@@ -192,6 +194,29 @@ belong to the rules Work.
   another,** as for actions, so an agent breaks the loop once.
 - **An alias equal to its own ruleset's name is not a clash,** since it names
   the same ruleset and harms nothing.
+
+### Log settings
+
+A project can describe a harness through the environment variables it sets.
+This lets new harnesses use the same settings and check run as the built-ins.
+The [config model](../models/config.py#L271) declares the built-ins and the
+defaults for additional variables. Some harnesses expose an identifier in
+`AI_AGENT`, so projects can request it without adding it to their config.
+
+Whole-entry replacement lets a project clear a built-in parent lookup by
+omitting that list from its definition. The [shape reader](shape.py) documents
+how it assembles the effective table and its sources.
+
+The config supplies ordered candidates for session and parent lookup. The
+session-detection consumer owns the rules for examining and validating
+candidate values. Additional variable names request recording of present,
+valid values as supplied. The [log settings check](log_settings.py) reserves
+`none` for the planned `WIO_PREFER_HARNESS` override. In the consumer
+contract, that value denotes an empty harness preference list.
+
+[Acceptance tests](../../../tests/acceptance/config/test_log_settings.py)
+specify the values and sources a caller sees, the key paths of diagnostics,
+and how a command that needs the config refuses invalid settings.
 
 ## The command
 

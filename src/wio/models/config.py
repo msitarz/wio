@@ -12,6 +12,8 @@ the contract of the type, and the names of the nested types are provisional.
 from dataclasses import dataclass, field
 from typing import Literal
 
+from wio.models.frozen import freeze
+
 type HierarchyMode = Literal["flat", "nesting"]
 """How the hierarchy of Works is derived: from the layout, or not at all."""
 
@@ -266,13 +268,76 @@ class Ruleset:
 
 
 @dataclass(frozen=True)
+class Harness:
+    """Name the environment variables that can identify a harness session.
+
+    Attributes:
+        session: Variables in lookup order for the session id.
+        parent: Variables in lookup order for the optional parent session id.
+    """
+
+    session: tuple[str, ...] = field(
+        metadata={
+            "description": "The session variables in lookup order; required.",
+            "nonempty": True,
+        },
+    )
+    parent: tuple[str, ...] = field(
+        default=(),
+        metadata={"description": "The parent session variables in lookup order."},
+    )
+
+
+@dataclass(frozen=True)
+class Log:
+    """Hold the effective harness and environment settings for the event log.
+
+    Attributes:
+        harnesses: Harness definitions by name, including each built-in that
+            the config file does not replace.
+        prefer_harness: Harness names in preference order for a nested run.
+        record_env_vars: Names of the additional variables to record. An empty
+            tuple selects none.
+    """
+
+    harnesses: frozendict[str, Harness] = field(
+        default=freeze(
+            {
+                "claude-code": Harness(session=("CLAUDE_CODE_SESSION_ID",)),
+                "codex": Harness(
+                    session=("CODEX_THREAD_ID", "CODEX_SESSION_ID"),
+                    parent=("CODEX_SESSION_ID",),
+                ),
+            }
+        ),
+        metadata={
+            "description": "Definitions of the built-in and configured harnesses."
+        },
+    )
+    prefer_harness: tuple[str, ...] = field(
+        default=(),
+        metadata={"description": "The order to prefer harnesses in a nested run."},
+    )
+    record_env_vars: tuple[str, ...] = field(
+        default=("AI_AGENT",),
+        metadata={
+            "description": "Additional variables to record; `AI_AGENT` by default."
+        },
+    )
+
+
+@dataclass(frozen=True)
 class Config:
     """The effective settings read from `.agents/wio/config.toml`.
 
     It is immutable once built, so every component that holds it sees the same
     gates, Works, templates, trailers, skills, bundle, actions, roots,
-    stages, stage presets, rule presets, rulesets and always fields. Two equal
-    configs compare and hash equal, and a mapping it holds cannot be changed.
+    stages, stage presets, rule presets, rulesets, always fields and log
+    settings. Two equal configs compare and hash equal, and a mapping it holds
+    cannot be changed.
+
+    Attributes:
+        log: Harness definitions and environment settings for the event log.
     """
 
     gates: Gates = field(
@@ -324,4 +389,8 @@ class Config:
     )
     rules_always_exclude: tuple[str, ...] = field(
         default=(), metadata={"description": "The rules no bundle includes."}
+    )
+    log: Log = field(
+        default=Log(),
+        metadata={"description": "How the event log identifies harness sessions."},
     )

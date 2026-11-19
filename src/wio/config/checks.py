@@ -4,6 +4,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.config.log_settings import check_log_settings
 from wio.config.paths import (
     check_root_paths,
     check_skills,
@@ -70,6 +71,7 @@ CHECKS: tuple[Check, ...] = (
     check_rule_preset_cycles,
     check_rulesets,
     check_always_include_note,
+    check_log_settings,
 )
 """The checks that the loader runs after the shape, in order.
 

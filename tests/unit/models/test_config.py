@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, cast
 import pytest
 
 from wio.models import config as module
-from wio.models.config import Config, Stage
+from wio.models.config import Config, Harness, Log, Stage
 from wio.models.frozen import freeze
 
 if TYPE_CHECKING:
@@ -82,6 +82,24 @@ def test_a_config_is_immutable_and_hashable() -> None:
     assert config == equal
 
 
+def test_config_exposes_typed_log_settings() -> None:
+    """The config gives consumers immutable harness and log settings."""
+    # Given log settings with one named harness
+    harness = Harness(session=("SESSION_ID",))
+    settings = Log(harnesses=freeze({"example": harness}))
+    config = Config(log=settings)
+
+    # When a consumer reads the log settings and its harness definition
+    log = config.log
+    example = log.harnesses["example"]
+
+    # Then the config preserves the definitions and optional field defaults
+    assert log is settings
+    assert example == Harness(session=("SESSION_ID",), parent=())
+    assert log.prefer_harness == ()
+    assert log.record_env_vars == ("AI_AGENT",)
+
+
 def test_every_setting_has_a_description() -> None:
     """Each field of each type reachable from `Config` is described (AC-2)."""
     # Given every dataclass of the module
@@ -100,5 +118,5 @@ def test_every_setting_has_a_description() -> None:
     ]
 
     # Then each has a non-empty description in its metadata
-    assert len(classes) == 13
+    assert len(classes) == 15
     assert undescribed == []
