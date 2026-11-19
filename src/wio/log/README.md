@@ -78,3 +78,24 @@ covers the opt-out through the real command. The
 [trailers integration tests](../../../tests/integration/trailers/test_write.py)
 exercise the real log shared across worktrees and the command's standard
 streams.
+
+## Showing recorded events
+
+Run `wio log show [WORK] [--json]` to inspect the history of a clone's log.
+The [report reader](show.py) groups events by their recorded Work ids, so
+activity for a retired Work stays visible after its contract has gone.
+Workflow routing uses the
+[records in history](../../../docs/concepts.md#records).
+
+The report uses event time because an earlier event can appear later in a
+file. File names and line order settle ties between equal timestamps, giving
+the text and JSON views the same history. The
+[report renderer](render.py) uses the event codec's time formatter so the
+displayed UTC timestamps agree with the recorded ones.
+
+Each file is decoded independently. A torn last line belongs to its own file,
+so the next file's first event stays readable. The skipped-line count describes
+the clone's log as a whole, even when the result is filtered to a Work.
+The [command scenarios](../../../tests/acceptance/log/test_show.py) specify
+both output forms. The [reader tests](../../../tests/unit/log/test_show.py)
+cover failures to locate or read a file.

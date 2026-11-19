@@ -2368,10 +2368,11 @@ allows is the other way out.
 
 ### The event log
 
-An append-only JSONL file stored in the Wio home, one file per
-repository. A repository is identified by its git common directory, so the
-worktrees of one clone share a log, and each event is written as one line in a
-single append, so sessions that run at the same time do not interleave. It holds
+An append-only JSONL log stored in the Wio home, in a
+[directory for each clone](../src/wio/log/README.md#where-the-log-is).
+The clone's git common directory identifies it across worktrees. Each event
+is written as one line in a single append so simultaneous sessions can write
+without interleaving their event lines. The log holds
 ids, hashes, codes, times and the working directory, and no prompts, no code and
 no free text. It is personal to one machine, so the history answers "what was
 done" for everyone, and the log answers "what I started". Writing it never
@@ -2410,7 +2411,8 @@ results = ["pass", "fail", "unknown"]
 
 The record in the history carries only the overall result. The log keeps the
 detail, including the reviewed commit, which a squash merge would remove from
-the history.
+the history. [`wio log show`](../src/wio/log/README.md#showing-recorded-events)
+reads this activity from all the files of the clone's log.
 
 Because events carry the harness session id, they can be joined to the harness's
 own transcripts. That gives token and cost totals per Work and per stage, which
