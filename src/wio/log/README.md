@@ -2,8 +2,8 @@
 
 The component behind `wio log`: it records the sessions and reviews of one
 clone in the [event log](../../../docs/concepts.md#the-event-log) and reads them
-back. The terms Port and Adapter are defined in the
-[glossary of `src/wio`](../GLOSSARY.md).
+back. The [glossary of `src/wio`](../GLOSSARY.md) defines the envelope,
+harness and harness session.
 
 ## Where the log is
 
@@ -62,8 +62,10 @@ well-shaped id as supplied, without looking up its transcript.
 [`LogSink`](sink.py) is the adapter of [`EventSink`](../ports.pyi) that stamps
 and records both kinds of event. It uses the shared session identification and
 [versioned line codec](../formats/README.md#event-log-lines) so every producer
-writes the same envelope. A single append keeps concurrent writers from
-interleaving event lines on the local filesystem.
+writes the same envelope. This assumes short records on a local filesystem
+where a single append keeps concurrent writers from interleaving event lines.
+A torn append can also cost the following event if its line starts immediately
+after the incomplete bytes. The reader recovers at the next line boundary.
 
 Recording is best effort so a command can still give its result when storage
 is unavailable. The diagnostic identifies the write destination once it is
@@ -79,7 +81,7 @@ covers the opt-out through the real command. The
 exercise the real log shared across worktrees and the command's standard
 streams.
 
-### Recording a review
+### Recording and reading events
 
 The composition root builds the sink from the same effective log settings
 that the command loaded. Session identification reads the process
@@ -89,6 +91,8 @@ the review and can be associated with that run's transcript.
 ```mermaid
 flowchart LR
     T["wio trailers --result"] --> S["LogSink"]
+    Rv["wio log review"] --> S
+    X["ContextEvent from a caller"] --> S
     S --> O{"WIO_LOG is off?"}
     O -- "off" --> R["Return"]
     O -- "record" --> L["Locate the clone log"]
@@ -96,12 +100,21 @@ flowchart LR
     C["Effective log settings"] --> I
     E["Process environment"] --> I
     I --> F["Stamp and encode the event"]
+    Time["Clock and working directory"] --> F
     F --> A["Append to events.jsonl"]
+    A --> V["wio log show"]
+    L -. "event files in clone log" .-> V
 ```
 
 The [recording scenarios](../../../tests/acceptance/log/test_record.py)
 exercise the whole path through the real CLI, including configured harnesses,
-preference precedence, and unresolved nested runs.
+preference precedence, and unresolved nested runs. The
+[log workflow scenarios](../../../tests/acceptance/log/test_workflow.py)
+cover recording through both commands, the log switch, and reading back
+through damage. The
+[adapter integration tests](../../../tests/integration/log/test_workflow.py)
+exercise concurrent writers and verify that a caller can supply a complete
+[`ContextEvent`](../models/events.py) and receive the same payload on decode.
 
 ## Showing recorded events
 
@@ -117,12 +130,13 @@ the text and JSON views the same history. The
 [report renderer](render.py) uses the event codec's time formatter so the
 displayed UTC timestamps agree with the recorded ones.
 
-Each file is decoded independently. A torn last line belongs to its own file,
-so the next file's first event stays readable. The skipped-line count describes
-the clone's log as a whole, even when the result is filtered to a Work.
-The [command scenarios](../../../tests/acceptance/log/test_show.py) specify
-both output forms. The [reader tests](../../../tests/unit/log/test_show.py)
-cover failures to locate or read a file.
+Each file is decoded independently. A torn last line belongs to its own file, so
+the next file's first event stays readable. The skipped-line count describes the
+clone's log as a whole, even when the result is filtered to a Work. Reading the
+log in memory suits the expected volume of a single clone's personal activity.
+The [command scenarios](../../../tests/acceptance/log/test_show.py) specify both
+output forms. The [reader tests](../../../tests/unit/log/test_show.py) cover
+failures to locate or read a file.
 
 ## Recording a gate review without commit records
 
