@@ -73,6 +73,8 @@ opt out before location, including when the home is unavailable.
 
 The [sink tests](../../../tests/unit/log/test_sink.py) cover stamping, switch
 values and diagnostics. The
+[trailers acceptance scenario](../../../tests/acceptance/trailers/test_command.py)
+covers the opt-out through the real command. The
 [trailers integration tests](../../../tests/integration/trailers/test_write.py)
 exercise the real log shared across worktrees and the command's standard
 streams.
