@@ -186,6 +186,7 @@ depends_on = [
     "wio.env",
     "wio.env.adapters",
     "wio.errors",
+    "wio.formats",
     "wio.io",
     "wio.io.adapters",
     "wio.io.views",
