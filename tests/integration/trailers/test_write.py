@@ -288,25 +288,51 @@ def test_the_default_command_appends_reviews_from_both_worktrees(
 
 
 @pytest.mark.slow
-def test_the_default_command_outside_git_leaves_the_home_empty() -> None:
+def test_the_default_command_outside_git_leaves_the_home_empty(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """AC-4 preserves the command error outside a repository.
 
-    An unavailable repository stops the command before it can record.
+    Args:
+        sandbox: Supplies a folder outside Git and an isolated Wio home.
+        monkeypatch: Enters the sandbox.
     """
     # Given a working directory outside Git and an empty Wio home.
+    enter(sandbox, monkeypatch)
+    home = Path(sandbox.env["WIO_HOME"])
+    home.mkdir()
+
     # When the default command attempts to record a result.
-    # Then the original trailers usage error is returned and the home is empty.
-    pytest.skip("Pending log sink wiring")
+    code, stdout, stderr = _run_default()
+
+    # Then it reports the original usage error and the home is empty.
+    assert (code, stdout) == (2, "")
+    assert stderr.startswith("error: ")
+    assert "not inside a git repository" in stderr
+    assert not list(home.iterdir())
 
 
 @pytest.mark.slow
-def test_the_default_command_writes_log_warnings_to_its_stderr() -> None:
-    """AC-4 routes recording warnings to the command's supplied streams.
+def test_the_default_command_writes_log_warnings_to_its_stderr(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-4 routes log warnings to the command streams.
 
-    An unavailable events file leaves the gate result available to the caller.
+    Args:
+        sandbox: Isolates the clone and Wio home.
+        monkeypatch: Enables logging and sets a home whose parent is a file.
     """
     # Given a real clone and a Wio home beneath a regular file.
-    # When the default CLI entry point records a gate with in-memory Stdio.
-    # Then it exits zero, the record goes to stdout, and stderr warns that the
-    # event log could not be written.
-    pytest.skip("Pending log sink wiring")
+    _project(sandbox, monkeypatch)
+    blocked = sandbox.root.parent / "blocked"
+    blocked.touch()
+    monkeypatch.setenv("WIO_HOME", str(blocked / "wio-home"))
+    monkeypatch.delenv("WIO_LOG", raising=False)
+
+    # When the default CLI entry point records a gate with in-memory streams.
+    code, stdout, stderr = _run_default()
+
+    # Then the record and success status survive the append failure.
+    assert (code, stdout) == (0, GATE.replace("human", "agent") + "\n")
+    assert "warning: the event log could not be written:" in stderr
+    assert str(blocked / "wio-home") in stderr

@@ -4,9 +4,8 @@
 The scenarios use the project of `test_command.py`: a git repository whose config
 declares the gate `architecture-review`, with `judge = "human"`, and a Work `k3m9xq`
 that has an item `AC-1`. They run on the CLI channel only, because the form finds
-the reviewed commit in the history of a git repository. The `review` event reaches
-a sink that the CLI wires to nothing, so the events are asserted in
-`tests/integration/trailers/test_write.py`.
+the reviewed commit in the history of a git repository. The recorded events
+are asserted in `tests/integration/trailers/test_write.py`.
 """
 
 from typing import TYPE_CHECKING

@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pathlib import Path
 
-# Git sets these for a hook, and they would aim a scenario's git at the
-# developer's own repository, index or objects, or add config from outside.
-_GIT_REDIRECTS = frozenset(
+# Git hook variables can redirect repository reads and writes. Ambient log
+# settings and harness variables can change the events and warnings we see.
+_ISOLATED_VARIABLES = frozenset(
     {
         "GIT_DIR",
         "GIT_WORK_TREE",
@@ -24,6 +24,12 @@ _GIT_REDIRECTS = frozenset(
         "GIT_CONFIG_PARAMETERS",
         "GIT_CONFIG_SYSTEM",
         "WIO_HOME",
+        "WIO_LOG",
+        "WIO_PREFER_HARNESS",
+        "CLAUDE_CODE_SESSION_ID",
+        "CODEX_SESSION_ID",
+        "CODEX_THREAD_ID",
+        "AI_AGENT",
     }
 )
 
@@ -42,13 +48,13 @@ def _inherited() -> dict[str, str]:
     """Copy the process environment without what would leak the developer's.
 
     Returns:
-        The variables left after the ones that redirect git, set a Wio home or
-        make git trace to standard error are dropped.
+        The variables left after git redirection and tracing settings, log
+        settings and built-in harness variables are dropped.
     """
     return {
         key: value
         for key, value in os.environ.items()
-        if key not in _GIT_REDIRECTS and not key.startswith("GIT_TRACE")
+        if key not in _ISOLATED_VARIABLES and not key.startswith("GIT_TRACE")
     }
 
 

@@ -1,13 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The null adapters that `wio.cli` wires where a component is missing.
+"""The null adapters available at the command composition boundary.
 
-`wio trailers` consumes the rules of a stage and an event sink, and neither
-component exists yet. Until the rules component satisfies `StageRules`, the command
-wires a port that selects no rule, so a cited rule code is refused as not selected,
-and until `wio log` exists it wires a sink that drops every event, as constraint C-4
-of the top parent says, so a recorded gate result leaves nothing in the Wio home.
-They live in `wio.cli`, the one place that builds adapters, and `wio.trailers` never
-imports them.
+`wio trailers` wires `NoRules` until a component supplies the rules of a
+stage. Tests can inject `NoEvents` when a review should have no side effects.
 """
 
 from typing import TYPE_CHECKING
