@@ -13,15 +13,20 @@ needed.
 
 ## Event log lines
 
-The event log shares one [JSON line codec](event_lines.py) for both event
-types. The [event models](../models/events.py) describe what the event and
-its envelope carry. The codec takes text and values so a reader and a writer
-can share the wire format independently of how the log is stored.
+The [event log](../../../docs/concepts.md#the-event-log) shares one
+[JSON line codec](event_lines.py) for both event types. The
+[event models](../models/events.py) describe what the event and its envelope
+carry. Producers supply complete events. For context events, the producer
+computes the bundle id and rule hashes and supplies the starting commit for
+a gate. The codec serializes those values independently of log storage.
 
 Version 1 can gain optional fields. Keeping existing field names and
 meanings lets a reader use older entries and ignore fields added by a
 newer writer. Removing a field or changing its meaning requires a new
 version.
+
+Omitting absent optional fields keeps each line compact. Bundle size uses
+bytes to express its length for harness truncation.
 
 A partial write can leave a damaged line. Reading each line independently
 keeps surrounding entries usable and gives the caller a count of the
