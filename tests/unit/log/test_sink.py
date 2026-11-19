@@ -10,11 +10,18 @@ from dataclasses import dataclass
 from errno import EACCES, ENOSPC, EROFS
 from io import StringIO
 from pathlib import Path
-from unittest.mock import Mock, call
+from typing import override
 
 import pytest
 
-from tests.unit.fakes import FakeStdio
+from tests.fakes import FakeEnvironment
+from tests.unit.fakes import (
+    FakeClock,
+    FakeDirectories,
+    FakeRepository,
+    FakeStdio,
+    MemoryFileSystem,
+)
 from wio.formats.event_lines import Entry, decode_lines
 from wio.log.sink import LogSink
 from wio.models.config import Log
@@ -55,11 +62,11 @@ class Recording:
     """
 
     sink: LogSink
-    environment: Mock
-    clock: Mock
-    directories: Mock
-    repository: Mock
-    filesystem: Mock
+    environment: FakeEnvironment
+    clock: FakeClock
+    directories: FakeDirectories
+    repository: FakeRepository
+    filesystem: MemoryFileSystem
     stderr: StringIO
 
 
@@ -70,16 +77,11 @@ def recording() -> Recording:
     Returns:
         The sink and the fake ports that tests can inspect or make fail.
     """
-    environment = Mock()
-    environment.get.side_effect = _VARIABLES.get
-    environment.working_directory.return_value = Path("/w/app/sub")
-    clock = Mock()
-    clock.now.return_value = 1795000000.0
-    directories = Mock()
-    directories.wio_home.return_value = _HOME
-    repository = Mock()
-    repository.identity.return_value = Path("/w/app/.git")
-    filesystem = Mock()
+    environment = FakeEnvironment(Path("/w/app/sub"), _VARIABLES.copy())
+    clock = FakeClock(1795000000.0)
+    directories = FakeDirectories(_HOME)
+    repository = FakeRepository(Path("/w/app"))
+    filesystem = MemoryFileSystem()
     stderr = StringIO()
     stdio = FakeStdio(stderr=stderr)
     sink = LogSink(
@@ -100,14 +102,11 @@ def _entries(recording: Recording) -> tuple[Entry, ...]:
         The decoded entries in append order.
 
     Raises:
-        AssertionError: The port did anything other than append valid event lines
-            to the clone's events file.
+        AssertionError: An append does not contain one valid event line for
+            the clone's events file.
     """
     entries: list[Entry] = []
-    for method in recording.filesystem.method_calls:
-        _, (path, text), kwargs = method
-        assert method == call.append_text(path, text)
-        assert not kwargs
+    for path, text in recording.filesystem.appends:
         assert path == _EVENTS
         assert text.endswith("\n")
         assert text.count("\n") == 1
@@ -141,7 +140,8 @@ def test_stamped_events_are_individual_appends(recording: Recording) -> None:
 
     # Then the only file operations appended two complete events.
     assert _entries(recording) == (Entry(expected, _REVIEW), Entry(expected, _CONTEXT))
-    first_text = recording.filesystem.append_text.call_args_list[0].args[1]
+    assert recording.filesystem.calls == [("append_text", _EVENTS)] * 2
+    _, first_text = recording.filesystem.appends[0]
     assert json.loads(first_text)["time"] == "2026-11-18T11:06:40.000Z"
     assert recording.stderr.getvalue() == ""
 
@@ -154,7 +154,7 @@ def test_a_codex_subagent_stamp_has_its_parent(recording: Recording) -> None:
     """
     # Given the Codex thread and its main session.
     variables = {"CODEX_SESSION_ID": "s1", "CODEX_THREAD_ID": "t2"}
-    recording.environment.get.side_effect = variables.get
+    recording.environment.variables = variables
 
     # When the event is written.
     recording.sink.write(_REVIEW)
@@ -174,7 +174,7 @@ def test_identification_warns_at_every_write(recording: Recording) -> None:
     """
     # Given an unusable Claude Code session id.
     variables = {"CLAUDE_CODE_SESSION_ID": "bad value!"}
-    recording.environment.get.side_effect = variables.get
+    recording.environment.variables = variables
 
     # When two events are written.
     recording.sink.write(_REVIEW)
@@ -216,19 +216,24 @@ def test_location_and_switch_read_failures_warn(
         message: The expected diagnostic detail.
     """
     # Given the switch, identity, or home lookup fails before a path is known.
-    methods = {
-        "switch": recording.environment.get,
-        "identity": recording.repository.identity,
-        "home": recording.directories.wio_home,
-    }
-    methods[step].side_effect = error
+    match step:
+        case "switch":
+            recording.environment.errors["WIO_LOG"] = error
+        case "identity":
+            recording.repository.top = None
+            recording.repository.message = str(error)
+        case "home":
+            recording.directories.home = error
+        case _:
+            raise AssertionError(step)
 
     # When the event is written.
     recording.sink.write(_REVIEW)
 
     # Then the sink stops before stamping or appending and warns on one line.
     assert recording.stderr.getvalue() == _LOCATION_WARNING + message + "\n"
-    assert recording.filesystem.mock_calls == recording.clock.mock_calls == []
+    assert not recording.filesystem.calls
+    assert recording.clock.reads == 0
 
 
 @pytest.mark.parametrize(
@@ -263,22 +268,25 @@ def test_stamp_and_append_failures_warn_with_the_events_path(
         message: The expected diagnostic detail.
     """
     # Given one step after location fails, including permission outside append.
-    faults = {
-        "identify": (recording.environment.get, [None, error]),
-        "directory": (recording.environment.working_directory, error),
-        "clock": (recording.clock.now, error),
-        "append": (recording.filesystem.append_text, error),
-    }
-    method, failure = faults[step]
-    method.side_effect = failure
+    match step:
+        case "identify":
+            recording.environment.errors["CLAUDE_CODE_SESSION_ID"] = error
+        case "directory":
+            recording.environment.errors[None] = error
+        case "clock":
+            recording.clock.seconds = error
+        case "append":
+            recording.filesystem.append_failure = error
+        case _:
+            raise AssertionError(step)
 
     # When the event is written.
     recording.sink.write(_REVIEW)
 
     # Then there is one write warning with no hint or further append attempt.
     assert recording.stderr.getvalue() == _WRITE_WARNING + message + "\n"
-    assert recording.filesystem.append_text.call_count == int(step == "append")
-    assert call.get("WIO_HOME") not in recording.environment.mock_calls
+    assert len(recording.filesystem.appends) == int(step == "append")
+    assert "WIO_HOME" not in recording.environment.reads
 
 
 def test_encoding_failure_is_reported_before_append(recording: Recording) -> None:
@@ -288,7 +296,7 @@ def test_encoding_failure_is_reported_before_append(recording: Recording) -> Non
         recording: Fake ports with a configurable clock.
     """
     # Given a time the line encoder refuses.
-    recording.clock.now.return_value = float("inf")
+    recording.clock.seconds = float("inf")
 
     # When the event is written.
     recording.sink.write(_REVIEW)
@@ -298,7 +306,7 @@ def test_encoding_failure_is_reported_before_append(recording: Recording) -> Non
         recording.stderr.getvalue()
         == _WRITE_WARNING + "event time must be finite and nonnegative\n"
     )
-    assert recording.filesystem.mock_calls == []
+    assert not recording.filesystem.calls
 
 
 @pytest.mark.parametrize(
@@ -326,9 +334,9 @@ def test_append_permission_hint_is_conditional(
         hint: Whether the write warning should be followed by a hint.
     """
     # Given an append error and a default or explicitly named Wio home.
-    variables = _VARIABLES | {"WIO_HOME": home}
-    recording.environment.get.side_effect = variables.get
-    recording.filesystem.append_text.side_effect = error
+    if home is not None:
+        recording.environment.variables["WIO_HOME"] = home
+    recording.filesystem.append_failure = error
 
     # When the event is written.
     recording.sink.write(_REVIEW)
@@ -338,7 +346,7 @@ def test_append_permission_hint_is_conditional(
     if hint:
         expected.append(_HINT)
     assert recording.stderr.getvalue().splitlines() == expected
-    assert recording.filesystem.append_text.call_count == 1
+    assert len(recording.filesystem.appends) == 1
 
 
 def test_failure_to_read_the_hint_variable_is_swallowed(recording: Recording) -> None:
@@ -348,34 +356,48 @@ def test_failure_to_read_the_hint_variable_is_swallowed(recording: Recording) ->
         recording: Fake ports with a configurable append and environment.
     """
     # Given a permission failure and a WIO_HOME lookup that fails.
-    recording.filesystem.append_text.side_effect = PermissionError(
-        EACCES, "Permission denied"
-    )
+    recording.filesystem.append_failure = PermissionError(EACCES, "Permission denied")
 
-    def get(name: str) -> str | None:
-        """Read the fixed environment, except for the inaccessible home value.
-
-        Args:
-            name: The environment variable to look up.
-
-        Returns:
-            The variable's value, if set.
-
-        Raises:
-            OSError: When the sink reads WIO_HOME.
-        """
-        if name == "WIO_HOME":
-            message = "denied"
-            raise OSError(message)
-        return _VARIABLES.get(name)
-
-    recording.environment.get.side_effect = get
+    recording.environment.errors["WIO_HOME"] = OSError("denied")
 
     # When the event is written.
     recording.sink.write(_REVIEW)
 
     # Then the original warning remains and the hint is omitted.
     assert recording.stderr.getvalue() == _WRITE_WARNING + "Permission denied\n"
+
+
+class FailingStderr(StringIO):
+    """An in-memory stream that rejects messages with a configured prefix."""
+
+    def __init__(self, prefix: str) -> None:
+        """Start with no output and a single category of message to reject.
+
+        Args:
+            prefix: The prefix of messages that fail to write.
+        """
+        super().__init__()
+        self.prefix = prefix
+        self.rejected: list[str] = []
+
+    @override
+    def write(self, text: str, /) -> int:
+        """Write a message unless it matches the configured failure.
+
+        Args:
+            text: The message to write.
+
+        Returns:
+            The number of characters written.
+
+        Raises:
+            ValueError: The message matches the failure prefix.
+        """
+        if text.startswith(self.prefix):
+            self.rejected.append(text)
+            message = "stderr unavailable"
+            raise ValueError(message)
+        return super().write(text)
 
 
 def test_failure_to_write_an_identification_warning_stops_the_append(
@@ -386,22 +408,18 @@ def test_failure_to_write_an_identification_warning_stops_the_append(
     Args:
         recording: Fake ports with a configurable environment and stderr.
     """
-    # Given a malformed session id and stderr that fails on its first write.
+    # Given a malformed session id and stderr that rejects identification warnings.
     variables = {"CLAUDE_CODE_SESSION_ID": "bad value!"}
-    recording.environment.get.side_effect = variables.get
-    stderr = Mock()
-    stderr.write.side_effect = [ValueError("stderr unavailable"), None]
+    recording.environment.variables = variables
+    stderr = FailingStderr("warning: CLAUDE_CODE_SESSION_ID")
     recording.sink.stdio.stderr = stderr
 
     # When the event is written.
     recording.sink.write(_REVIEW)
 
     # Then the sink reports the failure with the events path and omits the append.
-    assert stderr.write.call_args_list == [
-        call("warning: CLAUDE_CODE_SESSION_ID has an invalid id\n"),
-        call(_WRITE_WARNING + "stderr unavailable\n"),
-    ]
-    assert recording.filesystem.mock_calls == []
+    assert stderr.getvalue() == _WRITE_WARNING + "stderr unavailable\n"
+    assert not recording.filesystem.calls
 
 
 def test_failure_to_write_a_warning_is_swallowed(recording: Recording) -> None:
@@ -411,20 +429,18 @@ def test_failure_to_write_a_warning_is_swallowed(recording: Recording) -> None:
         recording: Fake ports with a configurable stderr.
     """
     # Given a permission failure and an unavailable standard error stream.
-    recording.filesystem.append_text.side_effect = PermissionError(
-        EACCES, "Permission denied"
-    )
-    stderr = Mock()
-    stderr.write.side_effect = ValueError("closed")
+    recording.filesystem.append_failure = PermissionError(EACCES, "Permission denied")
+    stderr = FailingStderr(_WRITE_WARNING)
     recording.sink.stdio.stderr = stderr
 
     # When the event is written.
     recording.sink.write(_REVIEW)
 
     # Then it attempts the write warning once and skips the hint.
-    stderr.write.assert_called_once_with(_WRITE_WARNING + "Permission denied\n")
-    assert recording.filesystem.append_text.call_count == 1
-    assert call.get("WIO_HOME") not in recording.environment.mock_calls
+    assert stderr.rejected == [_WRITE_WARNING + "Permission denied\n"]
+    assert stderr.getvalue() == ""
+    assert len(recording.filesystem.appends) == 1
+    assert "WIO_HOME" not in recording.environment.reads
 
 
 def test_off_short_circuits_recording(recording: Recording) -> None:
@@ -435,16 +451,18 @@ def test_off_short_circuits_recording(recording: Recording) -> None:
     """
     # Given the exact switch, a malformed session, and a failing repository.
     variables = {"WIO_LOG": "off", "CLAUDE_CODE_SESSION_ID": "bad value!"}
-    recording.environment.get.side_effect = variables.get
-    recording.repository.identity.side_effect = RuntimeError("not in a repository")
+    recording.environment.variables = variables
+    recording.repository.top = None
 
     # When the event is written.
     recording.sink.write(_REVIEW)
 
     # Then it exits after reading the switch and has no side effects.
-    assert recording.environment.mock_calls == [call.get("WIO_LOG")]
-    assert recording.repository.mock_calls == recording.directories.mock_calls == []
-    assert recording.filesystem.mock_calls == recording.clock.mock_calls == []
+    assert recording.environment.reads == ["WIO_LOG"]
+    assert recording.repository.identity_reads == 0
+    assert not recording.directories.reads
+    assert not recording.filesystem.calls
+    assert recording.clock.reads == 0
     assert recording.stderr.getvalue() == ""
 
 
@@ -466,7 +484,7 @@ def test_other_switch_values_leave_recording_on(
     """
     # Given an unrecognized nonempty switch value or an empty one.
     variables = _VARIABLES | {"WIO_LOG": switch}
-    recording.environment.get.side_effect = variables.get
+    recording.environment.variables = variables
 
     # When the event is written.
     recording.sink.write(_REVIEW)
