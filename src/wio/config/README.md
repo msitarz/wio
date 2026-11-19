@@ -210,9 +210,9 @@ how it assembles the effective table and its sources.
 The config supplies ordered candidates for session and parent lookup. The
 session-detection consumer owns the rules for examining and validating
 candidate values. Additional variable names request recording of present,
-valid values as supplied. The [log settings check](log_settings.py)
-reserves `none` for the `WIO_PREFER_HARNESS` override, where it clears the
-harness preference.
+valid values as supplied. The [log settings check](log_settings.py) reserves
+`none` for the planned `WIO_PREFER_HARNESS` override. In the consumer
+contract, that value denotes an empty harness preference list.
 
 [Acceptance tests](../../../tests/acceptance/config/test_log_settings.py)
 specify the values and sources a caller sees, the key paths of diagnostics,
