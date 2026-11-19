@@ -2,6 +2,7 @@
 """Contract scenarios for the versioned event log codec."""
 
 import json
+import sys
 from dataclasses import replace
 
 import pytest
@@ -201,6 +202,22 @@ def test_reader_ignores_unknown_fields_on_supported_records(
     decoded = decode_lines(json.dumps(row))
 
     # Then the additional field is ignored.
+    assert decoded == Decoding((Entry(envelope, review),), 0)
+
+
+def test_oversized_unknown_integer_does_not_hide_a_supported_record(
+    envelope: Envelope, review: ReviewEvent
+) -> None:
+    """AC-4 ignores future integers without lifting the runtime's digit limit."""
+    # Given a version 1 review with a valid oversized JSON integer in a new field.
+    row = encode_line(envelope, review).removesuffix("}\n")
+    digits = sys.get_int_max_str_digits() or sys.int_info.default_max_str_digits
+    extended = row + ', "later": {"large": ' + "9" * (digits + 1) + "}}"
+
+    # When the record is read.
+    decoded = decode_lines(extended)
+
+    # Then the current event survives and no line is skipped.
     assert decoded == Decoding((Entry(envelope, review),), 0)
 
 

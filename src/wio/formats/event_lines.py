@@ -192,8 +192,27 @@ def _decode_entry(line: str) -> Entry | None:
         The decoded entry, or `None` when the line cannot be read.
     """
     try:
-        return _read_fields(json.loads(line, parse_constant=_reject_constant))
+        fields = json.loads(
+            line, parse_int=_read_integer, parse_constant=_reject_constant
+        )
+        return _read_fields(fields)
     except ValueError, RecursionError:
+        return None
+
+
+def _read_integer(token: str) -> int | None:
+    """Convert a JSON integer under Python's integer conversion limit.
+
+    Args:
+        token: A syntactically valid JSON integer token.
+
+    Returns:
+        The integer or `None` when conversion exceeds the limit. Integer
+        fields reject that marker. Unknown fields remain ignorable.
+    """
+    try:
+        return int(token)
+    except ValueError:
         return None
 
 
