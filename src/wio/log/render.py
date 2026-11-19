@@ -21,6 +21,8 @@ def render(report: Report, *, as_json: bool) -> str:
         as_json: Whether to produce a JSON document in place of text.
 
     Returns:
-        The report with a final newline, or empty text if there are no rows.
+        A JSON document with a final newline even when no Works are selected.
+        The text form has a final newline when it has any rows, and is empty
+        otherwise.
     """
     raise NotImplementedError

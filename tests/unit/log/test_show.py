@@ -76,8 +76,8 @@ def test_missing_inputs() -> None:
     # Given an absent or empty log, an unmatched or retired Work, and an unavailable
     # repository.
     # When log show or its parent command runs.
-    # Then retired Works are visible, empty selections succeed, and repository failure
-    # exits two.
+    # Then retired Works are visible. No log or unmatched Work gives empty
+    # text and {"works": {}, "skipped": 0} in JSON. No repository exits two.
     pytest.skip("Pending log show implementation")
 
 
@@ -101,8 +101,8 @@ def test_diagnostics_for_filtered_works() -> None:
     """
     # Given one bad line and events of two Works, then an entirely unreadable log.
     # When log show or its parent command runs.
-    # Then filtering keeps the global count, with singular or plural text notes and no
-    # note when zero.
+    # Then filtering keeps the global count even when the JSON works map is
+    # empty. Text has singular or plural notes and no note when skipped is zero.
     pytest.skip("Pending log show implementation")
 
 
