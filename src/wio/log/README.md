@@ -79,6 +79,30 @@ covers the opt-out through the real command. The
 exercise the real log shared across worktrees and the command's standard
 streams.
 
+### Recording a review
+
+The composition root builds the sink from the same effective log settings
+that the command loaded. Session identification reads the process
+environment at each write, so the envelope reflects the run that produced
+the review and can be associated with that run's transcript.
+
+```mermaid
+flowchart LR
+    T["wio trailers --result"] --> S["LogSink"]
+    S --> O{"WIO_LOG is off?"}
+    O -- "off" --> R["Return"]
+    O -- "record" --> L["Locate the clone log"]
+    L --> I["Identify the session"]
+    C["Effective log settings"] --> I
+    E["Process environment"] --> I
+    I --> F["Stamp and encode the event"]
+    F --> A["Append to events.jsonl"]
+```
+
+The [recording scenarios](../../../tests/acceptance/log/test_record.py)
+exercise the whole path through the real CLI, including configured harnesses,
+preference precedence, and unresolved nested runs.
+
 ## Showing recorded events
 
 Run `wio log show [WORK] [--json]` to inspect the history of a clone's log.
