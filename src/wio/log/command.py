@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
     from wio.env.ports import Directories
     from wio.io.ports import FileSystem, Repository, Stdio
+    from wio.log.review import ReviewCommand
 
 
 class Arguments:
@@ -42,11 +43,13 @@ class LogCommand:
         repository: Supplies the identity of the clone.
         directories: Supplies the Wio home.
         filesystem: Reads the clone's log files.
+        review: Wires the review form after it has been selected.
     """
 
     repository: Repository
     directories: Directories
     filesystem: FileSystem
+    review: Callable[[], ReviewCommand]
 
     def run(self, args: Namespace, stdio: Stdio) -> int:
         """Run the chosen form of the command.
@@ -65,6 +68,8 @@ class LogCommand:
         if arguments.log_form is None:
             stdio.stdout.write(arguments.log_help())
             return 0
+        if arguments.log_form == "review":
+            return self.review().run(args, stdio)
         report = read_report(
             self.repository, self.directories, self.filesystem, arguments.work
         )

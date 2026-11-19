@@ -10,7 +10,10 @@ from typing import Protocol
 from wio.models.reviews import Accepted, Refusal
 
 class ReviewChecker(Protocol):
-    """Judge a review before the caller writes or reports its event."""
+    """Judge a review before the caller writes or reports its event.
+
+    Checking supplies diagnostics and the event without writing to the sink.
+    """
 
     def check(
         self,

@@ -4,6 +4,7 @@
 The usage can be built without locating the log or loading the implementation.
 """
 
+from argparse import ArgumentTypeError
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -14,7 +15,7 @@ class LogSpec:
     """The command spec that declares the log forms without wiring the ports."""
 
     name = "log"
-    help = "Show recorded events."
+    help = "Show events and record reviews."
 
     def configure(self, parser: ArgumentParser) -> None:
         """Declare help and the arguments supported by the log forms.
@@ -32,6 +33,36 @@ class LogSpec:
             "--json", action="store_true", help="Write one JSON document."
         )
         show.set_defaults(log_form="show")
+
+        review = forms.add_parser("review", help="Record a gate review in the log.")
+        review.add_argument("work", type=_single_work)
+        review.add_argument("action")
+        review.add_argument("stage")
+        review.add_argument("--result", required=True)
+        review.add_argument("--judge", default="agent")
+        review.add_argument("--cite", action="append", default=[], metavar="KEY=RESULT")
+        review.add_argument(
+            "--json", action="store_true", help="Write one JSON document."
+        )
+        review.set_defaults(log_form="review")
+
+
+def _single_work(work: str) -> str:
+    """Keep the Work argument when it names a single Work.
+
+    Args:
+        work: The argument as typed.
+
+    Returns:
+        The original Work argument for field validation.
+
+    Raises:
+        ArgumentTypeError: The argument contains a comma and represents a list.
+    """
+    if "," in work:
+        message = "name one Work for a review"
+        raise ArgumentTypeError(message)
+    return work
 
 
 def describe() -> LogSpec:

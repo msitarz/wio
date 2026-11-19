@@ -126,19 +126,32 @@ def _event_fields(event: Event) -> dict[str, object]:
     Returns:
         The event's required fields and any applicable optional fields.
     """
-    shared: dict[str, object] = {
+    if isinstance(event, ReviewEvent):
+        return review_payload(event)
+    return {
         "work": event.work,
         "action": event.action,
         "stage": event.stage,
+        "bundle": event.bundle,
+        "size": event.size,
+        "rules": dict(event.rules),
+        **_present(start=event.start, dirty=event.dirty),
     }
-    if isinstance(event, ContextEvent):
-        return shared | {
-            "bundle": event.bundle,
-            "size": event.size,
-            "rules": dict(event.rules),
-            **_present(start=event.start, dirty=event.dirty),
-        }
-    return shared | {
+
+
+def review_payload(event: ReviewEvent) -> dict[str, object]:
+    """Project the review's fields in the order used by its two JSON forms.
+
+    Args:
+        event: A checked review, with citations in their request order.
+
+    Returns:
+        The review payload for a log line or a review response.
+    """
+    return {
+        "work": event.work,
+        "action": event.action,
+        "stage": event.stage,
         "commit": event.commit,
         "judge": event.judge,
         "result": event.result,

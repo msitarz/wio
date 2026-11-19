@@ -10,19 +10,24 @@ with fakes of the ports. The form composes `render`, `check_shape` and
 `wio.trailers.gate`, which records what the gate judged.
 """
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from wio.formats import check_shape, render
 from wio.models.records import Finding
+from wio.models.reviews import Refusal
 from wio.trailers.errors import TrailersError
 from wio.trailers.gate import run_review
 from wio.trailers.validation import Field, validate_record
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
+    from collections.abc import Sequence
 
     from wio.io.ports import Stdio
+    from wio.models.config import Config
     from wio.models.diagnostics import Diagnostic
+    from wio.models.reviews import Accepted
     from wio.trailers import Services
 
 
@@ -39,6 +44,71 @@ _OPTIONS = {
 }
 """The options that take one value and what `--help` says of each."""
 _CITE = "An item id or a rule code and its result, as KEY=RESULT."
+
+
+@dataclass(frozen=True)
+class TrailersReviewChecker:
+    """The review checker backed by the ports that trailers uses.
+
+    Attributes:
+        services: The settings, contracts, rules and repository history.
+    """
+
+    services: Services
+
+    def check(
+        self,
+        work: str,
+        action: str,
+        stage: str,
+        result: str,
+        judge: str,
+        cites: Sequence[str],
+    ) -> Accepted | Refusal:
+        """Check a review without writing an event or record.
+
+        Args:
+            work: The Work under review.
+            action: The action that contains the gate.
+            stage: The gate that was reviewed.
+            result: The overall judgement.
+            judge: Who judged the review.
+            cites: Citations in their original order.
+
+        Returns:
+            The accepted review or the diagnostics that refused it.
+        """
+        fields = [
+            ("Wio-Work", work),
+            ("Wio-Action", action),
+            ("Wio-Stage", stage),
+            ("Wio-Result", result),
+            ("Wio-Judge", judge),
+        ]
+        decision = _check_review(
+            self.services, fields, cites, self.services.settings.load()
+        )
+        return decision if isinstance(decision, Refusal) else decision[1]
+
+
+def _check_review(
+    _services: Services,
+    _fields: list[tuple[str, str]],
+    _cites: Sequence[str],
+    _config: Config,
+) -> tuple[str, Accepted] | Refusal:
+    """Check a review request and retain the record for the trailers caller.
+
+    Args:
+        _services: The readers of the Work, rules and commit history.
+        _fields: The record fields in their printing order.
+        _cites: The review citations.
+        _config: The effective config for the field checks.
+
+    Returns:
+        The rendered record and accepted review, or the combined refusal.
+    """
+    return Refusal(("error: review checks are not implemented",))
 
 
 def configure_write(parser: ArgumentParser) -> None:

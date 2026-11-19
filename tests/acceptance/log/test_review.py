@@ -4,7 +4,16 @@
 The scenarios compare both review entry points and observe the log on disk.
 """
 
+from pathlib import Path
+from typing import TYPE_CHECKING
+
 import pytest
+
+from tests.acceptance.channels import Channel
+
+if TYPE_CHECKING:
+    from tests.acceptance.dsl.wio import Wio
+    from tests.sandbox import Sandbox
 
 
 def test_both_commands_record_the_same_event() -> None:
@@ -83,17 +92,34 @@ def test_review_stops_at_the_first_refusing_group_in_both_forms() -> None:
     pytest.skip("Pending log review implementation")
 
 
-def test_usage_mistakes_exit_two() -> None:
-    """AC-5 distinguishes bad usage from a review that fails its checks.
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["k3m9xq", "deliver", "docs-review"],
+        ["k3m9xq,other1", "deliver", "docs-review", "--result", "pass"],
+        ["k3m9xq", "deliver", "docs-review", "--result", "pass", "--bogus"],
+    ],
+    ids=["missing-result", "work-list", "unknown-option"],
+)
+def test_usage_mistakes_exit_two(wio: Wio, sandbox: Sandbox, args: list[str]) -> None:
+    """AC-5 distinguishes syntax errors from refused review fields.
 
-    Usage errors occur before any event reaches the sink.
+    Args:
+        wio: Runs the normal log command.
+        sandbox: Supplies the isolated Wio home.
+        args: The invalid arguments for review.
     """
-    # Given a real clone, or a working directory outside any repository.
-    # When review runs without a result, with a Work list, with an unknown
-    # option, or outside the repository.
-    # Then each exits 2 with an explanation on stderr, empty stdout and
-    # no receipt at the event sink.
-    pytest.skip("Pending log review implementation")
+    # Given an invalid review command and an untouched Wio home.
+    home = Path(sandbox.env["WIO_HOME"])
+
+    # When the command is parsed.
+    output = wio.run(["log", "review", *args])
+
+    # Then parsing exits two, explains the problem and writes no event.
+    assert (output.exit_code, output.stdout) == (2, "")
+    assert "error:" in output.stderr
+    assert not home.exists()
 
 
 def test_config_failure_matches_trailers() -> None:
@@ -107,15 +133,22 @@ def test_config_failure_matches_trailers() -> None:
     pytest.skip("Pending log review implementation")
 
 
-def test_help_names_show_and_review() -> None:
-    """AC-6 makes the two forms discoverable.
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+def test_help_names_show_and_review(wio: Wio) -> None:
+    """AC-6 makes review and show discoverable in a directory outside Git.
 
-    Help can be printed in any working directory.
+    Args:
+        wio: Runs the command from an uninitialized sandbox.
     """
     # Given a working directory outside a repository.
-    # When wio log -h runs.
-    # Then it exits zero and names review and show on stdout.
-    pytest.skip("Pending log review implementation")
+
+    # When log help is requested.
+    output = wio.run(["log", "-h"])
+
+    # Then help names both forms and exits successfully.
+    assert (output.exit_code, output.stderr) == (0, "")
+    assert "show" in output.stdout
+    assert "review" in output.stdout
 
 
 def test_a_real_review_is_visible_in_show() -> None:

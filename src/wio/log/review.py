@@ -5,7 +5,11 @@ The command sends the event to the shared sink and can describe it as JSON.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
+
+from wio.formats import encode_json
+from wio.formats.event_lines import review_payload
+from wio.models.reviews import Refusal
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -13,6 +17,28 @@ if TYPE_CHECKING:
     from wio.io.ports import Stdio
     from wio.log.ports import ReviewChecker
     from wio.ports import EventSink
+
+
+class Arguments:
+    """Parsed values specific to the review form.
+
+    Attributes:
+        work: The Work under review.
+        action: The action whose gate is reviewed.
+        stage: The gate that was reviewed.
+        result: The overall result.
+        judge: The human or agent who judged the review.
+        cite: Citations in argument order.
+        json: Whether to print the accepted event as JSON.
+    """
+
+    work: str
+    action: str
+    stage: str
+    result: str
+    judge: str
+    cite: list[str]
+    json: bool
 
 
 @dataclass(frozen=True)
@@ -38,4 +64,22 @@ class ReviewCommand:
             Zero for an accepted event or one for a refusal, with no output
             on stdout for a refusal or a successful text-mode command.
         """
-        raise NotImplementedError
+        values = cast("Arguments", args)
+        outcome = self.checker.check(
+            values.work,
+            values.action,
+            values.stage,
+            values.result,
+            values.judge,
+            values.cite,
+        )
+        if isinstance(outcome, Refusal):
+            stdio.stderr.writelines(line + "\n" for line in outcome.lines)
+            return 1
+        stdio.stderr.writelines(line + "\n" for line in outcome.warnings)
+        self.events.write(outcome.event)
+        if values.json:
+            stdio.stdout.write(
+                encode_json({"event": review_payload(outcome.event)}) + "\n"
+            )
+        return 0
