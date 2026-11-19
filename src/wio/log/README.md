@@ -47,12 +47,12 @@ and custom mappings, preferences and diagnostics affect those fields.
 
 A nested run can inherit session variables from several harnesses. The
 preference describes which of those harnesses to use for this run. Keeping
-unresolved matches and valid ids gives a reader evidence when the environment
-alone cannot identify the active harness. Keeping a malformed thread id's
-session unknown preserves the distinction between a Codex subagent and the
-main session it inherited.
+unresolved matches and valid ids gives a reader evidence when the inherited
+environment is ambiguous.
 
 The [log settings](../config/README.md#log-settings) limit which environment
-variables can supply ids. Projects must name variables that contain ids
-because a secret can satisfy the same shape check. Identification trusts the
-configured mappings and the shape of the candidate ids.
+variables can supply ids. `wio config check` validates the configured names.
+Project authors need to verify that the named variables hold ids, since a
+secret can satisfy the same shape check. The shape check assumes that
+supported harnesses emit ids in the accepted form. Identification takes a
+well-shaped id as supplied, without looking up its transcript.
