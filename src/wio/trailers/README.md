@@ -417,9 +417,10 @@ reads.
   deciding whether a human gate passed belongs to the command that reads the
   records.
 - **The event is written once, after every check passed.** It is written after a
-  warning, such as a stage outside the Work's pipeline, and never on a refusal,
-  so the log holds only reviews whose record was printed. It names the Work, the
-  action, the stage, the reviewed commit as a full sha, the judge, the result
+  warning, such as a stage outside the Work's pipeline. The trailers form
+  hands the event to the sink before printing the record. A refusal writes
+  nothing. The event names the Work, action, stage, full reviewed commit,
+  judge, result
   and each cited key with its result, and for a rule the hash of its file that
   the `context` event records, because what is not cited was not judged.
 - **A sink that fails never fails the command.** The `EventSink` port reports
