@@ -37,3 +37,22 @@ case reads. These guarantees and their reasons are not in them:
 - **The identity is taken as given.** A symlinked checkout and its target are
   one clone, because git prints the real path of its common directory, so
   `locate.py` neither resolves nor compares paths itself.
+
+## Harness session
+
+[Session identification](identify.py) supplies the fields that let a reader
+join an event to its harness transcript. The
+[session tests](../../../tests/unit/log/test_identify.py) specify how built-in
+and custom mappings, preferences and diagnostics affect those fields.
+
+A nested run can inherit session variables from several harnesses. The
+preference describes which of those harnesses to use for this run. Keeping
+unresolved matches and valid ids gives a reader evidence when the environment
+alone cannot identify the active harness. Keeping a malformed thread id's
+session unknown preserves the distinction between a Codex subagent and the
+main session it inherited.
+
+The [log settings](../config/README.md#log-settings) limit which environment
+variables can supply ids. Projects must name variables that contain ids
+because a secret can satisfy the same shape check. Identification trusts the
+configured mappings and the shape of the candidate ids.
