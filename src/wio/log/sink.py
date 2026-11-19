@@ -8,7 +8,14 @@ their result when the log is unavailable.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.formats.event_lines import encode_line
+from wio.log.identify import identify
+from wio.log.locate import EVENTS_FILE, locate_log
+from wio.models.events import Envelope
+
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from wio.env.ports import Clock, Directories, Environment
     from wio.io.ports import FileSystem, Repository, Stdio
     from wio.models.config import Log
@@ -47,4 +54,61 @@ class LogSink:
         Args:
             event: The review or context event to stamp and append.
         """
-        raise NotImplementedError
+        try:
+            if self._disabled():
+                return
+            path = locate_log(self.repository, self.directories) / EVENTS_FILE
+        except Exception as error:  # noqa: BLE001 - recording is best effort
+            self._diagnose(error)
+            return
+
+        try:
+            line = self._line(event)
+        except Exception as error:  # noqa: BLE001 - recording is best effort
+            self._diagnose(error, path)
+            return
+
+        try:
+            self.filesystem.append_text(path, line)
+        except Exception as error:  # noqa: BLE001 - recording is best effort
+            self._diagnose(error, path, appending=True)
+
+    def _line(self, event: Event) -> str:
+        """Stamp the event with the current session and encode its line.
+
+        Args:
+            event: The event to serialize.
+
+        Returns:
+            One encoded event line including its terminating newline.
+        """
+        identity = identify(self.log, self.environment, self.stdio)
+        envelope = Envelope(
+            time=self.clock.now(),
+            directory=str(self.environment.working_directory()),
+            harness=identity.harness,
+            session=identity.session,
+            parent=identity.parent,
+            matches=identity.matches,
+            ids=identity.ids,
+        )
+        return encode_line(envelope, event)
+
+    def _disabled(self) -> bool:
+        """Read the log switch before consulting the other ports.
+
+        Returns:
+            True when recording is explicitly off.
+        """
+        return self.environment.get("WIO_LOG") == "off"
+
+    def _diagnose(
+        self, _error: Exception, _path: Path | None = None, *, appending: bool = False
+    ) -> None:
+        """Report a recording failure without affecting the command.
+
+        Args:
+            _error: The exception raised by the recording step.
+            _path: The events file if location succeeded.
+            appending: Whether the failure came from the append port.
+        """

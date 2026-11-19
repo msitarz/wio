@@ -7,6 +7,7 @@ a work commit under a pure gate commit of `architecture-review`, and the command
 """
 
 import io
+import json
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -227,18 +228,66 @@ def test_a_gate_result_is_taken_back_by_the_check_and_the_fold(
     assert (event.commit, dict(event.cited)) == (work, {"AC-1": "pass"})
 
 
-def test_the_default_command_appends_reviews_from_both_worktrees() -> None:
+def _run_default() -> tuple[int, str, str]:
+    """Record a review through the real command table.
+
+    Returns:
+        Its exit code and captured standard output and error.
+    """
+    out = io.StringIO()
+    err = io.StringIO()
+    code = cli.main([*ARGS, "--result", "pass"], _Stdio(io.StringIO(), out, err))
+    return code, out.getvalue(), err.getvalue()
+
+
+@pytest.mark.slow
+def test_the_default_command_appends_reviews_from_both_worktrees(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """AC-4 wires the real recording sink to the default command.
 
-    The clone identity gives the main checkout and the linked worktree one log.
+    Args:
+        sandbox: Isolates the clone and Wio home.
+        monkeypatch: Switches the working directory and controls the log switch.
     """
     # Given a real clone with a reviewed Work commit and a linked worktree.
+    work = _project(sandbox, monkeypatch)
+    monkeypatch.delenv("WIO_LOG", raising=False)
+    linked = sandbox.root.parent / "linked"
+    git(sandbox, "worktree", "add", "--detach", str(linked), check=True)
+    home = Path(sandbox.env["WIO_HOME"])
+    home.mkdir()
+
     # When the default command records the gate in each checkout.
-    # Then both records print and both review events name the Work, gate and
-    # reviewed commit in the only events.jsonl under the temporary Wio home.
-    pytest.skip("Pending log sink wiring")
+    first = _run_default()
+    files = list((home / "log").glob("*/events.jsonl"))
+    assert len(files) == 1
+    first_line = files[0].read_text(encoding="utf-8")
+    monkeypatch.chdir(linked)
+    second = _run_default()
+
+    # Then both reviews are stamped and appended to the only clone log.
+    assert first[:2] == second[:2] == (0, GATE.replace("human", "agent") + "\n")
+    assert list((home / "log").glob("*/events.jsonl")) == files
+    assert len(first_line.splitlines()) == 1
+    text = files[0].read_text(encoding="utf-8")
+    assert text.startswith(first_line)
+    assert len(text.splitlines()) == 2
+    entries = [json.loads(line) for line in text.splitlines()]
+    assert [entry["directory"] for entry in entries] == [
+        str(sandbox.root.resolve()),
+        str(linked.resolve()),
+    ]
+    for entry in entries:
+        assert (entry["type"], entry["work"], entry["stage"], entry["commit"]) == (
+            "review",
+            "k3m9xq",
+            "architecture-review",
+            work,
+        )
 
 
+@pytest.mark.slow
 def test_the_default_command_outside_git_leaves_the_home_empty() -> None:
     """AC-4 preserves the command error outside a repository.
 
@@ -250,6 +299,7 @@ def test_the_default_command_outside_git_leaves_the_home_empty() -> None:
     pytest.skip("Pending log sink wiring")
 
 
+@pytest.mark.slow
 def test_the_default_command_writes_log_warnings_to_its_stderr() -> None:
     """AC-4 routes recording warnings to the command's supplied streams.
 
