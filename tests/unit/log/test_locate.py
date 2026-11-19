@@ -2,125 +2,79 @@
 """Tests for `wio.log.locate` against fakes of its ports."""
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
-from unittest.mock import Mock
+from typing import override
 
 import pytest
 
-from wio.log import locate
-from wio.log.locate import EVENTS_FILE, log_directory, log_files
-
-if TYPE_CHECKING:
-    from wio.env.ports import Directories
-    from wio.io.ports import FileSystem, Repository
+from tests.fakes import value_or_raise
+from tests.unit.fakes import FakeDirectories, FakeRepository, MemoryFileSystem
+from wio.log.locate import EVENTS_FILE, locate_log, log_directory, log_files
 
 
-def _repository(identity: Path | Exception) -> Repository:
-    """Make a `Repository` that gives an identity, or raises when given an error.
+@dataclass(kw_only=True)
+class ListedFileSystem(MemoryFileSystem):
+    """An in-memory filesystem with a caller-supplied listing for one path.
 
-    Args:
-        identity: The identity `identity` gives, or the error it raises.
-
-    Returns:
-        A mock, which type checking takes for the port.
+    Attributes:
+        directory: The path with a configured listing.
+        listing: Entries in the order given by the port, or a listing failure.
     """
-    repository = Mock()
-    if isinstance(identity, Exception):
-        repository.identity.side_effect = identity
-    else:
-        repository.identity.return_value = identity
-    return repository
 
+    directory: Path
+    listing: tuple[Path, ...] | Exception
 
-def _directories(home: Path) -> Directories:
-    """Make `Directories` whose Wio home is fixed.
-
-    Args:
-        home: The path `wio_home` gives.
-
-    Returns:
-        A mock, which type checking takes for the port.
-    """
-    directories = Mock()
-    directories.wio_home.return_value = home
-    return directories
-
-
-def test_the_location_is_made_of_the_identity_and_the_home(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """AC-1: `locate_log` passes the identity and the home to `log_directory`."""
-    # Given a Repository and Directories fakes and a log_directory that records
-    # what it is given
-    seen: list[tuple[Path, Path]] = []
-
-    def record(identity: Path, home: Path) -> Path:
-        """Record the arguments and give a fixed place.
+    @override
+    def list_dir(self, path: Path) -> tuple[Path, ...]:
+        """List the configured directory in its supplied order.
 
         Args:
-            identity: The identity given.
-            home: The home given.
+            path: The directory to list.
 
         Returns:
-            A fixed place.
+            The supplied entries in order for the configured directory.
+
+        Raises:
+            AssertionError: The caller requested an unexpected directory.
+            Exception: The configured failure, if any.
         """
-        seen.append((identity, home))
-        return Path("/place")
+        assert path == self.directory
+        return value_or_raise(self.listing)
 
-    monkeypatch.setattr(locate, "log_directory", record)
 
-    # When locate_log runs
-    found = locate.locate_log(
-        _repository(Path("/w/app/.git")), _directories(Path("/h"))
-    )
+def test_the_location_is_made_of_the_identity_and_the_home() -> None:
+    """AC-1 builds the clone's log path from its identity and the Wio home.
 
-    # Then it gives what log_directory gave, for the identity and the home
-    assert found == Path("/place")
-    assert seen == [(Path("/w/app/.git"), Path("/h"))]
+    The example fixes both the clone name and the digest of its identity.
+    """
+    # Given a repository at /w/app with its .git identity, and Wio home /h.
+    repository = FakeRepository(top=Path("/w/app"))
+    directories = FakeDirectories(Path("/h"))
+
+    # When the log is located.
+    found = locate_log(repository, directories)
+
+    # Then the path uses that home and identifies the clone.
+    assert found == Path("/h/log/app-6f8609bd196b")
 
 
 def test_the_error_of_the_repository_reaches_the_caller() -> None:
-    """AC-4: `locate_log` raises what `Repository.identity` raises, unchanged."""
-    # Given a Repository whose identity fails with a RuntimeError
-    error = RuntimeError("not in a repository")
+    """AC-4 propagates the repository's identity error unchanged.
 
-    # When locate_log runs
-    # Then the same error is raised
-    with pytest.raises(RuntimeError) as raised:
-        locate.locate_log(_repository(error), _directories(Path("/h")))
-    assert raised.value is error
-
-
-def _filesystem(
-    entries: list[str], directories: frozenset[str] = frozenset()
-) -> FileSystem:
-    """Make a `FileSystem` whose `list_dir` gives entries, in the order given.
-
-    Args:
-        entries: The names of the entries of the directory, in the order `list_dir`
-            gives them.
-        directories: The names among them that are directories.
-
-    Returns:
-        A mock, which type checking takes for the port.
+    Callers can use the original exception when reporting a location failure.
     """
-    filesystem = Mock()
-    filesystem.list_dir.return_value = [Path("/log") / name for name in entries]
+    # Given a repository whose identity lookup fails.
+    error = RuntimeError("not in a repository")
+    repository = FakeRepository(identity_error=error)
+    directories = FakeDirectories(Path("/h"))
 
-    def is_file(path: Path) -> bool:
-        """Tell whether an entry is a file, which it is unless a directory.
+    # When locating the log.
+    with pytest.raises(RuntimeError) as raised:
+        locate_log(repository, directories)
 
-        Args:
-            path: The entry.
-
-        Returns:
-            False for the names that are directories.
-        """
-        return path.name not in directories
-
-    filesystem.is_file.side_effect = is_file
-    return filesystem
+    # Then the original failure reaches the caller.
+    assert raised.value is error
 
 
 def test_two_clones_have_two_locations_under_one_home() -> None:
@@ -200,56 +154,76 @@ def test_the_digest_decides_the_identity() -> None:
 
 
 def test_the_files_of_a_log_are_the_lowercase_jsonl_files_in_order() -> None:
-    """AC-3: other names, `B.JSONL` and a directory are left out."""
-    # Given a FileSystem fake whose list_dir gives events.jsonl, a.jsonl, notes.txt,
-    # B.JSONL and a directory c.jsonl, in the order of the fake
-    filesystem = _filesystem(
-        ["a.jsonl", "B.JSONL", "c.jsonl", "events.jsonl", "notes.txt"],
-        frozenset({"c.jsonl"}),
+    """AC-3 selects lowercase JSONL files in the order supplied by the port.
+
+    The file names are deliberately out of alphabetical order.
+    """
+    # Given a directory listing with two log files, other files and a directory.
+    directory = Path("/log")
+    events, upper, subdirectory, other_log, notes = (
+        directory / name
+        for name in ("events.jsonl", "B.JSONL", "c.jsonl", "a.jsonl", "notes.txt")
+    )
+    filesystem = ListedFileSystem(
+        directory=directory,
+        listing=(events, upper, subdirectory, other_log, notes),
+        files=dict.fromkeys((events, upper, other_log, notes), ""),
     )
 
-    # When log_files runs for it
-    found = log_files(Path("/log"), filesystem)
+    # When the log files are listed.
+    found = log_files(directory, filesystem)
 
-    # Then it gives a.jsonl and events.jsonl, in that order
-    assert found == (Path("/log/a.jsonl"), Path("/log/events.jsonl"))
+    # Then only the lowercase JSONL files remain, in the supplied order.
+    assert found == (events, other_log)
 
 
 def test_the_file_the_sink_appends_to_is_events_jsonl() -> None:
-    """AC-3: `EVENTS_FILE` names the file a log holds."""
-    # Given a FileSystem fake whose directory holds events.jsonl
-    filesystem = _filesystem(["events.jsonl"])
+    """AC-3 includes the sink's events file among the log files.
 
-    # When log_files runs for it
-    found = log_files(Path("/log"), filesystem)
+    The reader and writer share the same file name.
+    """
+    # Given a directory containing the sink's events file.
+    directory = Path("/log")
+    events = directory / "events.jsonl"
+    filesystem = MemoryFileSystem(files={events: ""})
 
-    # Then the result holds EVENTS_FILE, whose value is events.jsonl
-    assert Path("/log") / EVENTS_FILE in found
+    # When the log files are listed.
+    found = log_files(directory, filesystem)
+
+    # Then the sink's file is among the results.
+    assert found == (directory / EVENTS_FILE,)
     assert EVENTS_FILE == "events.jsonl"
 
 
 def test_a_missing_directory_has_no_files() -> None:
-    """AC-3: a directory the port reports as missing has no file."""
-    # Given a FileSystem fake whose directory does not exist
-    filesystem = Mock()
-    filesystem.list_dir.side_effect = FileNotFoundError
+    """AC-3 treats a missing log directory as an empty log.
 
-    # When log_files runs for it
-    found = log_files(Path("/log"), filesystem)
+    A listing failure for an absent directory is expected before the first write.
+    """
+    # Given a log directory that the filesystem reports as missing.
+    directory = Path("/log")
+    filesystem = ListedFileSystem(directory=directory, listing=FileNotFoundError())
 
-    # Then it gives no file
+    # When the log files are listed.
+    found = log_files(directory, filesystem)
+
+    # Then there are no log files.
     assert found == ()
 
 
 def test_a_path_that_is_a_file_raises_the_error_of_the_port() -> None:
-    """AC-3: the `NotADirectoryError` of the port reaches the caller."""
-    # Given a FileSystem fake whose list_dir raises NotADirectoryError
-    error = NotADirectoryError("a file")
-    filesystem = Mock()
-    filesystem.list_dir.side_effect = error
+    """AC-3 propagates a listing failure for a non-directory path.
 
-    # When log_files runs for it
-    # Then the NotADirectoryError of the port is raised unchanged
+    The original error is available to the caller.
+    """
+    # Given a log path that the filesystem reports as a file.
+    directory = Path("/log")
+    error = NotADirectoryError("a file")
+    filesystem = ListedFileSystem(directory=directory, listing=error)
+
+    # When the log files are listed.
     with pytest.raises(NotADirectoryError) as raised:
-        log_files(Path("/log"), filesystem)
+        log_files(directory, filesystem)
+
+    # Then the original error reaches the caller.
     assert raised.value is error

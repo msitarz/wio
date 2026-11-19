@@ -167,6 +167,7 @@ class FakeRepository:
     message: str = "not inside a git repository: /elsewhere"
 
     identity_reads: int = 0
+    identity_error: Exception | None = None
 
     def root(self) -> Path:
         """Find the root.
@@ -186,8 +187,14 @@ class FakeRepository:
 
         Returns:
             The path of the `.git` directory.
+
+        Raises:
+            Exception: The configured identity failure, if any.
+            RuntimeError: The fake is outside any repository.
         """
         self.identity_reads += 1
+        if self.identity_error is not None:
+            raise self.identity_error
         return self.root() / ".git"
 
     def show_index(self, path: Path) -> str | None:  # noqa: ARG002
