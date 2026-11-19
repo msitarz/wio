@@ -54,7 +54,7 @@ def _check_harness(name: str, harness: Harness) -> Iterator[Diagnostic]:
     """
     path = join_path("log.harnesses", name)
     if name == "none":
-        yield Diagnostic("error", path, "`none` is reserved for disabling detection.")
+        yield Diagnostic("error", path, "`none` is reserved by `WIO_PREFER_HARNESS`.")
     elif not _HARNESS.fullmatch(name):
         yield Diagnostic("error", path, "a harness name must be a TOML bare key.")
     yield from _variables(f"{path}.session", harness.session)
