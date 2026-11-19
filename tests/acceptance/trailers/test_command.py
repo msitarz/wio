@@ -125,15 +125,22 @@ def test_a_record_round_trips_through_the_real_adapters(wio: Wio) -> None:
 
 
 @pytest.mark.channels(Channel.CLI)
-def test_a_gate_result_with_the_no_op_sink_leaves_the_wio_home_empty(
-    wio: Wio, sandbox: Sandbox
+def test_a_gate_result_with_logging_off_leaves_the_wio_home_empty(
+    wio: Wio, sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """AC-3: the record is printed and no event file appears."""
+    """Append-event AC-3 keeps the command result when logging is off.
+
+    Args:
+        wio: Runs the real trailers command.
+        sandbox: Supplies an isolated Wio home.
+        monkeypatch: Sets the opt-out in the command environment.
+    """
     # Given the repository, with a work commit under a pure gate commit of
-    # `architecture-review`, and an empty Wio home
+    # `architecture-review`, an empty Wio home and logging switched off.
     _project(wio)
     wio.commit(f"chore: judge\n\n{GATE}", empty=True)
     home = Path(sandbox.env["WIO_HOME"])
+    monkeypatch.setitem(sandbox.env, "WIO_LOG", "off")
 
     # When `wio trailers k3m9xq deliver architecture-review --result pass --judge
     # human` runs
@@ -143,8 +150,8 @@ def test_a_gate_result_with_the_no_op_sink_leaves_the_wio_home_empty(
     )
 
     # Then it prints the record, exits 0 and leaves the Wio home empty
-    assert (output.exit_code, output.stdout) == (0, f"{GATE}\n")
-    assert not home.exists() or not any(home.iterdir())
+    assert (output.exit_code, output.stdout, output.stderr) == (0, f"{GATE}\n", "")
+    assert not home.exists()
 
 
 @pytest.mark.channels(Channel.CLI)
