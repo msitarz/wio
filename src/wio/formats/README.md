@@ -1,7 +1,8 @@
 # `wio.formats`
 
 The pure codecs between text and the shared types. A codec reads or writes text
-without file access. Its docstring explains how it reports invalid input. The
+without file access. A codec that raises a public exception for invalid text
+uses a `WioError`. The
 [v0.1 scope](../../../docs/v0.1-scope.md#wioformats-internal) lists what the
 package holds.
 
@@ -28,13 +29,15 @@ version.
 Omitting absent optional fields keeps each line compact. Bundle size uses
 bytes to express its length for harness truncation.
 
-A partial write can leave a damaged line. Reading each line independently
-keeps surrounding entries usable and gives the caller a count of the
-damage. JSON that exceeds the parser's nesting capacity also counts as an
-unreadable line. Oversized integers in unknown fields can be ignored without
-lifting Python's integer conversion limit.
+A partial write can leave a damaged line. `decode_lines` counts rejected lines
+in its result and continues, keeping surrounding entries usable. JSON that
+exceeds the parser's nesting capacity also counts as an unreadable line.
+Oversized integers in unknown fields can be ignored without lifting Python's
+integer conversion limit.
 
 Millisecond timestamps keep enough precision for one person's event log.
+`encode_line` raises `ValueError` if the caller supplies a timestamp outside
+its supported range, including a negative or nonfinite value.
 The codec's docstrings specify the supported UTC time representation, and
 the [tests](../../../tests/unit/formats/test_event_lines.py) cover the wire
 fields, ordering, malformed lines, and rounding boundary.
