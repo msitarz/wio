@@ -2257,8 +2257,10 @@ gate that takes several commits finds the same commit, and a gate records its
 result on each of its commits, because only the latest record counts. The walk
 reads records with the configured reader; it is the one place v0.1 reads records
 from the history. `--reviewed <sha>` overrides the rule, for example for a
-review of an older commit. In v0.1 the override and the warnings that follow are
-not built, and the event reaches a sink that drops it until `wio log` exists.
+review of an older commit. Review events reach the
+[log sink](../src/wio/log/README.md#appending-an-event) after the result passes
+the form's checks. The override and the comparison warnings below remain part
+of the design.
 `wio trailers --result` warns when the commit it works out differs from the one
 recorded by the gate's `context` event, because then the artifact changed while
 it was under review, and when the review started on a tree with uncommitted

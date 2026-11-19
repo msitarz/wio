@@ -12,10 +12,10 @@ by adding an entry made with `component_entry`, and nothing else.
 
 - A new package under `src/wio` fails the unit test of the names until the
   driver decides whether it is a component.
-- A component that consumes a port whose own component does not exist yet is
-  given a null adapter from [`null.py`](null.py), which `wio.cli` wires and the
-  component never imports. `wio trailers` has two: a port that selects no rule
-  and a sink that drops every event.
+- `wio.cli` supplies a [null adapter](null.py) when a component's port is
+  waiting for an implementation. For `wio trailers`, that adapter selects
+  no rules. The command records reviews through the
+  [log sink](../log/README.md#appending-an-event).
 - `Entry.wire` takes no platform parameter. The first adapter that differs by
   platform adds it.
 

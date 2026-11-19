@@ -56,3 +56,23 @@ Project authors need to verify that the named variables hold ids, since a
 secret can satisfy the same shape check. The shape check assumes that
 supported harnesses emit ids in the accepted form. Identification takes a
 well-shaped id as supplied, without looking up its transcript.
+
+## Appending an event
+
+[`LogSink`](sink.py) is the adapter of [`EventSink`](../ports.pyi) that stamps
+and records both kinds of event. It uses the shared session identification and
+[versioned line codec](../formats/README.md#event-log-lines) so every producer
+writes the same envelope. A single append keeps concurrent writers from
+interleaving event lines on the local filesystem.
+
+Recording is best effort so a command can still give its result when storage
+is unavailable. The diagnostic identifies the write destination once it is
+known. The default-home hint helps users recognize that a harness restriction
+can prevent writes to the default location. The `WIO_LOG` switch lets users
+opt out before location, including when the home is unavailable.
+
+The [sink tests](../../../tests/unit/log/test_sink.py) cover stamping, switch
+values and diagnostics. The
+[trailers integration tests](../../../tests/integration/trailers/test_write.py)
+exercise the real log shared across worktrees and the command's standard
+streams.
