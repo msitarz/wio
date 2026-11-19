@@ -123,3 +123,36 @@ the clone's log as a whole, even when the result is filtered to a Work.
 The [command scenarios](../../../tests/acceptance/log/test_show.py) specify
 both output forms. The [reader tests](../../../tests/unit/log/test_show.py)
 cover failures to locate or read a file.
+
+## Recording a gate review without commit records
+
+Use `wio log review WORK ACTION STAGE --result RESULT` when the workflow
+keeps its reviews in the log. [Command help](__init__.py) describes the judge,
+citations, and JSON options. The accepted JSON response carries the review's
+[event payload](../formats/event_lines.py) for scripts that need the judgement
+and its citations. [`wio log show`](#showing-recorded-events) reads the stored
+review back.
+
+The [review checker port](ports.pyi) connects the log form to the validation
+and reviewed-commit lookup used by trailers. Sharing those checks keeps the
+reviewed artifact and citations consistent across the two entry points. The
+[composition root](../cli/table.py) wires the checker and sink for the review
+form when it is selected.
+
+```mermaid
+flowchart LR
+    L["wio log review"] --> P["ReviewChecker"]
+    CLI["wio.cli"] -. "wires" .-> P
+    P --> C["Shared review checks"]
+    T["wio trailers --result"] --> C
+    C -- "verdict" --> T
+    C -- "verdict" --> P
+    P -- "verdict" --> L
+    L -- "accepted event" --> S["EventSink"]
+    T -- "accepted event" --> S
+```
+
+The [review scenarios](../../../tests/acceptance/log/test_review.py) specify
+event parity, refusal order, output and exit codes. The sink's
+[best-effort recording](#appending-an-event) keeps the accepted judgement
+available even when the log is unavailable.

@@ -17,11 +17,13 @@ lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
 lazy from wio.io import views
 lazy from wio.log.command import LogCommand
+lazy from wio.log.review import ReviewCommand
 lazy from wio.log.sink import LogSink
 lazy from wio.templates import TemplatesCatalog, TemplatesCommand
 lazy from wio.trailers import Services as TrailersServices
 lazy from wio.trailers import TrailersCommand
 lazy from wio.trailers.errors import TrailersError
+lazy from wio.trailers.write import TrailersReviewChecker
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -140,6 +142,18 @@ def trailers_command(events: EventSink | None = None) -> Command:
         ConfigurationError: If the config cannot be loaded, because the Works
             directory that the index view lists comes from it.
     """
+    return TrailersCommand(_trailers_services(events))
+
+
+def _trailers_services(events: EventSink | None = None) -> TrailersServices:
+    """Build the shared review and record services over the local adapters.
+
+    Args:
+        events: An optional replacement for the real event sink.
+
+    Returns:
+        The ports for record and review operations, with config validated.
+    """
     environment = env.ProcessEnvironment()
     repository = io.GitRepository(environment)
     history = io.GitHistory(environment)
@@ -163,10 +177,7 @@ def trailers_command(events: EventSink | None = None) -> Command:
             io.SystemStdio(),
             config.log,
         )
-    services = TrailersServices(
-        settings, tree, history, staged, files, NoRules(), events
-    )
-    return TrailersCommand(services)
+    return TrailersServices(settings, tree, history, staged, files, NoRules(), events)
 
 
 def _log() -> Command:
@@ -180,7 +191,18 @@ def _log() -> Command:
         io.GitRepository(environment),
         env.ProcessDirectories(environment),
         io.LocalFileSystem(),
+        _review,
     )
+
+
+def _review() -> ReviewCommand:
+    """Supply the log review form with the checker and sink used by trailers.
+
+    Returns:
+        The form over the same configuration and Git history as trailers.
+    """
+    services = _trailers_services()
+    return ReviewCommand(TrailersReviewChecker(services), services.events)
 
 
 def _root(repository: Repository) -> Path:

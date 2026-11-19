@@ -15,7 +15,7 @@ PORTS = [SHARED, *sorted(SRC.glob("*/ports.pyi"))]
 MODELS = sorted((SRC / "models").glob("*.pyi"))
 IMPLEMENTED = sorted((SRC / "models").glob("[!_]*.py"))
 ERRORS = SRC / "errors.py"
-OWNERS = {"cli", "context", "contracts", "env", "io", "trailers"}
+OWNERS = {"cli", "context", "contracts", "env", "io", "log", "trailers"}
 
 
 def _tree(path: Path) -> ast.Module:

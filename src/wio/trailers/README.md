@@ -378,13 +378,13 @@ Its docstring says what it takes and returns, and the
 
 ## Recording a gate's result
 
-`run_review`, `check_cites` and `review_event` in [`gate.py`](gate.py) are the
-gate form of `wio trailers`, the write form with `--result` and `--cite`. A
-review leaves no other trace of the items it cited, of the commit it saw or of
-who judged, so after the fields of the record hold, the form checks what was
-cited, finds the reviewed commit with
-[the finder](#finding-the-reviewed-commit), writes one `review` event and then
-prints the record. `ReviewEvent` in
+The gate form of `wio trailers` takes `--result` and `--cite`. The
+[shared checker](write.py) validates its fields and uses [`gate.py`](gate.py)
+to check the cites and find the reviewed commit. On acceptance, the form
+writes the review event before printing the record. The event keeps the
+cites, the reviewed commit and the judge for later inspection.
+[`wio log review`](../log/README.md#recording-a-gate-review-without-commit-records)
+uses the same checker. `ReviewEvent` in
 [`wio.models.events`](../models/events.py) holds the fields the form writes.
 The [log sink](../log/README.md#appending-an-event) applies the common envelope
 and records the event. The form reads the rules a stage
@@ -417,9 +417,10 @@ reads.
   deciding whether a human gate passed belongs to the command that reads the
   records.
 - **The event is written once, after every check passed.** It is written after a
-  warning, such as a stage outside the Work's pipeline, and never on a refusal,
-  so the log holds only reviews whose record was printed. It names the Work, the
-  action, the stage, the reviewed commit as a full sha, the judge, the result
+  warning, such as a stage outside the Work's pipeline. The trailers form
+  hands the event to the sink before printing the record. A refusal writes
+  nothing. The event names the Work, action, stage, full reviewed commit,
+  judge, result
   and each cited key with its result, and for a rule the hash of its file that
   the `context` event records, because what is not cited was not judged.
 - **A sink that fails never fails the command.** The `EventSink` port reports
