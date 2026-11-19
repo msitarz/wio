@@ -5,7 +5,13 @@ The scenarios cover the identification boundary through its environment and
 standard-stream ports.
 """
 
+from unittest.mock import Mock, call
+
 import pytest
+
+from tests.unit.fakes import FakeStdio
+from wio.log.identify import SessionIdentity, identify
+from wio.models.config import Log
 
 
 def test_claude_code_records_its_session() -> None:
@@ -188,3 +194,28 @@ def test_the_preference_is_reserved_in_harness_lists() -> None:
     # (codex, t2, None), and ids contains the Claude Code and Codex variables
     # only. With neither of those variables set, no harness matches.
     pytest.skip("Pending harness session implementation")
+
+
+def test_identify_connects_the_environment_and_standard_streams() -> None:
+    """Exercise the wired entry point with an empty environment.
+
+    Every configured lookup is made through Environment.get.
+    """
+    # Given the built-in mappings and an environment with no set variables.
+    environment = Mock()
+    environment.get.return_value = None
+    stdio = FakeStdio()
+
+    # When the session is identified.
+    identity = identify(Log(), environment, stdio)
+
+    # Then no fields are set and only the configured inputs were requested.
+    assert identity == SessionIdentity(None, None, None, (), {})
+    assert environment.method_calls == [
+        call.get("CLAUDE_CODE_SESSION_ID"),
+        call.get("CODEX_THREAD_ID"),
+        call.get("CODEX_SESSION_ID"),
+        call.get("AI_AGENT"),
+        call.get("WIO_PREFER_HARNESS"),
+    ]
+    assert stdio.stderr.tell() == 0
