@@ -2415,10 +2415,12 @@ detail, including the reviewed commit, which a squash merge would remove from
 the history. [`wio log show`](../src/wio/log/README.md#showing-recorded-events)
 reads this activity from all the files of the clone's log.
 
-Because events carry the harness session id, they can be joined to the harness's
-own transcripts. That gives token and cost totals per Work and per stage, which
-is how a project learns what each stage costs and whether a rule earns its
-place.
+The sink reads the
+[configured harness variables](../src/wio/log/README.md#harness-session)
+from the recording process. A
+harness session id can join an event to its transcript for token and cost
+analysis. When the process has no session id, the envelope still carries a
+time and working directory for correlating activity.
 
 ## 13. Stage presets: process built on the engine
 
@@ -2478,9 +2480,6 @@ and its own selection give it.
 
 ## 15. Open points
 
-- Whether the harness session id is visible to the `wio context` process, or
-  only to hooks. If not, events join to transcripts by time window and working
-  directory.
 - Whether rule files accept `+++` front matter as well. The rule example above
   uses the `<!-- wio -->` block, as contracts do.
 - Stage-level ordering across the tree. A parent waits for its children,
