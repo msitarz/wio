@@ -57,6 +57,14 @@ def read_shape(data: dict[str, object]) -> Shape:
     One walk builds the value, the diagnostics of its shape and the source of
     each key path from the same schema, so none can drift from the fields.
 
+    The log settings use open-table defaults keyed by harness name. A name
+    present in the file replaces its whole default entry. The walk reports
+    the source of both leaf settings for an inherited entry as `default`,
+    using the same key paths as it does for entries from the file. A
+    configured harness with a missing or empty session list gets one shape
+    diagnostic at the session key path. The later checks leave the empty
+    fallback alone so it does not produce another diagnostic.
+
     Args:
         data: The decoded file, as `decode_toml` returns it.
 
