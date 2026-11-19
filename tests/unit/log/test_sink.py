@@ -195,6 +195,8 @@ def test_identification_warns_at_every_write(recording: Recording) -> None:
         ("switch", OSError("denied"), "denied"),
         ("identity", RuntimeError("not in a repository"), "not in a repository"),
         ("identity", RuntimeError("a\nb"), "a b"),
+        ("identity", RuntimeError("a\rb"), "a b"),
+        ("identity", RuntimeError("a\r\nb"), "a b"),
         ("home", ValueError("WIO_HOME must be absolute"), "WIO_HOME must be absolute"),
         ("home", FileNotFoundError(2, "home not found"), "home not found"),
     ],
@@ -242,6 +244,7 @@ def test_location_and_switch_read_failures_warn(
         ("clock", KeyError("x"), "'x'"),
         ("clock", ZeroDivisionError(), "ZeroDivisionError"),
         ("append", OSError("boom"), "boom"),
+        ("append", OSError(ENOSPC, ""), str(OSError(ENOSPC, ""))),
         ("append", RuntimeError("boom"), "boom"),
     ],
 )
@@ -375,22 +378,51 @@ def test_failure_to_read_the_hint_variable_is_swallowed(recording: Recording) ->
     assert recording.stderr.getvalue() == _WRITE_WARNING + "Permission denied\n"
 
 
-def test_failure_to_write_a_warning_is_swallowed(recording: Recording) -> None:
-    """AC-2 contains stderr failures during diagnosis.
+def test_failure_to_write_an_identification_warning_stops_the_append(
+    recording: Recording,
+) -> None:
+    """AC-2 reports a failed identification warning as a write failure.
 
     Args:
-        recording: Fake ports with a closable stderr.
+        recording: Fake ports with a configurable environment and stderr.
     """
-    # Given a permission failure and a closed standard error stream.
-    recording.filesystem.append_text.side_effect = PermissionError(
-        EACCES, "Permission denied"
-    )
-    recording.stderr.close()
+    # Given a malformed session id and stderr that fails on its first write.
+    variables = {"CLAUDE_CODE_SESSION_ID": "bad value!"}
+    recording.environment.get.side_effect = variables.get
+    stderr = Mock()
+    stderr.write.side_effect = [ValueError("stderr unavailable"), None]
+    recording.sink.stdio.stderr = stderr
 
     # When the event is written.
     recording.sink.write(_REVIEW)
 
-    # Then it has returned after the only append attempt, with no hint lookup.
+    # Then the sink reports the failure with the events path and omits the append.
+    assert stderr.write.call_args_list == [
+        call("warning: CLAUDE_CODE_SESSION_ID has an invalid id\n"),
+        call(_WRITE_WARNING + "stderr unavailable\n"),
+    ]
+    assert recording.filesystem.mock_calls == []
+
+
+def test_failure_to_write_a_warning_is_swallowed(recording: Recording) -> None:
+    """AC-2 contains stderr failures during diagnosis.
+
+    Args:
+        recording: Fake ports with a configurable stderr.
+    """
+    # Given a permission failure and an unavailable standard error stream.
+    recording.filesystem.append_text.side_effect = PermissionError(
+        EACCES, "Permission denied"
+    )
+    stderr = Mock()
+    stderr.write.side_effect = ValueError("closed")
+    recording.sink.stdio.stderr = stderr
+
+    # When the event is written.
+    recording.sink.write(_REVIEW)
+
+    # Then it attempts the write warning once and skips the hint.
+    stderr.write.assert_called_once_with(_WRITE_WARNING + "Permission denied\n")
     assert recording.filesystem.append_text.call_count == 1
     assert call.get("WIO_HOME") not in recording.environment.mock_calls
 
