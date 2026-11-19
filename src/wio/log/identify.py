@@ -39,6 +39,10 @@ class SessionIdentity:
 def identify(log: Log, environment: Environment, stdio: Stdio) -> SessionIdentity:
     """Identify the current harness session from the configured variables.
 
+    WIO_PREFER_HARNESS supplies preference alone, even if a harness or
+    the extra recorded variables name it. It cannot supply a match,
+    session, parent or recorded id.
+
     Args:
         log: Effective harness mappings, preference and extra recorded variables.
         environment: Source for configured variables and WIO_PREFER_HARNESS.

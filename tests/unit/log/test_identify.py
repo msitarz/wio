@@ -173,3 +173,18 @@ def test_custom_session_mapping_identifies_a_harness() -> None:
     # When the session is identified.
     # Then cursor matches and r9 is the session.
     pytest.skip("Pending harness session implementation")
+
+
+def test_the_preference_is_reserved_in_harness_lists() -> None:
+    """AC-5 excludes the override from session and parent lookup.
+
+    A configured name for the override cannot give its value a second role.
+    """
+    # Given cursor names WIO_PREFER_HARNESS as its only session variable
+    # and Codex names it as its only parent variable. Claude Code has c1,
+    # Codex has thread t2, and the override is codex.
+    # When the session is identified.
+    # Then the genuine matches are (claude-code, codex), the override selects
+    # (codex, t2, None), and ids contains the Claude Code and Codex variables
+    # only. With neither of those variables set, no harness matches.
+    pytest.skip("Pending harness session implementation")
