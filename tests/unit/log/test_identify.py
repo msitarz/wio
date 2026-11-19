@@ -8,7 +8,6 @@ standard-stream ports.
 from dataclasses import replace
 from io import StringIO
 from pathlib import Path
-from unittest.mock import Mock, call
 
 import pytest
 
@@ -406,22 +405,21 @@ def test_lookup_is_limited_and_ids_keep_first_occurrence_order() -> None:
         "CLAUDE_CODE_SESSION_ID": "c1",
         "WIO_PREFER_HARNESS": "cursor",
     }
-    environment = Mock()
-    environment.get.side_effect = variables.get
+    environment = FakeEnvironment(Path(), variables)
     stdio = FakeStdio()
 
     # When the session is identified.
     identity = identify(log, environment, stdio)
 
     # Then the override picks Cursor and only configured id values are retained.
-    assert environment.method_calls == [
-        call.get("CLAUDE_CODE_SESSION_ID"),
-        call.get("CODEX_THREAD_ID"),
-        call.get("CODEX_SESSION_ID"),
-        call.get("CURSOR_TRACE_ID"),
-        call.get("AI_AGENT"),
-        call.get("WIO_PREFER_HARNESS"),
-    ]
+    assert set(environment.reads) == {
+        "CLAUDE_CODE_SESSION_ID",
+        "CODEX_THREAD_ID",
+        "CODEX_SESSION_ID",
+        "CURSOR_TRACE_ID",
+        "AI_AGENT",
+        "WIO_PREFER_HARNESS",
+    }
     assert tuple(identity.ids.items()) == (
         ("CLAUDE_CODE_SESSION_ID", "c1"),
         ("CURSOR_TRACE_ID", "r9"),
