@@ -161,6 +161,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | `rules_always_exclude` | *optional* | Codes and families no stage gets: the final veto. | [How a rule is selected](#how-a-rule-is-selected) |
 | `[skills] paths` | *open* | Where wio looks for skills first. | [Stage](#7-stage) |
 | `[trailers] reader` | *optional* | How records are read from messages: `scan` or `git`. | [Reading records](#reading-records) |
+| `[log]` | *optional* | Harness definitions, harness preference and additional environment variables for the event log. | [Log settings](../src/wio/config/README.md#log-settings) |
 | Bundle settings | *optional* | A size threshold and the separator between rules; their keys are *open*. | [The context compiler](#11-the-context-compiler) |
 
 `wio config` shows these settings with their source (`list` and `show`), and

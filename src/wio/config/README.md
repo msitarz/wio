@@ -199,21 +199,20 @@ belong to the rules Work.
 
 A project can describe a harness through the environment variables it sets.
 This lets new harnesses use the same settings and check run as the built-ins.
-The [config model](../models/config.py#L271) declares the built-in harnesses,
-their variable lookup order and the defaults for additional variables.
+The [config model](../models/config.py#L271) declares the built-ins and the
+defaults for additional variables. Some harnesses expose an identifier in
+`AI_AGENT`, so projects can request it without adding it to their config.
 
-Harness entries replace built-in entries by name as a whole, so a project
-can replace both lists or clear a built-in parent list by omitting it. The
-[shape reader](shape.py) carries the source of each effective setting into
-`config list` and `config show`. An inherited harness has default sources,
-and explicitly supplied values keep their file sources even when they match
-the defaults.
+Whole-entry replacement lets a project clear a built-in parent lookup by
+omitting that list from its definition. The [shape reader](shape.py) documents
+how it assembles the effective table and its sources.
 
-The [log settings check](log_settings.py) judges harness names and variable
-names as part of the normal check run. Preference names resolve against the
-effective harness table, including project additions. The config supplies
-settings for session detection and recording. Those operations read the
-environment when they use the settings.
+The config supplies the settings for session detection and event recording.
+The consumer contract uses the first set variable in each session or parent
+list. It records the values of the selected additional variables as supplied
+and skips variables that are absent. The [log settings check](log_settings.py)
+reserves `none` for the `WIO_PREFER_HARNESS` override, where it means to
+disable detection.
 
 [Acceptance tests](../../../tests/acceptance/config/test_log_settings.py)
 specify the values and sources a caller sees, the key paths of diagnostics,
