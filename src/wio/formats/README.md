@@ -1,8 +1,7 @@
 # `wio.formats`
 
-The pure codecs between text and the shared types. A codec reads or writes text,
-touches no file and raises a `WioError` when the text is wrong, so a model in
-`wio.models` never raises. The
+The pure codecs between text and the shared types. A codec reads or writes text
+without file access. Its docstring explains how it reports invalid input. The
 [v0.1 scope](../../../docs/v0.1-scope.md#wioformats-internal) lists what the
 package holds.
 
@@ -11,6 +10,29 @@ package holds.
 `encode_json` in [`diagnostics.py`](diagnostics.py) is the one JSON encoder. It
 keeps the standard library behind this package and loads it only when JSON is
 needed.
+
+## Event log lines
+
+The event log shares one [JSON line codec](event_lines.py) for both event
+types. The [event models](../models/events.py) describe what the event and
+its envelope carry. The codec takes text and values so a reader and a writer
+can share the wire format independently of how the log is stored.
+
+Version 1 can gain optional fields. Keeping existing field names and
+meanings lets a reader use older entries and ignore fields added by a
+newer writer. Removing a field or changing its meaning requires a new
+version.
+
+A partial write can leave a damaged line. Reading each line independently
+keeps surrounding entries usable and gives the caller a count of the
+damage. JSON that exceeds the parser's nesting capacity also counts as an
+unreadable line. Oversized integers in unknown fields can be ignored without
+lifting Python's integer conversion limit.
+
+Millisecond timestamps keep enough precision for one person's event log.
+The codec's docstrings specify the supported UTC time representation, and
+the [tests](../../../tests/unit/formats/test_event_lines.py) cover the wire
+fields, ordering, malformed lines, and rounding boundary.
 
 ## The TOML decoder
 
