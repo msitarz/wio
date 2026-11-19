@@ -61,12 +61,13 @@ def test_preference_resolves_nested_matches() -> None:
 
     Run identification through the environment and standard-stream ports.
     """
-    # Given both harnesses and a config preference for codex.
-    # When the session is identified.
-    # Then absent, empty, whitespace and comma-only overrides select codex;
-    # ' claude-code , ' and 'claude-code,,codex' select claude-code;
-    # 'none' leaves the run unresolved; 'none,codex' and 'cursor,codex'
-    # select codex and warn about the first item.
+    # Given CLAUDE_CODE_SESSION_ID=c1, CODEX_THREAD_ID=t2, CODEX_SESSION_ID=s1,
+    # and a config preference for codex.
+    # When the session is identified with each preference override.
+    # Then absent, empty, whitespace and comma-only overrides give (codex, t2, s1);
+    # ' claude-code , ' and 'claude-code,,codex' give (claude-code, c1, None);
+    # 'none' gives (None, None, None); and 'none,codex' and 'cursor,codex'
+    # give (codex, t2, s1) and warn about the first item.
     pytest.skip("Pending harness session implementation")
 
 
@@ -77,8 +78,9 @@ def test_preference_can_miss_the_matching_harnesses() -> None:
     """
     # Given a config with cursor but no CURSOR_TRACE_ID.
     # When the session is identified.
-    # Then a cursor preference leaves a nested run unresolved, while sole
-    # claude-code wins with either a codex preference or a 'none' override.
+    # Then a cursor preference in a nested run gives (None, None, None).
+    # A sole Claude Code match with id c1 gives (claude-code, c1, None)
+    # with either a codex preference or a 'none' override.
     pytest.skip("Pending harness session implementation")
 
 
@@ -110,10 +112,24 @@ def test_values_are_validated_once() -> None:
 
     Run identification through the environment and standard-stream ports.
     """
-    # Given a malformed parent, malformed recorded id, or repeated malformed name.
+    # Given CODEX_THREAD_ID=t2, CODEX_SESSION_ID='bad value!' and AI_AGENT=x/y.
     # When the session is identified.
-    # Then each malformed variable is absent from ids and warned about once
-    # on stderr, without its value. A valid session remains available.
+    # Then the result is (codex, t2, None), ids only holds CODEX_THREAD_ID=t2,
+    # and exactly two stderr warnings name the malformed variables, omitting
+    # both raw values.
+    pytest.skip("Pending harness session implementation")
+
+
+def test_a_malformed_variable_named_twice_warns_once() -> None:
+    """AC-4 diagnoses the variable once across lists.
+
+    The session lookup and extra recording both name the same variable.
+    """
+    # Given cursor maps session to AI_AGENT, which is also in record_env_vars,
+    # and AI_AGENT=x/y.
+    # When the session is identified.
+    # Then cursor matches with no session, no id is recorded, and exactly one
+    # stderr warning names AI_AGENT without its value.
     pytest.skip("Pending harness session implementation")
 
 
@@ -126,7 +142,8 @@ def test_id_shape_has_exact_boundaries() -> None:
     # spaces, punctuation outside the alphabet, or non-ASCII characters.
     # When the session is identified.
     # Then empty gives no match or warning, 128 letters gives a valid session,
-    # and each malformed value matches with no session and one warning.
+    # and each malformed value matches with no session or id and one
+    # warning that names the variable without its value.
     pytest.skip("Pending harness session implementation")
 
 
@@ -135,12 +152,15 @@ def test_lookup_is_limited_and_ids_keep_first_occurrence_order() -> None:
 
     Run identification through the environment and standard-stream ports.
     """
-    # Given cursor adds CURSOR_TRACE_ID and AI_AGENT, and the extra list names
-    # WIO_PREFER_HARNESS alongside AI_AGENT. SECRET_TOKEN is also set.
-    # When the session is identified.
-    # Then only CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, CODEX_SESSION_ID,
-    # CURSOR_TRACE_ID, AI_AGENT and WIO_PREFER_HARNESS are read. The ids
-    # keys are CLAUDE_CODE_SESSION_ID, CURSOR_TRACE_ID, AI_AGENT in order.
+    # Given cursor maps session to CURSOR_TRACE_ID and AI_AGENT, the extra
+    # list names AI_AGENT and WIO_PREFER_HARNESS, and a recording fake has
+    # values c1 for CLAUDE_CODE_SESSION_ID, r9 for CURSOR_TRACE_ID, x for AI_AGENT,
+    # WIO_PREFER_HARNESS=cursor and SECRET_TOKEN=hunter2.
+    # When the session is identified with the recording Environment fake.
+    # Then every configured name and WIO_PREFER_HARNESS are read, and nothing
+    # else. The names are CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, CODEX_SESSION_ID,
+    # CURSOR_TRACE_ID, AI_AGENT and WIO_PREFER_HARNESS. The ordered ids are
+    # CLAUDE_CODE_SESSION_ID=c1, CURSOR_TRACE_ID=r9 and AI_AGENT=x.
     pytest.skip("Pending harness session implementation")
 
 
