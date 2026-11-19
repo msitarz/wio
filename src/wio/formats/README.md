@@ -1,8 +1,8 @@
 # `wio.formats`
 
-The pure codecs between text and the shared types. A codec reads or writes text,
-touches no file and raises a `WioError` when the text is wrong, so a model in
-`wio.models` never raises. The
+The pure codecs between text and the shared types. A codec reads or writes text
+without file access. A codec that raises a public exception for invalid text
+uses a `WioError`. The
 [v0.1 scope](../../../docs/v0.1-scope.md#wioformats-internal) lists what the
 package holds.
 
@@ -11,6 +11,36 @@ package holds.
 `encode_json` in [`diagnostics.py`](diagnostics.py) is the one JSON encoder. It
 keeps the standard library behind this package and loads it only when JSON is
 needed.
+
+## Event log lines
+
+The [event log](../../../docs/concepts.md#the-event-log) shares one
+[JSON line codec](event_lines.py) for both event types. The
+[event models](../models/events.py) describe what the event and its envelope
+carry. Producers supply complete events. For context events, the producer
+computes the bundle id and rule hashes and supplies the starting commit for
+a gate. The codec serializes those values independently of log storage.
+
+Version 1 can gain optional fields. Keeping existing field names and
+meanings lets a reader use older entries and ignore fields added by a
+newer writer. Removing a field or changing its meaning requires a new
+version.
+
+Omitting absent optional fields keeps each line compact. Bundle size uses
+bytes to express its length for harness truncation.
+
+A partial write can leave a damaged line. `decode_lines` counts rejected lines
+in its result and continues, keeping surrounding entries usable. JSON that
+exceeds the parser's nesting capacity also counts as an unreadable line.
+Oversized integers in unknown fields can be ignored without lifting Python's
+integer conversion limit.
+
+Millisecond timestamps keep enough precision for one person's event log.
+`encode_line` raises `ValueError` if the caller supplies a timestamp outside
+its supported range, including a negative or nonfinite value.
+The codec's docstrings specify the supported UTC time representation, and
+the [tests](../../../tests/unit/formats/test_event_lines.py) cover the wire
+fields, ordering, malformed lines, and rounding boundary.
 
 ## The TOML decoder
 

@@ -17,12 +17,13 @@ below the components, and no component imports another, so each can be built
 and changed alone. A dependency that exists only for a type is still a
 dependency, so imports under `TYPE_CHECKING` count.
 
-`wio.models` imports nothing from `wio`: its types are plain data, and parsing
-or validation that can fail lives in `wio.formats`, which raises `WioError`, so
-a model never does. `wio.errors` imports only `wio.models`, so an error can
-carry a model, such as the diagnostics of a failed check, and every package may
-import it. Errors that several packages share live there. A package adds an
-`errors.py` that extends `WioError` only when it has an error of its own.
+`wio.models` imports nothing from other packages of `wio`. Its types are
+plain data. The shared codecs in [`wio.formats`](formats/README.md) parse and
+validate text. When a codec raises a public exception for invalid text, it
+raises a `WioError`. `wio.errors` imports only `wio.models`, so an error can
+carry a model, such as the diagnostics of a failed check, and every package
+may import it. Errors that several packages share live there. A package adds
+an `errors.py` that extends `WioError` only when it has an error of its own.
 
 ```mermaid
 flowchart LR

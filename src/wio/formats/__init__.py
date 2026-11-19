@@ -22,6 +22,7 @@ lazy from wio.formats.errors import (
     TemplateDirectiveError,
     TomlSyntaxError,
 )
+lazy from wio.formats.event_lines import Decoding, Entry, decode_lines, encode_line
 lazy from wio.formats.items import find_items, judge_items
 lazy from wio.formats.outline import read_outline
 lazy from wio.formats.records import check_shape, read
@@ -34,15 +35,19 @@ lazy from wio.formats.writer import encode_toml
 __all__ = [
     "COMBINING",
     "DIRECTIVES",
+    "Decoding",
     "DirectiveSyntaxError",
+    "Entry",
     "MetadataBlockError",
     "NotATemplateError",
     "TemplateDirectiveError",
     "TomlSyntaxError",
     "check_shape",
     "closest_key",
+    "decode_lines",
     "decode_toml",
     "encode_json",
+    "encode_line",
     "encode_toml",
     "find_items",
     "judge_items",
