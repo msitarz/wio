@@ -296,6 +296,7 @@ class Log:
     """
 
     harnesses: frozendict[str, Harness] = field(
+        default=frozendict(),
         metadata={
             "description": "Definitions of the built-in and configured harnesses."
         },
@@ -318,8 +319,12 @@ class Config:
 
     It is immutable once built, so every component that holds it sees the same
     gates, Works, templates, trailers, skills, bundle, actions, roots,
-    stages, stage presets, rule presets, rulesets and always fields. Two equal
-    configs compare and hash equal, and a mapping it holds cannot be changed.
+    stages, stage presets, rule presets, rulesets, always fields and log
+    settings. Two equal configs compare and hash equal, and a mapping it holds
+    cannot be changed.
+
+    Attributes:
+        log: Harness definitions and environment settings for the event log.
     """
 
     gates: Gates = field(
@@ -371,4 +376,8 @@ class Config:
     )
     rules_always_exclude: tuple[str, ...] = field(
         default=(), metadata={"description": "The rules no bundle includes."}
+    )
+    log: Log = field(
+        default=Log(),
+        metadata={"description": "How the event log identifies harness sessions."},
     )
