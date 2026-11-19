@@ -1,23 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The gate form of `wio trailers`: record a gate's result.
+"""Check citations and find the commit that a review judged.
 
-`wio trailers <work> <action> <stage> --result RESULT [--judge JUDGE] [--cite
-KEY=RESULT]...` extends the write form of `wio.trailers.write`. After the fields of
-the record hold, the form checks what the review cites, finds the commit it judged,
-writes one `review` event and then prints the record, so a review leaves a trace of
-what it cited, of the commit it saw and of who judged. A gate that needs a human
-changes nothing here: the judge is recorded as given, `agent` by default, so a
-reviewer session and the driver each record a result and an event. The form
-refuses without writing the event or printing the record, and a failing sink is the
-sink's warning and never the command's failure.
-
-`configure_write` gives `--cite` its meaning, which the print leaf accepted and
-ignored, and `run_write` calls `run_review` once every field holds and has no error,
-only when `--result` or `--cite` is given. `wio.trailers.Services` has the fields
-`rules`, the `StageRules` port, and `events`, the `EventSink` port, which the
-command that wires the forms gives an adapter that selects no rule and one that
-drops the events until their components exist. The form composes the check of the
-cites, the finder of the reviewed commit and the event sink.
+The command checks the record fields first. The gate check then validates
+citations and resolves the reviewed commit before either command records
+the resulting event.
 """
 
 from dataclasses import dataclass
@@ -25,12 +11,12 @@ from typing import TYPE_CHECKING
 
 from wio.models.events import ReviewEvent
 from wio.models.records import Finding
+from wio.models.reviews import Accepted, Refusal
 from wio.trailers.reviewed import reviewed_commit
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-    from wio.io.ports import Stdio
     from wio.models.config import Config
     from wio.trailers import Services
 
@@ -184,42 +170,22 @@ def review_event(
     )
 
 
-def run_review(
-    services: Services,
-    fields: Sequence[tuple[str, str]],
-    cites: Sequence[str],
-    stdio: Stdio,
-) -> int:
-    """Check what a review cites, find what it judged and write its event.
-
-    It runs after the fields of the record have been checked and refused nothing.
-    The cites are checked first, with the items of the Work from the `Contracts`
-    port and the rules from the `StageRules` port, then the reviewed commit is found
-    by `reviewed_commit` from the action and the stage with the reader of the
-    config; the first of the two that finds something writes its findings as
-    `error: <name>: <message>` to standard error and stops. A history with no
-    reviewed commit writes `error: Wio-Work: no reviewed commit was found`. Nothing
-    is written to standard output. The event is written once, to the `EventSink`
-    port, only after every check passed and after a warning, and never on a
-    refusal; a sink that fails reports its own warning on standard error, which
-    changes nothing here.
+def check_review_event(
+    services: Services, fields: Sequence[tuple[str, str]], cites: Sequence[str]
+) -> Accepted | Refusal:
+    """Judge citations and find a reviewed commit after checking the fields.
 
     Args:
-        services: The ports the form reads the Works, the rules and the history
-            through, and writes the event to.
-        fields: The key and the value of each field of the record, in the order of
-            the keys of a record.
-        cites: The values of `--cite` as given.
-        stdio: Where the findings are written.
+        services: Supplies config, Work items, selected rules and history.
+        fields: The checked fields of the record in printing order.
+        cites: The requested citations in argument order.
 
     Returns:
-        0 when the event was written, and 1 when a cite or the reviewed commit was
-        refused.
+        An event if every check passed, or the first group's refusal lines.
 
     Raises:
-        RuntimeError: If the working directory is not in a repository, as the
-            `History` port raises it.
-        ValueError: If the `History` port rejects the revision, as it raises it.
+        RuntimeError: The history port cannot find the repository.
+        ValueError: The history port rejects the revision it was asked to read.
     """
     record = dict(fields)
     work, action, stage = record["Wio-Work"], record["Wio-Action"], record["Wio-Stage"]
@@ -230,22 +196,8 @@ def run_review(
         cites, config, (items, selected), has_result="Wio-Result" in record
     )
     if findings:
-        _write_findings(findings, stdio)
-        return 1
+        return Refusal(tuple(f"error: {f.key}: {f.message}" for f in findings))
     commit = reviewed_commit(action, stage, services.history, config.trailers.reader)
     if commit is None:
-        stdio.stderr.write("error: Wio-Work: no reviewed commit was found\n")
-        return 1
-    services.events.write(review_event(record, commit, cited, selected))
-    return 0
-
-
-def _write_findings(findings: Sequence[Finding], stdio: Stdio) -> None:
-    """Write the refusals of the cites to standard error.
-
-    Args:
-        findings: What `check_cites` found.
-        stdio: Where they are written.
-    """
-    for finding in findings:
-        stdio.stderr.write(f"error: {finding.key}: {finding.message}\n")
+        return Refusal(("error: Wio-Work: no reviewed commit was found",))
+    return Accepted(review_event(record, commit, cited, selected))

@@ -59,10 +59,12 @@ class LogCommand:
             stdio: Receives the report and any text-form note.
 
         Returns:
-            Zero for help or a readable log, including an empty log.
+            Zero for help, a readable log or an accepted review.
+            One for a refused review.
 
         Raises:
-            WioError: The log cannot be located or read.
+            WioError: The log cannot be located or read, or the review form
+                cannot load the repository and its configuration.
         """
         arguments = cast("Arguments", args)
         if arguments.log_form is None:

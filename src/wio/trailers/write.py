@@ -15,9 +15,9 @@ from typing import TYPE_CHECKING
 
 from wio.formats import check_shape, render
 from wio.models.records import Finding
-from wio.models.reviews import Refusal
+from wio.models.reviews import Accepted, Refusal
 from wio.trailers.errors import TrailersError
-from wio.trailers.gate import run_review
+from wio.trailers.gate import check_review_event
 from wio.trailers.validation import Field, validate_record
 
 if TYPE_CHECKING:
@@ -26,8 +26,7 @@ if TYPE_CHECKING:
 
     from wio.io.ports import Stdio
     from wio.models.config import Config
-    from wio.models.diagnostics import Diagnostic
-    from wio.models.reviews import Accepted
+    from wio.ports import EventSink
     from wio.trailers import Services
 
 
@@ -78,6 +77,7 @@ class TrailersReviewChecker:
         Returns:
             The accepted review or the diagnostics that refused it.
         """
+        _one_work(work)
         fields = [
             ("Wio-Work", work),
             ("Wio-Action", action),
@@ -89,26 +89,6 @@ class TrailersReviewChecker:
             self.services, fields, cites, self.services.settings.load()
         )
         return decision if isinstance(decision, Refusal) else decision[1]
-
-
-def _check_review(
-    _services: Services,
-    _fields: list[tuple[str, str]],
-    _cites: Sequence[str],
-    _config: Config,
-) -> tuple[str, Accepted] | Refusal:
-    """Check a review request and retain the record for the trailers caller.
-
-    Args:
-        _services: The readers of the Work, rules and commit history.
-        _fields: The record fields in their printing order.
-        _cites: The review citations.
-        _config: The effective config for the field checks.
-
-    Returns:
-        The rendered record and accepted review, or the combined refusal.
-    """
-    return Refusal(("error: review checks are not implemented",))
 
 
 def configure_write(parser: ArgumentParser) -> None:
@@ -131,58 +111,111 @@ def configure_write(parser: ArgumentParser) -> None:
 
 
 def run_write(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Print the record of the arguments, or say why it is refused.
-
-    The Work is checked first: a value that holds a comma, which is a list of Works,
-    is a usage error, before the config is loaded or anything is judged, and any
-    other value, such as one with a space, is judged by form like the other fields.
-    `none` never reaches this form, because the command gives it a form of its own.
-    The record is then built from the arguments, with the `--items` ids joined by a
-    comma and one space in the order given and the judge `agent` when a result is
-    given and no judge is, and it is judged in this order. An argument that is
-    empty or holds a line end is refused as the finding of its field, so no
-    argument can add a line to the record, and a `--judge` without a result is
-    refused the same way, as the finding of `Wio-Judge`, before the record is
-    rendered. The record is rendered and `check_shape` judges it
-    with the reader of the config, and only when that finds nothing does
-    `validate_record` judge its fields against the config and the Works, which the
-    `Contracts` port finds in the working tree and then in `HEAD`.
-
-    Each finding of the shape check is written to standard error as
-    `error: <key>: <message>` followed by its offending line, and each diagnostic of
-    the validator as `<severity>: <where>: <message>`, in the order they come, with
-    the key of the field as `<where>`. Nothing is written to standard output when
-    anything is an error. A warning does not stop the record, which is written to
-    standard output with its lines in the order of the keys. A call that gives a
-    result or a cite is then recorded by `run_review` before the record is written,
-    and what it refuses stops the record.
+    """Print a checked record and record its event when it describes a review.
 
     Args:
-        services: The ports the form reads the config and the Works through.
-        args: The arguments that `configure_write` parsed.
-        stdio: Where the record and the findings are written.
+        services: The ports for checking and recording the request.
+        args: The arguments that configure_write parsed.
+        stdio: Receives the record and the diagnostics.
 
     Returns:
-        0 for a record that is printed, with or without a warning, and 1 for a field
-        that is refused.
+        Zero for a printed record or one for a refusal with empty stdout.
 
     Raises:
-        TrailersError: If the Work is a list of ids, which this form does not
-            write.
-        ConfigurationError: If the config cannot be read.
+        TrailersError: The Work argument is a comma-separated list.
+        ConfigurationError: The effective configuration cannot be read.
     """
     _one_work(args.work)
     config = services.settings.load()
     fields = _fields(args)
+    if args.result is not None or args.cite:
+        checked = _check_review(services, fields, args.cite, config)
+    else:
+        checked = _check_fields(services, fields, config)
+    return _write_checked(checked, services.events, stdio)
+
+
+def _write_checked(
+    checked: tuple[str, Accepted | tuple[str, ...]] | Refusal,
+    events: EventSink,
+    stdio: Stdio,
+) -> int:
+    """Emit the diagnostics, accepted event and record in that order.
+
+    Args:
+        checked: The checked record and its outcome, or the refusal.
+        events: Receives the event of an accepted review.
+        stdio: Receives diagnostics and the printed record.
+
+    Returns:
+        Zero for a printed record, or one when the checks refused it.
+    """
+    if isinstance(checked, Refusal):
+        stdio.stderr.writelines(line + "\n" for line in checked.lines)
+        return 1
+    record, outcome = checked
+    warnings = outcome.warnings if isinstance(outcome, Accepted) else outcome
+    stdio.stderr.writelines(line + "\n" for line in warnings)
+    if isinstance(outcome, Accepted):
+        events.write(outcome.event)
+    stdio.stdout.write(record)
+    return 0
+
+
+def _check_fields(
+    services: Services, fields: list[tuple[str, str]], config: Config
+) -> tuple[str, tuple[str, ...]] | Refusal:
+    """Validate the arguments, record syntax and effective fields in order.
+
+    Args:
+        services: Supplies Work metadata for validating the fields.
+        fields: The requested fields in their printing order.
+        config: The effective config for record shape and validation.
+
+    Returns:
+        The rendered record and warnings, or the ordered refusal lines.
+    """
     refused = _refused_arguments(fields)
     record = "" if refused else render(dict(fields))
     findings = refused or check_shape(record, config.trailers.reader)
     if findings:
-        _write_findings(findings, stdio)
-        return 1
+        return Refusal(_finding_lines(findings))
     checked = [Field(key, value, None) for key, value in fields]
     diagnostics = validate_record(checked, services.contracts, config)
-    return _finish(diagnostics, record, (services, fields, args.cite), stdio)
+    lines = tuple(f"{d.severity}: {d.where}: {d.message}" for d in diagnostics)
+    return (
+        Refusal(lines)
+        if any(d.severity == "error" for d in diagnostics)
+        else (record, lines)
+    )
+
+
+def _check_review(
+    services: Services,
+    fields: list[tuple[str, str]],
+    cites: Sequence[str],
+    config: Config,
+) -> tuple[str, Accepted] | Refusal:
+    """Check both review forms before either caller writes an event.
+
+    Args:
+        services: The readers of the Work, rules and commit history.
+        fields: The record fields in their printing order.
+        cites: The review citations.
+        config: The effective config for the field checks.
+
+    Returns:
+        The rendered record and accepted review, or the combined refusal.
+        Field warnings precede citation and history diagnostics.
+    """
+    checked = _check_fields(services, fields, config)
+    if isinstance(checked, Refusal):
+        return checked
+    record, warnings = checked
+    decision = check_review_event(services, fields, cites)
+    if isinstance(decision, Refusal):
+        return Refusal(warnings + decision.lines)
+    return record, Accepted(decision.event, warnings + decision.warnings)
 
 
 def _fields(args: Namespace) -> list[tuple[str, str]]:
@@ -285,46 +318,17 @@ def _shown(key: str, value: str) -> str:
     return f"{key}: {value}".replace("\r", "\\r").replace("\n", "\\n")
 
 
-def _write_findings(findings: list[Finding], stdio: Stdio) -> None:
-    """Write the findings of the shape check to standard error.
+def _finding_lines(findings: list[Finding]) -> tuple[str, ...]:
+    """Give syntax diagnostics with each offending line just after its error.
 
     Args:
-        findings: What `check_shape` or the refusal of an argument found.
-        stdio: Where they are written.
-    """
-    for finding in findings:
-        stdio.stderr.write(f"error: {finding.key}: {finding.message}\n{finding.line}\n")
-
-
-def _finish(
-    diagnostics: list[Diagnostic],
-    record: str,
-    review: tuple[Services, list[tuple[str, str]], list[str]],
-    stdio: Stdio,
-) -> int:
-    """Write what the validator found, record the review and print the record.
-
-    Args:
-        diagnostics: What `validate_record` returned, in the order of the fields.
-        record: The rendered record.
-        review: The services, the fields of the record and the `--cite` values,
-            which `run_review` records the result of a gate with.
-        stdio: Where the diagnostics and the record are written.
+        findings: The findings of the argument or record shape check.
 
     Returns:
-        1 when a diagnostic is an error or the review is refused, and then nothing
-        is written to standard output, and 0 otherwise, after the event is written
-        for a call that gives a result or a cite and the record is written to
-        standard output.
+        The lines to write to standard error, in order, without terminators.
     """
-    for d in diagnostics:
-        stdio.stderr.write(f"{d.severity}: {d.where}: {d.message}\n")
-    if any(d.severity == "error" for d in diagnostics):
-        return 1
-    services, fields, cites = review
-    if ("Wio-Result" in dict(fields) or cites) and run_review(
-        services, fields, cites, stdio
-    ):
-        return 1
-    stdio.stdout.write(record)
-    return 0
+    return tuple(
+        line
+        for finding in findings
+        for line in (f"error: {finding.key}: {finding.message}", finding.line)
+    )
