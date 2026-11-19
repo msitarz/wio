@@ -192,26 +192,36 @@ def test_review_outputs_silence_or_ordered_json(
 
 @pytest.mark.channels(Channel.CLI)
 @pytest.mark.usefixtures("artifact")
-def test_warning_does_not_stop_a_review(wio: Wio, sandbox: Sandbox) -> None:
+@pytest.mark.parametrize("output_flags", [[], ["--json"]], ids=["text", "json"])
+def test_warning_does_not_stop_a_review(
+    wio: Wio,
+    sandbox: Sandbox,
+    output_flags: list[str],
+) -> None:
     """AC-3 preserves the warning for a gate outside the Work pipeline.
 
     Args:
         wio: Runs the two commands in the same repository.
         sandbox: Supplies the isolated Wio home.
+        output_flags: The optional JSON output flag.
     """
     # Given a configured gate outside the Work's pipeline.
     args = [_WORK, "deliver", "system-review", "--result", "pass"]
 
     # When both commands record the result.
-    logged = wio.run([*_LOG, *args])
+    logged = wio.run([*_LOG, *args, *output_flags])
     printed = wio.run([*_TRAILERS, *args])
 
     # Then both warn and succeed, and the sink records equal reviews.
-    assert (logged.exit_code, printed.exit_code, logged.stdout) == (0, 0, "")
+    assert (logged.exit_code, printed.exit_code) == (0, 0)
     assert logged.stderr == printed.stderr
     assert logged.stderr.startswith("warning: Wio-Stage:")
     first, second = _events(sandbox)
     assert _payload(first) == _payload(second)
+    if output_flags:
+        assert json.loads(logged.stdout) == {"event": _payload(first)}
+    else:
+        assert logged.stdout == ""
 
 
 @pytest.mark.channels(Channel.CLI)
@@ -342,21 +352,33 @@ def test_review_refuses_none_as_a_work(wio: Wio, sandbox: Sandbox) -> None:
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 @pytest.mark.parametrize(
-    "args",
+    ("args", "diagnostic"),
     [
-        ["k3m9xq", "deliver", "docs-review"],
-        ["k3m9xq,other1", "deliver", "docs-review", "--result", "pass"],
-        ["k3m9xq", "deliver", "docs-review", "--result", "pass", "--bogus"],
+        (["k3m9xq", "deliver", "docs-review"], "required: --result"),
+        (
+            ["k3m9xq,other1", "deliver", "docs-review", "--result", "pass"],
+            "name one Work for a review",
+        ),
+        (
+            ["k3m9xq", "deliver", "docs-review", "--result", "pass", "--bogus"],
+            "unrecognized arguments: --bogus",
+        ),
     ],
     ids=["missing-result", "work-list", "unknown-option"],
 )
-def test_usage_mistakes_exit_two(wio: Wio, sandbox: Sandbox, args: list[str]) -> None:
+def test_usage_mistakes_exit_two(
+    wio: Wio,
+    sandbox: Sandbox,
+    args: list[str],
+    diagnostic: str,
+) -> None:
     """AC-5 distinguishes syntax errors from refused review fields.
 
     Args:
         wio: Runs the normal log command.
         sandbox: Supplies the isolated Wio home.
         args: The invalid arguments for review.
+        diagnostic: The part of the error specific to this mistake.
     """
     # Given an invalid review command and an untouched Wio home.
     home = Path(sandbox.env["WIO_HOME"])
@@ -367,6 +389,7 @@ def test_usage_mistakes_exit_two(wio: Wio, sandbox: Sandbox, args: list[str]) ->
     # Then parsing exits two, explains the problem and writes no event.
     assert (output.exit_code, output.stdout) == (2, "")
     assert "error:" in output.stderr
+    assert diagnostic in output.stderr
     assert not home.exists()
 
 
