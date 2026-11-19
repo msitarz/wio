@@ -100,5 +100,5 @@ def test_every_setting_has_a_description() -> None:
     ]
 
     # Then each has a non-empty description in its metadata
-    assert len(classes) == 13
+    assert len(classes) == 15
     assert undescribed == []

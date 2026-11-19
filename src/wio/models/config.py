@@ -266,6 +266,53 @@ class Ruleset:
 
 
 @dataclass(frozen=True)
+class Harness:
+    """Name the environment variables that can identify a harness session.
+
+    Attributes:
+        session: Variables in lookup order for the session id.
+        parent: Variables in lookup order for the optional parent session id.
+    """
+
+    session: tuple[str, ...] = field(
+        metadata={"description": "The session variables in lookup order; required."},
+    )
+    parent: tuple[str, ...] = field(
+        default=(),
+        metadata={"description": "The parent session variables in lookup order."},
+    )
+
+
+@dataclass(frozen=True)
+class Log:
+    """Hold the effective harness and environment settings for the event log.
+
+    Attributes:
+        harnesses: Harness definitions by name, including each built-in that
+            the config file does not replace.
+        prefer_harness: Harness names in preference order for a nested run.
+        record_env_vars: Names of the additional variables to record. An empty
+            tuple selects none.
+    """
+
+    harnesses: frozendict[str, Harness] = field(
+        metadata={
+            "description": "Definitions of the built-in and configured harnesses."
+        },
+    )
+    prefer_harness: tuple[str, ...] = field(
+        default=(),
+        metadata={"description": "The order to prefer harnesses in a nested run."},
+    )
+    record_env_vars: tuple[str, ...] = field(
+        default=("AI_AGENT",),
+        metadata={
+            "description": "Additional variables to record; `AI_AGENT` by default."
+        },
+    )
+
+
+@dataclass(frozen=True)
 class Config:
     """The effective settings read from `.agents/wio/config.toml`.
 
