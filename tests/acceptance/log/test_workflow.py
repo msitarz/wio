@@ -108,19 +108,13 @@ def test_review_entry_points_append_the_same_payload(wio: Wio, log_home: Path) -
     # Then both write equal payloads and the log form does not print a record.
     assert (trailers.exit_code, review.exit_code, review.stdout) == (0, 0, "")
     first, second = map(json.loads, _events_path(log_home).read_bytes().splitlines())
-    keys = (
-        "type",
-        "work",
-        "action",
-        "stage",
-        "commit",
-        "judge",
-        "result",
-        "cited",
-        "hashes",
-    )
-    assert first["type"] == "review"
-    assert tuple(first[key] for key in keys) == tuple(second[key] for key in keys)
+    envelope = {"time", "directory", "harness", "session", "parent", "matches", "ids"}
+    assert first["type"] == second["type"] == "review"
+    first_payload = {key: value for key, value in first.items() if key not in envelope}
+    second_payload = {
+        key: value for key, value in second.items() if key not in envelope
+    }
+    assert first_payload == second_payload
 
 
 @pytest.mark.channels(Channel.CLI)
