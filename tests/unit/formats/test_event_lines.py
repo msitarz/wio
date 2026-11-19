@@ -3,6 +3,20 @@
 
 import pytest
 
+from wio.formats import Decoding, decode_lines
+
+
+def test_blank_lines_do_not_create_entries_or_count_as_skips() -> None:
+    """AC-4 treats whitespace-only lines as empty log input."""
+    # Given LF and CRLF lines with no records.
+    text = "\n  \r\n\t\n"
+
+    # When the text is decoded.
+    decoded = decode_lines(text)
+
+    # Then there are no entries and no skips.
+    assert decoded == Decoding((), 0)
+
 
 def test_review_round_trip_keeps_all_fields_and_citation_order() -> None:
     """AC-1 preserves the reviewed commit, decisions and complete envelope."""
