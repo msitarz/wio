@@ -2392,8 +2392,9 @@ it records two events:
 - `review`: a gate finished, with the Work, action, stage, the reviewed commit,
   the judge, the overall result, and a result for each cited item, a rule code
   (with its file's hash) or an item id (`ARC001=fail`, `AC-2=pass`). What is not
-  cited was not judged. `wio trailers --result` writes it, and `wio log review`,
-  with the same arguments, writes it for workflows that do not use records. A
+  cited was not judged. `wio trailers --result` writes it, and
+  [`wio log review`](../src/wio/log/README.md#recording-a-gate-review-without-commit-records)
+  writes it for workflows that keep reviews in the log alone. A
   gate that takes several commits, or a record printed again after a hook
   rejected the commit, writes several `review` events; the latest one for the
   same Work, action, stage, reviewed commit and judge replaces the earlier ones,
