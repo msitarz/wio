@@ -12,6 +12,8 @@ the contract of the type, and the names of the nested types are provisional.
 from dataclasses import dataclass, field
 from typing import Literal
 
+from wio.models.frozen import freeze
+
 type HierarchyMode = Literal["flat", "nesting"]
 """How the hierarchy of Works is derived: from the layout, or not at all."""
 
@@ -275,7 +277,10 @@ class Harness:
     """
 
     session: tuple[str, ...] = field(
-        metadata={"description": "The session variables in lookup order; required."},
+        metadata={
+            "description": "The session variables in lookup order; required.",
+            "nonempty": True,
+        },
     )
     parent: tuple[str, ...] = field(
         default=(),
@@ -296,7 +301,15 @@ class Log:
     """
 
     harnesses: frozendict[str, Harness] = field(
-        default=frozendict(),
+        default=freeze(
+            {
+                "claude-code": Harness(session=("CLAUDE_CODE_SESSION_ID",)),
+                "codex": Harness(
+                    session=("CODEX_THREAD_ID", "CODEX_SESSION_ID"),
+                    parent=("CODEX_SESSION_ID",),
+                ),
+            }
+        ),
         metadata={
             "description": "Definitions of the built-in and configured harnesses."
         },

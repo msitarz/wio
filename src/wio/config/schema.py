@@ -46,7 +46,13 @@ class Choice:
 
 @dataclass(frozen=True)
 class Strings:
-    """A list of strings."""
+    """A list of strings.
+
+    Attributes:
+        nonempty: Whether the file must supply at least one list member.
+    """
+
+    nonempty: bool = False
 
 
 @dataclass(frozen=True)
@@ -158,7 +164,9 @@ def _slot(item: dataclasses.Field[Any], hint: object, path: str) -> Slot:
     Returns:
         The slot.
     """
-    spec = _spec(hint, path)
+    spec = (
+        Strings(nonempty=True) if item.metadata.get("nonempty") else _spec(hint, path)
+    )
     required = item.default is dataclasses.MISSING
     default = None if required else item.default
     return Slot(

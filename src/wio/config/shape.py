@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The shape of the config file: its keys, types and values, read from the schema."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Literal, cast
 
 from wio.config import messages
@@ -17,7 +17,7 @@ from wio.config.schema import (
     schema,
     tables,
 )
-from wio.models.config import Config, Stage
+from wio.models.config import Config, Log, Stage
 from wio.models.diagnostics import Diagnostic
 from wio.models.frozen import freeze
 
@@ -73,6 +73,7 @@ def read_shape(data: dict[str, object]) -> Shape:
     """
     walk = _Walk()
     config = cast("Config", walk.table(schema(), data, ""))
+    config = replace(config, log=walk.with_builtin_harnesses(config.log))
     return Shape(config, tuple(walk.found), freeze(walk.sources))
 
 
@@ -92,6 +93,23 @@ class _Walk:
             message: What is wrong and how to fix it.
         """
         self.found.append(Diagnostic("error", where, message))
+
+    def with_builtin_harnesses(self, log: Log) -> Log:
+        """Keep configured entries and record the leaves inherited from defaults.
+
+        Args:
+            log: Log settings with the harness entries read from the file.
+
+        Returns:
+            Settings with a complete harness mapping. Each configured entry
+            replaces its built-in as a whole, including omitted parent variables.
+        """
+        builtins = Log().harnesses
+        for name in builtins.keys() - log.harnesses.keys():
+            path = messages.join_path("log.harnesses", name)
+            self.sources[f"{path}.session"] = "default"
+            self.sources[f"{path}.parent"] = "default"
+        return replace(log, harnesses=freeze(builtins | log.harnesses))
 
     def table(self, spec: Table, raw: Mapping[str, object], path: str) -> object:
         """Build one table from its keys.
@@ -155,7 +173,10 @@ class _Walk:
                 self._note(slot, where, value, "file")
                 return value
         elif slot.required:
-            self.error(path, f"missing key `{slot.name}`. {slot.description}")
+            at = (
+                where if isinstance(slot.spec, Strings) and slot.spec.nonempty else path
+            )
+            self.error(at, f"missing key `{slot.name}`. {slot.description}")
         return self._fallback(slot, where)
 
     def _fallback(self, slot: Slot, where: str) -> object:
@@ -212,6 +233,9 @@ class _Walk:
         match spec:
             case Table() | Open() as nested:
                 return self._nested(nested, raw, where, description)
+            case Strings(nonempty=True) if raw == []:
+                self.error(where, f"expected at least one string. {description}")
+                return DROPPED
             case Strings():
                 return self._strings(raw, where, description)
             case PresetOrStages():

@@ -168,13 +168,17 @@ def _leaves(child: object, path: str) -> set[str]:
         Nothing for `None`, the entries of an open table, the leaves of a table,
         or the field's own path for any other value.
     """
-    if child is None:
-        return set()
-    if isinstance(child, Mapping):
-        return {f"{path}.{key}" for key in child}
-    if dataclasses.is_dataclass(child) and not isinstance(child, type):
-        return _paths(child, f"{path}.")
-    return {path}
+    match child:
+        case None:
+            return set()
+        case Mapping():
+            return set().union(
+                *(_leaves(entry, f"{path}.{key}") for key, entry in child.items())
+            )
+        case _ if dataclasses.is_dataclass(child) and not isinstance(child, type):
+            return _paths(child, f"{path}.")
+        case _:
+            return {path}
 
 
 def test_the_source_of_each_setting_is_the_file_or_the_default() -> None:
