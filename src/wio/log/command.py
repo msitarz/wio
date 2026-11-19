@@ -5,13 +5,33 @@ Bare help can run in any working directory.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
+
+from wio.log.render import render
+from wio.log.show import read_report
 
 if TYPE_CHECKING:
     from argparse import Namespace
+    from collections.abc import Callable
 
     from wio.env.ports import Directories
     from wio.io.ports import FileSystem, Repository, Stdio
+
+
+class Arguments:
+    """The parser values shared by the log forms.
+
+    Attributes:
+        log_form: The form name, or None for bare help.
+        log_help: Returns help for the bare log command.
+        work: The optional Work filter for show.
+        json: Whether show uses its JSON form.
+    """
+
+    log_form: str | None
+    log_help: Callable[[], str]
+    work: str | None
+    json: bool
 
 
 @dataclass(frozen=True)
@@ -41,4 +61,17 @@ class LogCommand:
         Raises:
             WioError: The log cannot be located or read.
         """
-        raise NotImplementedError
+        arguments = cast("Arguments", args)
+        if arguments.log_form is None:
+            stdio.stdout.write(arguments.log_help())
+            return 0
+        report = read_report(
+            self.repository, self.directories, self.filesystem, arguments.work
+        )
+        stdio.stdout.write(render(report, as_json=arguments.json))
+        if report.skipped and not arguments.json:
+            noun = "line" if report.skipped == 1 else "lines"
+            stdio.stderr.write(
+                f"note: skipped {report.skipped} {noun} of the event log\n"
+            )
+        return 0

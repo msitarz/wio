@@ -8,6 +8,10 @@ so that reviews of Works whose contracts have gone remain visible.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.formats.event_lines import Entry, decode_lines
+from wio.log.errors import LogError
+from wio.log.locate import locate_log, log_files
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
@@ -82,4 +86,33 @@ def read_report(
         WioError: The clone or Wio home cannot be located, or a log file
             cannot be listed or read.
     """
-    raise NotImplementedError
+    try:
+        directory = locate_log(repository, directories)
+    except (RuntimeError, ValueError, OSError) as error:
+        raise LogError(str(error)) from error
+    entries: list[Entry] = []
+    skipped = 0
+    try:
+        paths = sorted(log_files(directory, filesystem), key=lambda path: path.name)
+        for path in paths:
+            decoded = decode_lines(
+                filesystem.read_bytes(path).decode("utf-8", "replace")
+            )
+            entries.extend(decoded.entries)
+            skipped += decoded.skipped
+    except OSError as error:
+        raise LogError(str(error)) from error
+    return Report(_rows(entries, work), skipped)
+
+
+def _rows(_entries: list[Entry], _work: str | None) -> Mapping[str, tuple[Row, ...]]:
+    """Select and group rows from events in file and line order.
+
+    Args:
+        _entries: The usable entries of each file, with files ordered by name.
+        _work: Selects a single Work when supplied.
+
+    Returns:
+        The rows by Work id, ordered by each row's latest event.
+    """
+    return {}

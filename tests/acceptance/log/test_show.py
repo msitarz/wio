@@ -4,19 +4,73 @@
 The scenarios describe the CLI output and the behavior across event files.
 """
 
+from typing import TYPE_CHECKING
+
 import pytest
 
+from tests.acceptance.channels import Channel
 
-def test_help_and_invalid_usage() -> None:
-    """AC-1 validates command selection and arguments.
+if TYPE_CHECKING:
+    from tests.acceptance.dsl.wio import Wio
 
-    The scenario exercises the report through the log command.
+
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+@pytest.mark.parametrize("args", [[], ["-h"]])
+def test_log_help_names_show(wio: Wio, args: list[str]) -> None:
+    """AC-1 makes show discoverable without locating a repository.
+
+    Args:
+        wio: The command facade with no registered repository.
+        args: Arguments following log.
     """
-    # Given bare help, -h, nonsense, --json at the log level and show with two Work
-    # ids.
-    # When log show or its parent command runs.
-    # Then help exits zero mentioning show; the usage errors exit two on stderr only.
-    pytest.skip("Pending log show implementation")
+    # Given a working directory with no repository.
+
+    # When help is requested.
+    output = wio.run(["log", *args])
+
+    # Then help names show and exits successfully.
+    assert output.exit_code == 0
+    assert "show" in output.stdout
+    assert output.stderr == ""
+
+
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+@pytest.mark.parametrize("args", [["nonsense"], ["--json"], ["show", "a", "b"]])
+def test_log_rejects_invalid_usage(wio: Wio, args: list[str]) -> None:
+    """AC-1 rejects unknown forms and misplaced or extra arguments.
+
+    Args:
+        wio: The command facade with no registered repository.
+        args: Invalid arguments following log.
+    """
+    # Given a working directory with no repository.
+
+    # When the invalid command runs.
+    output = wio.run(["log", *args])
+
+    # Then there is a usage error on standard error only.
+    assert output.exit_code == 2
+    assert output.stdout == ""
+    assert "error:" in output.stderr
+
+
+@pytest.mark.channels(Channel.CLI)
+def test_show_without_a_log_returns_an_empty_document(wio: Wio) -> None:
+    """AC-4 wires show to the ports of a real clone.
+
+    Args:
+        wio: The facade that initializes the clone and runs the real command.
+    """
+    # Given a real repository with no log directory.
+    wio.fixture("config/rich")
+
+    # When show is called with the JSON option.
+    output = wio.run(["log", "show", "--json"])
+
+    # Then the resulting report is empty and the command succeeds.
+    assert output.exit_code == 0
+    assert output.stdout == '{"works": {}, "skipped": 0}\n'
+    assert output.stderr == ""
 
 
 def test_latest_context() -> None:

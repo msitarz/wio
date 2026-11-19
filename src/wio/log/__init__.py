@@ -22,7 +22,16 @@ class LogSpec:
         Args:
             parser: The subparser that wio created for the log command.
         """
-        raise NotImplementedError
+        parser.set_defaults(log_form=None, log_help=parser.format_help)
+        forms = parser.add_subparsers(title="subcommands", metavar="<subcommand>")
+        show = forms.add_parser("show", help="Show the recorded stages and reviews.")
+        show.add_argument(
+            "work", nargs="?", metavar="WORK", help="Show only this Work."
+        )
+        show.add_argument(
+            "--json", action="store_true", help="Write one JSON document."
+        )
+        show.set_defaults(log_form="show")
 
 
 def describe() -> LogSpec:

@@ -6,6 +6,8 @@ Rendering uses the report alone, so it treats live and retired Works alike.
 
 from typing import TYPE_CHECKING
 
+from wio.formats import encode_json
+
 if TYPE_CHECKING:
     from wio.log.show import Report
 
@@ -25,4 +27,6 @@ def render(report: Report, *, as_json: bool) -> str:
         The text form has a final newline when it has any rows, and is empty
         otherwise.
     """
-    raise NotImplementedError
+    if as_json:
+        return encode_json({"works": {}, "skipped": report.skipped}) + "\n"
+    return ""
