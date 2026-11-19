@@ -6,6 +6,7 @@ harness can be ambiguous in nested runs because both harnesses leave their
 variables in the environment.
 """
 
+import re
 from dataclasses import dataclass
 from itertools import chain
 from typing import TYPE_CHECKING
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
 
 
 _PREFERENCE_VARIABLE = "WIO_PREFER_HARNESS"
+_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}")
 
 
 @dataclass(frozen=True)
@@ -96,33 +98,53 @@ def _read_ids(log: Log, environment: Environment) -> dict[str, str]:
     }
 
 
-def _valid_ids(_values: Mapping[str, str], _stdio: Stdio) -> dict[str, str]:
+def _valid_ids(values: Mapping[str, str], stdio: Stdio) -> dict[str, str]:
     """Keep well-shaped ids in first occurrence order.
 
     Args:
-        _values: Set values by distinct variable name.
-        _stdio: The streams used to warn once per malformed value.
+        values: Set values by distinct variable name.
+        stdio: The streams used to warn once per malformed value.
 
     Returns:
         Only values of one to 128 ASCII letters, digits or characters in
         `._:-`. Warnings name malformed variables and omit their values.
     """
-    return {}
+    ids: dict[str, str] = {}
+    for name, value in values.items():
+        if _ID.fullmatch(value):
+            ids[name] = value
+        else:
+            stdio.stderr.write(f"warning: {name} has an invalid id\n")
+    return ids
 
 
-def _preference(log: Log, _override: str | None, _stdio: Stdio) -> tuple[str, ...]:
+def _preference(log: Log, override: str | None, stdio: Stdio) -> tuple[str, ...]:
     """Choose the preference used to resolve several matches.
 
     Args:
         log: Config preference and known harness names.
-        _override: The raw value of the preference variable.
-        _stdio: The streams used to warn about unknown names.
+        override: The raw value of the preference variable.
+        stdio: The streams used to warn about unknown names.
 
     Returns:
         The config preference for an absent or empty override, an empty
         preference for `none`, or the override names in listed order.
     """
-    return log.prefer_harness
+    value = (override or "").strip()
+    if value == "none":
+        return ()
+    names = tuple(filter(None, map(str.strip, value.split(","))))
+    if not names:
+        return log.prefer_harness
+    known: list[str] = []
+    for name in names:
+        if name in log.harnesses:
+            known.append(name)
+        else:
+            stdio.stderr.write(
+                f"warning: {_PREFERENCE_VARIABLE} names unknown harness {name!r}\n"
+            )
+    return tuple(known)
 
 
 def _choose_harness(
