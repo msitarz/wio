@@ -11,13 +11,15 @@ from typing import TYPE_CHECKING
 from wio.formats.event_lines import Entry, decode_lines
 from wio.log.errors import LogError
 from wio.log.locate import locate_log, log_files
+from wio.models.events import ContextEvent, ReviewEvent
+from wio.models.frozen import freeze
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from wio.env.ports import Directories
     from wio.io.ports import FileSystem, Repository
-    from wio.models.events import Envelope, ReviewEvent
+    from wio.models.events import Envelope
 
 
 @dataclass(frozen=True)
@@ -93,8 +95,7 @@ def read_report(
     entries: list[Entry] = []
     skipped = 0
     try:
-        paths = sorted(log_files(directory, filesystem), key=lambda path: path.name)
-        for path in paths:
+        for path in log_files(directory, filesystem):
             decoded = decode_lines(
                 filesystem.read_bytes(path).decode("utf-8", "replace")
             )
@@ -105,14 +106,54 @@ def read_report(
     return Report(_rows(entries, work), skipped)
 
 
-def _rows(_entries: list[Entry], _work: str | None) -> Mapping[str, tuple[Row, ...]]:
+def _rows(entries: list[Entry], work: str | None) -> Mapping[str, tuple[Row, ...]]:
     """Select and group rows from events in file and line order.
 
     Args:
-        _entries: The usable entries of each file, with files ordered by name.
-        _work: Selects a single Work when supplied.
+        entries: The usable entries of each file, with files ordered by name.
+        work: Selects a single Work when supplied.
 
     Returns:
         The rows by Work id, ordered by each row's latest event.
     """
-    return {}
+    groups: dict[str, dict[tuple[str, str], list[Entry]]] = {}
+    for entry in sorted(entries, key=lambda entry: entry.envelope.time):
+        event = entry.event
+        if work is not None and event.work != work:
+            continue
+        rows = groups.setdefault(event.work, {})
+        key = event.action, event.stage
+        history = rows.pop(key, [])
+        history.append(entry)
+        rows[key] = history
+    return freeze(
+        {
+            work_id: tuple(
+                _row(key, history) for key, history in groups[work_id].items()
+            )
+            for work_id in sorted(groups)
+        }
+    )
+
+
+def _row(key: tuple[str, str], history: list[Entry]) -> Row:
+    """Build a row with the latest context and each judge's latest review.
+
+    Args:
+        key: The action and stage of the row.
+        history: The events of the row in chronological order with stable ties.
+
+    Returns:
+        A row whose retained reviews follow their own positions in the history.
+    """
+    context: Envelope | None = None
+    reviews: dict[tuple[str, str], Review] = {}
+    for entry in history:
+        match entry.event:
+            case ContextEvent():
+                context = entry.envelope
+            case ReviewEvent() as event:
+                review_key = event.judge, event.commit
+                reviews.pop(review_key, None)
+                reviews[review_key] = Review(entry.envelope.time, event)
+    return Row(*key, context, tuple(reviews.values()))
