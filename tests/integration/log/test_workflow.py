@@ -6,6 +6,7 @@ leave on disk, including records from concurrent command invocations.
 """
 
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from math import floor
 from pathlib import Path
 from threading import Barrier
@@ -94,31 +95,37 @@ def test_review_stamp_uses_real_clock_and_subdirectory(
 
 
 @pytest.mark.slow
+@pytest.mark.usefixtures("driver")
 def test_concurrent_processes_write_whole_event_lines(
-    driver: CliDriver, sandbox: Sandbox
+    sandbox: Sandbox,
 ) -> None:
     """AC-5 preserves each append from concurrent subprocesses.
 
     Args:
-        driver: Starts the installed review command in independent processes.
         sandbox: Supplies their shared Wio home.
     """
     # Given twenty command invocations that share a launch barrier.
     writers = 20
     start = Barrier(writers, timeout=30)
 
-    def record() -> RunResult:
+    def record(writer: int) -> RunResult:
         """Release the subprocess launch together with the other writers.
+
+        Args:
+            writer: Distinguishes this process in the recorded session fields.
 
         Returns:
             The output and status of this process.
         """
+        isolated = replace(
+            sandbox, env=sandbox.env | {"CLAUDE_CODE_SESSION_ID": f"writer-{writer}"}
+        )
         start.wait()
-        return driver.run(_REVIEW)
+        return CliDriver(isolated).run(_REVIEW)
 
     # When all writers record a review concurrently.
     with ThreadPoolExecutor(max_workers=writers) as pool:
-        jobs = [pool.submit(record) for _ in range(writers)]
+        jobs = [pool.submit(record, writer) for writer in range(writers)]
         outcomes = [job.result() for job in jobs]
 
     # Then all processes succeed, and each wrote one whole review line.
@@ -129,6 +136,9 @@ def test_concurrent_processes_write_whole_event_lines(
     assert decoded.skipped == 0
     assert len(decoded.entries) == writers
     assert all(isinstance(entry.event, ReviewEvent) for entry in decoded.entries)
+    assert {entry.envelope.session for entry in decoded.entries} == {
+        f"writer-{writer}" for writer in range(writers)
+    }
 
 
 @pytest.mark.slow

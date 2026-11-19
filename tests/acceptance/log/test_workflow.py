@@ -171,7 +171,10 @@ def test_show_reads_reviews_on_both_sides_of_damage(wio: Wio, log_home: Path) ->
     assert (agent.exit_code, human.exit_code) == (0, 0)
     path = _events_path(log_home)
     first, second = path.read_bytes().splitlines(keepends=True)
-    path.write_bytes(first + b'{"torn":\n{"v":999}\n' + second)
+    newer_event = json.loads(first)
+    newer_event["v"] = 999
+    newer_line = json.dumps(newer_event).encode() + b"\n"
+    path.write_bytes(first + b'{"torn":\n' + newer_line + second)
 
     # When the report reads the damaged log.
     shown = wio.run(_SHOW)
