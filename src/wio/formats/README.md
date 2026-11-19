@@ -36,6 +36,8 @@ Oversized integers in unknown fields can be ignored without lifting Python's
 integer conversion limit.
 
 Millisecond timestamps keep enough precision for one person's event log.
+The encoder and [log report](../log/README.md#showing-recorded-events) share
+`format_event_time` so the time has the same representation in both places.
 `encode_line` raises `ValueError` if the caller supplies a timestamp outside
 its supported range, including a negative or nonfinite value.
 The codec's docstrings specify the supported UTC time representation, and

@@ -104,7 +104,7 @@ def _envelope_fields(envelope: Envelope) -> dict[str, object]:
         The time, directory and applicable optional fields.
     """
     fields: dict[str, object] = {
-        "time": _format_time(envelope.time),
+        "time": format_event_time(envelope.time),
         "directory": envelope.directory,
         **_present(
             harness=envelope.harness, session=envelope.session, parent=envelope.parent
@@ -159,7 +159,7 @@ def _present(**fields: object) -> dict[str, object]:
     return {name: value for name, value in fields.items() if value is not None}
 
 
-def _format_time(seconds: float) -> str:
+def format_event_time(seconds: float) -> str:
     """Write Unix time in UTC to the millisecond after microsecond rounding.
 
     Args:

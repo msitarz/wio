@@ -34,9 +34,9 @@ class SandboxRepository:
     """A `Repository` whose root is the working directory, with no git behind it.
 
     The in-process channel swaps it in for the git adapter, so a scenario that
-    needs no history runs without starting a process. It answers `root` only: a
-    scenario that tells clones apart, or reads the index or the history, runs on
-    the CLI channel, against real git.
+    needs no history runs without starting a process. It supplies a synthetic
+    clone identity for standalone repositories. Scenarios that need real git
+    discovery, shared worktrees, the index or history run on the CLI channel.
 
     Attributes:
         environment: Reports the working directory.
@@ -57,12 +57,12 @@ class SandboxRepository:
         return self.top or self.environment.working_directory()
 
     def identity(self) -> Path:
-        """Refuse: no scenario of this channel tells clones apart.
+        """Identify the standalone clone of the scenario.
 
-        Raises:
-            NotImplementedError: Always; run the scenario on the CLI channel.
+        Returns:
+            A synthetic git common directory under the sandbox root.
         """
-        raise NotImplementedError
+        return self.root().resolve() / ".git"
 
     def show_index(self, path: Path) -> str | None:
         """Refuse: no scenario of this channel reads the index.

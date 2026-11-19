@@ -16,6 +16,7 @@ lazy from wio.contracts import ContractsCommand, Services, WorkLookup
 lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
 lazy from wio.io import views
+lazy from wio.log.command import LogCommand
 lazy from wio.log.sink import LogSink
 lazy from wio.templates import TemplatesCatalog, TemplatesCommand
 lazy from wio.trailers import Services as TrailersServices
@@ -168,6 +169,20 @@ def trailers_command(events: EventSink | None = None) -> Command:
     return TrailersCommand(services)
 
 
+def _log() -> Command:
+    """Wire the log command to the local repository and filesystem.
+
+    Returns:
+        The command, which locates the log only when showing events.
+    """
+    environment = env.ProcessEnvironment()
+    return LogCommand(
+        io.GitRepository(environment),
+        env.ProcessDirectories(environment),
+        io.LocalFileSystem(),
+    )
+
+
 def _root(repository: Repository) -> Path:
     """Find the root of the repository, or say that there is none.
 
@@ -189,6 +204,7 @@ def _root(repository: Repository) -> Path:
 COMMANDS: Final[Sequence[Entry]] = (
     component_entry("config", _config),
     component_entry("contracts", _contracts),
+    component_entry("log", _log),
     component_entry("templates", _templates),
     component_entry("trailers", trailers_command),
 )
