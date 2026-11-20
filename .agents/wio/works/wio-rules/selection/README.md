@@ -40,8 +40,9 @@ applies none.
 
 ### A-2
 
-The `--preset` view is the expansion of a rule preset alone and is outside the
-four layers, as the concepts say, so it does not use the selection.
+A listing of references with no selector is the expansion of those references
+alone and is outside the four layers, as the concepts say of the `--preset`
+view, so it does not use the selection.
 
 ### A-3
 

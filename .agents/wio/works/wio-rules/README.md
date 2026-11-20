@@ -24,9 +24,9 @@ stage's guidance cannot be created with stable codes, checked or listed, and
 - A fault in a rule file or a manifest is reported by `wio rules check` and
   makes `wio rules new`, `list` and `show` refuse, so a rule that is left out
   never goes unnoticed.
-- The rules of a rule preset, a root, a stage, a Work at a stage or a file can
-  be listed, and with `--explain` each rule shows where it came from or why it
-  is out.
+- The rules of a root, a stage, a Work at a stage or a file, or of the
+  references that name them, can be listed, and with `--explain` each rule shows
+  where it came from or why it is out.
 - The rules that nothing selects can be listed, and every view of a listing can
   be narrowed by references to rulesets, families, codes or rule presets.
 - A rule is shown by its qualified code with its metadata and its body as the
@@ -114,8 +114,9 @@ reader sees which root brought it.
 For what this Work adds, which is `wio rules show`, `--json` on every
 subcommand, the optional `description` that a listing shows before the summary,
 the discovery of rule files at any depth of a ruleset, the form of a rule file's
-metadata block, names that are unique within a ruleset, and `--not-selected`
-with references that narrow a listing in place of the two warnings that the
+metadata block, names that are unique within a ruleset, references in place of
+the flag `--preset`, and `--not-selected` with references that narrow a listing
+in place of the two warnings that the
 concepts and the scope document give to `check` for a rule or a ruleset that
 nothing selects, this contract is right, and the docs stage corrects the
 concepts and the scope document.
@@ -180,10 +181,10 @@ may carry either metadata block form.
 - **`wio rules check`** — the checks that need the rule files and the manifests,
   with the faults of reading them, built by `5qgs79` for the errors and `785y9k`
   for the warnings.
-- **`wio rules list`** — the listing by rule preset, root, stage, Work or file,
-  showing each rule by its code, name and description or, without one, its
-  summary, narrowed by references and with the view of the rules that nothing
-  selects, built by `fjvj3x`, and `--explain`, built by `qxfpg9`.
+- **`wio rules list`** — the listing by root, stage, Work or file, or by
+  references, showing each rule by its code, name and description or, without
+  one, its summary, narrowed by references and with the view of the rules that
+  nothing selects, built by `fjvj3x`, and `--explain`, built by `qxfpg9`.
 - **`wio rules show`** — prints one rule by its qualified code with its metadata
   and its body, built by `ca70ny`.
 
@@ -456,15 +457,15 @@ the rule has no description.
   `ARC001`, a root `api` with `rule_presets = ["d.recommended"]` and the path
   `src/api`, a stage `s` with `rules_include = ["d.recommended"]`, and a Work
   whose `roots` list `api`.
-- **When** `wio rules list` runs with `--preset demo.recommended`, with
+- **When** `wio rules list` runs with `demo.recommended`, with
   `--root api`, with `--path src/api/app.py`, with `--stage s`, and with
   `--work <id> --stage s`, and the last again with `--explain`.
 - **Then** each listing shows `demo.ARC001`, never `d.ARC001`, with the same
   name and summary; its header names the layers it applied, which are none for
-  `--preset`, the root's rule presets and the always fields for `--root` and
-  `--path`, the stage and the always fields for `--stage`, and all of them for
-  `--work`; and `--explain` names among the sources of the rule the root `api`
-  and the rule preset `demo.recommended`.
+  `demo.recommended`, the root's rule presets and the always fields for `--root`
+  and `--path`, the stage and the always fields for `--stage`, and all of them
+  for `--work`; and `--explain` names among the sources of the rule the root
+  `api` and the rule preset `demo.recommended`.
 
 ### **AC-7** A rule file of either form is treated alike
 
@@ -511,7 +512,7 @@ code and name and its description or, without one, its summary.
   `recommended` that includes `ARC`, holding `ARC001` with a description and
   `ARC002` without one.
 - **When** `wio rules show demo.ARC001` and `wio rules show demo.ARC002` run,
-  and `wio rules list --preset demo.recommended` runs.
+  and `wio rules list demo.recommended` runs.
 - **Then** each `show` prints the qualified code and the name, the description
   for `ARC001`, and the body, and `list` shows `demo.ARC001` with its
   description and `demo.ARC002` with its summary.
@@ -528,7 +529,7 @@ has left a rule out, while a warning refuses nothing.
   `recommended` that includes `ARC`, holding `ARC001` and two rules with the
   code `ARC002`.
 - **When** `wio rules check`, `wio rules new` in `ARC` of `demo`,
-  `wio rules list --preset demo.recommended` and `wio rules show demo.ARC001`
+  `wio rules list demo.recommended` and `wio rules show demo.ARC001`
   run.
 - **Then** `check` prints an error that names both files and exits 1, `new`
   writes no file and exits 2, and `list` and `show` each exit 2 with that error
@@ -538,14 +539,14 @@ has left a rule out, while a warning refuses nothing.
 
 - **Given** a marked rule file directly in `.agents/wio/rules/` and a valid
   ruleset `demo` whose manifest declares a rule preset `recommended`.
-- **When** `wio rules list --preset demo.recommended` runs.
+- **When** `wio rules list demo.recommended` runs.
 - **Then** it exits 2 with the error on standard error and prints no rule.
 
 #### A warning refuses nothing
 
 - **Given** a valid ruleset `demo` whose manifest declares a rule preset
   `recommended` that includes a rule whose block has an unknown key.
-- **When** `wio rules list --preset demo.recommended` and `wio rules check` run.
+- **When** `wio rules list demo.recommended` and `wio rules check` run.
 - **Then** `list` shows the rule and exits 0, and `check` prints a warning for
   the key and exits 0.
 
