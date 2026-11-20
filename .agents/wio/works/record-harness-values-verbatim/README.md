@@ -31,11 +31,14 @@ rejects, losing information needed to associate log events with transcripts.
   log.
 - **A-2** A recorded line of any length is appended as the existing append port
   appends it, and wio adds no size limit or atomicity guarantee for long lines.
+- **A-3** The environment port returns undecodable bytes as surrogate-escaped
+  strings, and the log line encoding escapes every non-ASCII character, so such
+  values survive recording.
 
 ## Mechanisms
 
 - `wio.log.identify.identify` returns a `SessionIdentity` whose ID values
-  represent set variables, and uses `stdio` for preference diagnostics.
+  represent set variables.
 - `wio.log.render` formats the session and parent of a context event for
   `wio log show`, as a JSON string literal for each present value.
 
@@ -50,7 +53,8 @@ an event is recorded, every set variable is retained verbatim in the event's
 recorded IDs, including an empty string, whitespace, newlines, characters
 outside `A-Za-z0-9._:-`, lone surrogates from undecodable bytes, and values
 longer than 128 characters. An unset variable is omitted. Wio does not warn that
-a value is an invalid ID. Reading the event back returns the same values.
+a value is an invalid ID. Reading the event back returns the same recorded IDs,
+session and parent.
 
 ### **AC-2** Session identification uses presence rather than value shape
 
@@ -58,7 +62,8 @@ Session identification distinguishes set values from unset variables.
 
 A set session variable, including an empty one, matches its harness; an unset
 variable does not. When several harnesses match, the first matching harness in
-the effective preference order is selected. That order is the configured
+the effective preference order is selected, and a single matching harness is
+selected whatever the preference. That order is the configured
 preference, replaced by the names in `WIO_PREFER_HARNESS` unless it is empty,
 and `none` there clears it. When no matching harness is preferred, the matches
 remain unresolved and no session is selected.
@@ -74,10 +79,10 @@ empty.
 
 ### **AC-4** Shared variables retain one value
 
-A shared variable has one recorded value available to each of its ID uses.
+A shared variable has one recorded value that supplies every use of it.
 
 Given a variable named by more than one harness mapping or extra recorded
-variable list, when it is set, its one verbatim value is available to each use
+variable list, when it is set, its one verbatim value supplies each use
 and appears once in the recorded IDs.
 
 ### **AC-5** The preference override can also supply IDs
@@ -97,10 +102,12 @@ Text reports make session and parent values readable without interpreting
 their contents as terminal controls or report structure.
 
 Given a recorded session or parent, `wio log show` text output shows each
-present value as a JSON string literal with every non-ASCII character escaped as
-`\uXXXX`, so `abc` appears as `"abc"`, an empty value as `""`, a value of `a`, a
-newline, an escape character and `b` as `"a\n\u001bb"`, and a backslash as `\\`.
-An absent value keeps its existing label, so a harness with no session is
-`claude-code:unknown`. A present session appears as `claude-code:"abc"`, and a
-parent as `(parent "def")`. A value with control characters adds no report
-lines. JSON output preserves the original values.
+present value as a JSON string literal with every non-ASCII character and every
+ASCII control character, DEL included, escaped as `\uXXXX` or JSON's short
+escape, so `abc` appears as `"abc"`, an empty value as `""`, a value of `a`, a
+newline, an escape character and `b` as `"a\n\u001bb"`, a quote as `\"`, a
+backslash as `\\` and DEL as `\u007f`. An absent value keeps its existing label,
+so a log recorded by an earlier version, whose selected harness has no session,
+still shows `claude-code:unknown`. A present session appears as
+`claude-code:"abc"`, and a parent as `(parent "def")`. A value with control
+characters adds no report lines. JSON output preserves the original values.
