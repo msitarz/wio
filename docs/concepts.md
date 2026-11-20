@@ -2370,12 +2370,13 @@ allows is the other way out.
 
 An append-only JSONL log stored in the Wio home, in a
 [directory for each clone](../src/wio/log/README.md#where-the-log-is).
-The clone's git common directory identifies it across worktrees. Each event
-is written as one line in a single append so simultaneous sessions can write
-without interleaving their event lines. The log holds
-ids, hashes, codes, times and the working directory, and no prompts, no code and
-no free text. It is personal to one machine, so the history answers "what was
-done" for everyone, and the log answers "what I started". Writing it never
+The clone's git common directory identifies it across worktrees. The
+[append behavior](../src/wio/log/README.md#appending-an-event) governs how
+simultaneous sessions can write to the same log. The log holds ids, hashes,
+codes, times and the working directory. The configured environment variables
+determine which values the sink places in the envelope. The log is personal
+to one machine, so the history answers "what was done" for everyone, and the
+log answers "what I started". Writing it never
 blocks a command, a failure is only a warning, and it can be turned off. In v0.1
 it records two events:
 
