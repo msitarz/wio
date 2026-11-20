@@ -582,6 +582,10 @@ were.
 - `wio.trailers` declares `StageRules.selected(work_id, action, stage)` in
   `src/wio/trailers/ports.pyi`, and `wio.cli` wires a `NoRules` that selects
   nothing until `wio.rules` satisfies it, so that a cited rule is refused today.
+- `cyeth5` moves `parse_reference` and `find_cycles` from `wio.config` into
+  `wio.formats`, because `wio.rules` may not import `wio.config`, so
+  `wio.config` changes; its criteria say that `wio config check` reports what it
+  did before.
 - `Hierarchy.roots` of `wio.contracts` already holds the roots of each Work with
   `@descendants` expanded, and `wio contracts show` reads it; what is missing is
   a way for `wio.rules` to ask for them, which is the roots port.
