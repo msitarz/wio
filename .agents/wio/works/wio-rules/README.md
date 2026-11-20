@@ -24,6 +24,8 @@ stage's guidance cannot be created with stable codes, checked or listed, and
 - The rules of a rule preset, a root, a stage, a Work at a stage or a file can
   be listed, and with `--explain` each rule shows where it came from or why it
   is out.
+- A rule is shown by its qualified code with its metadata and its body as
+  written, and a listing shows each rule by its code, name and description.
 - Which rules apply to a stage is decided by one selection that `wio rules list`
   and, later, `wio context` share, and it is the same for the same inputs.
 - Every `wio rules` command reads a rule file in either metadata block form, a
@@ -92,9 +94,10 @@ may carry either metadata block form.
   without fields; `ht39xt` completes `Rule` and `5yb4tz` completes `Decision`
   and `Selection`, where a `Decision` holds the roots of an included rule and
   the layers that selected it, or the reason a rule is out.
-- **The rule file** — `<code>-<name>.md` with a `wio` metadata block that holds
-  `code` and `name`, read in either block form by the shared reader of
-  `wio.formats` and built by `ht39xt`.
+- **The rule file** — a Markdown file with a `wio` metadata block that holds
+  `code`, `name` and an optional `description`, read in either block form by the
+  shared reader of `wio.formats` and built by `ht39xt`; `wio rules new` writes
+  it as `<code>-<name>.md`, a convention that no command reads.
 - **`ruleset.toml`** — the manifest of a ruleset with its `description`,
   `[families]` and `[rule_presets.<name>]`, and the discovery of the rulesets on
   disk, built by `8zn10d`.
@@ -119,7 +122,10 @@ may carry either metadata block form.
 - **`wio rules check`** — the checks that need the rule files and the manifests,
   built by `5qgs79` for the errors and `785y9k` for the warnings.
 - **`wio rules list`** — the listing by rule preset, root, stage, Work or file,
-  built by `fjvj3x`, and `--explain`, built by `qxfpg9`.
+  showing each rule by its code, name and description or, without one, its
+  summary, built by `fjvj3x`, and `--explain`, built by `qxfpg9`.
+- **`wio rules show`** — prints one rule by its qualified code with its metadata
+  and its body as written, built by `ca70ny`.
 
 ## Constraints
 
@@ -186,7 +192,7 @@ flowchart LR
 
 `wio.rules` reads rules and rulesets through the `wio.io` ports and the shared
 reader of `wio.formats`, selects rules in layers and applies the roots, and
-offers `new`, `check` and `list`. It gets the config through the shared
+offers `new`, `check`, `list` and `show`. It gets the config through the shared
 `Settings` port and the expanded roots of a Work through a port of its own, and
 satisfies the `RuleSelection` port of `wio.context`; `wio.cli` wires each port
 to the component on its other side. Changed parts are marked.
@@ -201,6 +207,7 @@ flowchart LR
         new["rules new"]
         check["rules check"]
         list["rules list and --explain"]
+        show["rules show"]
     end
     models["wio.models.rules: Rule, Decision, Selection (stubs completed)"]
     io["wio.io: file ports"]
@@ -214,6 +221,7 @@ flowchart LR
     files --> presets --> select
     files --> new
     files --> check
+    files --> show
     select --> check
     select --> list
     rootsport --> select
@@ -246,8 +254,8 @@ A rule made by `wio rules new` is accepted by `wio rules check`, listed by
   stage with no `roots`.
 - **When** a rule is created in `ARC` of `demo`.
 - **Then** `wio rules check` reports no error for it, and
-  `wio rules list --work <id> --stage <name>` shows `demo.ARC002` with its name
-  and summary and the root `api`.
+  `wio rules list --work <id> --stage <name>` shows `demo.ARC002` with its name,
+  its summary and the root `api`.
 
 #### The selection through the port holds it too
 
@@ -349,7 +357,8 @@ left.
 ### **AC-6** One rule reaches every view of a listing
 
 A rule that a root's rule preset, a stage and a Work select is shown alike, with
-its qualified code, name and summary, by every view of `wio rules list`.
+its qualified code, name and summary, by every view of `wio rules list`, when
+the rule has no description.
 
 #### One rule in five views
 
@@ -389,15 +398,33 @@ selected like one with a `<!-- wio -->` block.
 - **When** a rule is created in `ARC` of `demo`.
 - **Then** the new rule is `ARC004`, and `wio rules check` reports no error.
 
+### **AC-8** `show` and `list` describe a rule alike
+
+`wio rules show` prints a rule by its qualified code with its metadata and its
+body exactly as written, and `wio rules list` shows the same rule by its code
+and name and its description or, without one, its summary.
+
+#### A rule with a description and one without
+
+- **Given** a ruleset `demo` whose manifest declares `ARC` and a rule preset
+  `recommended` that includes `ARC`, holding `ARC001` with a description and
+  `ARC002` without one.
+- **When** `wio rules show demo.ARC001` and `wio rules show demo.ARC002` run,
+  and `wio rules list --preset demo.recommended` runs.
+- **Then** each `show` prints the qualified code and the name, the description
+  for `ARC001`, and the body exactly as written, and `list` shows `demo.ARC001`
+  with its description and `demo.ARC002` with its summary.
+
 ## Additional context
 
 - The guarantees of one command, such as the arguments and refusals of
-  `wio rules new`, every error and warning of `check`, every flag and reason of
-  `list` and `--explain`, and the form that `new` writes, are the criteria of
-  the children that own them, so this contract states only what the integrated
-  result establishes. The boundaries of a stage's roots, such as `@work` beside
-  other roots for a Work without roots, `roots = []` and a leaf that lists
-  `@descendants`, belong to the children of the selection.
+  `wio rules new` and `wio rules show`, every error and warning of `check`,
+  every flag and reason of `list` and `--explain`, and the form that `new`
+  writes, are the criteria of the children that own them, so this contract
+  states only what the integrated result establishes. The boundaries of a
+  stage's roots, such as `@work` beside other roots for a Work without roots,
+  `roots = []` and a leaf that lists `@descendants`, belong to the children of
+  the selection.
 - The criteria cite the port of `wio.context` as `RuleSelection` by its role,
   and an amendment of its name changes no guarantee.
 - `tach.toml` does not list `wio.rules` among the modules the unit and
