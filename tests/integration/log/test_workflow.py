@@ -193,5 +193,5 @@ def test_real_sink_round_trips_a_complete_context(
     stamp = format_event_time(entry.envelope.time)
     assert shown.stdout == (
         f"{context.work}\n  {context.action} {context.stage}"
-        f"  entered {stamp}  claude-code:c1\n"
+        f'  entered {stamp}  claude-code:"c1"\n'
     )

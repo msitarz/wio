@@ -176,8 +176,8 @@ def test_show_retains_the_latest_context_for_each_stage(
     assert (output.exit_code, output.stderr) == (0, "")
     assert output.stdout == (
         "k3m9xq\n"
-        "  deliver wiring  entered 2026-11-18T10:07:00.000Z  claude-code:c1\n"
-        "  deliver architecture  entered 2026-11-18T10:09:00.000Z  claude-code:c2\n"
+        '  deliver wiring  entered 2026-11-18T10:07:00.000Z  claude-code:"c1"\n'
+        '  deliver architecture  entered 2026-11-18T10:09:00.000Z  claude-code:"c2"\n'
     )
 
 
@@ -222,11 +222,12 @@ def test_show_formats_session_labels_and_utc_times(wio: Wio, sandbox: Sandbox) -
     assert output.stdout == (
         "k3m9xq\n"
         "  deliver architecture  entered 2026-11-18T10:00:00.123Z"
-        "  codex:t2 (parent s1)\n"
+        '  codex:"t2" (parent "s1")\n'
         "  deliver wiring  entered 2026-11-18T10:01:00.000Z"
         "  ambiguous (claude-code, codex)\n"
         "  deliver implementation  entered 2026-11-18T10:02:00.000Z  unknown session\n"
-        "  deliver integration  entered 2026-11-18T10:03:00.000Z  codex:unknown\n"
+        "  deliver integration  entered 2026-11-18T10:03:00.000Z"
+        '  codex:unknown (parent "s1")\n'
     )
 
 
@@ -332,8 +333,8 @@ def test_show_groups_context_and_reviews_and_places_the_row_by_its_latest_event(
         "k3m9xq\n"
         "  deliver architecture-review  agent pass aaaaaaaaaaaa"
         "  2026-11-18T09:55:00.000Z\n"
-        "  deliver wiring  entered 2026-11-18T10:05:00.000Z  claude-code:c1\n"
-        "  deliver docs-review  entered 2026-11-18T10:00:00.000Z  codex:t2\n"
+        '  deliver wiring  entered 2026-11-18T10:05:00.000Z  claude-code:"c1"\n'
+        '  deliver docs-review  entered 2026-11-18T10:00:00.000Z  codex:"t2"\n'
         "  deliver docs-review  agent pass aaaaaaaaaaaa  2026-11-18T10:10:00.000Z\n"
     )
     early, wiring, gate = json.loads(document.stdout)["works"][_WORK]
@@ -460,8 +461,8 @@ def test_show_skips_damaged_lines_and_replaces_bytes_in_valid_json(
     )
     assert text.stdout == (
         "k3m9xq\n"
-        "  deliver architecture  entered 2026-11-18T10:00:00.000Z  claude-code:c1\n"
-        "  deliver wiring  entered 2026-11-18T10:01:00.000Z  claude-code:c\ufffd\n"
+        '  deliver architecture  entered 2026-11-18T10:00:00.000Z  claude-code:"c1"\n'
+        '  deliver wiring  entered 2026-11-18T10:01:00.000Z  claude-code:"c\\ufffd"\n'
     )
     assert (document.exit_code, document.stderr) == (0, "")
     report = json.loads(document.stdout)
@@ -549,3 +550,42 @@ def test_show_orders_works_and_breaks_event_time_ties_by_file_and_line(
         ("define", "architecture"),
     ]
     assert rows[1]["session"]["session"] == "last"
+
+
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+@pytest.mark.parametrize(
+    ("session", "parent", "label"),
+    [
+        (
+            'a\n\x1bb"\\\x7fé\U0001f600\udcff',
+            "\t",
+            r'claude-code:"a\n\u001bb\"\\\u007f\u00e9\ud83d\ude00\udcff" (parent "\t")',
+        ),
+        ("", None, 'claude-code:""'),
+        ("abc", "", 'claude-code:"abc" (parent "")'),
+        (None, None, "claude-code:unknown"),
+        (None, "def", 'claude-code:unknown (parent "def")'),
+    ],
+)
+def test_show_quotes_present_session_fields(
+    wio: Wio, sandbox: Sandbox, session: str | None, parent: str | None, label: str
+) -> None:
+    """AC-6 renders JSON literals in text and keeps the original JSON values."""
+    # Given one recorded context, which may lack a session as in earlier logs.
+    stage = "wiring"
+    time = "10:00:00.000"
+    line = _event(stage, time, session=session, parent=parent)
+    _write_log(wio, sandbox, {"events.jsonl": line})
+
+    # When both report formats are requested.
+    text = wio.run(["log", "show"])
+    document = wio.run(["log", "show", "--json"])
+
+    # Then text stays on one report line and JSON retains the original fields.
+    assert text.exit_code == document.exit_code == 0
+    assert text.stderr == document.stderr == ""
+    assert text.stdout == (
+        f"{_WORK}\n  deliver {stage}  entered 2026-11-18T{time}Z  {label}\n"
+    )
+    shown = json.loads(document.stdout)["works"][_WORK][0]["session"]
+    assert (shown["session"], shown["parent"]) == (session, parent)
