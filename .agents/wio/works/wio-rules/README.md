@@ -176,6 +176,9 @@ may carry either metadata block form.
   and `StageRules` structurally, with its collaborators injected, and the
   function `rule_hash` of `wio.formats` that it hashes a rule's file with, built
   by `9pfyfe`.
+- **Rules selected anywhere** — `selected_anywhere`, which rules some include
+  entry of the config delivers, used by `list --not-selected` and by `new`,
+  built by `1gs341`.
 - **`wio rules new`** — creates a rule with the next code of its family and
   says whether anything selects it, built by `km9cmc`.
 - **`wio rules check`** — the checks that need the rule files and the manifests,

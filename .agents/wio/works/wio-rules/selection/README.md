@@ -19,6 +19,8 @@ Which rules apply to a stage is decided nowhere, so `wio rules list`,
   every rule considered.
 - The roots that apply to a Work at a stage, to a file or to a named root are
   found from the roots the stage selects.
+- Whether any entry of the config includes a rule is known, so the rules that
+  nothing selects can be listed and a new rule can say whether it is selected.
 - `wio context` and `wio trailers` receive the selection of a Work at a stage
   through the ports they declare, from one class, and `wio trailers` receives
   with it the hash of each selected rule's file.
@@ -63,6 +65,9 @@ The names of the types and the functions below are provisional.
   order to the expansions of `cyeth5`, built by `cm25z9`.
 - **Applicability** — the decision for each rule from its layers, the roots and
   the rulesets that the roots reach, built by `5yb4tz`.
+- **Rules selected anywhere** — `selected_anywhere`, the rules that some include
+  entry of the config delivers with the entries that do, built by `1gs341` over
+  `expand` of `cyeth5`.
 - **The roots** — the roots a stage selects for a Work with `@work` and the
   roots that contain a file, built by `ndwemw`, over the roots port that
   `wio.contracts` satisfies.
@@ -227,6 +232,21 @@ the selection includes for it, and no other.
 - **Then** `select` gives the selection of AC-1, the first `selected` gives
   `demo.ARC001` with a hash and no other rule, and the second gives a different
   hash for `demo.ARC001`.
+
+### **AC-6** A rule that is not selected anywhere is never included
+
+A rule that `selected_anywhere` does not hold is out in every view of `select`,
+and a rule that `select` includes is held by `selected_anywhere`.
+
+#### The two answers agree
+
+- **Given** the repository of AC-1, where no entry includes `demo.PAY002`.
+- **When** `selected_anywhere` runs, and `select` runs for each Work, stage and
+  root of the config, and for no roots and no stage.
+- **Then** every rule that `select` includes is a key of `selected_anywhere`,
+  `demo.ARC002` and `demo.PAY001` are keys although the stage excludes the first
+  and the veto removes the second, and `demo.PAY002` is not a key and is out in
+  every view.
 
 ## Additional context
 
