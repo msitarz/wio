@@ -132,9 +132,9 @@ shown only with `--explain`, with the fact that it is out.
 
 #### Included and out
 
-- **Given** the repository of AC-2 and a stage whose `rules_exclude` has
+- **Given** the repository of AC-2 and a stage `x` whose `rules_exclude` has
   `demo.ARC002`.
-- **When** `wio rules list --root api --stage s` and the same with `--explain`
+- **When** `wio rules list --root api --stage x` and the same with `--explain`
   run.
 - **Then** the first lacks `demo.ARC002`, and the second shows it marked as out.
 
