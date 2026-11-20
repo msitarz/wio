@@ -90,7 +90,8 @@ may carry either metadata block form.
   the children below.
 - **`Rule`, `Decision` and `Selection`** — in `wio.models.rules`, today stubs
   without fields; `ht39xt` completes `Rule` and `5yb4tz` completes `Decision`
-  and `Selection`.
+  and `Selection`, where a `Decision` holds the roots of an included rule and
+  the layers that selected it, or the reason a rule is out.
 - **The rule file** — `<code>-<name>.md` with a `wio` metadata block that holds
   `code` and `name`, read in either block form by the shared reader of
   `wio.formats` and built by `ht39xt`.
@@ -111,8 +112,8 @@ may carry either metadata block form.
 - **`RuleSelection`** — the port of `wio.context` that `wio.rules` satisfies
   with the same selection that `wio rules list` shows; its form is provisional,
   except that a `Selection` holds every rule considered, with the roots of an
-  included rule or the reason a rule is out, and it is in
-  `src/wio/context/ports.pyi`.
+  included rule and the layers that selected it, or the reason a rule is out,
+  and it is in `src/wio/context/ports.pyi`.
 - **`wio rules new`** — creates a rule with the next code of its family, built
   by `km9cmc`.
 - **`wio rules check`** — the checks that need the rule files and the manifests,
@@ -156,12 +157,13 @@ cites it, never by a bare code or an alias. AC-1 and AC-6 verify it.
 ### C-6
 
 Every `wio rules` subcommand takes `--json`, which prints the information of its
-text form as one JSON document; the document's fields are the owning child's to
-decide, and the criteria of each child verify them.
+text form as one JSON document; AC-3 verifies that `list` and `check` carry in
+it what their text forms carry, and the fields are the owning child's to decide
+and its criteria verify them.
 
 ## Visuals
 
-The diagrams are drawn from commit `79d918e` of the branch
+The diagrams are drawn from commit `e862494` of the branch
 `docs/define-rules-tree`, and show only what the Work changes.
 
 ### Before
@@ -223,9 +225,10 @@ flowchart LR
     contracts -.-> rootsport
     select -.-> selport
     ctx --> selport
+    cli -. "wires" .-> rules
     cli -. "wires" .-> config
     cli -. "wires" .-> contracts
-    cli -. "wires" .-> ctx
+    cli -. "wires, when built" .-> ctx
 ```
 
 ## Acceptance criteria
@@ -257,8 +260,8 @@ A rule made by `wio rules new` is accepted by `wio rules check`, listed by
 
 The selection that `wio.rules` gives `wio.context` for a Work at a stage is the
 one that `wio rules list --work <id> --stage <name>` shows: the same rules with
-the same decisions, where a decision is the roots of an included rule or the
-reason a rule is out.
+the same decisions, where a decision is the roots of an included rule and the
+layers that selected it, or the reason a rule is out.
 
 #### Same set, same decisions
 
@@ -275,25 +278,32 @@ reason a rule is out.
   selects the Work's roots.
 - **When** the selection is asked for it, through the port and by
   `wio rules list --work <id> --stage <name>`.
-- **Then** the port raises an error that says the Work has no roots, and `list`
-  exits 2 with a message on standard error that says so.
+- **Then** the port raises the error that its declaration gives for it, a
+  `ValueError` in its provisional form, and `list` turns it into a refusal that
+  exits 2, never 70, with a message on standard error that says the Work has no
+  roots.
 
-### **AC-3** The same inputs give the same bytes, and nothing is written
+### **AC-3** The same inputs give the same bytes, in order, and nothing is written
 
 `wio rules list` and `wio rules check` print the same bytes, in text and in
 `--json`, for the same repository, config and arguments, whatever the order of
 the files on disk, of the tables of the config and of the entries in each root's
-`rule_presets`, and they leave the repository as it was.
+`rule_presets`; `list` orders the rules by ruleset, family and code, `--json`
+carries what the text carries, and the repository is left as it was.
 
 #### Order does not matter
 
-- **Given** one repository whose rules are written in two different file orders
-  and whose config lists its tables and each root's `rule_presets` in two
-  different orders.
+- **Given** one repository with rules in two rulesets and two families, `demo`
+  with `ARC001`, `ARC002` and `PAY001` and `other` with `ARC001`, all selected
+  for a stage, at least two diagnostics for `check`, and the rules written in
+  two different file orders, with a config that lists its tables and each root's
+  `rule_presets` in two different orders.
 - **When** `wio rules list --work <id> --stage <name>` and `wio rules check`
   run on each, in text and with `--json`.
-- **Then** the outputs are byte for byte the same, and the files of the
-  repository are unchanged.
+- **Then** the outputs are byte for byte the same, `list` shows `demo.ARC001`,
+  `demo.ARC002`, `demo.PAY001` and `other.ARC001` in that order, the JSON of
+  each command holds the same rules and diagnostics as its text, and the files
+  of the repository are unchanged.
 
 ### **AC-4** `check` and `list` agree about what applies
 
@@ -319,9 +329,10 @@ left.
 
 #### An error and a warning
 
-- **Given** a ruleset `demo` that is reached by a root and holds `ARC001`, which
-  a layer selects, and `ZZZ001`, which none does, and a stage whose
-  `rules_include` has `demo.XYZ`, a family that `demo` does not declare.
+- **Given** a ruleset `demo` that declares the families `ARC` and `ZZZ`, is
+  reached by a root whose rule preset includes `demo.ARC`, and holds `ARC001`,
+  which that preset selects, and `ZZZ001`, which no layer selects, and a stage
+  whose `rules_include` has `demo.XYZ`, a family that `demo` does not declare.
 - **When** `wio rules check` runs.
 - **Then** it prints one error line for the reference and one warning line for
   `demo.ZZZ001`, each of the form `<severity>: <where>: <message>`, in the
@@ -342,15 +353,20 @@ its qualified code, name and summary, by every view of `wio rules list`.
 
 #### One rule in five views
 
-- **Given** a ruleset `demo` whose manifest declares `ARC` and a rule preset
-  `recommended` that includes `ARC`, holding `ARC001`, a root `api` with
-  `rule_presets = ["demo.recommended"]` and the path `src/api`, a stage `s` with
-  `rules_include = ["demo.recommended"]`, and a Work whose `roots` list `api`.
+- **Given** a ruleset `demo` with the alias `d` in the config, whose manifest
+  declares `ARC` and a rule preset `recommended` that includes `ARC`, holding
+  `ARC001`, a root `api` with `rule_presets = ["d.recommended"]` and the path
+  `src/api`, a stage `s` with `rules_include = ["d.recommended"]`, and a Work
+  whose `roots` list `api`.
 - **When** `wio rules list` runs with `--preset demo.recommended`, with
   `--root api`, with `--path src/api/app.py`, with `--stage s`, and with
-  `--work <id> --stage s`.
-- **Then** each listing shows `demo.ARC001` with the same name and summary, and
-  its header names the layers it applied.
+  `--work <id> --stage s`, and the last again with `--explain`.
+- **Then** each listing shows `demo.ARC001`, never `d.ARC001`, with the same
+  name and summary; its header names the layers it applied, which are none for
+  `--preset`, the root's rule presets and the always fields for `--root` and
+  `--path`, the stage and the always fields for `--stage`, and all of them for
+  `--work`; and `--explain` names among the sources of the rule the root `api`
+  and the rule preset `demo.recommended`.
 
 ### **AC-7** A rule file of either form is treated alike
 
@@ -366,6 +382,13 @@ selected like one with a `<!-- wio -->` block.
 - **Then** `check` reports no error, and both rules are listed and selected
   alike.
 
+#### The next code reads a `+++` rule
+
+- **Given** a ruleset `demo` whose manifest declares `ARC` and whose highest
+  `ARC` rule, `ARC003`, has `+++` front matter.
+- **When** a rule is created in `ARC` of `demo`.
+- **Then** the new rule is `ARC004`, and `wio rules check` reports no error.
+
 ## Additional context
 
 - The guarantees of one command, such as the arguments and refusals of
@@ -375,6 +398,11 @@ selected like one with a `<!-- wio -->` block.
   result establishes. The boundaries of a stage's roots, such as `@work` beside
   other roots for a Work without roots, `roots = []` and a leaf that lists
   `@descendants`, belong to the children of the selection.
+- The criteria cite the port of `wio.context` as `RuleSelection` by its role,
+  and an amendment of its name changes no guarantee.
+- `tach.toml` does not list `wio.rules` among the modules the unit and
+  integration tests may depend on, so the children that add tests change it;
+  `uv run tach check` then verifies C-1.
 - `wio.context` already declares a provisional port
   `RuleSelection.select(contract, stage) -> Selection` in
   `src/wio/context/ports.pyi`, which takes the resolved contract, so `ndwemw`
