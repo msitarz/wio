@@ -11,8 +11,6 @@ depends_on = []
 
 Harnesses can supply session identifiers in forms that wio's shape guard
 rejects, losing information needed to associate log events with transcripts.
-Wio should record what the configured environment provides without deciding
-which values are valid identifiers.
 
 ## Goals
 
@@ -32,25 +30,43 @@ None.
 
 ### **AC-1** Set configured values are recorded verbatim
 
+Set configured ID values are recorded exactly as supplied.
+
 Given configured session, parent, and extra recorded environment variables,
-when an event is recorded, every set variable's value is retained verbatim in
+when an event is recorded, every set ID variable's value is retained verbatim in
 the event's recorded IDs, including an empty string, whitespace, newlines,
 and characters or lengths rejected by the former shape guard. An unset
 variable is omitted. Wio does not warn that a value is an invalid ID.
 
 ### **AC-2** Session identification uses presence rather than value shape
 
-Given a harness with a configured session variable, when that variable is set,
-including to an empty string, it matches the harness and is available as its
-session ID. An unset variable does not match. Existing configured ordering and
-harness preference continue to resolve matches and select session and parent
-values, including empty values; a parent equal to the session remains omitted.
+Session identification distinguishes set values from unset variables.
+
+A set session variable other than the reserved preference override, including an
+empty one, matches its harness; an unset variable does not. Existing harness
+preference resolves multiple matches, and when a harness is selected its first
+set session variable supplies the session ID and its first set parent variable
+supplies the parent ID, including empty values. Unresolved matches have no
+selected session. A parent equal to the session remains omitted.
 
 ### **AC-3** Shared variables retain one value
 
-Given a variable named by more than one harness mapping or extra recorded
-variable list, when it is set, its one verbatim value is available to each use
+A shared variable has one recorded value available to each of its ID uses.
+
+Given a variable other than the reserved preference override named by more than
+one harness mapping or extra recorded variable list, when it is set, its one
+verbatim value is available to each use
 and appears once in the recorded IDs.
+
+### **AC-4** The preference override can be recorded explicitly
+
+The preference override retains its control role and can also be recorded.
+
+Given `WIO_PREFER_HARNESS` is listed in `record_env_vars`, when it is set, its
+verbatim value appears in the recorded IDs, including when empty. It continues
+to control harness preference and neither matches a harness nor supplies a
+session or parent ID when named in a harness mapping. It is recorded only when
+explicitly listed in `record_env_vars`.
 
 ## Additional context
 
