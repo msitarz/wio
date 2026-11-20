@@ -39,12 +39,12 @@ A blank line is a line that is empty or holds only whitespace.
 
 The names of the types and the functions below are provisional.
 
-- **`Rule`** — a frozen dataclass in `wio.models.rule` with
-  `ruleset: str`, `code: str`, `name: str`, `description: str | None`,
-  `summary: str`, `body: str` and `path: PurePosixPath`, and the properties
-  `family: str`, `number: int` and `qualified: str`; it replaces the stub `Rule`
-  of `wio.models.rules`, whose stub keeps `Decision` and `Selection` and imports
-  it.
+- **`Rule`** — a frozen dataclass in `wio.models.rule` with `ruleset: str`,
+  `code: str`, `name: str`, `description: str | None`, `summary: str`,
+  `body: str`, `body_line: int`, the line of the file on which the body starts,
+  and `path: PurePosixPath`, and the properties `family: str`, `number: int` and
+  `qualified: str`; it replaces the stub `Rule` of `wio.models.rules`, whose
+  stub keeps `Decision` and `Selection` and imports it.
 - **`read_rule(ruleset: str, path: PurePosixPath, text: str) -> RuleReading`** —
   in `wio.rules`; a `RuleReading` holds `rule: Rule | None` and
   `diagnostics: tuple[Diagnostic, ...]`.
@@ -73,16 +73,17 @@ body, and no diagnostic.
 #### A rule with a description
 
 - **Given** the text of `.agents/wio/rules/demo/ARC001-keep-it-small.md` whose
-  block holds `code = "ARC001"`, `name = "keep-it-small"` and
-  `description = "A rule is one instruction."`, followed by a blank line, the
+  block, in the comment form on lines 1 to 5, holds `code = "ARC001"`,
+  `name = "keep-it-small"` and `description = "A rule is one instruction."`,
+  followed by a blank line, the
   paragraph `State one instruction` and `in each rule.` on two lines, a blank
   line and the paragraph `Why: a long rule hides several decisions.`.
 - **When** `read_rule` reads it as a rule of the ruleset `demo`.
 - **Then** the rule is `demo.ARC001`, its family is `ARC`, its number is 1, its
   name is `keep-it-small`, its description is `A rule is one instruction.`, its
   summary is `State one instruction in each rule.`, its body is the two
-  paragraphs as written, its path is the path given, and there is no
-  diagnostic.
+  paragraphs as written, its `body_line` is 7, its path is the path given, and
+  there is no diagnostic.
 
 #### A rule without a description
 
@@ -230,7 +231,8 @@ paragraph, each stripped, joined with single spaces.
 
 - **Given** a block followed by nothing but blank lines.
 - **When** `read_rule` reads it.
-- **Then** the rule's body and summary are empty and there is no diagnostic.
+- **Then** the rule's body and summary are empty, its `body_line` is the line
+  after the block, and there is no diagnostic.
 
 #### Windows line endings
 

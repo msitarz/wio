@@ -179,6 +179,9 @@ may carry either metadata block form.
 - **Rules selected anywhere** — `selected_anywhere`, which rules some include
   entry of the config delivers, used by `list --not-selected` and by `new`,
   built by `1gs341`.
+- **The `wio rules` command** — the component's package, its table of
+  subcommands, its shared wiring, `--json` and its failures, built by `xs3dsj`;
+  `check`, `list`, `new` and `show` each add one entry.
 - **`wio rules new`** — creates a rule with the next code of its family and
   says whether anything selects it, built by `km9cmc`.
 - **`wio rules check`** — the checks that need the rule files and the manifests,

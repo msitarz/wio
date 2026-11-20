@@ -2,7 +2,7 @@
 id = "ak7n2y"
 template = "feature.parent"
 roots = ["@descendants"]
-depends_on = []
+depends_on = ["xs3dsj"]
 -->
 
 # wio rules list

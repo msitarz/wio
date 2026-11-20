@@ -49,15 +49,56 @@ preset's own key.
 
 The names of the functions below are provisional.
 
-- **`check_errors(config, discovery) -> tuple[Diagnostic, ...]`** — in
-  `wio.rules`, with the `Config` and the `Discovery` of `8zn10d`, built from the
-  errors of the discovery and the problems that `expand` of `cyeth5` returns for
-  each entry; it does no input or output.
+- **`check_errors(config: Config, discovery: Discovery) -> tuple[Diagnostic, ...]`**
+  — in `wio.rules`, with the `Config` and the `Discovery` of `8zn10d`; it does
+  no input or output. It returns the errors of the discovery as they are, and
+  for the references it expands each entry on its own with `expand` of `cyeth5`:
+  an entry of the config in the config scope, and each entry of each rule preset
+  of a manifest, include or exclude, in the `RulesetScope` of its ruleset. A
+  problem whose route is not empty belongs to a rule preset that the entry
+  reached and is not the entry's, and a `cycle` problem is dropped, because
+  cycles come from `find_cycles`.
 - **The key paths and the cycles** — `join_path` and `item_path`, moved from
   `wio.config.messages`, and `find_cycles`, moved from `wio.config.pipelines`,
   to `wio.formats`, which `wio.config` and `wio.rules` both import.
-- **The reach of the roots** — `reach` of `apply_layers` of `cm25z9`, for the
-  roots whose rule presets reach a root-independent ruleset.
+- **The reach of the roots** — the `rulesets` of the `Expansion` of each entry
+  of a root's rule presets, with the nested rule presets of the config, for the
+  roots that reach a root-independent ruleset.
+
+## Constraints
+
+### C-1
+
+`wio.config` imports `join_path`, `item_path` and `find_cycles` from
+`wio.formats` and does not keep a copy. `uv run tach check` and
+`uv run jscpd src tests` verify it, and AC-9 that the output of
+`wio config check` is unchanged.
+
+## Visuals
+
+The diagram is drawn from commit `d1f3d5d` of the branch
+`docs/define-rules-tree`, and shows only what the Work changes.
+
+### Before and after
+
+The key paths and the finding of cycles are private to `wio.config`, so
+`wio.rules`, which may not import it, cannot write a place or find a cycle.
+After the move both import them from `wio.formats`. New parts are marked.
+
+```mermaid
+flowchart LR
+    subgraph before["Before"]
+        cfgb["wio.config: join_path, item_path, find_cycles"]
+        rulesb["wio.rules: no key paths, no cycles"]
+    end
+    subgraph after["After"]
+        fmt["wio.formats: join_path, item_path, find_cycles (new home)"]
+        cfga["wio.config"]
+        rulesa["wio.rules: check_errors (new)"]
+        cfga --> fmt
+        rulesa --> fmt
+    end
+```
 
 ## Acceptance criteria
 
@@ -79,19 +120,23 @@ An entry of the config whose family, code or rule preset after the dot is not in
 its ruleset is one error at the entry's key path, and an entry that names
 something is not.
 
-#### Every field of the config
+#### Every field that takes references
 
-- **Given** a ruleset `demo` that declares `ARC` and holds `ARC001` and a preset
-  `recommended`, and entries that name `demo.ZZZ`, `demo.ARC999` and `demo.none`
-  in `roots.api.rule_presets`, in `stages.s.rules_include`, in
-  `stages.s.rules_exclude`, in `rule_presets.backend.rules_include`, in
-  `rules_always_include` and, for `demo.ZZZ` and `demo.ARC999`,
-  `rules_always_exclude`, and valid entries `demo.ARC`, `demo.ARC001` and
-  `demo.recommended` beside them.
+- **Given** a ruleset `demo` that declares `ARC` and holds `ARC001`, with a rule
+  preset `recommended`; a root `api` with
+  `rule_presets = ["demo.none", "demo.recommended"]`; and the lists
+  `["demo.ZZZ", "demo.ARC999", "demo.none", "demo.ARC", "demo.ARC001",
+  "demo.recommended"]` in `stages.s.rules_include`, `stages.s.rules_exclude`,
+  `rule_presets.backend.rules_include` and `rules_always_include`, and
+  `["demo.ZZZ", "demo.ARC999"]` in `rules_always_exclude`.
 - **When** `check_errors` runs.
-- **Then** each unknown entry is one error whose place is its key path, such as
-  `stages.s.rules_include[1]`, whose message names the reference and what its
-  ruleset holds, and the valid entries give none.
+- **Then** it returns an error at `roots.api.rule_presets[0]`, and at indexes 0,
+  1 and 2 of each of the four lists, and at indexes 0 and 1 of
+  `rules_always_exclude`, each at its key path such as
+  `stages.s.rules_include[1]`, and none for the valid entries; the message of an
+  unknown family lists the families that the ruleset declares, that of an
+  unknown code lists the codes of its family, and that of an unknown rule preset
+  lists the rule presets of its manifest.
 
 ### **AC-3** A reference of a manifest that cannot be used is an error
 
@@ -134,8 +179,10 @@ are one error for each cycle, at the key of the first of them by name.
 - **Given** a manifest with rule presets `a` and `b` that include each other,
   `c` that includes itself, and `d` that includes `a`.
 - **When** `check_errors` runs.
-- **Then** it returns one error at `…#rule_presets.a` that names `a` and `b`,
-  and one at `…#rule_presets.c` that names `c`, and none for `d`.
+- **Then** it returns one error at `…#rule_presets.a.rules_include` that names
+  `a` and `b`, and one at `…#rule_presets.c.rules_include` that names `c`, and
+  none for `d`, so that each cycle is one error and the `cycle` problems of the
+  expansion add none.
 
 ### **AC-6** A manifest cannot define `all`
 
@@ -152,8 +199,9 @@ reference to `all` is valid.
 
 ### **AC-7** A root-independent ruleset must not be reached by a root
 
-A root whose rule presets name a root-independent ruleset is one error at each
-entry of the root that names it, and a stage that includes it is not.
+A root whose rule presets name a root-independent ruleset, directly or through a
+rule preset of the config, is one error at the entry of the root that reaches
+it, and a stage that includes it is not.
 
 #### A root and a stage
 
@@ -164,18 +212,36 @@ entry of the root that names it, and a stage that includes it is not.
 - **Then** it returns one error at `roots.api.rule_presets[1]` that names
   `process` and `api`, and none for the stage or for the first entry.
 
-### **AC-8** A reference to a rule that was left out is reported
+#### Through a rule preset of the config
 
-A reference is judged against the rules that the discovery returned, so a
-reference to a rule that it left out for its own fault is an error too.
+- **Given** a rule preset `backend` of the config that includes `process.all`, a
+  root `api` whose rule presets are `["demo.recommended", "backend"]`, and a
+  stage that includes `backend`.
+- **When** `check_errors` runs.
+- **Then** it returns one error at `roots.api.rule_presets[1]` that names
+  `process`, `api` and `backend`, none for the stage, and none at the key of
+  `backend`.
 
-#### A consequence
+### **AC-8** A reference to a rule or a ruleset that was left out is reported
+
+A reference is judged against what the discovery returned, so a reference to a
+rule, or to a whole ruleset, that it left out for its own fault is an error too.
+
+#### A rule left out
 
 - **Given** two rules with the code `ARC001` in `demo`, which the discovery
   leaves out, and a stage that includes `demo.ARC001`.
 - **When** `check_errors` runs.
 - **Then** it returns the error of the discovery for the shared code and one
   error at the stage's entry that `demo.ARC001` names nothing.
+
+#### A ruleset left out
+
+- **Given** a ruleset `broken` whose manifest does not parse, which the
+  discovery leaves out, and a stage that includes `broken.ARC001`.
+- **When** `check_errors` runs.
+- **Then** it returns the error of the discovery for the manifest and one error
+  at the stage's entry that `broken` is not a ruleset that was read.
 
 ### **AC-9** `wio config check` is unchanged by the move
 
@@ -190,7 +256,18 @@ nothing that `wio config check` reports.
 - **Then** every diagnostic, with its place, and every exit code is what it was
   before.
 
-### **AC-10** The errors do not depend on order and need no file
+### **AC-10** A family that holds no rule is not an error
+
+A family that the manifest declares and that holds no rule is a valid reference.
+
+#### An empty family
+
+- **Given** a ruleset `demo` whose manifest declares `ARC` and `PAY` and that
+  holds only `ARC001`, and a stage that includes `demo.PAY`.
+- **When** `check_errors` runs.
+- **Then** it returns no error.
+
+### **AC-11** The errors do not depend on order and need no file
 
 The same config and discovery give the same errors in the same order, whatever
 the order of the tables and entries, and `check_errors` reads no file.
@@ -209,4 +286,6 @@ the order of the tables and entries, and `check_errors` reads no file.
   import `wio.config`, so the delivery moves them, as `cyeth5` moves
   `parse_reference`.
 - The place `…#rule_presets.local.rules_include[0]` is the form that C-6 of
-  [wio rules](../../README.md) states.
+  [wio rules](../../README.md) states, and the cycle is placed at
+  `rules_include` as `wio config check` places a cycle of the config's rule
+  presets.

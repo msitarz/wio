@@ -2,7 +2,7 @@
 id = "km9cmc"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["8zn10d", "1gs341"]
+depends_on = ["8zn10d", "1gs341", "xs3dsj"]
 -->
 
 # wio rules new
@@ -18,7 +18,8 @@ need a command that creates the rule and says whether anything selects it.
 - `wio rules new` creates a rule file in a ruleset with the next code of its
   family, which never fills a gap, and a name and an optional description that
   the author gives.
-- The file is valid at once: `wio rules check` reports no error for it.
+- The file is valid at once: `wio rules check` reports no error for it, whatever
+  characters the description holds.
 - The result says whether anything selects the new rule and by what, in text and
   in JSON.
 - A request that cannot be met is refused before anything is written, and no
@@ -52,18 +53,36 @@ and `ARC0007` by `ARC0008`.
 The file is named `<code>-<name>.md`, a convention that no command reads, as the
 top Work says.
 
+### A-4
+
+The command resolves an alias to the canonical name of the ruleset from the
+`rulesets` of the config before it plans the rule, so `plan_rule` knows
+canonical names only.
+
+### A-5
+
+A rule is selected when some entry of the config delivers it, whatever the
+roots, as A-2 of `1gs341` says, so the result can say selected for a rule that
+no session receives because its ruleset is not reached.
+
 ## Mechanisms
 
 The names of the functions below are provisional.
 
-- **`plan_rule(ruleset, family, name, description, discovery) -> NewRule`** — in
-  `wio.rules`, which judges the request against the `Discovery` of `8zn10d` and
-  returns the path, the text and the `Rule` to write, or refuses; it does no
-  input or output.
+- **`plan_rule(ruleset: str, family: str, name: str, description: str | None,
+  discovery: Discovery) -> NewRule`** — in `wio.rules`, which judges the request
+  against the `Discovery` of `8zn10d` and refuses an unknown ruleset, a family
+  that the manifest does not declare, a name or a description of the wrong form
+  and a name that the ruleset has; it does no input or output. A `NewRule` is
+  frozen, with `path: PurePosixPath`, `text: str` and `rule: Rule`.
 - **The command** — `wio rules new`, with `--name`, `--description` and
-  `--json`, which writes the file through the `FileSystem` port, runs the
-  discovery again to read the file back, and asks `selected_anywhere` of
-  `1gs341` whether anything selects the rule.
+  `--json`, an entry of `SUBCOMMANDS` of `xs3dsj`. It resolves the alias, plans
+  the rule, checks that `FileSystem.exists` is false for the path, because
+  `write_text` overwrites, writes the file, runs the discovery again to read it
+  back, and asks `selected_anywhere` of `1gs341` whether anything selects the
+  rule.
+- **The block** — written by `encode_comment_toml` of `wio.formats`, which
+  escapes a quote, a backslash and the `-->` that would close the comment early.
 - **The refusal** — a `WioError` that names the cause, which `wio.cli` turns
   into exit 2.
 
@@ -80,8 +99,8 @@ number in the family, and a number that is free below it is not reused.
   and `ARC003`.
 - **When** `wio rules new demo ARC --name keep-it-small` runs.
 - **Then** it creates a rule with the code `ARC004`, a file named
-  `ARC004-keep-it-small.md`, and says it created `demo.ARC004`; `ARC002` is not
-  used.
+  `ARC004-keep-it-small.md`, and says it created `demo.ARC004 keep-it-small`;
+  `ARC002` is not used.
 
 #### An empty family
 
@@ -96,7 +115,8 @@ code of the family.
 
 #### Widths
 
-- **Given** families whose highest codes are `ARC999`, `ARC0007` and `ARC12`.
+- **Given** three rulesets that each declare `ARC`, whose highest codes are
+  `ARC999`, `ARC0007` and `ARC12`.
 - **When** `wio rules new` runs for each.
 - **Then** the new codes are `ARC1000`, `ARC0008` and `ARC013`.
 
@@ -129,6 +149,13 @@ discovery reads it back as the rule that was planned.
   description, has an empty body, the existing files are unchanged, and the
   discovery returns the new rule with that code, name and description.
 
+#### A description with special characters
+
+- **Given** the description `Use "quotes", a \ and --> carefully.`.
+- **When** `wio rules new` runs with it.
+- **Then** the file has one `<!-- wio -->` block that the discovery reads, and
+  the rule it returns has exactly that description.
+
 ### **AC-5** A ruleset's alias is accepted and the canonical name is shown
 
 An alias works wherever the ruleset's name does, and the result names the
@@ -151,7 +178,7 @@ with exit 2.
 #### Each cause
 
 - **Given** a ruleset `demo` that declares `ARC` and holds `ARC001` named
-  `keep-it-small`, and an unrelated file at the path `ARC002-other.md`.
+  `keep-it-small`, and an unmarked file `ARC002-other.md` in its directory.
 - **When** `wio rules new nope ARC --name x`, `wio rules new demo ZZZ --name x`,
   `wio rules new demo ARC --name Bad_Name`, `wio rules new demo ARC --name x
   --description ""`, `wio rules new demo ARC --name keep-it-small` and
@@ -159,50 +186,70 @@ with exit 2.
 - **Then** each exits 2 with a message on standard error, which lists the
   rulesets that exist, lists the families that `demo` declares, gives the form
   of a name, says the description must be one line that is not blank, names the
-  rule that has the name, and says the file exists, and no file is written or
-  changed.
+  rule that has the name, and says the file `ARC002-other.md` exists, and no
+  file is written or changed.
 
-### **AC-7** A fault in the rules refuses the command
+### **AC-7** A fault in another ruleset refuses the command
 
-An error of the discovery anywhere in the repository, including in another
-ruleset, refuses the command, and no file is written.
+An error of the discovery anywhere in the repository, including in a ruleset
+that is not the one asked for, refuses the command, and no file is written; the
+case of two rules with one code is verified by AC-9 of
+[wio rules](../README.md).
 
 #### A fault elsewhere
 
-- **Given** a valid ruleset `demo` and another ruleset `bad` with two rules of
-  one code.
+- **Given** a valid ruleset `demo` and another ruleset `bad` with a rule whose
+  block does not close.
 - **When** `wio rules new demo ARC --name keep-it-small` runs.
-- **Then** it exits 2 with the error of the duplicate code on standard error and
-  writes no file.
+- **Then** it exits 2 with the error of the block on standard error and writes
+  no file.
 
-### **AC-8** The result says whether anything selects the new rule
+### **AC-8** A warning refuses nothing
 
-The result tells whether some entry delivers the new rule, and by which source.
+A warning of the discovery does not refuse the command.
+
+#### A warning
+
+- **Given** a valid ruleset `demo` that declares `ARC`, with a rule whose block
+  has an unknown key.
+- **When** `wio rules new demo ARC --name keep-it-small` runs.
+- **Then** it creates the rule and exits 0.
+
+### **AC-9** The result says whether anything selects the new rule
+
+The result tells whether some entry delivers the new rule, and by which source,
+in the chain form of `wio rules list --explain`.
 
 #### Selected and not yet
 
-- **Given** a ruleset `demo` with a rule preset `recommended` that includes
-  `ARC`, a root `api` whose rule preset is `demo.recommended`, and a family
-  `PAY` that no entry includes.
+- **Given** a ruleset `demo` holding `ARC001` to `ARC003`, with a rule preset
+  `recommended` that includes `ARC`, a root `api` whose rule preset is
+  `demo.recommended`, a stage `s` whose
+  `rules_include` has `demo.ARC` and a family `PAY` that no entry includes.
 - **When** `wio rules new demo ARC --name keep-it-small` and
   `wio rules new demo PAY --name pay-later` run.
-- **Then** the first says it is selected, by root `api` through
-  `demo.recommended`, and the second says that nothing selects it yet.
+- **Then** the first prints `created demo.ARC004 keep-it-small`, the line
+  `file: <path>` and two lines
+  `selected: demo.ARC004 ← root api ← demo.recommended ← demo.ARC` and
+  `selected: demo.ARC004 ← stage s ← demo.ARC`, and the second prints its first
+  two lines and `selected: no, nothing selects it yet`.
 
-### **AC-9** The JSON is one line with a fixed order
+### **AC-10** The JSON is one line with a fixed order
 
-`--json` prints one object on one line with the code, the name, the path,
-whether it is selected and the sources.
+`--json` prints one object on one line with the qualified code, the name, the
+path, whether it is selected and the sources.
 
 #### Text and JSON
 
-- **Given** the repository of AC-8.
-- **When** the two requests of AC-8 run with `--json`.
+- **Given** the repository of AC-9.
+- **When** the two requests of AC-9 run with `--json`.
 - **Then** each document has `code`, `name`, `path`, `selected` and `sources` in
-  that order, with `selected` true and one source for the first and false and no
-  source for the second, and says what the text says.
+  that order, with `code` the qualified code, `selected` true and `sources` the
+  two arrays of labels such as `["root api", "demo.recommended", "demo.ARC"]`
+  for the first, and false and an empty array for the second, and says what the
+  text says.
 
-### **AC-10** The same repository gives the same file
+### **AC-11** The same repository gives the same file
 
 The same repository and the same request give a file of the same name and bytes,
 and the command creates exactly one file.
@@ -217,8 +264,7 @@ and the command creates exactly one file.
 ## Additional context
 
 - The empty body is deliberate: `wio rules check` has no rule about a missing
-  instruction because whether a rule is good is for a reviewer, and `wio rules
-  list` shows an empty summary until the author writes one.
-- The top Work states that `new` writes only the comment form, and that a
-  refusal for a fault is verified there by its AC-9; the causes of a refusal
-  that belong to the request itself are verified here.
+  instruction because whether a rule is good is for a reviewer.
+- The top Work states that `new` writes only the comment form, and that two
+  rules with one code refuse `new`, `list` and `show` alike by its AC-9; the
+  causes of a refusal that belong to the request itself are verified here.

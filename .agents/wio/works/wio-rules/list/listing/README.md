@@ -2,7 +2,7 @@
 id = "fjvj3x"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["5yb4tz", "ndwemw", "9pfyfe"]
+depends_on = ["5yb4tz", "ndwemw", "9pfyfe", "xs3dsj"]
 -->
 
 # Listing by selection

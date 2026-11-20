@@ -2,7 +2,7 @@
 id = "zc62j9"
 template = "feature.parent"
 roots = ["@descendants"]
-depends_on = []
+depends_on = ["xs3dsj"]
 -->
 
 # wio rules check
@@ -51,34 +51,31 @@ again.
 
 The names of the functions below are provisional.
 
-- **`check_errors`** — every error: the errors of the discovery and the errors
-  of the references, built by `5qgs79`.
-- **`check_warnings`** — every warning: the warnings of the discovery and the
-  warnings of the selections and of the rule bodies, built by `785y9k`.
-- **`check_rules(root, config, files) -> tuple[Diagnostic, ...]`** — in
-  `wio.rules`, runs the discovery once, joins what the two functions return in
-  the shared order, and is built by the integration of this Work.
+- **`check_errors` and `check_warnings`** — the functions of `5qgs79` and
+  `785y9k`, each taking the `Config` and the `Discovery` and returning the
+  errors or the warnings; this Work states only what it does with them.
+- **`check_rules(root, config, files)`** — in `wio.rules`, with `root: Path`,
+  `config: Config` and `files: FileSystem`, returning a
+  `tuple[Diagnostic, ...]`; it runs the discovery once, joins what the two
+  functions return in the order of C-2 of [wio rules](../README.md), and is
+  built by the integration of this Work.
 - **The command** — `wio rules check`, with `--json`, built by the integration
-  of this Work over `render_check` of `wio.formats`, which writes the lines or
-  the JSON and says `The rules pass.` for a clean repository.
+  of this Work as an entry of `SUBCOMMANDS` of `xs3dsj`; it renders the report
+  with `render_check` of `wio.formats`, which writes the lines or the JSON and
+  says `The rules pass.` for a clean repository, and it returns the exit code
+  that `has_error` gives, 1 for an error and 0 otherwise.
 
 ## Constraints
 
 ### C-1
 
-The place of a fault is the one that C-6 of [wio rules](../README.md) states,
-with the manifest's key as `<path>#<key path>` and the config's as its key path.
-AC-5 verifies it, and the criteria of both leaves.
-
-### C-2
-
 Every fault is one line, and no finding is repeated by two paths of this
 command, such as an error of the discovery that the references check would
-report again. AC-3 verifies it.
+report again. AC-2 verifies it.
 
 ## Visuals
 
-The diagrams are drawn from commit `eb82e71` of the branch
+The diagrams are drawn from commit `d1f3d5d` of the branch
 `docs/define-rules-tree`, and show only what the Work changes.
 
 ### Before
@@ -103,12 +100,13 @@ parts are marked.
 flowchart LR
     cfgcheck["wio config check: references as text"]
     files["rule files, manifests and the config"]
+    shell["the wio rules command (xs3dsj)"]
     subgraph chk["wio rules check (new)"]
         disc["discovery"]
         errors["errors: discovery and references"]
         warnings["warnings: discovery and selections"]
         join["check_rules: one report"]
-        cmd["command and render_check"]
+        cmd["subcommand and render_check"]
     end
     cfgcheck --> files
     files --> disc
@@ -117,6 +115,7 @@ flowchart LR
     errors --> join
     warnings --> join
     join --> cmd
+    cmd --> shell
 ```
 
 ## Acceptance criteria
@@ -124,59 +123,77 @@ flowchart LR
 ### **AC-1** One report holds every kind of finding
 
 `wio rules check` prints one line for each error and each warning of the rule
-files, the manifests and the references, exits 1 when there is an error, exits 0
-when there is only a warning, and says that the rules pass when there is
-nothing.
+files, the manifests and the references, in the shared order, exits 1 when there
+is an error, exits 0 when there is only a warning, and says that the rules pass
+when there is nothing.
 
 #### Errors and warnings together
 
-- **Given** a ruleset `demo` that declares `ARC` and `ZZZ`, holding `ARC001`,
-  whose block has the unknown key `owner`, selected by the preset of a root, and
-  `ZZZ001` named `loud-rule`, whose body holds a Markdown heading, and a stage
-  whose
-  `rules_include` has `demo.XYZ`, a family that `demo` does not declare.
+- **Given** a ruleset `demo` that declares `ARC` and `ZZZ`, holding
+  `ARC001-keep-it-small.md`, whose block has the unknown key `owner` and which a
+  root's preset selects, and `ZZZ001-loud-rule.md`, whose block takes lines 1 to
+  4, followed by a blank line and a body whose first line, line 6, is a Markdown
+  heading, and a stage `s` whose `rules_include` has `demo.XYZ`, a family that
+  `demo` does not declare.
 - **When** `wio rules check` runs.
-- **Then** it prints three lines, an error for `demo.XYZ`, a warning for the
-  unknown key and a warning for `demo.ZZZ001 loud-rule`, each of the form
-  `<severity>: <where>: <message>`, and exits 1.
+- **Then** it prints three lines, in this order: a warning at
+  `.agents/wio/rules/demo/ARC001-keep-it-small.md` for the key `owner`, a
+  warning at `.agents/wio/rules/demo/ZZZ001-loud-rule.md:6` for the heading of
+  `demo.ZZZ001 loud-rule`, and an error at `stages.s.rules_include[0]` for
+  `demo.XYZ`, each of the form `<severity>: <where>: <message>`, and exits 1.
 
 #### Only warnings, and nothing
 
-- **Given** the same repository with the stage's reference changed to `demo.ARC`
-  and the key `owner` removed, and then the heading removed from `ZZZ001`.
+- **Given** the same repository with the stage's reference changed to
+  `demo.ARC`, and then the key `owner` and the heading removed.
 - **When** `wio rules check` runs on each.
-- **Then** the first prints the one warning for `demo.ZZZ001 loud-rule` and
-  exits 0, and the second prints `The rules pass.` and exits 0.
+- **Then** the first prints the two warnings and exits 0, and the second prints
+  `The rules pass.` and exits 0.
 
-### **AC-2** The report is the same bytes in order, as text and as JSON
+### **AC-2** Each fault is reported once in the joined report
 
-`wio rules check` prints the same bytes for the same repository, whatever the
-order of the files and of the config, and `--json` holds the same findings as
-the text.
-
-#### Order and JSON
-
-- **Given** the repository of AC-1 with its files and its config in two orders.
-- **When** `wio rules check` and `wio rules check --json` run on each.
-- **Then** the text outputs are equal in the order of C-2 of
-  [wio rules](../README.md) names, the JSON outputs are equal, and each JSON
-  document has the severity, the place and the message of every line.
-
-### **AC-3** Each fault is reported once
-
-A fault that the discovery reports is one line, and the references check does
-not report it again.
+A fault that the discovery returns is one line of the report, whichever of the
+two functions it comes through, and the references check does not report it
+again.
 
 #### No duplicates
 
 - **Given** a ruleset `demo` with a rule whose block does not close, which the
-  discovery leaves out, and a manifest whose rule preset `local` includes
-  `Docs`.
+  discovery leaves out, a rule whose block has an unknown key, a manifest with
+  an unknown key, and a manifest whose rule preset `local` includes `Docs`.
 - **When** `wio rules check` runs.
-- **Then** it prints one error for the rule file that names its line and one for
-  `Docs`, and no other line about either.
+- **Then** it prints one error for the rule file that names its line, one
+  warning for the key of the rule, one warning for the key of the manifest and
+  one error for `Docs`, and no other line about any of them.
 
-### **AC-4** A repository with no rulesets passes
+### **AC-3** The whole repository is judged on every run
+
+A fault in a ruleset that no root or stage selects is reported with the faults
+of the others in the same run.
+
+#### Two rulesets
+
+- **Given** a ruleset `used` selected by a root and a ruleset `spare` that no
+  root or stage includes, each with a rule whose block has an unknown key.
+- **When** `wio rules check` runs.
+- **Then** it prints a warning for each of the two rules and exits 0.
+
+### **AC-4** The exit codes and the JSON hold with `--json`
+
+With `--json`, standard output holds one JSON array of the findings and nothing
+else, and the exit code is 1 for an error, 0 for a warning alone and 0 for
+nothing, in which case the array is empty.
+
+#### Three outcomes
+
+- **Given** a repository with an error, one with only a warning, and one with
+  none.
+- **When** `wio rules check --json` runs on each.
+- **Then** the first prints one array with the error and exits 1, the second
+  prints one array with the warning and exits 0, and the third prints `[]` and
+  exits 0.
+
+### **AC-5** A repository with no rulesets passes
 
 A repository with no `.agents/wio/rules` directory has nothing to report.
 
@@ -186,28 +203,16 @@ A repository with no `.agents/wio/rules` directory has nothing to report.
 - **When** `wio rules check` runs, with and without `--json`.
 - **Then** it prints `The rules pass.` and `[]`, and exits 0.
 
-### **AC-5** A fault in the manifest is placed in its key
-
-A fault in a key of a manifest is placed by the manifest's path and the key
-path, and a fault in the config by its key path.
-
-#### Places
-
-- **Given** a manifest whose rule preset `local` includes `Docs`, and a stage
-  whose `rules_include` has `demo.XYZ`.
-- **When** `wio rules check` runs.
-- **Then** the first error's place is
-  `.agents/wio/rules/demo/ruleset.toml#rule_presets.local.rules_include[0]` and
-  the second's is `stages.s.rules_include[0]`.
-
 ## Additional context
 
 - The errors and warnings that each child builds, and what makes each of them,
-  are the criteria of `5qgs79` and `785y9k`; this contract states only what the
-  report establishes as a whole.
-- The shared `render_check` writes the lines of a check and the JSON for every
-  `check` command, so the format of a line and the exit code are the
-  repository's and not this Work's.
+  are the criteria of `5qgs79` and `785y9k`, the places of their faults are
+  those of C-6 of [wio rules](../README.md), the order and the bytes of the
+  report in text and in JSON are verified by AC-3 of that Work, and that `check`
+  writes nothing by its AC-11; this contract states only what the join and the
+  command add.
+- The shared `render_check` writes the lines or the JSON of a check and the
+  passing sentence, and the exit code is the command's, from `has_error`.
 - The references are judged against the rules that the discovery returned, so a
   reference to a rule that the discovery left out because of its own fault is
   reported as well, a consequence of that fault and not a repeat of it.

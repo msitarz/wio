@@ -2,7 +2,7 @@
 id = "ca70ny"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["8zn10d", "fjvj3x"]
+depends_on = ["8zn10d", "fjvj3x", "xs3dsj"]
 -->
 
 # wio rules show
@@ -36,23 +36,35 @@ and open its file.
 
 The reference is one rule's qualified code, `<ruleset>.<code>`, where the
 ruleset may be its alias, because a rule is named by its ruleset and code and
-never by a bare code, as C-5 of [wio rules](../README.md) says.
+never by a bare code, as C-4 of [wio rules](../README.md) says.
 
 ### A-2
 
 The body is printed as the reader returns it, without its leading and trailing
 blank lines, with the line endings it has, followed by one line feed.
 
+### A-3
+
+Standard output does not translate line ends, so a CRLF inside a body reaches
+the reader of the output as it is stored.
+
+### A-4
+
+The command resolves the ruleset part of the reference, which may be an alias,
+from the `rulesets` of the config, and `show_rule` knows canonical names only.
+
 ## Mechanisms
 
 The names of the functions below are provisional.
 
-- **`show_rule(reference, discovery) -> Rule`** — in `wio.rules`, which finds
-  the rule in the `Discovery` of `8zn10d` or refuses; it does no input or
-  output.
-- **The command** — `wio rules show`, with `--json`, which renders the header
-  with `render_blocks` of `wio.formats`, built with `fjvj3x`, followed by the
-  body, or the JSON with `encode_json`.
+- **`show_rule(reference: str, discovery: Discovery) -> Rule`** — in
+  `wio.rules`, which judges the reference with `parse_reference` and `item_kind`
+  of `wio.formats`, finds the rule in the `Discovery` of `8zn10d` by its
+  canonical ruleset and code, or refuses; it does no input or output.
+- **The command** — `wio rules show`, with `--json`, an entry of `SUBCOMMANDS`
+  of `xs3dsj`, which resolves the alias and renders the header with
+  `render_blocks` of `wio.formats`, built with `fjvj3x`, followed by the body,
+  or the JSON with `encode_json`.
 - **The refusal** — a `WioError` that names the cause, which `wio.cli` turns
   into exit 2.
 
@@ -127,25 +139,24 @@ what is wrong, and nothing is printed on standard output.
   `ARC002`, and a rule preset `recommended`.
 - **When** `wio rules show demo.ARC`, `wio rules show demo.recommended`,
   `wio rules show demo.all`, `wio rules show ARC001`, `wio rules show Docs`,
-  `wio rules show nope.ARC001` and `wio rules show demo.ARC999` run.
+  `wio rules show nope.ARC001`, `wio rules show demo.ARC999` and
+  `wio rules show demo.arc001` run.
 - **Then** each exits 2 and says that `demo.ARC` is a family and `show` takes a
   rule's code, that `demo.recommended` and `demo.all` are rule presets, that
   `ARC001` has no ruleset, that `Docs` is not a reference, that no ruleset is
-  `nope`, and that `demo` holds `ARC001` and `ARC002` and not `ARC999`.
+  `nope`, that `demo` holds `ARC001` and `ARC002` and not `ARC999`, and that
+  `demo.arc001` is not a code, which wins over reading it as a rule preset.
 
-### **AC-6** A fault in the rules refuses the command and a warning does not
+### **AC-6** A warning refuses nothing
 
-An error of the discovery anywhere in the repository refuses the command, and a
-warning does not.
+A warning of the discovery does not refuse the command, while an error anywhere
+refuses it as AC-9 of [wio rules](../README.md) says.
 
-#### An error and a warning
+#### A warning
 
-- **Given** a valid rule `demo.ARC001` whose block has an unknown key, and in
-  another repository a ruleset `bad` with two rules of one code.
-- **When** `wio rules show demo.ARC001` runs on each.
-- **Then** the first shows the rule and exits 0, and the second exits 2 with the
-  error of the duplicate code on standard error and prints nothing on standard
-  output.
+- **Given** a valid rule `demo.ARC001` whose block has an unknown key.
+- **When** `wio rules show demo.ARC001` runs.
+- **Then** it shows the rule and exits 0.
 
 ### **AC-7** The JSON is one line with a fixed order
 
