@@ -63,8 +63,10 @@ The names of the types and the functions below are provisional.
   `aliases: Mapping[str, str]` from an alias to a canonical name, and
   `presets: Mapping[str, RulePreset]` of the config.
 - **`Expansion`** — frozen, with `rules: Mapping[Rule, Routes]` of the rules
-  selected, `removed: Mapping[Rule, Routes]` of the rules an exclude took out
-  and `problems: tuple[Problem, ...]`; a `Route` is a `tuple[str, ...]` of the
+  selected, `removed: Mapping[Rule, Routes]` of the rules an exclude took out,
+  `rulesets: frozenset[str]` of the canonical names of the rulesets that an
+  include entry named, and `problems: tuple[Problem, ...]`; a `Route` is a
+  `tuple[str, ...]` of the
   canonical references from the outermost rule preset to the entry that named
   the rule, such as `("backend", "demo.recommended", "demo.ARC")`, and `Routes`
   is a sorted `tuple[Route, ...]`.
@@ -256,6 +258,23 @@ Moving `parse_reference` and `find_cycles` to `wio.formats` changes nothing that
   for references of every fault and for cycles of rule presets and of `after`.
 - **When** `wio config check` runs on each after the move.
 - **Then** every diagnostic and every exit code is what it was before.
+
+### **AC-12** The rulesets that the includes name are returned
+
+An expansion returns the canonical names of the rulesets that its include
+entries name, nested rule presets included, even when its excludes leave none of
+their rules, and an exclude entry, an unknown entry and an alias change nothing
+but the spelling.
+
+#### Named rulesets
+
+- **Given** the ruleset `demo` of AC-1 with the alias `d`, a ruleset `other`
+  that declares `ARC` and holds `ARC001`, and a ruleset `third` that holds
+  `ARC001`.
+- **When** `expand` expands the includes `d.recommended` and `other.ARC` and the
+  excludes `other.ARC001` and `third.ARC001`, and then the include `nope.ARC`.
+- **Then** the first returns the rulesets `demo` and `other` and no rule of
+  `other`, and not `third`, and the second returns no ruleset.
 
 ## Additional context
 
