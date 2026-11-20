@@ -19,6 +19,8 @@ nothing selects or whether a new rule is selected.
   entries that deliver it.
 - A rule that no include entry delivers is known to be unselected, so the
   listing of unselected rules and the report of `wio rules new` read one answer.
+- The rules that an exclude of a rule preset took out are known with the entries
+  that did, so a listing can say what removed a rule that nothing selects.
 
 ## Non-Goals
 
@@ -53,10 +55,15 @@ of [wio rules](../../README.md) says; `wio rules check` reports it.
 
 The names of the types and the functions below are provisional.
 
-- **`selected_anywhere(config, rulesets) -> Mapping[Rule, tuple[Source, ...]]`**
-  — in `wio.rules`, where `config` is the `Config` and `rulesets` is a
-  `Mapping[str, LoadedRuleset]`; it holds only the rules that are selected, so a
-  rule that is not a key is unselected, and it does no input or output.
+- **`selected_anywhere(config, rulesets) -> SelectedAnywhere`** — in
+  `wio.rules`, where `config` is the `Config` and `rulesets` is a
+  `Mapping[str, LoadedRuleset]`; a `SelectedAnywhere` holds
+  `selected: Mapping[Rule, tuple[Source, ...]]`, only the rules that some entry
+  delivers, so a rule that is not a key of it is unselected, and
+  `removed: Mapping[Rule, tuple[Source, ...]]`, the rules that an exclude of a
+  rule preset took out, with the entries; it does no input or output, and the
+  criteria below speak of the keys and sources of `selected` unless they say
+  `removed`.
 - **`Source`** — frozen, with `layer`, one of `root`, `stage` and
   `always-include`, `name`, the root or the stage or none, and `routes`, the
   routes of `cyeth5` that led from the entry to the rule.
@@ -83,7 +90,9 @@ and the root or the stage, and a rule that no entry delivers is not.
 - **When** `selected_anywhere` runs.
 - **Then** the keys are `demo.ARC001`, `demo.PAY001` and `process.FIX001`, with
   the sources root `api`, stage `s` and always-include, each with its routes,
-  and `demo.ARC002` and `demo.PAY002` are not keys.
+  `demo.ARC002` and `demo.PAY002` are not keys, and `removed` holds
+  `demo.ARC002` with the source root `api` and the route `demo.recommended`,
+  `demo.ARC002`.
 
 ### **AC-2** A rule with several sources has all of them in order
 

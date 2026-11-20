@@ -54,10 +54,11 @@ The names of the functions below are provisional.
 
 - **`narrow(listing, references, not_selected, config, rulesets) -> Listing`** —
   in `wio.rules`, on the `Listing` of `fjvj3x`; it does no input or output and
-  returns a listing whose header names the references and `--not-selected`.
+  returns a listing whose header names the references and `--not-selected`, and
+  whose rows record the routes by which the references delivered each rule.
 - **The references** — `expand` of `cyeth5` for each, in the config scope.
-- **Selected anywhere** — `selected_anywhere` of `1gs341`, whose keys are the
-  rules that some entry delivers.
+- **Selected anywhere** — `selected_anywhere` of `1gs341`, whose `selected` has
+  as keys the rules that some entry delivers.
 - **The reach of the roots** — `reach` of `apply_layers` of `cm25z9`, for the
   candidates of a view that applies roots.
 - **The refusal** — a `WioError` that names the reference, which `wio.cli` turns
@@ -78,7 +79,8 @@ and no others, and its header names the reference as it was written.
 - **When** `narrow` runs for the references `demo.recommended`, `demo.ARC`,
   `demo.PAY001` and `demo.all`, each alone.
 - **Then** the rules are `ARC001`; `ARC001` and `ARC002`; `PAY001`; and all
-  four, and each header names its reference.
+  four, each header names its reference, and the row of `ARC001` for the first
+  records the route `demo.recommended`, `demo.ARC`.
 
 ### **AC-2** Several references keep the rules that any delivers
 
@@ -108,7 +110,7 @@ and an empty result is not an error.
 ### **AC-4** `--not-selected` keeps the rules that no entry delivers
 
 `--not-selected` limits the listing to the rules that `selected_anywhere` does
-not hold, shows them although they are out, and marks the header.
+not select, shows them although they are out, and marks the header.
 
 #### Unselected rules
 

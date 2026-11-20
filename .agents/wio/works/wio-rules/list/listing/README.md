@@ -53,7 +53,8 @@ stage, and the names of the layers that applied are `roots`, `stage` and
 The names of the types and the functions below are provisional.
 
 - **`Listing`** — frozen, with `header: Header` and `rows: tuple[Row, ...]`; a
-  `Row` holds the `Rule` and its `Decision`, or none when no layers applied; a
+  `Row` holds the `Rule`, its `Decision` or none when no layers applied, the
+  routes that the references delivered it by, and an `Explanation` or none; a
   `Header` holds the view, the layers applied, the roots or none when they are
   not applied, the stage, and the references and `--not-selected` that narrowing
   fills in.
@@ -181,8 +182,8 @@ same information as the text.
 - **When** `wio rules list --root api --explain` runs as text and with `--json`.
 - **Then** the document holds `view`, `layers`, `roots`, `stage` and `rules` in
   that order, each rule has `code`, `name`, `description` that is `null` when
-  there is none, `summary`, `roots`, `root_independent` and `included`, and the
-  rules are the ones the text shows.
+  there is none, `summary`, `roots`, `root_independent` and `included`, then the
+  fields of its explanation, and the rules are the ones the text shows.
 
 ### **AC-8** One renderer serves both commands and changes nothing
 

@@ -235,15 +235,15 @@ the selection includes for it, and no other.
 
 ### **AC-6** A rule that is not selected anywhere is never included
 
-A rule that `selected_anywhere` does not hold is out in every view of `select`,
-and a rule that `select` includes is held by `selected_anywhere`.
+A rule that `selected_anywhere` does not select is out in every view of
+`select`, and a rule that `select` includes is selected by `selected_anywhere`.
 
 #### The two answers agree
 
 - **Given** the repository of AC-1, where no entry includes `demo.PAY002`.
 - **When** `selected_anywhere` runs, and `select` runs for each Work, stage and
   root of the config, and for no roots and no stage.
-- **Then** every rule that `select` includes is a key of `selected_anywhere`,
+- **Then** every rule that `select` includes is a key of its `selected`,
   `demo.ARC002` and `demo.PAY001` are keys although the stage excludes the first
   and the veto removes the second, and `demo.PAY002` is not a key and is out in
   every view.
