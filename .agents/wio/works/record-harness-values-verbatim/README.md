@@ -26,12 +26,18 @@ rejects, losing information needed to associate log events with transcripts.
 
 ## Assumptions
 
-None.
+- **A-1** Project authors accept that configured variables may contain secrets,
+  because they choose which environment variables wio records in their local
+  log.
+- **A-2** A recorded line of any length is appended as the existing append port
+  appends it, and wio adds no size limit or atomicity guarantee for long lines.
 
 ## Mechanisms
 
 - `wio.log.identify.identify` returns a `SessionIdentity` whose ID values
   represent set variables, and uses `stdio` for preference diagnostics.
+- `wio.log.render` formats the session and parent of a context event for
+  `wio log show`, as a JSON string literal for each present value.
 
 ## Acceptance criteria
 
@@ -42,28 +48,31 @@ Set configured ID values are recorded exactly as supplied.
 Given configured session, parent, and extra recorded environment variables, when
 an event is recorded, every set variable is retained verbatim in the event's
 recorded IDs, including an empty string, whitespace, newlines, characters
-outside `A-Za-z0-9._:-`, and values longer than 128 characters. An unset
-variable is omitted. Wio does not warn that a value is an invalid ID.
+outside `A-Za-z0-9._:-`, lone surrogates from undecodable bytes, and values
+longer than 128 characters. An unset variable is omitted. Wio does not warn that
+a value is an invalid ID. Reading the event back returns the same values.
 
 ### **AC-2** Session identification uses presence rather than value shape
 
 Session identification distinguishes set values from unset variables.
 
 A set session variable, including an empty one, matches its harness; an unset
-variable does not. Preference order picks among multiple matches as before;
-without a usable preference, they remain unresolved and have no selected
-session.
+variable does not. When several harnesses match, the first matching harness in
+the effective preference order is selected. That order is the configured
+preference, replaced by the names in `WIO_PREFER_HARNESS` unless it is empty,
+and `none` there clears it. When no matching harness is preferred, the matches
+remain unresolved and no session is selected.
 
-### **AC-5** Selected fields use the first set values
+### **AC-3** Selected fields use the first set values
 
 The selected harness uses its configured variables in order.
 
 When a harness is selected, its first set session variable supplies the session
 ID and its first set parent variable supplies the parent ID, including empty
-values. A
-parent equal to the session remains omitted.
+values. A parent equal to the session remains omitted, including when both are
+empty.
 
-### **AC-3** Shared variables retain one value
+### **AC-4** Shared variables retain one value
 
 A shared variable has one recorded value available to each of its ID uses.
 
@@ -71,7 +80,7 @@ Given a variable named by more than one harness mapping or extra recorded
 variable list, when it is set, its one verbatim value is available to each use
 and appears once in the recorded IDs.
 
-### **AC-4** The preference override can also supply IDs
+### **AC-5** The preference override can also supply IDs
 
 The preference override retains its control role and can also be recorded.
 
@@ -79,21 +88,19 @@ Given `WIO_PREFER_HARNESS` is listed in a harness mapping or in
 `record_env_vars`, when it is set, its verbatim value appears in the recorded
 IDs, including when empty. It participates in harness matching and field
 selection like any other configured variable, while continuing to control
-harness preference.
+harness preference. An empty value matches like any other set variable and
+expresses no preference.
 
 ### **AC-6** Text reports safely present session values
 
 Text reports make session and parent values readable without interpreting
 their contents as terminal controls or report structure.
 
-Given a recorded session or parent containing a newline, escape character, or
-other control character, `wio log show` text output represents the value
-without emitting those characters as controls or adding report lines. An empty
-value is distinguishable from an absent value, and the displayed representation
-allows a reader to recover the original value. JSON output preserves the
-original values.
-
-## Additional context
-
-Configured variables may contain arbitrary text, including secrets; project
-authors choose which environment variables wio records in their local log.
+Given a recorded session or parent, `wio log show` text output shows each
+present value as a JSON string literal with every non-ASCII character escaped as
+`\uXXXX`, so `abc` appears as `"abc"`, an empty value as `""`, a value of `a`, a
+newline, an escape character and `b` as `"a\n\u001bb"`, and a backslash as `\\`.
+An absent value keeps its existing label, so a harness with no session is
+`claude-code:unknown`. A present session appears as `claude-code:"abc"`, and a
+parent as `(parent "def")`. A value with control characters adds no report
+lines. JSON output preserves the original values.
