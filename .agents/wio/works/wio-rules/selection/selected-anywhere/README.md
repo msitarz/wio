@@ -48,7 +48,7 @@ uses it.
 
 ### A-3
 
-An entry that cannot be expanded delivers nothing and is no error here, as A-12
+An entry that cannot be expanded delivers nothing and is no error here, as A-9
 of [wio rules](../../README.md) says; `wio rules check` reports it.
 
 ## Mechanisms
@@ -156,7 +156,7 @@ A ruleset's alias works in an entry and a source shows the canonical name.
 
 ### **AC-7** The answer is deterministic and needs no file
 
-The same config and rulesets give the same mapping in the order of A-8 of
+The same config and rulesets give the same mapping in the order of C-2 of
 [wio rules](../../README.md), whatever the order of the tables and entries, and
 a config with no roots, stages or always fields gives an empty mapping.
 

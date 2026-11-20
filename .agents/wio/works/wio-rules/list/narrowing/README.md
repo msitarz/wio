@@ -85,7 +85,7 @@ and no others, and its header names the reference as it was written.
 ### **AC-2** Several references keep the rules that any delivers
 
 A listing narrowed by several references holds each rule that at least one of
-them delivers, once, in the order of A-8 of [wio rules](../../README.md).
+them delivers, once, in the order of C-2 of [wio rules](../../README.md).
 
 #### A union
 

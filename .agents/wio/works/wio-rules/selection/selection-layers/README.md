@@ -69,7 +69,7 @@ The names of the types and the functions below are provisional.
 ### C-1
 
 `apply_layers` does no input or output and every ordering in what it returns is
-that of A-8 of [wio rules](../../README.md), with the events in the order the
+that of C-2 of [wio rules](../../README.md), with the events in the order the
 layers applied and, inside the layer of the roots, by root name. AC-8 verifies
 it.
 

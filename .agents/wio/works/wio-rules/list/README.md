@@ -229,7 +229,7 @@ ruleset in order, with no layers applied.
 
 - **Given** the repository of AC-2.
 - **When** `wio rules list` runs.
-- **Then** it shows every rule of `demo` and `web` in the order of A-8 of
+- **Then** it shows every rule of `demo` and `web` in the order of C-2 of
   [wio rules](../README.md), and its header says that no layers were applied.
 
 ## Additional context
@@ -238,4 +238,4 @@ ruleset in order, with no layers applied.
   of the layers and what each exclude reaches belong to the selection, so this
   contract states only what the command shows of them.
 - `--preset` of the concepts and the scope document is dropped in favour of
-  references; the top Work's A-11 records the divergence.
+  references; the top Work's A-8 records the divergence.

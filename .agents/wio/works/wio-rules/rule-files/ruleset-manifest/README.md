@@ -53,8 +53,9 @@ The rules of one ruleset have distinct names as well as distinct codes, as
 
 ### A-4
 
-A `ruleset.toml` in a hidden subdirectory of a ruleset is not looked for,
-because the shared walk does not enter hidden directories.
+A `ruleset.toml` in a hidden subdirectory of a ruleset is not looked for, and a
+hidden directory directly under `.agents/wio/rules` is not a ruleset, because
+the shared walk does not enter hidden directories.
 
 ## Mechanisms
 
@@ -71,7 +72,7 @@ The names of the types and the functions below are provisional.
   holds `manifest: Manifest | None` and `diagnostics: tuple[Diagnostic, ...]`.
 - **`LoadedRuleset`** — a frozen dataclass in `wio.models.rule` with
   `name: str`, `path: PurePosixPath`, `manifest: Manifest` and
-  `rules: tuple[Rule, ...]` in the order of A-8 of [wio rules](../../README.md),
+  `rules: tuple[Rule, ...]` in the order of C-2 of [wio rules](../../README.md),
   and the methods `rules_of(family: str) -> tuple[Rule, ...]` and
   `get(code: str) -> Rule | None`; it is not the `Ruleset` of
   `wio.models.config`, which holds the settings that the config gives a ruleset.
@@ -82,7 +83,10 @@ The names of the types and the functions below are provisional.
   `FileSystem` port of `wio.io`, which it needs to see a directory that holds no
   Markdown file and a `ruleset.toml` below a ruleset's directory, reads each
   ruleset's files with `walk_markdown`, `read_manifest` and `read_rule` of
-  `ht39xt`, and joins them.
+  `ht39xt`, and joins them; it judges `.agents/wio/rules` with
+  `refuse_directory` of `wio.io` before it walks it, and a file directly in it
+  is a stray rule file when `read_metadata_block` finds a block in it, a block
+  that cannot be read being reported as that fault.
 
 ## Acceptance criteria
 
@@ -123,7 +127,9 @@ manifest, and a key it does not know is a warning that names the closest key.
   and a `rules_include` that holds a number.
 - **When** `read_manifest` reads each.
 - **Then** the first is one error whose place is the path followed by `:2`, each
-  of the others is one error that names the path, and none returns a manifest.
+  of the others is one error whose place is the manifest's path followed by `#`
+  and the key path of the fault, such as `#description` and
+  `#rule_presets.x.rules_include`, and none returns a manifest.
 
 #### A doubtful key
 
@@ -135,7 +141,7 @@ manifest, and a key it does not know is a warning that names the closest key.
 
 ### **AC-3** A ruleset is found by family and by code
 
-A `LoadedRuleset` holds its rules in the order of A-8 of
+A `LoadedRuleset` holds its rules in the order of C-2 of
 [wio rules](../../README.md) and finds them by family and by code, and the
 rulesets are returned by name.
 
@@ -224,9 +230,9 @@ place, and everything else is still returned.
 
 #### Faults of files
 
-- **Given** a ruleset `demo` with a rule file that is not valid UTF-8, a rule
-  file that the port cannot read, and a valid rule, and a ruleset `other` whose
-  `ruleset.toml` is a symbolic link.
+- **Given** a ruleset `demo` whose manifest declares `ARC`, with a rule file
+  that is not valid UTF-8, a rule file whose read raises `OSError`, and a valid
+  rule, and a ruleset `other` whose `ruleset.toml` is a symbolic link.
 - **When** the discovery runs.
 - **Then** it reports one error for each of the three faults, naming the file,
   raises nothing, and returns `demo` with the valid rule only.
@@ -244,11 +250,21 @@ link or not a directory is one error and is not walked.
 - **Then** the first returns no ruleset and no diagnostic, and each of the
   others returns no ruleset and one error that names `.agents/wio/rules`.
 
+#### A directory that cannot be listed
+
+- **Given** a port whose `list_dir` raises `OSError` for `.agents/wio/rules`,
+  and another whose `list_dir` raises it for one ruleset's directory beside a
+  valid ruleset.
+- **When** the discovery runs on each.
+- **Then** the first returns no ruleset and one error that names
+  `.agents/wio/rules`, and the second returns the valid ruleset and one error
+  that names the directory, and nothing is raised.
+
 ### **AC-8** The diagnostics do not depend on the order of the listing
 
-The diagnostics that the discovery returns are in the order that A-7 of
-[wio rules](../../README.md) names, whatever the order in which the port lists
-the files and directories.
+The diagnostics that the discovery returns are in the order of C-2 of
+[wio rules](../../README.md), whatever the order in which the port lists the
+files and directories.
 
 #### Two listings
 
@@ -256,7 +272,8 @@ the files and directories.
   an undeclared family, a manifest that does not parse and a stray rule file,
   and a port that lists its entries in one order and then in the reverse.
 - **When** the discovery runs with each.
-- **Then** the rulesets and the diagnostics returned are equal.
+- **Then** the rulesets and the diagnostics returned are equal, and the
+  diagnostics are in the order of `sort_diagnostics`.
 
 ## Additional context
 

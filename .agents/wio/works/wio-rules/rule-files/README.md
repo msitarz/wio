@@ -44,11 +44,6 @@ reads files ending in `.md` with that case and skips directories whose names
 start with `.` and every symbolic link, so a rule file behind a link is never
 read, while a ruleset directory that is a link is reported.
 
-### A-2
-
-Rules are ordered as A-8 of [wio rules](../README.md) says, by ruleset name,
-then family, then the number of the code, then the text of the code.
-
 ## Mechanisms
 
 The names of the types and the modules below are provisional.
@@ -85,16 +80,9 @@ AC-6 of `8zn10d` verify it.
 
 ### C-3
 
-The place of a diagnostic is the path of the file relative to the repository
-root, written with `/` and followed by `:<line>` when the fault has a line, or
-the path of the directory; a fault of two files names both, joined by `, `, as
-`wio.templates` writes it. AC-2 here and the criteria of both leaves verify it.
-
-### C-4
-
-The diagnostics that the discovery returns are in the order that A-7 of
-[wio rules](../README.md) names, whatever the order in which the files are
-listed. AC-8 of `8zn10d` verifies it.
+The diagnostics that the discovery returns are in the order of C-2 of
+[wio rules](../README.md), whatever the order in which the files are listed.
+AC-8 of `8zn10d` verifies it.
 
 ## Visuals
 
@@ -166,12 +154,6 @@ directory, in the order of A-2 and found by family and by code.
   empty summary for `PAY001`, each body as written, and no diagnostic; the
   README and the other file are not rules.
 
-#### No rulesets
-
-- **Given** a repository with no `.agents/wio/rules/` directory.
-- **When** the discovery runs.
-- **Then** it returns no ruleset and no diagnostic.
-
 ### **AC-2** Faults of a rule, a manifest and a stray file are reported together
 
 A faulty rule, a faulty manifest and a stray file in one repository are each one
@@ -185,10 +167,11 @@ valid rest is still returned.
   `ruleset.toml` does not parse, a stray rule file directly in
   `.agents/wio/rules/`, and a valid ruleset `other`.
 - **When** the discovery runs.
-- **Then** it reports three errors, each in the form of C-3 and naming the file
-  of the rule that does not close with its line, the manifest of `broken` with
-  its line, and the stray file; `demo` holds `ARC001` only, `other` is returned
-  whole, and `broken` is not returned.
+- **Then** it reports three errors, each in the form of C-6 of
+  [wio rules](../README.md) and naming the file of the rule that does not close
+  with its line, the manifest of `broken` with its line, and the stray file;
+  `demo` holds `ARC001` only, `other` is returned whole, and `broken` is not
+  returned.
 
 ## Additional context
 

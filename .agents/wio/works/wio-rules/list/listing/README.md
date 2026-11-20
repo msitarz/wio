@@ -77,7 +77,7 @@ The names of the types and the functions below are provisional.
 ### **AC-1** Without a selector every rule is listed with no layers
 
 `wio rules list` with no selector holds every rule of every ruleset in the order
-of A-8 of [wio rules](../../README.md), with no layers applied.
+of C-2 of [wio rules](../../README.md), with no layers applied.
 
 #### Everything
 
@@ -203,7 +203,7 @@ in JSON, is what it was before.
 ### **AC-9** The listing is deterministic and `list_view` needs no file
 
 The same config, rulesets and arguments give the same listing in the order of
-A-8, whatever the order of the tables and entries.
+C-2, whatever the order of the tables and entries.
 
 #### Two orders
 

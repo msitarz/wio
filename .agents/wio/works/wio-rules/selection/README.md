@@ -82,7 +82,7 @@ The names of the types and the functions below are provisional.
 ### C-1
 
 `select` does no input or output and every ordering in a `Selection` is that of
-A-8 of [wio rules](../README.md); only the selector of `9pfyfe` reads a rule
+C-2 of [wio rules](../README.md); only the selector of `9pfyfe` reads a rule
 file for a hash, through the `FileSystem` port. AC-4 verifies `select`, and AC-5
 and `9pfyfe` the selector.
 
@@ -215,7 +215,7 @@ order of the tables of the config and of the entries of its lists.
 - **Given** the repository of AC-1 declared in two orders, the roots, the stages
   and the rule presets of the config and the entries of each list.
 - **When** the selection is asked for on each.
-- **Then** the two selections are equal, with their rules in the order of A-8.
+- **Then** the two selections are equal, with their rules in the order of C-2.
 
 ### **AC-5** `wio context` and `wio trailers` get the selection
 

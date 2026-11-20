@@ -20,8 +20,8 @@ and the config show together, and no command reports them.
   manifests.
 - Each fault is reported once, at the key where it is written, whatever the
   number of entries that reach it.
-- The key paths that name a place in the config are written by one function that
-  `wio config check` shares.
+- The key paths that name a place in the config and the finding of cycles are
+  written and done by functions that `wio config check` shares.
 
 ## Non-Goals
 
@@ -53,9 +53,9 @@ The names of the functions below are provisional.
   `wio.rules`, with the `Config` and the `Discovery` of `8zn10d`, built from the
   errors of the discovery and the problems that `expand` of `cyeth5` returns for
   each entry; it does no input or output.
-- **The key paths** — `join_path` and `item_path`, moved from
-  `wio.config.messages` to `wio.formats`, which `wio.config` and `wio.rules`
-  both import.
+- **The key paths and the cycles** — `join_path` and `item_path`, moved from
+  `wio.config.messages`, and `find_cycles`, moved from `wio.config.pipelines`,
+  to `wio.formats`, which `wio.config` and `wio.rules` both import.
 - **The reach of the roots** — `reach` of `apply_layers` of `cm25z9`, for the
   roots whose rule presets reach a root-independent ruleset.
 
@@ -179,12 +179,13 @@ reference to a rule that it left out for its own fault is an error too.
 
 ### **AC-9** `wio config check` is unchanged by the move
 
-Moving `join_path` and `item_path` to `wio.formats` changes nothing that
-`wio config check` reports.
+Moving `join_path`, `item_path` and `find_cycles` to `wio.formats` changes
+nothing that `wio config check` reports.
 
-#### Every key path
+#### Every key path and cycle
 
-- **Given** the configs that the acceptance scenarios of `wio config check` use.
+- **Given** the configs that the acceptance scenarios of `wio config check` use,
+  including cycles of rule presets and of `after`.
 - **When** `wio config check` runs on each after the move.
 - **Then** every diagnostic, with its place, and every exit code is what it was
   before.
@@ -203,8 +204,9 @@ the order of the tables and entries, and `check_errors` reads no file.
 
 ## Additional context
 
-- `join_path` and `item_path` are in `src/wio/config/messages.py` today;
-  `wio.rules` may not import `wio.config`, so the delivery moves them, as
-  `cyeth5` moves `parse_reference` and `find_cycles`.
-- The place `…#rule_presets.local.rules_include[0]` is the form that the parent
-  states in its C-1.
+- `join_path` and `item_path` are in `src/wio/config/messages.py` and
+  `find_cycles` in `src/wio/config/pipelines.py` today; `wio.rules` may not
+  import `wio.config`, so the delivery moves them, as `cyeth5` moves
+  `parse_reference`.
+- The place `…#rule_presets.local.rules_include[0]` is the form that C-6 of
+  [wio rules](../../README.md) states.

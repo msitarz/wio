@@ -66,11 +66,9 @@ The names of the functions below are provisional.
 
 ### C-1
 
-The place of a fault in a key of a manifest is the manifest's path followed by
-`#` and the key path, such as
-`.agents/wio/rules/demo/ruleset.toml#rule_presets.local.rules_include[0]`, and
-the place of a fault in the config is its key path, as `wio config check` writes
-it. The criteria of both leaves verify it.
+The place of a fault is the one that C-6 of [wio rules](../README.md) states,
+with the manifest's key as `<path>#<key path>` and the config's as its key path.
+AC-5 verifies it, and the criteria of both leaves.
 
 ### C-2
 
@@ -160,7 +158,7 @@ the text.
 
 - **Given** the repository of AC-1 with its files and its config in two orders.
 - **When** `wio rules check` and `wio rules check --json` run on each.
-- **Then** the text outputs are equal in the order that A-7 of
+- **Then** the text outputs are equal in the order of C-2 of
   [wio rules](../README.md) names, the JSON outputs are equal, and each JSON
   document has the severity, the place and the message of every line.
 

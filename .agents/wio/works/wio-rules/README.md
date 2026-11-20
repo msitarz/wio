@@ -20,10 +20,10 @@ stage's guidance cannot be created with stable codes, checked or listed, and
 - Rule files and rulesets are checked beyond what `wio config check` can see,
   with the errors and warnings that
   [the concepts](../../../../docs/concepts.md#checking-rules) give to
-  `wio rules check`.
+  `wio rules check`, except as A-8 says.
 - A fault in a rule file or a manifest is reported by `wio rules check` and
-  makes `wio rules new`, `list` and `show` refuse, so a rule that is left out
-  never goes unnoticed.
+  makes `wio rules new`, `list` and `show` refuse, so a rule that a fault leaves
+  out never goes unnoticed.
 - The rules of a root, a stage, a Work at a stage or a file, or of the
   references that name them, can be listed, and with `--explain` each rule shows
   where it came from or why it is out.
@@ -38,6 +38,27 @@ stage's guidance cannot be created with stable codes, checked or listed, and
   rule's file.
 - Every `wio rules` command reads a rule file in either metadata block form, a
   `<!-- wio -->` comment or `+++` front matter, whatever the file is named.
+
+## Glossary
+
+### Route
+
+The chain of references from the outermost rule preset to the entry that named a
+rule, such as `backend`, `demo.recommended`, `demo.ARC`, which says how an
+expansion reached the rule.
+
+### Reach
+
+A root reaches a ruleset when an include entry of its rule presets names a
+family, a code or a rule preset of that ruleset, even when excludes leave none
+of its rules selected, as
+[the concepts](../../../../docs/concepts.md#how-a-rule-is-selected) say.
+
+### Stray file
+
+A marked rule file directly in `.agents/wio/rules/`, outside every ruleset, or a
+`ruleset.toml` below a ruleset's directory, which the discovery reports because
+no ruleset owns it.
 
 ## Non-Goals
 
@@ -90,42 +111,21 @@ through a port.
 
 ### A-7
 
-The order of diagnostics that every `check` command uses is the one that
-`wio.models.diagnostics` provides for them, whichever function that is.
-
-### A-8
-
-Rules are ordered by ruleset name, then family, then the number of the code,
-then the text of the code, so `ARC999` comes before `ARC1000` and `ARC001`
-before `ARC01`.
-
-### A-9
-
 A `Rule` is immutable and hashable, because a `Selection` maps each rule to its
 decision.
 
-### A-10
+### A-8
 
-A listing of a Work at a stage shows the roots that each rule applies to, so a
-reader sees which root brought it.
+For what this Work adds, which the Additional context lists, this contract is
+right where the concepts and the scope document differ, and the docs stage
+corrects both.
 
-### A-11
+### A-9
 
-For what this Work adds, which is `wio rules show`, `--json` on every
-subcommand, the optional `description` that a listing shows before the summary,
-the discovery of rule files at any depth of a ruleset, the form of a rule file's
-metadata block, names that are unique within a ruleset, references in place of
-the flag `--preset`, `--work` that needs no `--stage`, and `--not-selected` with
-references that narrow a listing in place of the two warnings that the concepts
-and the scope document give to `check` for a rule or a ruleset that nothing
-selects, this contract is right, and the docs stage corrects the concepts and
-the scope document.
-
-### A-12
-
-A reference that names nothing, such as a family that its ruleset does not
-declare, selects no rule and is reported by `check`, so `list` and the selection
-go on past it.
+A reference of the config that names nothing, such as a family that its ruleset
+does not declare, selects no rule and is reported by `check`, so `list` and the
+selection go on past it, while a reference given to `wio rules list` on the
+command line that names nothing is refused.
 
 ## Mechanisms
 
@@ -186,8 +186,9 @@ may carry either metadata block form.
   for the warnings.
 - **`wio rules list`** — the listing by root, stage, Work or file, or by
   references, showing each rule by its code, name and description or, without
-  one, its summary, narrowed by references and with the view of the rules that
-  nothing selects, built by `fjvj3x`, and `--explain`, built by `qxfpg9`.
+  one, its summary, built by `fjvj3x`; the narrowing by references and the view
+  of the rules that nothing selects are built by `9r1zpd`, and `--explain` by
+  `qxfpg9`.
 - **`wio rules show`** — prints one rule by its qualified code with its metadata
   and its body, built by `ca70ny`.
 
@@ -203,9 +204,11 @@ its children verify by running it on fakes of them.
 ### C-2
 
 The output is deterministic: the same files, config and arguments give the same
-bytes, in text and in JSON; rules are ordered by ruleset, family, the number of
-the code and then its text, and diagnostics in the order that A-7 names. AC-3
-verifies it.
+bytes, in text and in JSON; rules are ordered by ruleset name, then family, then
+the number of the code, then the text of the code, so `ARC999` comes before
+`ARC1000` and `ARC001` before `ARC01`, and diagnostics in the order of
+`sort_diagnostics` of `wio.models.diagnostics`, which compares the place as
+text, then the severity, then the message. AC-3 verifies it.
 
 ### C-3
 
@@ -215,23 +218,28 @@ a ruleset with a fault.
 
 ### C-4
 
-In its text form, `check` reports each diagnostic on a line of the form
-`<severity>: <where>: <message>`, exits 1 when it reports an error, and exits 0
-for a warning alone, as `wio config check` does. AC-5 verifies it.
-
-### C-5
-
 A rule that was read is named by its canonical ruleset name and code together
 with its name, such as `py.API001 adapters-return-typed-results`, wherever
 `wio rules` shows or cites it, never by a bare code or an alias. AC-1, AC-5 and
 AC-6 verify it.
 
-### C-6
+### C-5
 
 Every `wio rules` subcommand takes `--json`, which prints the information of its
 text form as one JSON document; AC-3 verifies that `list` and `check` carry in
 it what their text forms carry, and the criteria of the children of `new` and
 `show` verify theirs.
+
+### C-6
+
+The place of a diagnostic is the path of the file relative to the repository
+root, written with `/` and followed by `:<line>` when the fault has a line; the
+path of the directory for a fault of a directory; the manifest's path followed
+by `#` and the key path for a fault in a key of a manifest, such as
+`.agents/wio/rules/demo/ruleset.toml#rule_presets.local.rules_include[0]`; and
+the key path of the config for a fault in the config, as `wio config check`
+writes it. A fault of two files names both, joined by `, `, as `wio.templates`
+writes it. The criteria of `rule-files`, `5qgs79` and `785y9k` verify it.
 
 ## Visuals
 
@@ -283,7 +291,7 @@ flowchart LR
     ruledata["wio.models.rule (new): Rule, Manifest, LoadedRuleset"]
     models["wio.models.rules: Decision, Selection (stubs completed)"]
     io["wio.io: file ports"]
-    fmt["wio.formats: block reader"]
+    fmt["wio.formats: block reader (changed: reference grammar, key paths, rule_hash, render_blocks)"]
     settings["Settings port (wio.ports)"]
     selport["RuleSelection (port of wio.context)"]
     stageport["StageRules (port of wio.trailers)"]
@@ -368,17 +376,6 @@ selected it, or the reason a rule is out.
 - **Then** the included rules, their roots, and the reasons for the others are
   identical.
 
-#### A Work without roots fails loudly
-
-- **Given** a Work that lists no roots, and a stage with no `roots`, so that it
-  selects the Work's roots.
-- **When** the selection is asked for it, through the port and by
-  `wio rules list --work <id> --stage <name>`.
-- **Then** the port raises the error that its declaration gives for it, a
-  `ValueError` in its provisional form, and `list` turns it into a refusal that
-  exits 2, never 70, with a message on standard error that says the Work has no
-  roots.
-
 ### **AC-3** The same inputs give the same bytes, in order
 
 `wio rules list`, `wio rules show` and `wio rules check` print the same bytes,
@@ -393,15 +390,15 @@ rules as C-2 says and `--json` carries what the text carries.
   with `ARC001`, `ARC002` and `PAY001` and `other` with `ARC001` and `ZZZ001`,
   whose manifests declare the families they use, all selected for a stage, the
   body of `other.ZZZ001` holding a Markdown heading, and with a `rules_include`
-  entry for
-  `demo.XYZ`, a family that `demo` does not declare; the rules are written in
-  two different file orders, and the config lists its tables and each root's
-  `rule_presets` in two different orders.
+  entry for `demo.XYZ`, a family that `demo` does not declare; the rules are
+  written in two different file orders, and the config lists its tables and each
+  root's `rule_presets` in two different orders.
 - **When** `wio rules list --work <id> --stage <name>`, `wio rules check` and
   `wio rules show demo.ARC001` run on each, in text and, for the first two, with
   `--json`.
 - **Then** the outputs are byte for byte the same, `list` shows `demo.ARC001`,
-  `demo.ARC002`, `demo.PAY001` and `other.ARC001` in that order, `check` prints
+  `demo.ARC002`, `demo.PAY001`, `other.ARC001` and `other.ZZZ001` in that order,
+  `check` prints
   its error for `demo.XYZ` and its warning for `other.ZZZ001` in the same order
   each time, and the JSON of each command holds the same rules and diagnostics
   as its text.
@@ -422,30 +419,22 @@ selects.
 - **Then** `check` reports a warning for the reference, `list` does not show
   `py.API001` among the applied rules, and `--explain` says the roots cut it.
 
-### **AC-5** A repository's faults are reported with the standard exit
+### **AC-5** A reference narrows every view of a listing
 
-`wio rules check` reports an error and a warning that different children own,
-exits 1 for the error, and exits 0 when only the warning is left.
+A reference keeps, in each view of `wio rules list`, the rules that it delivers.
 
-#### An error and a warning
+#### Every view
 
-- **Given** a ruleset `demo` that declares the families `ARC` and `ZZZ`, is
-  reached by a root whose rule preset includes `demo.ARC`, and holds `ARC001`,
-  which that preset selects, and `ZZZ001` named `loud-rule`, whose body holds a
-  Markdown heading, and a stage whose `rules_include` has `demo.XYZ`, a family
-  that `demo` does not declare.
-- **When** `wio rules check` runs.
-- **Then** it prints one error line for the reference and one warning line for
-  `demo.ZZZ001 loud-rule`, each of the form `<severity>: <where>: <message>`,
-  and exits 1.
-
-#### Only a warning
-
-- **Given** the same repository with the stage's reference changed to
-  `demo.ARC`.
-- **When** `wio rules check` runs.
-- **Then** it prints no error line and the one warning line for
-  `demo.ZZZ001 loud-rule`, and exits 0.
+- **Given** a ruleset `demo` that declares `ARC` and `PAY` and holds `ARC001`,
+  `ARC002` and `PAY001`, a root `api` with the path `src/api` whose rule preset
+  includes `ARC` and `PAY`, a stage `s` with no rules of its own, and a Work
+  whose `roots` list `api`.
+- **When** `wio rules list demo.ARC`, `wio rules list demo.ARC --root api`,
+  `wio rules list demo.ARC --path src/api/app.py`,
+  `wio rules list demo.ARC --stage s` and
+  `wio rules list demo.ARC --work <id> --stage s` run.
+- **Then** each shows `demo.ARC001` and `demo.ARC002` and not `demo.PAY001`, and
+  each header names the reference `demo.ARC`.
 
 ### **AC-6** One rule reaches every view of a listing
 
@@ -524,7 +513,7 @@ code and name and its description or, without one, its summary.
 
 A fault in a rule file or a ruleset is reported by `wio rules check`, and
 `wio rules new`, `list` and `show` refuse instead of working from a ruleset that
-has left a rule out, while a warning refuses nothing.
+has left a rule out.
 
 #### Two rules with one code
 
@@ -537,21 +526,6 @@ has left a rule out, while a warning refuses nothing.
 - **Then** `check` prints an error that names both files and exits 1, `new`
   writes no file and exits 2, and `list` and `show` each exit 2 with that error
   on standard error and print no rule.
-
-#### A fault that belongs to no ruleset
-
-- **Given** a marked rule file directly in `.agents/wio/rules/` and a valid
-  ruleset `demo` whose manifest declares a rule preset `recommended`.
-- **When** `wio rules list demo.recommended` runs.
-- **Then** it exits 2 with the error on standard error and prints no rule.
-
-#### A warning refuses nothing
-
-- **Given** a valid ruleset `demo` whose manifest declares a rule preset
-  `recommended` that includes a rule whose block has an unknown key.
-- **When** `wio rules list demo.recommended` and `wio rules check` run.
-- **Then** `list` shows the rule and exits 0, and `check` prints a warning for
-  the key and exits 0.
 
 ### **AC-10** `wio trailers` cites the rules that a stage selects
 
@@ -625,13 +599,16 @@ about them.
 - `wio.trailers` declares `StageRules.selected(work_id, action, stage)` in
   `src/wio/trailers/ports.pyi`, and `wio.cli` wires a `NoRules` that selects
   nothing until `wio.rules` satisfies it, so that a cited rule is refused today.
-- `cyeth5` moves `parse_reference` and `find_cycles` from `wio.config` into
-  `wio.formats`, because `wio.rules` may not import `wio.config`, so
-  `wio.config` changes; its criteria say that `wio config check` reports what it
-  did before.
 - `Hierarchy.roots` of `wio.contracts` already holds the roots of each Work with
   `@descendants` expanded, and `wio contracts show` reads it; what is missing is
   a way for `wio.rules` to ask for them, which is the roots port.
 - The scope document [v0.1-scope.md](../../../../docs/v0.1-scope.md) and
   [the concepts](../../../../docs/concepts.md#checking-rules) differ from this
-  contract in what A-5 and A-11 say.
+  contract in what A-5 and A-8 say, and A-8 covers these additions:
+  `wio rules show`, `--json` on every subcommand, the optional `description`
+  that a listing shows before the summary, the discovery of rule files at any
+  depth of a ruleset, the form of a rule file's metadata block, names that are
+  unique within a ruleset, references in place of the flag `--preset`, `--work`
+  that needs no `--stage`, and `--not-selected` with references that narrow a
+  listing in place of the two warnings that the concepts and the scope document
+  give to `check` for a rule or a ruleset that nothing selects.

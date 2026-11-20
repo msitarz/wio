@@ -21,8 +21,11 @@ route.
   removed, so `--explain` can show where it came from.
 - What cannot be expanded is returned as a problem and selects nothing, and
   expanding never raises or loops.
-- The grammar of references and the finding of cycles are shared with
-  `wio config check`, so the two never disagree.
+- Every ruleset has a rule preset `all`, and the rulesets that the include
+  entries of an expansion name are returned, so the roots that reach a ruleset
+  can be known.
+- The grammar of references is shared with `wio config check`, so the two never
+  disagree about what a reference is.
 
 ## Non-Goals
 
@@ -51,32 +54,39 @@ a manifest defines under that name is ignored, and `wio rules check` reports it.
 The names of the types and the functions below are provisional.
 
 - **`expand(include, exclude, scope, sources) -> Expansion`** — in `wio.rules`,
-  with `include` and `exclude` sequences of references as written, a `Scope` and
-  `Sources`; the includes are expanded, then the excludes are expanded and
-  removed from them.
-- **`Scope`** — `ConfigScope`, where a bare name is a rule preset of the config
-  and an item of a ruleset is written `<ruleset>.<item>`, or
-  `RulesetScope(name)`, where a bare name is a family, a code or a rule preset
-  of that ruleset.
-- **`Sources`** — the values the expansion reads:
+  with `include` and `exclude` as `Sequence[str]` of references as written, a
+  `Scope` and `Sources`; the includes are expanded, then the excludes are
+  expanded and removed from them.
+- **`Scope`** — `ConfigScope()`, where a bare name is a rule preset of the
+  config and an item of a ruleset is written `<ruleset>.<item>`, or
+  `RulesetScope(name: str)`, where a bare name is a family, a code or a rule
+  preset of that ruleset; both are frozen dataclasses.
+- **`Sources`** — frozen, with the values the expansion reads:
   `rulesets: Mapping[str, LoadedRuleset]` by canonical name,
   `aliases: Mapping[str, str]` from an alias to a canonical name, and
   `presets: Mapping[str, RulePreset]` of the config.
 - **`Expansion`** — frozen, with `rules: Mapping[Rule, Routes]` of the rules
   selected, `removed: Mapping[Rule, Routes]` of the rules an exclude took out,
   `rulesets: frozenset[str]` of the canonical names of the rulesets that an
-  include entry named, and `problems: tuple[Problem, ...]`; a `Route` is a
-  `tuple[str, ...]` of the
-  canonical references from the outermost rule preset to the entry that named
-  the rule, such as `("backend", "demo.recommended", "demo.ARC")`, and `Routes`
-  is a sorted `tuple[Route, ...]`.
+  include entry named, and `problems: tuple[Problem, ...]` sorted by route, then
+  reference, then kind. A `Route` is a `tuple[str, ...]` of the canonical
+  references from the outermost rule preset to the entry that named the rule,
+  such as `("backend", "demo.recommended", "demo.ARC")`, and `Routes` is a
+  sorted `tuple[Route, ...]`; the route of a removal ends with the exclude
+  entry. A rule is in both `rules` and `removed` when one entry includes it and
+  an exclude of another takes it out, each with its own routes. `Route` and
+  `Routes` are defined in `wio.rules` here and move to `wio.models.rules` with
+  `5yb4tz`, which completes `Decision` there, because a `Decision` holds them.
 - **`Problem`** — frozen, with `kind`, one of `unknown`, `malformed`,
   `qualified-in-manifest` and `cycle`, the `reference` as written, and the
   `route` of the rule presets it was found in; for a cycle the route ends with
   the rule preset that closes it.
 - **The shared grammar** — `parse_reference` with `Bare`, `Qualified` and
-  `Malformed`, and `find_cycles`, moved from `wio.config` to `wio.formats`,
-  which `wio.config` and `wio.rules` both import.
+  `Malformed`, and the private `_item_kind` as the public `item_kind`, moved
+  from `wio.config` to `wio.formats`, with `parse_own_item(text)` added for the
+  bare entries of a manifest; `wio.config` keeps calling `parse_reference` and
+  `wio.rules` calls both, so a bare upper-case name stays malformed in the
+  config scope, as `wio config check` says today.
 - **`LoadedRuleset`, `Rule` and `RulePreset`** — of `wio.models.rule` and
   `wio.models.config`, the values the expansion reads.
 
@@ -86,6 +96,32 @@ The names of the types and the functions below are provisional.
 
 `expand` does no input or output and raises nothing for a reference or a cycle:
 every criterion below runs it on values alone.
+
+## Visuals
+
+The diagram is drawn from commit `aedbf64` of the branch
+`docs/define-rules-tree`, and shows only what the Work changes.
+
+### Before and after
+
+The grammar of a reference is private to `wio.config`, so `wio.rules`, which may
+not import it, has no way to read a reference. After the move both import it
+from `wio.formats`. The new parts are marked.
+
+```mermaid
+flowchart LR
+    subgraph before["Before"]
+        cfgb["wio.config: parse_reference, item_kind"]
+        rulesb["wio.rules: no reader of references"]
+    end
+    subgraph after["After"]
+        fmt["wio.formats: parse_reference, item_kind, parse_own_item (new home)"]
+        cfga["wio.config"]
+        rulesa["wio.rules: expand (new)"]
+        cfga --> fmt
+        rulesa --> fmt
+    end
+```
 
 ## Acceptance criteria
 
@@ -120,8 +156,9 @@ includes of its own list.
   `rules_exclude = ["demo.ARC001"]`.
 - **When** `expand` expands `backend` in the config scope.
 - **Then** it selects `ARC002` by `("backend", "demo.ARC002")`, although
-  `recommended` excluded it, and removes `ARC001` by
-  `("backend", "demo.ARC001")`.
+  `recommended` excluded it, and not `ARC001`; `removed` holds `ARC001` by
+  `("backend", "demo.ARC001")` and `ARC002` by
+  `("backend", "demo.recommended", "demo.ARC002")`.
 
 #### An exclude list
 
@@ -171,12 +208,13 @@ canonical name.
 
 #### `all` and a manifest that defines it
 
-- **Given** the ruleset of AC-1, and another whose manifest defines a rule
-  preset `all` with `rules_include = ["ARC001"]`.
+- **Given** the ruleset of AC-1, and a ruleset `other` that declares `ARC` and
+  holds `ARC001` and `ARC002`, whose manifest defines a rule preset `all` with
+  `rules_include = ["ARC001"]`.
 - **When** `expand` expands `demo.all`, and expands `all` in the scope of the
   ruleset `demo`, and expands `other.all` for the second.
 - **Then** the first two select all three rules of `demo`, and the third selects
-  every rule of `other`, not only `ARC001`.
+  `ARC001` and `ARC002` of `other`, not only `ARC001`.
 
 ### **AC-6** A rule reached twice has every route
 
@@ -184,10 +222,11 @@ A rule that two entries select has both routes, sorted, and is one rule.
 
 #### Two routes
 
-- **Given** the rule preset `backend` of AC-2 without its excludes.
+- **Given** the ruleset of AC-1 and a rule preset `backend` of the config with
+  `rules_include = ["demo.recommended", "demo.ARC001"]`.
 - **When** `expand` expands `backend`.
-- **Then** `ARC002` has the routes `("backend", "demo.ARC002")` and
-  `("backend", "demo.recommended", "demo.ARC")` in that order.
+- **Then** `ARC001` is one rule with the routes `("backend", "demo.ARC001")` and
+  `("backend", "demo.recommended", "demo.ARC")`, in that order.
 
 ### **AC-7** A cycle is a problem, not a loop
 
@@ -235,7 +274,7 @@ is no problem.
 
 ### **AC-10** The result does not depend on the order of the inputs
 
-The rules are in the order of A-8 of [wio rules](../README.md), the routes of a
+The rules are in the order of C-2 of [wio rules](../README.md), the routes of a
 rule are sorted, and the result is the same whatever the order of the tables of
 the sources and of the entries of a list.
 
@@ -245,17 +284,18 @@ the sources and of the entries of a list.
   config, the rulesets and the entries of `rules_include` each in a different
   order.
 - **When** `expand` expands `backend` on each.
-- **Then** the two expansions are equal.
+- **Then** the two expansions list their rules, removed rules, routes and
+  problems in the same order.
 
 ### **AC-11** `wio config check` is unchanged by the move
 
-Moving `parse_reference` and `find_cycles` to `wio.formats` changes nothing that
+Moving `parse_reference` and its helper to `wio.formats` changes nothing that
 `wio config check` reports.
 
-#### Every reference and every cycle
+#### Every reference
 
 - **Given** the configs that the acceptance scenarios of `wio config check` use
-  for references of every fault and for cycles of rule presets and of `after`.
+  for references of every fault, including a bare upper-case name.
 - **When** `wio config check` runs on each after the move.
 - **Then** every diagnostic and every exit code is what it was before.
 
@@ -263,25 +303,28 @@ Moving `parse_reference` and `find_cycles` to `wio.formats` changes nothing that
 
 An expansion returns the canonical names of the rulesets that its include
 entries name, nested rule presets included, even when its excludes leave none of
-their rules, and an exclude entry, an unknown entry and an alias change nothing
-but the spelling.
+their rules, and an exclude entry or an entry that names nothing names no
+ruleset.
 
 #### Named rulesets
 
 - **Given** the ruleset `demo` of AC-1 with the alias `d`, a ruleset `other`
   that declares `ARC` and holds `ARC001`, and a ruleset `third` that holds
   `ARC001`.
-- **When** `expand` expands the includes `d.recommended` and `other.ARC` and the
-  excludes `other.ARC001` and `third.ARC001`, and then the include `nope.ARC`.
+- **When** `expand` expands the includes `d.recommended` and `other.ARC` with
+  the excludes `other.ARC001` and `third.ARC001`, then the include `nope.ARC`,
+  and then the include `other.XYZ`.
 - **Then** the first returns the rulesets `demo` and `other` and no rule of
-  `other`, and not `third`, and the second returns no ruleset.
+  `other`, and not `third`, and the second and the third return no ruleset.
 
 ## Additional context
 
-- `parse_reference` and its types live in `src/wio/config/selection.py` and
-  `find_cycles` in `src/wio/config/pipelines.py` today; `wio.rules` may not
-  import `wio.config`, and a second copy would be flagged as duplicate code, so
-  the delivery moves them and `wio.config` imports them from `wio.formats`.
+- `parse_reference` and its types live in `src/wio/config/selection.py` today,
+  and `find_cycles` in `src/wio/config/pipelines.py`; `wio.rules` may not import
+  `wio.config`, and a second copy would be flagged as duplicate code, so the
+  delivery moves the grammar to `wio.formats`; `find_cycles` moves with
+  `5qgs79`, the only user in `wio.rules`, because this expansion finds a cycle
+  by its own route.
 - The config's own references are well-formed and its rule presets do not cycle
   once `wio config check` passes, so a problem of the config scope arises only
   from a config the commands have refused already; the expansion still returns

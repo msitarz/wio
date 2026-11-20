@@ -66,7 +66,7 @@ The names of the types and the functions below are provisional.
 ### C-1
 
 `select` does no input or output, and the `Selection` holds every rule of every
-ruleset in the order of A-8 of [wio rules](../../README.md), each with one
+ruleset in the order of C-2 of [wio rules](../../README.md), each with one
 decision. AC-6 and AC-8 verify it.
 
 ## Acceptance criteria
@@ -148,7 +148,7 @@ rulesets are included.
 
 ### **AC-6** The selection holds every rule once and is a value
 
-A `Selection` has an entry for every rule of every ruleset in the order of A-8,
+A `Selection` has an entry for every rule of every ruleset in the order of C-2,
 each with one decision, and decisions are frozen values that compare and hash.
 
 #### Every rule
@@ -156,7 +156,7 @@ each with one decision, and decisions are frozen values that compare and hash.
 - **Given** a repository with rules in two rulesets and two families.
 - **When** `select` runs for any roots and stage.
 - **Then** the selection has exactly one entry for each rule in the order of
-  A-8, two selections of the same inputs are equal, and assigning a field of a
+  C-2, two selections of the same inputs are equal, and assigning a field of a
   decision raises.
 
 ### **AC-7** A name that does not exist is refused

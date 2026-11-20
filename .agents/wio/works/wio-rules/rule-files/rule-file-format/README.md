@@ -158,7 +158,7 @@ and an error leaves the rule out.
 #### A block that cannot be read
 
 - **Given** a comment block that does not close, and a block whose TOML does not
-  parse, whose fault is on line 3.
+  parse, whose fault is on line 3 of the file.
 - **When** `read_rule` reads each.
 - **Then** each is one error whose place is the file's path followed by `:` and
   the line of the fault, and no rule is returned.
@@ -257,5 +257,8 @@ assigned, so a rule can be a key of a mapping.
 ## Additional context
 
 - `wio.rules` is a package with a docstring only today and `wio.models.rule` is
-  new, so the delivery adds the module, the code and its type stubs and changes
-  `tach.toml` for the tests.
+  new, so the delivery adds the module and the code, makes `wio.models.rules`
+  import `Rule` from it, and changes `tach.toml` for the tests.
+- The place of a missing-key error and of an unknown-key warning is the file's
+  path without a line, as C-6 of [wio rules](../../README.md) says for a fault
+  that has none.
