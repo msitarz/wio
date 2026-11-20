@@ -55,8 +55,9 @@ variables can supply ids. `wio config check` validates the configured names.
 Choose variables whose values are suitable for the local log. Recording
 copies their values as supplied, including any secrets they contain.
 The [recording test](../../../tests/unit/log/test_sink.py) covers the round
-trip for values with undecodable bytes, which the environment exposes as
-surrogate-escaped strings.
+trip for values with undecodable bytes. The environment exposes them as
+surrogate-escaped strings, and the event codec escapes non-ASCII characters
+when it writes a line so those values survive recording.
 
 ## Appending an event
 
