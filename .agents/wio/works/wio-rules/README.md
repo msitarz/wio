@@ -27,14 +27,15 @@ stage's guidance cannot be created with stable codes, checked or listed, and
 - The rules of a rule preset, a root, a stage, a Work at a stage or a file can
   be listed, and with `--explain` each rule shows where it came from or why it
   is out.
-- A rule is shown by its qualified code with its metadata and its body as
-  written, and a listing shows each rule by its code, name and description.
+- A rule is shown by its qualified code with its metadata and its body as the
+  reader returns it, and a listing shows each rule by its code, name and
+  description.
 - Which rules apply to a stage is decided by one selection that `wio rules list`
   and, later, `wio context` share, and it is the same for the same inputs.
 - `wio trailers` can cite the rules that a stage selects, with the hash of each
   rule's file.
 - Every `wio rules` command reads a rule file in either metadata block form, a
-  `<!-- wio -->` comment or `+++` front matter.
+  `<!-- wio -->` comment or `+++` front matter, whatever the file is named.
 
 ## Non-Goals
 
@@ -76,11 +77,8 @@ fixes only a deterministic order of the rules it lists and selects.
 ### A-5
 
 Where `docs/concepts.md` and `docs/v0.1-scope.md` differ, the concepts are
-right, and the docs stage corrects both documents for what this Work adds:
-`wio rules show`, `--json` on every subcommand, the optional `description` that
-a listing shows before the summary, the discovery of rule files at any depth of
-a ruleset, the form of a rule file's metadata block, and the note on
-`rules_always_include`, which `wio config check` reports.
+right, as for the note on `rules_always_include`, which the scope document gives
+to `wio rules check`.
 
 ### A-6
 
@@ -95,8 +93,9 @@ The order of diagnostics that every `check` command uses is the one that
 
 ### A-8
 
-Rules are ordered by ruleset name, then family, then the number of the code, so
-`ARC999` comes before `ARC1000`.
+Rules are ordered by ruleset name, then family, then the number of the code,
+then the text of the code, so `ARC999` comes before `ARC1000` and `ARC001`
+before `ARC01`.
 
 ### A-9
 
@@ -108,6 +107,20 @@ decision.
 A listing of a Work at a stage shows the roots that each rule applies to, so a
 reader sees which root brought it.
 
+### A-11
+
+For what this Work adds, which is `wio rules show`, `--json` on every
+subcommand, the optional `description` that a listing shows before the summary,
+the discovery of rule files at any depth of a ruleset, the form of a rule file's
+metadata block, and names that are unique within a ruleset, this contract is
+right, and the docs stage corrects the concepts and the scope document.
+
+### A-12
+
+A reference that names nothing, such as a family that its ruleset does not
+declare, selects no rule and is reported by `check`, so `list` and the selection
+go on past it.
+
 ## Mechanisms
 
 The names of the types, the ports and the modules below are provisional, except
@@ -117,22 +130,22 @@ may carry either metadata block form.
 
 - **`wio.rules` package** — the `wio rules` command and the selection, built by
   the children below.
-- **`Rule`, `Ruleset`, `Decision` and `Selection`** — in `wio.models.rules`,
-  today stubs without fields; `ht39xt` completes `Rule`, `8zn10d` completes
-  `Ruleset` and `5yb4tz` completes `Decision` and `Selection`, where a
-  `Decision` holds the roots of an included rule and the layers that selected
-  it, or the reason a rule is out.
+- **`Rule`, `Manifest` and `LoadedRuleset`** — in `wio.models.rule`, a new
+  module: `ht39xt` builds `Rule` and `8zn10d` builds `Manifest` and
+  `LoadedRuleset`, a ruleset's name, manifest and rules found by family and by
+  code, which is not the `Ruleset` of `wio.models.config` that holds the
+  settings the config gives a ruleset.
+- **`Decision` and `Selection`** — in `wio.models.rules`, today stubs without
+  fields, with `Rule` which moves to `wio.models.rule`; `5yb4tz` completes them,
+  where a `Decision` holds the roots of an included rule and the layers that
+  selected it, or the reason a rule is out.
 - **The rule file** — a Markdown file with a `wio` metadata block that holds
   `code`, `name` and an optional `description`, read in either block form by the
   shared reader of `wio.formats` and built by `ht39xt`; the file's name carries
   no meaning for any command.
 - **`ruleset.toml`** — the manifest of a ruleset with its `description`,
-  `[families]` and `[rule_presets.<name>]`, read by `8zn10d`.
-- **`Ruleset`** — the rulesets of the discovery of `8zn10d`: a ruleset's name,
-  its manifest and its rules, immutable, with the rules ordered by family and
-  code and found by family and by code, so that the selection and `check` read
-  no file; the settings that the config gives a ruleset, its alias and its root
-  independence, stay in the config.
+  `[families]` and `[rule_presets.<name>]`, read by `8zn10d`, which also
+  discovers the rulesets.
 - **Rule presets** — the expansion of a rule preset of the config or of a
   manifest into a set of rules, built by `cyeth5`.
 - **The four layers** — the rule presets of the roots, the stage's include and
@@ -145,11 +158,10 @@ may carry either metadata block form.
   built by `ndwemw`, which also finds the roots that contain a file from the
   paths of the roots in the config.
 - **`RuleSelection`** — the port of `wio.context` that `wio.rules` satisfies
-  with the same selection that `wio rules list` shows; its form is provisional,
-  for instance `select(contract: ResolvedContract, stage: str) -> Selection`,
-  except that a `Selection` holds every rule considered, with the roots of an
-  included rule and the layers that selected it, or the reason a rule is out,
-  and it is in `src/wio/context/ports.pyi`.
+  with the same selection that `wio rules list` shows; its form is provisional
+  and is in `src/wio/context/ports.pyi`, except that a `Selection` holds every
+  rule considered, with the roots of an included rule and the layers that
+  selected it, or the reason a rule is out.
 - **`StageRules`** — the port of `wio.trailers` that `wio.rules` satisfies,
   which maps each rule that a stage selects for a Work to the hash of its file,
   in place of the `NoRules` that `wio.cli` wires today, built by `9pfyfe`; it is
@@ -163,7 +175,7 @@ may carry either metadata block form.
   showing each rule by its code, name and description or, without one, its
   summary, built by `fjvj3x`, and `--explain`, built by `qxfpg9`.
 - **`wio rules show`** — prints one rule by its qualified code with its metadata
-  and its body as written, built by `ca70ny`.
+  and its body, built by `ca70ny`.
 
 ## Constraints
 
@@ -177,14 +189,15 @@ its children verify by running it on fakes of them.
 ### C-2
 
 The output is deterministic: the same files, config and arguments give the same
-bytes, in text and in JSON; rules are ordered as A-8 says, and diagnostics in
-the order that A-7 names. AC-3 verifies it.
+bytes, in text and in JSON; rules are ordered by ruleset, family, the number of
+the code and then its text, and diagnostics in the order that A-7 names. AC-3
+verifies it.
 
 ### C-3
 
-Only `wio rules new` writes a file; `check`, `list` and `show` read only. AC-3
-verifies it, and AC-9 verifies that `new` writes nothing for a ruleset with a
-fault.
+Only `wio rules new` writes a file; `check`, `list` and `show` read only. AC-11
+verifies it for the last three, and AC-9 verifies that `new` writes nothing for
+a ruleset with a fault.
 
 ### C-4
 
@@ -194,9 +207,10 @@ for a warning alone, as `wio config check` does. AC-5 verifies it.
 
 ### C-5
 
-A rule is named by its canonical ruleset name and code together with its name,
-such as `py.API001 adapters-return-typed-results`, wherever `wio rules` shows or
-cites it, never by a bare code or an alias. AC-1, AC-5 and AC-6 verify it.
+A rule that was read is named by its canonical ruleset name and code together
+with its name, such as `py.API001 adapters-return-typed-results`, wherever
+`wio rules` shows or cites it, never by a bare code or an alias. AC-1, AC-5 and
+AC-6 verify it.
 
 ### C-6
 
@@ -207,7 +221,7 @@ it what their text forms carry, and the criteria of the children of `new` and
 
 ## Visuals
 
-The diagrams are drawn from commit `52b58f2` of the branch
+The diagrams are drawn from commit `a29b066` of the branch
 `docs/define-rules-tree`, and show only what the Work changes.
 
 ### Before
@@ -252,7 +266,8 @@ flowchart LR
         list["rules list and --explain"]
         show["rules show"]
     end
-    models["wio.models.rules: Rule, Ruleset, Decision, Selection (stubs completed)"]
+    ruledata["wio.models.rule (new): Rule, Manifest, LoadedRuleset"]
+    models["wio.models.rules: Decision, Selection (stubs completed)"]
     io["wio.io: file ports"]
     fmt["wio.formats: block reader"]
     settings["Settings port (wio.ports)"]
@@ -271,6 +286,7 @@ flowchart LR
     select --> check
     select --> list
     select --> rootsport
+    rules --- ruledata
     rules --- models
     rules --> io
     rules --> fmt
@@ -316,10 +332,10 @@ A rule made by `wio rules new` is accepted by `wio rules check`, listed by
 ### **AC-2** `wio rules list` and `wio context` see the same selection
 
 The selection that `wio.rules` gives `wio.context` for a Work at a stage,
-through `select(contract: ResolvedContract, stage: str) -> Selection` in its
-provisional form, is the one that `wio rules list --work <id> --stage <name>`
-shows: the same rules with the same decisions, where a decision is the roots of
-an included rule and the layers that selected it, or the reason a rule is out.
+through `RuleSelection`, is the one that
+`wio rules list --work <id> --stage <name>` shows: the same rules with the same
+decisions, where a decision is the roots of an included rule and the layers that
+selected it, or the reason a rule is out.
 
 #### Same set, same decisions
 
@@ -341,31 +357,31 @@ an included rule and the layers that selected it, or the reason a rule is out.
   exits 2, never 70, with a message on standard error that says the Work has no
   roots.
 
-### **AC-3** The same inputs give the same bytes, in order, and nothing is written
+### **AC-3** The same inputs give the same bytes, in order
 
 `wio rules list`, `wio rules show` and `wio rules check` print the same bytes,
 in text and, for `list` and `check`, in `--json`, for the same repository,
 config and arguments, whatever the order of the files on disk, of the tables of
 the config and of the entries in each root's `rule_presets`; `list` orders the
-rules as A-8 says, `--json` carries what the text carries, and the repository is
-left as it was.
+rules as C-2 says and `--json` carries what the text carries.
 
 #### Order does not matter
 
 - **Given** one repository with rules in two rulesets and two families, `demo`
   with `ARC001`, `ARC002` and `PAY001` and `other` with `ARC001` and `ZZZ001`,
-  all selected for a stage except `other.ZZZ001`, which no layer selects, and
-  with a `rules_include` entry for `demo.XYZ`, a family that `demo` does not
-  declare; the rules are written in two different file orders, and the config
-  lists its tables and each root's `rule_presets` in two different orders.
+  whose manifests declare the families they use, all selected for a stage except
+  `other.ZZZ001`, which no layer selects, and with a `rules_include` entry for
+  `demo.XYZ`, a family that `demo` does not declare; the rules are written in
+  two different file orders, and the config lists its tables and each root's
+  `rule_presets` in two different orders.
 - **When** `wio rules list --work <id> --stage <name>`, `wio rules check` and
   `wio rules show demo.ARC001` run on each, in text and, for the first two, with
   `--json`.
 - **Then** the outputs are byte for byte the same, `list` shows `demo.ARC001`,
   `demo.ARC002`, `demo.PAY001` and `other.ARC001` in that order, `check` prints
   its error for `demo.XYZ` and its warning for `other.ZZZ001` in the same order
-  each time, the JSON of each command holds the same rules and diagnostics as
-  its text, and the files of the repository are unchanged.
+  each time, and the JSON of each command holds the same rules and diagnostics
+  as its text.
 
 ### **AC-4** `check` and `list` agree about what applies
 
@@ -385,9 +401,8 @@ selects.
 
 ### **AC-5** A repository's faults are reported with the standard exit
 
-`wio rules check` reports an error and a warning that different children own in
-the order that A-7 names, exits 1 for the error, and exits 0 when only the
-warning is left.
+`wio rules check` reports an error and a warning that different children own,
+exits 1 for the error, and exits 0 when only the warning is left.
 
 #### An error and a warning
 
@@ -399,7 +414,7 @@ warning is left.
 - **When** `wio rules check` runs.
 - **Then** it prints one error line for the reference and one warning line for
   `demo.ZZZ001 unused-rule`, each of the form `<severity>: <where>: <message>`,
-  in that order, and exits 1.
+  and exits 1.
 
 #### Only a warning
 
@@ -435,7 +450,8 @@ the rule has no description.
 ### **AC-7** A rule file of either form is treated alike
 
 A rule file whose metadata is `+++` front matter is read, checked, listed, shown
-and selected like one with a `<!-- wio -->` block.
+and selected like one with a `<!-- wio -->` block, and a rule file may have any
+name.
 
 #### Both forms in one ruleset
 
@@ -445,7 +461,17 @@ and selected like one with a `<!-- wio -->` block.
   runs, `wio rules show` runs for each, and the selection is asked for through
   `RuleSelection`.
 - **Then** `check` reports no error, both rules are listed and selected alike,
-  and `show` prints each with its metadata and its body as written.
+  and `show` prints each with its metadata and its body as the reader returns
+  it.
+
+#### A file with any name
+
+- **Given** a ruleset whose manifest declares `ARC` and a rule file named
+  `notes.md` whose block holds `code = "ARC003"` and a name, selected for a Work
+  at a stage.
+- **When** `wio rules check` runs, and
+  `wio rules list --work <id> --stage <name>` runs.
+- **Then** `check` reports no error and the rule is listed as `demo.ARC003`.
 
 #### The next code reads a `+++` rule
 
@@ -457,8 +483,8 @@ and selected like one with a `<!-- wio -->` block.
 ### **AC-8** `show` and `list` describe a rule alike
 
 `wio rules show` prints a rule by its qualified code with its metadata and its
-body exactly as written, and `wio rules list` shows the same rule by its code
-and name and its description or, without one, its summary.
+body as the reader returns it, and `wio rules list` shows the same rule by its
+code and name and its description or, without one, its summary.
 
 #### A rule with a description and one without
 
@@ -468,25 +494,41 @@ and name and its description or, without one, its summary.
 - **When** `wio rules show demo.ARC001` and `wio rules show demo.ARC002` run,
   and `wio rules list --preset demo.recommended` runs.
 - **Then** each `show` prints the qualified code and the name, the description
-  for `ARC001`, and the body exactly as written, and `list` shows `demo.ARC001`
-  with its description and `demo.ARC002` with its summary.
+  for `ARC001`, and the body, and `list` shows `demo.ARC001` with its
+  description and `demo.ARC002` with its summary.
 
 ### **AC-9** A fault reaches `check` and stops the other commands
 
-A fault in a rule file is reported by `wio rules check`, and `wio rules new`,
-`list` and `show` refuse instead of working from a ruleset that has left a rule
-out.
+A fault in a rule file or a ruleset is reported by `wio rules check`, and
+`wio rules new`, `list` and `show` refuse instead of working from a ruleset that
+has left a rule out, while a warning refuses nothing.
 
 #### Two rules with one code
 
-- **Given** a ruleset `demo` whose manifest declares `ARC`, holding `ARC001` and
-  two rules with the code `ARC002`.
+- **Given** a ruleset `demo` whose manifest declares `ARC` and a rule preset
+  `recommended` that includes `ARC`, holding `ARC001` and two rules with the
+  code `ARC002`.
 - **When** `wio rules check`, `wio rules new` in `ARC` of `demo`,
   `wio rules list --preset demo.recommended` and `wio rules show demo.ARC001`
   run.
 - **Then** `check` prints an error that names both files and exits 1, `new`
   writes no file and exits 2, and `list` and `show` each exit 2 with that error
   on standard error and print no rule.
+
+#### A fault that belongs to no ruleset
+
+- **Given** a marked rule file directly in `.agents/wio/rules/` and a valid
+  ruleset `demo` whose manifest declares a rule preset `recommended`.
+- **When** `wio rules list --preset demo.recommended` runs.
+- **Then** it exits 2 with the error on standard error and prints no rule.
+
+#### A warning refuses nothing
+
+- **Given** a valid ruleset `demo` whose manifest declares a rule preset
+  `recommended` that includes a rule whose block has an unknown key.
+- **When** `wio rules list --preset demo.recommended` and `wio rules check` run.
+- **Then** `list` shows the rule and exits 0, and `check` prints a warning for
+  the key and exits 0.
 
 ### **AC-10** `wio trailers` cites the rules that a stage selects
 
@@ -495,14 +537,28 @@ records the hash of its file, and refuses one that the stage does not select.
 
 #### A cited rule
 
-- **Given** the repository of AC-1, a Work whose `roots` list `api` and a gate
-  stage that selects `demo.ARC001`.
+- **Given** the repository of AC-1 with a commit that holds the rule files and
+  the Work, a Work whose `roots` list `api`, and a gate stage in the Work's
+  pipeline that selects `demo.ARC001`.
 - **When** `wio trailers <id> <action> <stage> --result pass --cite
-  demo.ARC001=pass` runs, then the file of `ARC001` is edited and the command
-  runs again, and then it runs with `--cite demo.ARC999=pass`.
-- **Then** the first run is accepted and its review event holds a hash for
-  `demo.ARC001`, the second run holds a different hash, and the third is refused
-  because the stage does not select `demo.ARC999`.
+  demo.ARC001=pass` runs, then the file of `ARC001` is edited and committed and
+  the command runs again, and then it runs with `--cite demo.ARC999=pass`.
+- **Then** the first run is accepted and the review event it writes holds a hash
+  for `demo.ARC001`, the second run holds a different hash, and the third prints
+  nothing on standard output, writes no event and exits 1 because the stage does
+  not select `demo.ARC999`.
+
+### **AC-11** `check`, `list` and `show` write nothing
+
+`wio rules check`, `list` and `show` leave the files of the repository as they
+were.
+
+#### The files are unchanged
+
+- **Given** a repository with a valid ruleset and one with a faulty one.
+- **When** `wio rules check`, `wio rules list` and `wio rules show` run on each.
+- **Then** every file of the repository, tracked or not, is byte for byte what
+  it was before.
 
 ## Additional context
 
@@ -531,4 +587,4 @@ records the hash of its file, and refuses one that the stage does not select.
   a way for `wio.rules` to ask for them, which is the roots port.
 - The scope document [v0.1-scope.md](../../../../docs/v0.1-scope.md) and
   [the concepts](../../../../docs/concepts.md#checking-rules) differ from this
-  contract in what A-5 lists.
+  contract in what A-5 and A-11 say.

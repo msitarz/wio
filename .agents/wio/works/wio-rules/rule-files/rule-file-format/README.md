@@ -16,15 +16,15 @@ body cannot be used to select, check, list or show it.
 
 - A marked file is read into an immutable `Rule` with its ruleset, code, name,
   optional description, summary, body and path, in either metadata block form.
-- A fault of a rule file is reported as an error with its place, and a doubtful
-  key as a warning, without raising.
+- The faults of a rule file are reported together as errors with their place,
+  and its doubtful keys as warnings, without raising.
 - A file that is not marked is not a rule and costs no diagnostic.
 
 ## Non-Goals
 
-- Walking a directory, reading a file and judging a rule against its ruleset,
-  such as an undeclared family or a code that two rules share, which the
-  discovery of `8zn10d` does.
+- Walking a directory, reading a file from disk and judging a rule against its
+  ruleset, such as an undeclared family or a code that two rules share, which
+  the discovery of `8zn10d` does.
 - Judging the body, such as a Markdown heading in it, which `wio rules check`
   does.
 - Writing a rule file, which `wio rules new` does.
@@ -39,19 +39,18 @@ A blank line is a line that is empty or holds only whitespace.
 
 The names of the types and the functions below are provisional.
 
-- **`Rule`** — in `wio.models.rule` as a `.py`, which replaces the stub in
-  `wio.models.rules`, whose stub keeps `Decision` and `Selection` and imports
-  `Rule`; a frozen dataclass with the ruleset's name, the code, the name, the
-  description or none, the summary, the body and the path relative to the
-  repository root, and the family and the number of the code and the qualified
-  code as properties.
+- **`Rule`** — a frozen dataclass in `wio.models.rule` with
+  `ruleset: str`, `code: str`, `name: str`, `description: str | None`,
+  `summary: str`, `body: str` and `path: PurePosixPath`, and the properties
+  `family: str`, `number: int` and `qualified: str`; it replaces the stub `Rule`
+  of `wio.models.rules`, whose stub keeps `Decision` and `Selection` and imports
+  it.
 - **`read_rule(ruleset: str, path: PurePosixPath, text: str) -> RuleReading`** —
-  in `wio.rules`, reads the text of one file and does no input or output; a
-  `RuleReading` holds the `Rule`, or none when the text is not a rule or has an
-  error, and the diagnostics.
+  in `wio.rules`; a `RuleReading` holds `rule: Rule | None` and
+  `diagnostics: tuple[Diagnostic, ...]`.
 - **The block reader and `closest_key`** — `read_metadata_block` and
   `closest_key` of `wio.formats`, which read either block form and suggest the
-  known key a mistyped one is close to.
+  known key that a mistyped one is close to.
 - **`Diagnostic`** — of `wio.models.diagnostics`, with the severity `error` or
   `warning`, a place and a message.
 
@@ -59,9 +58,8 @@ The names of the types and the functions below are provisional.
 
 ### C-1
 
-A place is the path of the file written with `/`, followed by `:<line>` for a
-fault of the block that has a line, as `wio.templates` writes it. AC-3 verifies
-it.
+`read_rule` does no input or output: it reads only the text it is given. Every
+criterion below runs it on text alone.
 
 ## Acceptance criteria
 
@@ -76,15 +74,15 @@ body, and no diagnostic.
 
 - **Given** the text of `.agents/wio/rules/demo/ARC001-keep-it-small.md` whose
   block holds `code = "ARC001"`, `name = "keep-it-small"` and
-  `description = "Keep each rule to one instruction."`, followed by a blank
-  line, the paragraph `Keep each rule` and `to one instruction.` on two lines, a
-  blank line and the paragraph `Why: a long rule hides several decisions.`.
+  `description = "A rule is one instruction."`, followed by a blank line, the
+  paragraph `State one instruction` and `in each rule.` on two lines, a blank
+  line and the paragraph `Why: a long rule hides several decisions.`.
 - **When** `read_rule` reads it as a rule of the ruleset `demo`.
 - **Then** the rule is `demo.ARC001`, its family is `ARC`, its number is 1, its
-  name is `keep-it-small`, its description is
-  `Keep each rule to one instruction.`, its summary is
-  `Keep each rule to one instruction.`, its body is the two paragraphs as
-  written, its path is the path given, and there is no diagnostic.
+  name is `keep-it-small`, its description is `A rule is one instruction.`, its
+  summary is `State one instruction in each rule.`, its body is the two
+  paragraphs as written, its path is the path given, and there is no
+  diagnostic.
 
 #### A rule without a description
 
@@ -96,34 +94,66 @@ body, and no diagnostic.
 
 A rule file whose metadata is `+++` front matter with `wio = 1` is read into the
 same `Rule` as one with a `<!-- wio -->` block that holds the same keys and
-body.
+body, read as the same ruleset at the same path.
 
 #### Both forms
 
 - **Given** two texts with the same keys and body, one with the comment block
   and one with `+++` front matter that holds `wio = 1`.
-- **When** `read_rule` reads each.
+- **When** `read_rule` reads each as a rule of `demo` at the same path.
 - **Then** the two rules are equal and neither has a diagnostic.
 
-### **AC-3** A fault of a rule file is an error with its place
+### **AC-3** The keys have a form
 
-Each fault of the block or of its keys is an error that names the place and
-leaves the rule out, and all the faults of one file are reported together.
+A `code` is a family of upper-case letters followed by digits, a `name` is
+lower-case words of letters and digits joined by single hyphens and starting
+with a letter, and a `description` is one line that is not blank; a key of
+another form or type is an error.
 
-#### Faults of the keys
+#### Codes
 
-- **Given** a block with no `code`, a block with no `name`, a `code` of
-  `arc001`, a `code` of `ARC`, a `name` of `Keep It Small`, a `description` that
-  is a number, a `description` of two lines and a `description` that is blank,
-  each in a file of its own.
+- **Given** one file each with the code `ARC001`, `A1`, `ARC1000`, `arc001`,
+  `ARC`, `001`, `ARC-001` and `ARC001a`.
 - **When** `read_rule` reads each.
-- **Then** each is one error that names the file, and none returns a rule.
+- **Then** the first three are read, and each of the others is one error that
+  names the file and returns no rule.
 
-#### More than one fault
+#### Names
 
-- **Given** a block with no `code` and a `name` of `Keep It Small`.
+- **Given** one file each with the name `keep-it-small`, `keep-it-small2`, `x`,
+  `Keep-It-Small`, `keep--it`, `keep-it-`, `-keep`, `2fast` and `keep_it`.
+- **When** `read_rule` reads each.
+- **Then** the first three are read, and each of the others is one error that
+  names the file and returns no rule.
+
+#### Descriptions and types
+
+- **Given** one file each with a description of one line, a blank description, a
+  description of two lines, a description that is a number, a `code` that is a
+  number and a `name` that is a number.
+- **When** `read_rule` reads each.
+- **Then** the first is read, and each of the others is one error that names the
+  file and returns no rule.
+
+### **AC-4** The faults of a file are reported together
+
+Every fault and every doubtful key of one file is reported, each with its place,
+and an error leaves the rule out.
+
+#### Missing keys
+
+- **Given** a block with no `code`, a block with no `name`, and a block with
+  neither.
+- **When** `read_rule` reads each.
+- **Then** the first two are one error each and the third is two errors, all
+  naming the file, and none returns a rule.
+
+#### An error and a warning
+
+- **Given** a block with a `code` of `arc001` and a key `owner = "me"`.
 - **When** `read_rule` reads it.
-- **Then** it reports two errors, one for each key, both naming the file.
+- **Then** it reports one error for the code and one warning for the key, and
+  returns no rule.
 
 #### A block that cannot be read
 
@@ -133,7 +163,7 @@ leaves the rule out, and all the faults of one file are reported together.
 - **Then** each is one error whose place is the file's path followed by `:` and
   the line of the fault, and no rule is returned.
 
-### **AC-4** A doubtful key is a warning
+### **AC-5** A doubtful key is a warning
 
 A key that the block does not know is a warning that names the key and the known
 key it is close to, and the rule is still returned.
@@ -152,39 +182,49 @@ key it is close to, and the rule is still returned.
 - **Then** it reports one warning that names `owner` and suggests no key, and
   returns the rule.
 
-### **AC-5** A file that is not marked is not a rule
+### **AC-6** A file that is not marked is not a rule
 
 A text with no metadata block on its first line, or with `+++` front matter that
-has no `wio = 1`, is not a rule and gives no diagnostic.
+has no `wio` key, is not a rule and gives no diagnostic, while front matter that
+has a `wio` key the reader cannot accept is an error.
 
 #### Not a rule
 
 - **Given** a text with no block, a text whose block starts on its second line,
-  and a text with `+++` front matter that has no `wio = 1`.
+  and a text with `+++` front matter that has no `wio` key.
 - **When** `read_rule` reads each.
 - **Then** each returns no rule and no diagnostic.
 
-#### Front matter that is wio's but broken
+#### A `wio` key that is wrong
 
-- **Given** `+++` front matter that holds `wio = 1` and does not close.
-- **When** `read_rule` reads it.
-- **Then** it reports one error and returns no rule.
+- **Given** `+++` front matter with `wio = 2`, front matter with `wio = "1"`,
+  and front matter with `wio = 1` that does not close.
+- **When** `read_rule` reads each.
+- **Then** each is one error and returns no rule.
 
-### **AC-6** The summary and the body are cut from the text
+### **AC-7** The summary and the body are cut from the text
 
 The body is the text after the block without its leading and trailing blank
-lines, and the summary is the first paragraph of the body with its line breaks
-turned into single spaces.
+lines and without a final line ending, and the summary is the lines of the first
+paragraph, each stripped, joined with single spaces.
 
 #### Blank lines around the body
 
 - **Given** a text whose block is followed by two blank lines, one of them with
-  spaces, then the paragraphs `Keep it small.` and `Why: it is easier to check.`
-  separated by a blank line, then two blank lines.
+  spaces, then the paragraph `Keep it small.` with two leading spaces and the
+  paragraph `Why: it is easier to check.` separated by a blank line, then two
+  blank lines.
 - **When** `read_rule` reads it.
-- **Then** the body is the two paragraphs as written, with no blank line before
-  the first or after the last and the blank line between them kept, and the
-  summary is `Keep it small.`.
+- **Then** the body is `Keep it small.`, a blank line and
+  `Why: it is easier to check.` with no blank line before the first or after the
+  last and the leading spaces kept, and the summary is `Keep it small.`.
+
+#### A paragraph of several lines
+
+- **Given** a first paragraph of three lines, the second indented by four
+  spaces.
+- **When** `read_rule` reads it.
+- **Then** the summary joins the three stripped lines with single spaces.
 
 #### No body
 
@@ -198,23 +238,24 @@ turned into single spaces.
   lines.
 - **When** `read_rule` reads it.
 - **Then** the summary joins the two lines with one space and holds no carriage
-  return, and the body keeps its CRLF line endings inside.
+  return, and the body keeps its CRLF line endings between its lines.
 
-### **AC-7** A rule is a value
+### **AC-8** A rule is a value
 
 Two rules read from the same text, ruleset and path are equal and have the same
-hash, and rules that differ in any field are not equal, so a rule can be a key
-of a mapping.
+hash, rules that differ in any field are not equal, and no field can be
+assigned, so a rule can be a key of a mapping.
 
-#### Equal and unequal rules
+#### Equal, unequal and frozen
 
 - **Given** the same text read twice, and the same text read with another code.
-- **When** the rules are compared and used as keys of one mapping.
-- **Then** the first two are equal with one hash and share one key, and the
-  third is a different key.
+- **When** the rules are compared, used as keys of one mapping, and a field of
+  one is assigned.
+- **Then** the first two are equal with one hash and share one key, the third is
+  a different key, and the assignment raises.
 
 ## Additional context
 
-- `wio.rules` and `wio.models.rule` are new modules, and `tach.toml` and the
-  type stubs change with them; `uv run tach check` verifies the dependency
-  direction that the inherited constraints name.
+- `wio.rules` is a package with a docstring only today and `wio.models.rule` is
+  new, so the delivery adds the module, the code and its type stubs and changes
+  `tach.toml` for the tests.

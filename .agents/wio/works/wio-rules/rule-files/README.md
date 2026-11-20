@@ -19,8 +19,8 @@ Rules and rulesets exist only as files that no code reads, so nothing else in
 - A ruleset's manifest is read for its description, its families and its rule
   presets.
 - The rulesets of a repository are discovered under `.agents/wio/rules/` as
-  `Ruleset`s, each with its manifest and its rules, found at any depth of the
-  ruleset's directory, in a fixed order and by family and by code.
+  `LoadedRuleset`s, each with its manifest and its rules, found at any depth of
+  the ruleset's directory, in a fixed order and by family and by code.
 - A malformed rule file, a malformed manifest or a stray file is reported with
   its place, and everything else is still read.
 
@@ -33,53 +33,38 @@ Rules and rulesets exist only as files that no code reads, so nothing else in
   `.agents/wio/rules/` and a reference cannot name a nested one.
 - The settings that the config gives a ruleset, its alias and its root
   independence, which stay in the config and which the selection joins to a
-  `Ruleset`.
+  `LoadedRuleset`.
 
 ## Assumptions
 
 ### A-1
 
-The summary of a rule is the first paragraph of its body, as
-[the concepts](../../../../../docs/concepts.md#what-a-rule-is) say, and a body
-with no paragraph has an empty summary and is not an error.
+A file is a rule file only when it is found by the shared `walk_markdown`, which
+reads files ending in `.md` with that case and skips directories whose names
+start with `.` and every symbolic link, so a rule file behind a link is never
+read, while a ruleset directory that is a link is reported.
 
 ### A-2
 
-A file is a rule file only when it is found by the shared `walk_markdown`, which
-reads files ending in `.md` with that case and skips directories whose names
-start with `.` and every symbolic link, so a rule in such a place is never read.
-
-### A-3
-
-Rules are ordered as [wio rules](../README.md) says in its A-8, by ruleset name,
-then family, then the number of the code.
+Rules are ordered as A-8 of [wio rules](../README.md) says, by ruleset name,
+then family, then the number of the code, then the text of the code.
 
 ## Mechanisms
 
 The names of the types and the modules below are provisional.
 
-- **`Rule`** — in `wio.models.rules`, built by `ht39xt` from one marked file:
-  its ruleset, code, name, optional description, summary and body, which it
-  keeps as written.
-- **The rule file reader** — reads one file into a `Rule` or reports its faults,
-  through the shared reader of the metadata block in `wio.formats`, built by
-  `ht39xt`.
-- **`Ruleset`** — in `wio.models.rules`, built by `8zn10d`: its name, its
-  manifest and its rules, immutable, with the rules ordered by family and code
-  and found by family and by code.
-- **The manifest reader** — reads `ruleset.toml` for the `description`,
-  `[families]` and `[rule_presets.<name>]`, built by `8zn10d`.
-- **The discovery** — `discover(root, files) -> Discovery` of the rule files,
-  where `Discovery` holds the rulesets and the diagnostics together, as that of
-  `wio.templates` does; it lists `.agents/wio/rules/` with the `FileSystem` port
-  of `wio.io`, which it needs to see a directory that holds no Markdown file,
-  walks each ruleset's directory with `walk_markdown`, and reads each with the
-  two readers above; built by `8zn10d`, which uses the rule file reader of
-  `ht39xt`.
-- **A place** — how a diagnostic names where it is: the path of the file
-  relative to the repository root, written with `/` and followed by `:<line>`
-  when the fault has a line, or the path of the directory, as `wio.templates`
-  writes it.
+- **`Rule`** — built by `ht39xt` from one marked file, in `wio.models.rule`.
+- **The rule file reader** — `read_rule`, built by `ht39xt`: it reads the text
+  of one file into a `Rule` or reports its faults, and does no input or output.
+- **`Manifest` and `LoadedRuleset`** — in `wio.models.rule`, built by `8zn10d`;
+  a `LoadedRuleset` is a ruleset's name, its manifest and its rules, found by
+  family and by code, and is not the config's `Ruleset`.
+- **The manifest reader** — `read_manifest`, built by `8zn10d`: it reads the
+  text of one `ruleset.toml`.
+- **The discovery** — `discover(root, files) -> Discovery`, built by `8zn10d`,
+  which reads the files through the `FileSystem` port of `wio.io` and joins what
+  the two readers return; `Discovery` holds the rulesets and the diagnostics
+  together, as that of `wio.templates` does.
 
 ## Constraints
 
@@ -89,13 +74,27 @@ Reading never raises for a problem of a file, a manifest or a directory,
 including a file that cannot be read or is not valid UTF-8, and a rules
 directory or a manifest that is a symbolic link or not what it should be: each
 is an error diagnostic that names its place, and the other rulesets and rules
-are still read. AC-2 verifies it.
+are still read. AC-2 and AC-5 to AC-7 of `8zn10d` verify it.
 
 ### C-2
 
 A rule with an error, and a ruleset whose own `ruleset.toml` is missing or has
 an error, are left out of what is returned, so no consumer receives a half-read
-one; a stray file is reported and leaves nothing out. AC-2 verifies it.
+one; a stray file is reported and leaves nothing out. AC-2 here and AC-4 and
+AC-6 of `8zn10d` verify it.
+
+### C-3
+
+The place of a diagnostic is the path of the file relative to the repository
+root, written with `/` and followed by `:<line>` when the fault has a line, or
+the path of the directory; a fault of two files names both, joined by `, `, as
+`wio.templates` writes it. AC-2 here and the criteria of both leaves verify it.
+
+### C-4
+
+The diagnostics that the discovery returns are in the order that A-7 of
+[wio rules](../README.md) names, whatever the order in which the files are
+listed. AC-8 of `8zn10d` verifies it.
 
 ## Visuals
 
@@ -116,9 +115,10 @@ flowchart LR
 
 ### After
 
-The discovery reads every ruleset: the manifest reader and the rule file reader
-feed it through the `FileSystem` port, and it returns the rulesets with their
-rules and the diagnostics together. Parts that are new are marked.
+The discovery reads every ruleset through the `FileSystem` port, hands the text
+of each file to the manifest reader and the rule file reader, and returns the
+rulesets with their rules and the diagnostics together. Parts that are new are
+marked.
 
 ```mermaid
 flowchart LR
@@ -127,10 +127,10 @@ flowchart LR
     fsport["FileSystem port (wio.io)"]
     subgraph rf["Rule files (new)"]
         discovery["discovery"]
-        manifest["manifest reader"]
-        rule["rule file reader"]
+        manifest["manifest reader (text in)"]
+        rule["rule file reader (text in)"]
     end
-    out["Ruleset with its Rules, and diagnostics"]
+    out["LoadedRuleset with its Rules, and diagnostics"]
     later["selection, check, list, show and new (later)"]
     files --> cfg
     discovery --> fsport
@@ -143,19 +143,20 @@ flowchart LR
 
 ## Acceptance criteria
 
-### **AC-1** The rulesets of a repository are discovered with their rules in order
+### **AC-1** A repository's rulesets are discovered with their rules
 
 The discovery returns each ruleset under `.agents/wio/rules/` with its manifest
-and its rules, the rules in the order of A-3 and found by family and by code,
-whatever the depth they sit at in the ruleset's directory.
+and its rules, read from rule files of either form at any depth of the ruleset's
+directory, in the order of A-2 and found by family and by code.
 
 #### Rulesets, manifests and rules
 
 - **Given** a ruleset `demo` whose manifest declares the families `ARC` and
-  `PAY` and a rule preset, holding `ARC001` with a description and the body
-  `Keep it small.`, `PAY001` with no body and `ARC002` in a subdirectory `arc/`,
+  `PAY` and a rule preset, holding `ARC001-keep-it-small.md` in the comment form
+  with a description and the body `Keep it small.`, `PAY001-pay-first.md` in the
+  `+++` form with no body, and `ARC002-name-things.md` in a subdirectory `arc/`,
   an unmarked `README.md` and a file that is not Markdown, and a ruleset `other`
-  holding `ARC001`.
+  whose manifest declares `ARC` and that holds `ARC001-other-rule.md`.
 - **When** the discovery runs.
 - **Then** it returns `demo` and `other` in that order, the manifest of `demo`
   with its description, its families and its rule preset, the rules of `demo` as
@@ -171,64 +172,30 @@ whatever the depth they sit at in the ruleset's directory.
 - **When** the discovery runs.
 - **Then** it returns no ruleset and no diagnostic.
 
-### **AC-2** A fault is reported and everything else is still read
+### **AC-2** Faults of a rule, a manifest and a stray file are reported together
 
-Each fault of a rule file, a manifest or a directory is one error that names its
-place, the rule or the ruleset it concerns is left out as C-2 says, and the rest
-is still returned.
+A faulty rule, a faulty manifest and a stray file in one repository are each one
+error that names its place, the faulty rule and ruleset are left out, and the
+valid rest is still returned.
 
-#### Faults of rules
+#### One repository, three faults
 
-- **Given** a ruleset `demo` whose manifest declares `ARC`, holding a rule whose
-  block does not close, a rule of the family `ZZZ`, two rules with the code
-  `ARC001`, a rule with no `name`, a rule file that is not valid UTF-8, and a
-  valid `ARC002`; and a valid ruleset `other`.
+- **Given** a ruleset `demo` whose manifest declares `ARC`, holding a valid
+  `ARC001` and a rule whose block does not close, a ruleset `broken` whose
+  `ruleset.toml` does not parse, a stray rule file directly in
+  `.agents/wio/rules/`, and a valid ruleset `other`.
 - **When** the discovery runs.
-- **Then** it reports an error for the block that does not close, the family
-  `ZZZ` that `demo` does not declare, the code that two rules share, which names
-  both files, the missing `name` and the file that is not valid UTF-8, each with
-  its place; `demo` has only the valid `ARC002`, because no rule with an error
-  is returned, and `other` is returned whole.
-
-#### Faults of rulesets
-
-- **Given** a directory `bare` without a `ruleset.toml`, a ruleset `broken`
-  whose `ruleset.toml` does not parse, a valid ruleset `outer` that has a
-  subdirectory with its own `ruleset.toml`, a stray rule file, which is a marked
-  rule file directly in `.agents/wio/rules/`, and a valid ruleset `good`.
-- **When** the discovery runs.
-- **Then** it reports one error for each, naming the directory or the file, and
-  returns `outer` and `good` whole, and neither `bare` nor `broken`.
-
-#### Faults of the file system
-
-- **Given** one repository where `.agents/wio/rules` is a symbolic link, and
-  another where it is a file, and a third where a ruleset's `ruleset.toml` is a
-  symbolic link next to a valid ruleset.
-- **When** the discovery runs on each.
-- **Then** it reports one error naming the path for each, raises nothing, and in
-  the third returns the valid ruleset.
-
-### **AC-3** The discovery reads either form of a rule file alike
-
-A rule file whose metadata is `+++` front matter with `wio = 1` is discovered
-into the same `Rule` as one with a `<!-- wio -->` block, and front matter
-without the marker is not a rule, which is the discovery's half of
-[wio rules](../README.md) AC-7.
-
-#### Both forms in one ruleset
-
-- **Given** a ruleset with one rule in each form and a Markdown file whose
-  `+++` front matter has no `wio = 1`.
-- **When** the discovery runs.
-- **Then** it returns both rules alike, the file with unmarked front matter is
-  not a rule, and there is no diagnostic.
+- **Then** it reports three errors, each in the form of C-3 and naming the file
+  of the rule that does not close with its line, the manifest of `broken` with
+  its line, and the stray file; `demo` holds `ARC001` only, `other` is returned
+  whole, and `broken` is not returned.
 
 ## Additional context
 
 - The reading of one file, such as the form of a code and of a name and a block
-  that does not close, and the reading of one manifest, such as the wrong type
-  of a key, are the criteria of the children that own them, so this contract
+  that does not close, the reading of one manifest, such as the wrong type of a
+  key, and every fault of a directory, a file or the relation between the rules
+  of one ruleset, are the criteria of the leaves that own them, so this contract
   states only what the two together establish.
 - A directory under `.agents/wio/rules/` without a `ruleset.toml` is an error of
   `wio config check` already, and the discovery reports it again for
