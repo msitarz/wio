@@ -49,8 +49,7 @@ is not in the mapping, because no rule of it was read.
 ## Mechanisms
 
 The names of the functions below are provisional, except that they live in
-`wio.rules` and that every consumer calls them and builds none of these shapes
-itself.
+`wio.rules`.
 
 - **`ruleset_map(discovery: Discovery) -> Mapping[str, LoadedRuleset]`** — the
   rulesets of a `Discovery` by canonical name, in the order of C-2 of
@@ -60,16 +59,25 @@ itself.
   from the `alias` of each ruleset of the config, and its rule presets.
 - **`resolve_ruleset(name: str, sources: Sources) -> str | None`** — the
   canonical name of a ruleset that `name` names, as a name or as an alias, or
-  none; the commands turn none into a refusal that lists the rulesets.
+  none; the commands turn none into a refusal that names it.
 - **`layer_label(layer: str, name: str | None) -> str`** — `root api`,
   `stage s`, `rules_always_include` or `rules_always_exclude`, where `layer` is
   `root`, `stage`, `always-include` or `always-exclude` and `name` is none for
   the always layers.
-- **`chain_labels(label: str, route: Route) -> tuple[str, ...]`** — the label
-  followed by the elements of the route, the array of the JSON.
+- **`chain_labels(label: str | None, route: Route) -> tuple[str, ...]`** — the
+  label, when there is one, followed by the elements of the route, the array of
+  the JSON; a listing of references has no layer and so no label.
 - **`chain_text(code: str, labels: tuple[str, ...]) -> str`** — the qualified
   code and the labels joined by ` ← `, the text of a `from:`, `by:` or
   `selected:` line.
+
+## Constraints
+
+### C-1
+
+Every consumer calls these functions and none builds the same shapes itself.
+`uv run jscpd src tests` verifies that no copy exists, and the criteria of the
+consumers, which name the functions, that each one calls them.
 
 ## Acceptance criteria
 
@@ -136,7 +144,20 @@ that `wio rules list --explain` and `wio rules new` print.
   "demo.ARC")`, and the text is
   `demo.ARC001 ← root api ← demo.recommended ← demo.ARC`.
 
-### **AC-6** The functions are deterministic and need no file
+### **AC-6** A chain of references has no layer label
+
+`chain_labels` with no label gives the route alone, and `chain_text` joins it
+with the code.
+
+#### References only
+
+- **Given** the route `("demo.recommended", "demo.ARC")`.
+- **When** `chain_labels` runs with no label and `chain_text` runs for
+  `demo.ARC001` with the result.
+- **Then** the labels are `("demo.recommended", "demo.ARC")` and the text is
+  `demo.ARC001 ← demo.recommended ← demo.ARC`.
+
+### **AC-7** The functions are deterministic and need no file
 
 The same inputs give equal results whatever the order of the inputs, and no
 function reads a file.

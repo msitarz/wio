@@ -212,7 +212,7 @@ canonical name.
   holds `ARC001` and `ARC002`, whose manifest defines a rule preset `all` with
   `rules_include = ["ARC001"]`.
 - **When** `expand` expands `demo.all`, and expands `all` in the scope of the
-  ruleset `demo`, and expands `other.all` for the second.
+  ruleset `demo`, and expands `other.all` for the third.
 - **Then** the first two select all three rules of `demo`, and the third selects
   `ARC001` and `ARC002` of `other`, not only `ARC001`.
 

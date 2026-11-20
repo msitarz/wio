@@ -60,7 +60,9 @@ and `qxfpg9` read them.
   `effects: tuple[LayerEffect, ...]` and `reason: Reason | None`; it replaces
   the stub, and `Selection` is the `Mapping[Rule, Decision]` of the same module.
   `root_independent` is the setting of the rule's ruleset in the config, for
-  every rule, included or out, and `roots` is empty for a rule that is out.
+  every rule, included or out, and `roots` is empty for a rule that is out; with
+  the roots not applied it holds, for an included rule that is not
+  root-independent, the roots of the config that reach its ruleset.
 - **`Reason`** — frozen, with
   `kind: Literal["not-selected", "excluded", "vetoed", "cut-by-roots"]` and
   `layer: Literal["root", "stage"] | None`, which is set for `excluded` and
@@ -134,13 +136,14 @@ ruleset.
 #### Roots not applied
 
 - **Given** the repository of AC-1 with a second root `ui` that has no rule
-  presets.
+  presets, and with `demo.ARC001` also in the `rules_include` of the stage `s`.
 - **When** `select` runs for `None` roots and the stage `s`, and for `None`
   roots and `None` stage.
-- **Then** in the first `demo.ARC001` is not selected, `web.WEB001` is included
-  with no roots, `process.FIX001` is included with `root_independent` true, and
-  no reason is `cut-by-roots`; in the second only the always fields apply, so
-  nothing the stage selects is included, and again no reason is `cut-by-roots`.
+- **Then** in the first `demo.ARC001` is included with the roots `("api",)`,
+  because `api` reaches `demo`, `web.WEB001` is included with no roots,
+  `process.FIX001` is included with `root_independent` true, and no reason is
+  `cut-by-roots`; in the second only the always fields apply, so nothing the
+  stage selects is included, and again no reason is `cut-by-roots`.
 
 ### **AC-4** Several selected roots give the roots a rule applies to
 

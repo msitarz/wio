@@ -2,7 +2,7 @@
 id = "5qgs79"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["cm25z9", "w3k7vd"]
+depends_on = ["w3k7vd"]
 -->
 
 # Errors of rules and rulesets
@@ -53,12 +53,12 @@ The names of the functions below are provisional.
   — in `wio.rules`, with the `Config` and the `Discovery` of `8zn10d`; it does
   no input or output. It returns the errors of the discovery as they are, and
   for the references it expands each entry on its own with `expand` of `cyeth5`
-  over the `Sources` that `build_sources` of `w3k7vd` gives: an entry of the
-  config in the config scope, and each entry of each rule preset of a manifest,
-  include or exclude, in the `RulesetScope` of its ruleset. A problem whose
-  route is not empty belongs to a rule preset that the entry reached and is not
-  the entry's, and a `cycle` problem is dropped, because cycles come from
-  `find_cycles`.
+  over the `Sources` that `build_sources` of `w3k7vd` gives from the
+  `ruleset_map` of the discovery: an entry of the config in the config scope,
+  and each entry of each rule preset of a manifest, include or exclude, in the
+  `RulesetScope` of its ruleset. A problem whose route is not empty belongs to a
+  rule preset that the entry reached and is not the entry's, and a `cycle`
+  problem is dropped, because cycles come from `find_cycles`.
 - **The key paths and the cycles** — `join_path` and `item_path`, moved from
   `wio.config.messages`, and `find_cycles`, moved from `wio.config.pipelines`,
   to `wio.formats`, which `wio.config` and `wio.rules` both import.

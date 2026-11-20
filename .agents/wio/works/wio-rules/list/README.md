@@ -94,7 +94,9 @@ of `fjvj3x` builds the `Listing`, `narrow` of `9r1zpd` narrows it, `explain` of
 
 `Listing.rows` holds every rule that the view considers, and the renderer shows
 a row only when its rule is included or has no decision, or when it has an
-`Explanation`, or when the header says `not selected`. AC-2 verifies it.
+`Explanation`, or when the header is marked `not selected`, which the text
+writes as `filter: not selected` and the JSON as `not_selected`. AC-5 of
+`fjvj3x` verifies it.
 
 ### C-4
 
@@ -136,7 +138,7 @@ flowchart LR
     end
     sel["select, expand, rules selected anywhere"]
     roots["roots of a Work, a stage or a file"]
-    shell["SUBCOMMANDS and Services with WorkRoots (xs3dsj)"]
+    shell["SUBCOMMANDS and Services (xs3dsj), with work_roots added by fjvj3x"]
     shell --> views
     views --> roots
     views --> sel

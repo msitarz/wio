@@ -104,8 +104,9 @@ roots that the stage selects for the Work.
 
 #### The same selection
 
-- **Given** the repository of the `selection` Work with its Work whose roots
-  list `api`, a stage with no `roots`, and a stage with `roots = ["web"]`.
+- **Given** the repository of AC-1 of [selection](../README.md) with its Work
+  whose roots list `api`, a stage with no `roots`, and a stage with
+  `roots = ["web"]`.
 - **When** `selection` runs for the Work and each stage, and `select` runs for
   the Work's resolved contract and each stage.
 - **Then** each equals `select` of `5yb4tz` for the roots `("api",)` and

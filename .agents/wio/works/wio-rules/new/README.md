@@ -56,7 +56,8 @@ top Work says.
 ### A-4
 
 The command resolves an alias to the canonical name of the ruleset with
-`resolve_ruleset` of `w3k7vd` before it plans the rule, so `plan_rule` knows
+`resolve_ruleset` of `w3k7vd`, over `Sources` from `ruleset_map` and
+`build_sources`, before it plans the rule, so `plan_rule` knows
 canonical names only.
 
 ### A-5
@@ -219,7 +220,8 @@ A warning of the discovery does not refuse the command.
 
 The result tells whether some entry delivers the new rule, and by which origin,
 in the chain form that `chain_text` of `w3k7vd` writes, as `wio rules list
---explain` does.
+--explain` does. Each `Origin` becomes its labels with `layer_label` and
+`chain_labels` of `w3k7vd`.
 
 #### Selected and not yet
 

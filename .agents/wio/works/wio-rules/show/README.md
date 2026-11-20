@@ -51,7 +51,8 @@ the reader of the output as it is stored.
 ### A-4
 
 The command resolves the ruleset part of the reference, which may be an alias,
-with `resolve_ruleset` of `w3k7vd`, and `show_rule` knows canonical names
+with `resolve_ruleset` of `w3k7vd`, over `Sources` from `ruleset_map` and
+`build_sources`, and `show_rule` knows canonical names
 only.
 
 ## Mechanisms

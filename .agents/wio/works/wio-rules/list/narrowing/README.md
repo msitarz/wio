@@ -139,7 +139,7 @@ not select, shows them although they are out, and marks the header.
   `demo.PAY001`, a ruleset `web` with `WEB001` that no root reaches, and the
   listing of every rule with no layers.
 - **When** `narrow` runs with `--not-selected` and no references.
-- **Then** the rows are `ARC002`, `PAY002` and `WEB001`, the header says
+- **Then** the rows are `ARC002`, `PAY002` and `WEB001`, the header is marked
   `not selected`, and neither `ARC001` nor `PAY001`, which entries deliver, is
   held.
 

@@ -42,9 +42,9 @@ read them.
 
 `Listing.rows` holds every rule considered, and a row is shown by the renderer
 when its rule is included or has no decision, or when the row has an
-`Explanation`, or when the header says `not selected`, which `9r1zpd` sets for
-the rules that nothing selects, so a listing without those holds the included
-rules only, and a listing without layers holds every rule.
+`Explanation`, or when the header is marked `not selected`, which `9r1zpd` sets
+for the rules that nothing selects, so a listing without those holds the
+included rules only, and a listing without layers holds every rule.
 
 ### A-2
 
@@ -184,7 +184,7 @@ layer, and with `--stage` the stage's `roots` decide which roots count.
 ### **AC-5** A rule that is out is shown only when it is asked for
 
 A row whose rule is out is shown only when it has an `Explanation` or the header
-says `not selected`, and it carries its decision in the JSON.
+is marked `not selected`, and it carries its decision in the JSON.
 
 #### Included and out
 
@@ -242,7 +242,7 @@ the same information as the text.
 
 #### Text and JSON
 
-- **Given** the repository of AC-2.
+- **Given** the repository of AC-2 with the stage `s` of AC-3.
 - **When** `wio rules list --work W --stage s` runs as text and with `--json`.
 - **Then** the document holds `view`, `work`, `layers`, `roots`, `stage`,
   `references`, `not_selected` and `rules` in that order, with `work` `"W"`,

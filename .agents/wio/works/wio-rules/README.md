@@ -142,6 +142,9 @@ may carry either metadata block form.
 
 - **`wio.rules` package** — the `wio rules` command and the selection, built by
   the children below.
+- **The inputs of the selection** — the rulesets by name, the `Sources` of the
+  expansion, the resolution of an alias and the labels of a chain, built once by
+  `w3k7vd` for every function and command that needs them.
 - **`Rule`, `Manifest` and `LoadedRuleset`** — in `wio.models.rule`, a new
   module: `ht39xt` builds `Rule` and `8zn10d` builds `Manifest` and
   `LoadedRuleset`, a ruleset's name, manifest and rules found by family and by
@@ -168,7 +171,8 @@ may carry either metadata block form.
 - **The roots port** — a port that `wio.rules` declares and `wio.cli` wires to
   `wio.contracts`, which gives the roots of a Work with `@descendants` expanded,
   built by `ndwemw`, which also finds the roots that contain a file from the
-  paths of the roots in the config.
+  paths of the roots in the config; `fjvj3x` wires `WorkLookup` to it for
+  `wio rules list` and `9pfyfe` for the selector.
 - **`RuleSelection`** — the port of `wio.context` that `wio.rules` satisfies
   with the same selection that `wio rules list` shows; its form is provisional
   and is in `src/wio/context/ports.pyi`, except that a `Selection` holds every
@@ -291,6 +295,7 @@ flowchart LR
         presets["rule presets"]
         select["selection: layers and applicability"]
         hashes["rule hashes"]
+        inputs["selection inputs (new)"]
         rootsport["roots port (new)"]
         new["rules new"]
         check["rules check"]
@@ -309,7 +314,7 @@ flowchart LR
     ctx["wio.context (later)"]
     trl["wio.trailers"]
     cli["wio.cli: wires the ports (changed)"]
-    files --> presets --> select
+    files --> inputs --> presets --> select
     files --> new
     files --> check
     files --> show
@@ -397,11 +402,13 @@ rules as C-2 says and `--json` carries what the text carries.
 
 - **Given** one repository with rules in two rulesets and two families, `demo`
   with `ARC001`, `ARC002` and `PAY001` and `other` with `ARC001` and `ZZZ001`,
-  whose manifests declare the families they use, all selected for a stage, the
-  body of `other.ZZZ001` holding a Markdown heading, and with a `rules_include`
-  entry for `demo.XYZ`, a family that `demo` does not declare; the rules are
-  written in two different file orders, and the config lists its tables and each
-  root's `rule_presets` in two different orders.
+  whose manifests declare the families they use, all in the `rules_include` of a
+  stage with no `roots`, a root `api` whose rule presets include `demo.all` and
+  `other.all`, a Work whose `roots` list `api`, the body of `other.ZZZ001`
+  holding a Markdown heading, and with a `rules_include` entry for `demo.XYZ`, a
+  family that `demo` does not declare; the rules are written in two different
+  file orders, and the config lists its tables and each root's `rule_presets` in
+  two different orders.
 - **When** `wio rules list --work <id> --stage <name>`, `wio rules check` and
   `wio rules show demo.ARC001` run on each, in text and, for the first two, with
   `--json`.
@@ -462,10 +469,10 @@ the rule has no description.
   `--work <id> --stage s`, and the last again with `--explain`.
 - **Then** each listing shows `demo.ARC001`, never `d.ARC001`, with the same
   name and summary; its header names the layers it applied, which are none for
-  `demo.recommended`, the root's rule presets and the always fields for `--root`
-  and `--path`, the stage and the always fields for `--stage`, and all of them
-  for `--work`; and `--explain` names among the origins of the rule the root
-  `api` and the rule preset `demo.recommended`.
+  `demo.recommended`, `roots` and `always fields` for `--root` and `--path`,
+  `stage` and `always fields` for `--stage`, and all three for `--work`; and
+  `--explain` names among the origins of the rule the root `api` and the rule
+  preset `demo.recommended`.
 
 ### **AC-7** A rule file of either form is treated alike
 

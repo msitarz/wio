@@ -135,7 +135,8 @@ flowchart LR
 
 The discovery returns each ruleset under `.agents/wio/rules/` with its manifest
 and its rules, read from rule files of either form at any depth of the ruleset's
-directory, in the order of A-2 and found by family and by code.
+directory, in the order of C-2 of [wio rules](../README.md) and found by family
+and by code.
 
 #### Rulesets, manifests and rules
 
