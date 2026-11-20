@@ -44,7 +44,7 @@ def _identify(
 
 
 def test_claude_code_records_its_session() -> None:
-    """AC-1 identifies a Claude Code session and records its extra id.
+    """AC-1 and AC-2 record the values and identify the harness.
 
     The built-in mapping uses the session variable and records AI_AGENT.
     """
@@ -72,7 +72,7 @@ def test_claude_code_records_its_session() -> None:
 def test_codex_uses_thread_then_session(
     extra: dict[str, str], session: str, parent: str | None
 ) -> None:
-    """AC-1 identifies main sessions and subagents in Codex.
+    """AC-3 selects the Codex session and any distinct parent.
 
     Args:
         extra: The optional thread variable.
@@ -110,7 +110,7 @@ def test_nested_matches_stay_unresolved() -> None:
 
 
 def test_ai_agent_alone_does_not_identify_a_harness() -> None:
-    """AC-2 retains an extra id for a run with no known harness.
+    """AC-1 and AC-2 retain an extra id without matching a harness.
 
     AI_AGENT alone has no session meaning in the default config.
     """
@@ -147,7 +147,7 @@ def test_preference_resolves_nested_matches(
     expected: tuple[str | None, str | None, str | None],
     unknown: str | None,
 ) -> None:
-    """AC-3 applies preference syntax to real matches.
+    """AC-2 and AC-5 apply preference syntax to matching harnesses.
 
     Args:
         override: The optional preference variable to set.
@@ -173,7 +173,7 @@ def test_preference_resolves_nested_matches(
 
 
 def test_preference_for_an_unmatched_harness_leaves_the_run_unresolved() -> None:
-    """AC-3 limits preferences to harnesses whose session variables are set.
+    """AC-2 limits preference to matching harnesses.
 
     A configured harness can be preferred while being absent from this run.
     """
@@ -195,7 +195,7 @@ def test_preference_for_an_unmatched_harness_leaves_the_run_unresolved() -> None
 
 @pytest.mark.parametrize("override", ["", "none", "cursor"])
 def test_a_sole_match_wins_even_with_a_different_preference(override: str) -> None:
-    """AC-3 keeps a sole match and validates every override.
+    """AC-2 and AC-5 keep the sole match and warn on unknown names.
 
     Args:
         override: An empty, clearing, or unknown override.
@@ -266,7 +266,7 @@ def test_first_set_session_and_parent_win(
 
 
 def test_lookup_is_limited_and_ids_keep_first_occurrence_order() -> None:
-    """AC-5 limits environment reads and orders ids by config.
+    """AC-4 reads shared variables once and orders ids by config.
 
     Extra recording can share a name with a harness mapping.
     """
@@ -319,7 +319,7 @@ def test_lookup_is_limited_and_ids_keep_first_occurrence_order() -> None:
 
 
 def test_custom_session_mapping_identifies_a_harness() -> None:
-    """AC-5 uses effective harness mappings for session lookup.
+    """AC-2 matches harnesses using the effective mappings.
 
     A project can add a harness with its own variable names.
     """
@@ -374,3 +374,18 @@ def test_preference_also_supplies_shared_fields(
     assert environment.reads.count(name) == 1
     warning = f"warning: {name} names unknown harness {unknown!r}\n" if unknown else ""
     assert stderr.getvalue() == warning
+
+
+def test_record_only_preference_warns_without_a_harness_match() -> None:
+    """AC-5 records an extra override and warns even when no harness matches."""
+    # Given an unknown override configured only as an extra recorded variable.
+    name = "WIO_PREFER_HARNESS"
+    log = replace(_DEFAULT_LOG, record_env_vars=(name,))
+    variables = {name: "missing"}
+
+    # When the session is identified without any set session variables.
+    identity, warnings = _identify(variables, log)
+
+    # Then the override is recorded verbatim and the unknown name is reported.
+    assert identity == SessionIdentity(None, None, None, (), variables)
+    assert warnings == "warning: WIO_PREFER_HARNESS names unknown harness 'missing'\n"
