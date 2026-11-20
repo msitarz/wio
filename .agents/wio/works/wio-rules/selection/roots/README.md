@@ -60,8 +60,9 @@ The names of the types and the functions below are provisional.
   roots from the `Hierarchy` that `wio contracts show` already reads, built from
   the same discovery.
 - **`stage_roots(config, stage, work_id, work_roots) -> tuple[str, ...]`** — in
-  `wio.rules`, with the `Config`, a stage's name, a Work's id and a `WorkRoots`;
-  the names it returns are sorted and each is once.
+  `wio.rules`, with the `Config`, a stage's name or `None`, a Work's id and a
+  `WorkRoots`; with no stage the roots are the Work's own, and the names it
+  returns are sorted and each is once.
 - **`roots_of_path(config, path) -> tuple[str, ...]`** — in `wio.rules`, with
   the `Config` and a `PurePosixPath`.
 
@@ -133,6 +134,13 @@ exactly those with `@work` standing for the Work's roots, and `[]` selects none.
   each raise `ValueError` that says the Work has no roots, whatever other roots
   the list names, and the stage with `["contract"]` gives `("contract",)` and
   the stage with `[]` gives `()`.
+
+#### No stage
+
+- **Given** a Work whose roots are `["api"]`, and a Work with no roots.
+- **When** `stage_roots` runs for each with no stage.
+- **Then** the first gives `("api",)`, and the second raises `ValueError` that
+  says the Work has no roots.
 
 ### **AC-5** A name that does not exist is refused
 

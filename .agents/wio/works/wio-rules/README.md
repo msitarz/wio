@@ -115,11 +115,11 @@ For what this Work adds, which is `wio rules show`, `--json` on every
 subcommand, the optional `description` that a listing shows before the summary,
 the discovery of rule files at any depth of a ruleset, the form of a rule file's
 metadata block, names that are unique within a ruleset, references in place of
-the flag `--preset`, and `--not-selected` with references that narrow a listing
-in place of the two warnings that the
-concepts and the scope document give to `check` for a rule or a ruleset that
-nothing selects, this contract is right, and the docs stage corrects the
-concepts and the scope document.
+the flag `--preset`, `--work` that needs no `--stage`, and `--not-selected` with
+references that narrow a listing in place of the two warnings that the concepts
+and the scope document give to `check` for a rule or a ruleset that nothing
+selects, this contract is right, and the docs stage corrects the concepts and
+the scope document.
 
 ### A-12
 

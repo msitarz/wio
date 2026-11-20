@@ -54,9 +54,10 @@ The names of the types and the functions below are provisional.
   injected: `settings: Settings`, `repository: Repository` for the repository
   root, `files: FileSystem` and `work_roots: WorkRoots`; `wio.cli` wires one
   instance to both ports.
-- **`RuleSelector.selection(work_id: str, stage: str) -> Selection`** — runs the
-  discovery of `8zn10d`, takes the roots from `stage_roots` of `ndwemw`, and
-  calls `select` of `5yb4tz`.
+- **`RuleSelector.selection(work_id: str, stage: str | None) -> Selection`** —
+  runs the discovery of `8zn10d`, takes the roots from `stage_roots` of
+  `ndwemw`, and calls `select` of `5yb4tz`; with no stage it selects the Work's
+  own roots and applies no stage layer, for the listing.
 - **`RuleSelector.select(contract: ResolvedContract, stage: str) -> Selection`**
   — the method of the `RuleSelection` port of `wio.context`, which calls
   `selection` with the id of the contract's Work.
@@ -93,6 +94,12 @@ roots that the stage selects for the Work.
   the Work's resolved contract and each stage.
 - **Then** each equals `select` of `5yb4tz` for the roots `("api",)` and
   `("web",)`.
+
+#### No stage
+
+- **Given** the same Work.
+- **When** `selection` runs for the Work with no stage.
+- **Then** it equals `select` of `5yb4tz` for the roots `("api",)` and no stage.
 
 ### **AC-2** `selected` gives the hash of each selected rule
 

@@ -37,14 +37,15 @@ so nobody can ask which rules apply or where a rule came from.
 
 The views are the concepts' table of views with the flag `--preset` replaced by
 references: no selector lists the rules that the references name with no layers,
-`--root`, `--stage`, `--work` with `--stage` and `--path` give the roots and the
-stage, and a reference is one of the forms `<ruleset>.<item>`, such as
+`--root`, `--stage`, `--work` and `--path` give the roots and the stage, and a
+reference is one of the forms `<ruleset>.<item>`, such as
 `demo.ARC001` or `demo.all`, or the bare name of a rule preset of the config.
 
 ### A-2
 
-At most one of `--root`, `--path` and `--work` is given, each takes one value,
-and `--work` needs `--stage`, as the concepts say.
+At most one of `--root`, `--path` and `--work` is given and each takes one
+value; `--work` alone selects the Work's own roots and `--stage` with it makes
+the stage decide which roots count, so `--work` does not need `--stage`.
 
 ### A-3
 
@@ -158,20 +159,29 @@ among the candidates of the view as A-3 says.
 
 ### **AC-3** What cannot be listed is refused
 
-Conflicting selectors, a missing `--stage`, a reference that names nothing, the
-flag that was dropped and a fault in the rules are each refused before anything
-is printed.
+Conflicting selectors, a Work that does not exist or has no roots, a reference
+that names nothing, the flag that was dropped and a fault in the rules are each
+refused before anything is printed.
 
 #### Usage refusals
 
 - **Given** the repository of AC-1.
 - **When** `wio rules list --root api --path src/x.py`,
-  `wio rules list --work <id>`, `wio rules list recommended`,
+  `wio rules list --work none`, `wio rules list recommended`,
   `wio rules list Docs` and `wio rules list --preset demo.recommended` run.
 - **Then** each exits 2, with a message on standard error that says which flags
-  conflict, that `--work` needs `--stage`, that `recommended` names no rule
+  conflict, that no Work has the id `none`, that `recommended` names no rule
   preset of the config, that `Docs` is not a reference, and that `--preset` is
   not an option, and each prints nothing on standard output.
+
+#### A Work without roots
+
+- **Given** a Work that lists no roots.
+- **When** `wio rules list --work <id>` and
+  `wio rules list --work <id> --stage s`, with a stage `s` that has no `roots`,
+  run.
+- **Then** each exits 2 with a message on standard error that says the Work has
+  no roots, and prints nothing on standard output.
 
 #### A fault in the rules
 
@@ -194,7 +204,23 @@ and reasons as the text.
   its qualified code, name, description or summary, roots, sources and reason,
   and nothing that the text lacks.
 
-### **AC-5** Without a view or a reference every rule is listed
+### **AC-5** `--work` alone gives the Work's roots, `--stage` adds the stage
+
+`--work` without `--stage` lists the rules of the Work's own roots with no stage
+layer, and `--stage` with it adds the stage's layer and lets the stage decide
+which roots count.
+
+#### With and without a stage
+
+- **Given** the repository of AC-1, a ruleset `web` that holds `WEB001` and a
+  rule preset `core` that includes it, a root `web` with
+  `rule_presets = ["web.core"]`, and a stage `t` with `roots = ["web"]`.
+- **When** `wio rules list --work <id>`, `wio rules list --work <id> --stage s`
+  and `wio rules list --work <id> --stage t` run.
+- **Then** the first shows `demo.ARC001` and not `demo.PAY001`, the second also
+  shows `demo.PAY001`, and the third shows `web.WEB001` and no rule of `demo`.
+
+### **AC-6** Without a view or a reference every rule is listed
 
 `wio rules list` with no selector and no reference lists every rule of every
 ruleset in order, with no layers applied.
