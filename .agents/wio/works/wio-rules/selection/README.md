@@ -19,8 +19,9 @@ Which rules apply to a stage is decided nowhere, so `wio rules list`,
   every rule considered.
 - The roots that apply to a Work at a stage, to a file or to a named root are
   found from the roots the stage selects.
-- `wio trailers` receives the rules that a stage selects for a Work, each with
-  the hash of its file.
+- `wio context` and `wio trailers` receive the selection of a Work at a stage
+  through the ports they declare, from one class, and `wio trailers` receives
+  with it the hash of each selected rule's file.
 
 ## Non-Goals
 
@@ -55,7 +56,7 @@ The names of the types and the functions below are provisional.
   where `roots` is a `tuple[str, ...]` of root names or `None` when the roots
   are not applied, `stage` is a stage name or `None`, and `config` and
   `rulesets` are what the layers read; built by `5yb4tz`, which joins the layers
-  and the applicability and builds the adapter of the `RuleSelection` port.
+  and the applicability.
 - **The four layers** — the rule presets of the roots, the stage's include and
   exclude, `rules_always_include` and `rules_always_exclude`, applied in that
   order to the expansions of `cyeth5`, built by `cm25z9`.
@@ -64,17 +65,20 @@ The names of the types and the functions below are provisional.
 - **The roots** — the roots a stage selects for a Work with `@work` and the
   roots that contain a file, built by `ndwemw`, over the roots port that
   `wio.contracts` satisfies.
-- **The hashes** — the adapter of the `StageRules` port of `wio.trailers`, which
-  runs `select` for a Work at a stage and hashes the file of each rule it
-  includes, built by `9pfyfe`.
+- **The selector** — `RuleSelector`, one class that satisfies the
+  `RuleSelection` port of `wio.context` and the `StageRules` port of
+  `wio.trailers`, runs `select` for a Work at a stage with the roots of
+  `ndwemw`, and hashes the file of each rule it includes with `rule_hash` of
+  `wio.formats`; built by `9pfyfe`.
 
 ## Constraints
 
 ### C-1
 
 `select` does no input or output and every ordering in a `Selection` is that of
-A-8 of [wio rules](../README.md); only the hashes of `9pfyfe` read a rule file,
-through the `FileSystem` port. AC-4 verifies it.
+A-8 of [wio rules](../README.md); only the selector of `9pfyfe` reads a rule
+file for a hash, through the `FileSystem` port. AC-4 verifies `select`, and AC-5
+and `9pfyfe` the selector.
 
 ### C-2
 
@@ -107,8 +111,8 @@ flowchart LR
 
 `select` expands the references of each layer, applies the layers in order and
 the roots that apply, and returns one `Selection`. The listing and the
-`RuleSelection` port read it, and the hashes read it for `wio trailers`. New
-parts are marked.
+`RuleSelection` port read it, and the selector reads it for both ports and adds
+the hashes for `wio trailers`. New parts are marked.
 
 ```mermaid
 flowchart LR
@@ -119,7 +123,7 @@ flowchart LR
         layers["four layers"]
         applic["applicability"]
         select["select"]
-        hashes["hashes of the selected rules"]
+        selector["RuleSelector"]
     end
     expand["expand (rule presets)"]
     ctxport["RuleSelection (wio.context)"]
@@ -133,9 +137,9 @@ flowchart LR
     layers --> applic
     applic --> select
     select --> listing
-    select -.-> ctxport
-    select --> hashes
-    hashes -.-> stageport
+    select --> selector
+    selector -.-> ctxport
+    selector -.-> stageport
 ```
 
 ## Acceptance criteria
@@ -207,18 +211,21 @@ order of the tables of the config and of the entries of its lists.
 - **When** the selection is asked for on each.
 - **Then** the two selections are equal, with their rules in the order of A-8.
 
-### **AC-5** `wio trailers` receives the rules a stage selects, with their hashes
+### **AC-5** `wio context` and `wio trailers` get the selection
 
-The adapter gives `wio trailers` the qualified code and the hash of the file of
-every rule that the selection includes for a Work at a stage, and no other.
+The selector gives `wio context` the selection of a Work at a stage, and gives
+`wio trailers` the qualified code and the hash of the file of every rule that
+the selection includes for it, and no other.
 
-#### Selected rules and their hashes
+#### The selection and the hashes
 
 - **Given** the repository of AC-1 committed, with its Work and stage.
-- **When** the adapter's `selected` is asked for that Work, action and stage,
-  then the file of `ARC001` is edited and it is asked again.
-- **Then** the first gives `demo.ARC001` with a hash and no other rule, and the
-  second gives a different hash for `demo.ARC001`.
+- **When** the selector's `select` is asked for the Work's contract and the
+  stage, and its `selected` for that Work, action and stage, then the file of
+  `ARC001` is edited and `selected` is asked again.
+- **Then** `select` gives the selection of AC-1, the first `selected` gives
+  `demo.ARC001` with a hash and no other rule, and the second gives a different
+  hash for `demo.ARC001`.
 
 ## Additional context
 
@@ -226,4 +233,6 @@ every rule that the selection includes for a Work at a stage, and no other.
   exclude reaches are the criteria of the leaves; this contract states only what
   the four establish together.
 - The hash algorithm is not stated by `wio.trailers` or the event models, which
-  only carry the hash, so `9pfyfe` decides and verifies it.
+  only carry the hash, so `9pfyfe` decides and verifies it; `wio context` will
+  need the same function for the `context` event, which is why it lives in
+  `wio.formats`.

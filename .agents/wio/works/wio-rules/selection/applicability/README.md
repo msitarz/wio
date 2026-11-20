@@ -2,7 +2,7 @@
 id = "5yb4tz"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["cm25z9", "ndwemw"]
+depends_on = ["cm25z9"]
 -->
 
 # Applicability
@@ -19,7 +19,7 @@ can tell a rule that a stage's roots cut from one that a layer removed, or give
   applies to, or out with the reason that decided it.
 - A selected rule applies when its ruleset is root-independent or reached by a
   selected root, and the roots are not applied when none are given.
-- One `select` serves every view and the `RuleSelection` port of `wio.context`.
+- One `select` serves every view of a listing and every consumer of a selection.
 
 ## Non-Goals
 
@@ -27,6 +27,8 @@ can tell a rule that a stage's roots cut from one that a layer removed, or give
   `cm25z9` does.
 - Finding the roots of a Work, a stage or a file, which `ndwemw` does.
 - Printing or explaining a selection, which `wio rules list` does.
+- Giving a selection to `wio context` and `wio trailers` through their ports,
+  which `9pfyfe` does with this `select`.
 
 ## Assumptions
 
@@ -58,10 +60,6 @@ The names of the types and the functions below are provisional.
 - **`select(roots, stage, config, rulesets) -> Selection`** — in `wio.rules`,
   where `roots` is a `tuple[str, ...]` or `None` and `stage` is a name or
   `None`; it calls `apply_layers` of `cm25z9` and decides each rule.
-- **The `RuleSelection` adapter** — satisfies the port of `wio.context`: its
-  `select(contract, stage)` takes the roots from `ndwemw` for the contract's
-  Work and the stage and calls `select`; the port is in
-  `src/wio/context/ports.pyi`.
 
 ## Constraints
 
@@ -183,26 +181,6 @@ order of the tables of the config, of the entries of its lists and of the roots.
   `("web", "api")` and `("api", "web")`.
 - **When** `select` runs on each.
 - **Then** the selections are equal.
-
-### **AC-9** `wio.context` receives the selection of a Work at a stage
-
-The adapter of the `RuleSelection` port gives, for a resolved contract and a
-stage, the selection for the roots that `ndwemw` finds for that Work and stage.
-
-#### Same as `select`
-
-- **Given** a Work whose roots list `api`, a stage with no `roots`, and a stage
-  with `roots = ["web"]`.
-- **When** the adapter's `select` runs for each stage.
-- **Then** the first equals `select` for the roots `("api",)` and the second for
-  `("web",)`.
-
-#### Refusals
-
-- **Given** a Work with no roots, a stage with no `roots`, and a stage `none`.
-- **When** the adapter's `select` runs for the first stage and for `none`.
-- **Then** the first raises the error that the port declares, a `ValueError` in
-  its provisional form, and the second raises `KeyError`.
 
 ## Additional context
 
