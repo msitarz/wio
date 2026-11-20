@@ -6,7 +6,6 @@ harness can be ambiguous in nested runs because both harnesses leave their
 variables in the environment.
 """
 
-import re
 from dataclasses import dataclass
 from itertools import chain
 from typing import TYPE_CHECKING
@@ -22,7 +21,6 @@ if TYPE_CHECKING:
 
 
 _PREFERENCE_VARIABLE = "WIO_PREFER_HARNESS"
-_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}")
 
 
 @dataclass(frozen=True)
@@ -30,11 +28,11 @@ class SessionIdentity:
     """The harness and session fields available for an event envelope.
 
     Attributes:
-        harness: The selected harness, including when its session is unknown.
-        session: The selected harness's valid session id, if available.
-        parent: The first valid parent id when the session is known and differs.
+        harness: The selected harness, if the matches resolve.
+        session: The selected harness's first set session value, if selected.
+        parent: The first set parent value if it differs from the session.
         matches: Matching harness names in config order.
-        ids: Valid values by variable name, in first occurrence order.
+        ids: Set values by variable name, in first occurrence order.
     """
 
     harness: str | None
@@ -47,74 +45,57 @@ class SessionIdentity:
 def identify(log: Log, environment: Environment, stdio: Stdio) -> SessionIdentity:
     """Identify the current harness session from the configured variables.
 
-    WIO_PREFER_HARNESS supplies preference alone, even if a harness or
-    the extra recorded variables name it. It cannot supply a match,
-    session, parent or recorded id.
+    Matching and field selection use presence, including empty strings.
+    WIO_PREFER_HARNESS controls preference and also supplies its original
+    value wherever it is configured as an id.
 
     Args:
         log: Effective harness mappings, preference and extra recorded variables.
         environment: Source for configured variables and WIO_PREFER_HARNESS.
-        stdio: Streams whose standard error receives warnings about malformed
-            ids and unknown names in the preference override.
+        stdio: Streams whose standard error receives warnings about unknown
+            names in the preference override.
 
     Returns:
         Session fields for the sole match or the first preferred match,
-        with all matches and valid ids retained even when no harness resolves.
+        with all matches and set ids retained even when no harness resolves.
     """
-    values = _read_ids(log, environment)
-    ids = freeze(_valid_ids(values, stdio))
-    preference = _preference(log, environment.get(_PREFERENCE_VARIABLE), stdio)
+    override = environment.get(_PREFERENCE_VARIABLE)
+    ids = freeze(_read_ids(log, environment, override))
+    preference = _preference(log, override, stdio)
     matches = tuple(
         name
         for name, harness in log.harnesses.items()
-        if any(variable in values for variable in harness.session)
+        if any(variable in ids for variable in harness.session)
     )
     selected = _choose_harness(matches, preference)
     if selected is None:
         return SessionIdentity(None, None, None, matches, ids)
-    session, parent = _session_fields(log.harnesses[selected], values, ids)
+    session, parent = _session_fields(log.harnesses[selected], ids)
     return SessionIdentity(selected, session, parent, matches, ids)
 
 
-def _read_ids(log: Log, environment: Environment) -> dict[str, str]:
+def _read_ids(
+    log: Log, environment: Environment, override: str | None
+) -> dict[str, str]:
     """Read each configured id variable once, retaining set values in order.
 
     Args:
         log: The mappings and extra variable names in config order.
         environment: The source of variable values.
+        override: The preference variable's already-read value.
 
     Returns:
-        The nonempty values in first occurrence order, including malformed
-        values for matching. The reserved preference variable is excluded.
+        All set values in first occurrence order.
     """
     mapped = chain.from_iterable(
         harness.session + harness.parent for harness in log.harnesses.values()
     )
     names = dict.fromkeys(chain(mapped, log.record_env_vars))
-    return {
-        name: value
-        for name in names
-        if name != _PREFERENCE_VARIABLE and (value := environment.get(name))
-    }
-
-
-def _valid_ids(values: Mapping[str, str], stdio: Stdio) -> dict[str, str]:
-    """Keep well-shaped ids in first occurrence order.
-
-    Args:
-        values: Set values by distinct variable name.
-        stdio: The streams used to warn once per malformed value.
-
-    Returns:
-        Only values of one to 128 ASCII letters, digits or characters in
-        `._:-`. Warnings name malformed variables and omit their values.
-    """
     ids: dict[str, str] = {}
-    for name, value in values.items():
-        if _ID.fullmatch(value):
+    for name in names:
+        value = override if name == _PREFERENCE_VARIABLE else environment.get(name)
+        if value is not None:
             ids[name] = value
-        else:
-            stdio.stderr.write(f"warning: {name} has an invalid id\n")
     return ids
 
 
@@ -165,22 +146,17 @@ def _choose_harness(
 
 
 def _session_fields(
-    harness: Harness, values: Mapping[str, str], ids: Mapping[str, str]
+    harness: Harness, ids: Mapping[str, str]
 ) -> tuple[str | None, str | None]:
-    """Derive the session and any distinct parent of the selected harness.
+    """Derive the first set session and any distinct first set parent.
 
     Args:
-        harness: Ordered session and parent variable names.
-        values: All set id values by variable name.
-        ids: The validated subset of those values.
+        harness: The selected harness with ordered session and parent variables.
+        ids: Set values by variable name.
 
     Returns:
-        The valid id of the first set session variable, or two absent fields
-        when it is malformed. The first valid parent id is returned when it
-        differs from the session.
+        The session and parent, using None for an absent or equal parent.
     """
-    session = next((ids.get(name) for name in harness.session if name in values), None)
-    if session is None:
-        return None, None
+    session = next(ids[name] for name in harness.session if name in ids)
     parent = next((ids[name] for name in harness.parent if name in ids), None)
     return session, parent if parent != session else None

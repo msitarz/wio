@@ -75,8 +75,18 @@ def _record_review(
             "t2",
             "s1",
         ),
+        (
+            {
+                "CODEX_SESSION_ID": "",
+                "CODEX_THREAD_ID": " \n/" + "x" * 129,
+                "AI_AGENT": "é\udcff",
+            },
+            "codex",
+            " \n/" + "x" * 129,
+            "",
+        ),
     ],
-    ids=["claude-code", "codex-subagent"],
+    ids=["claude-code", "codex-subagent", "verbatim-environment"],
 )
 def test_real_review_carries_the_harness_session(
     wio: Wio,

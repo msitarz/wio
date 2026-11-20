@@ -104,11 +104,10 @@ def _session_text(context: Envelope) -> str:
         if len(context.matches) >= 2:
             return f"ambiguous ({', '.join(context.matches)})"
         return "unknown session"
-    if context.session is None:
-        return f"{context.harness}:unknown"
-    label = f"{context.harness}:{context.session}"
+    session = "unknown" if context.session is None else encode_json(context.session)
+    label = f"{context.harness}:{session}"
     if context.parent is not None:
-        return f"{label} (parent {context.parent})"
+        return f"{label} (parent {encode_json(context.parent)})"
     return label
 
 

@@ -44,7 +44,7 @@ def _identify(
 
 
 def test_claude_code_records_its_session() -> None:
-    """AC-1 identifies a Claude Code session and records its extra id.
+    """AC-1 and AC-2 record the values and identify the harness.
 
     The built-in mapping uses the session variable and records AI_AGENT.
     """
@@ -72,7 +72,7 @@ def test_claude_code_records_its_session() -> None:
 def test_codex_uses_thread_then_session(
     extra: dict[str, str], session: str, parent: str | None
 ) -> None:
-    """AC-1 identifies main sessions and subagents in Codex.
+    """AC-3 selects the Codex session and any distinct parent.
 
     Args:
         extra: The optional thread variable.
@@ -110,7 +110,7 @@ def test_nested_matches_stay_unresolved() -> None:
 
 
 def test_ai_agent_alone_does_not_identify_a_harness() -> None:
-    """AC-2 retains an extra id for a run with no known harness.
+    """AC-1 and AC-2 retain an extra id without matching a harness.
 
     AI_AGENT alone has no session meaning in the default config.
     """
@@ -147,7 +147,7 @@ def test_preference_resolves_nested_matches(
     expected: tuple[str | None, str | None, str | None],
     unknown: str | None,
 ) -> None:
-    """AC-3 applies preference syntax to real matches.
+    """AC-2 and AC-5 apply preference syntax to matching harnesses.
 
     Args:
         override: The optional preference variable to set.
@@ -173,7 +173,7 @@ def test_preference_resolves_nested_matches(
 
 
 def test_preference_for_an_unmatched_harness_leaves_the_run_unresolved() -> None:
-    """AC-3 limits preferences to harnesses whose session variables are set.
+    """AC-2 limits preference to matching harnesses.
 
     A configured harness can be preferred while being absent from this run.
     """
@@ -195,7 +195,7 @@ def test_preference_for_an_unmatched_harness_leaves_the_run_unresolved() -> None
 
 @pytest.mark.parametrize("override", ["", "none", "cursor"])
 def test_a_sole_match_wins_even_with_a_different_preference(override: str) -> None:
-    """AC-3 keeps a sole match and validates every override.
+    """AC-2 and AC-5 keep the sole match and warn on unknown names.
 
     Args:
         override: An empty, clearing, or unknown override.
@@ -218,174 +218,55 @@ def test_a_sole_match_wins_even_with_a_different_preference(override: str) -> No
         assert warnings == ""
 
 
-@pytest.mark.parametrize(
-    "value", ["bad value!", "x/y", "é", "x\n", "a" * 129, "a" * 200]
-)
-def test_malformed_session_retains_the_harness(value: str) -> None:
-    """AC-4 omits malformed ids and keeps the harness match.
-
-    Args:
-        value: A session value outside the allowed character set or length.
-    """
-    # Given a set but malformed Claude Code session variable.
+@pytest.mark.parametrize("value", ["", "bad value!", "x/y", "é", "x\n", "a" * 129])
+def test_set_session_matches_and_retains_its_value(value: str) -> None:
+    """AC-1 and AC-2 match and preserve every set session value."""
+    # Given a set Claude Code session variable.
     variables = {"CLAUDE_CODE_SESSION_ID": value}
 
     # When the session is identified.
     identity, warnings = _identify(variables)
 
-    # Then only the harness is identified and one warning names the variable.
-    assert identity == SessionIdentity("claude-code", None, None, ("claude-code",), {})
-    assert len(warnings.splitlines()) == 1
-    assert "CLAUDE_CODE_SESSION_ID" in warnings
-    assert value not in warnings
-
-
-@pytest.mark.parametrize("value", ["a" * 128, "Az0._:-"])
-def test_well_shaped_ids_are_used_as_given(value: str) -> None:
-    """AC-4 preserves valid ids, including the maximum length.
-
-    Args:
-        value: A valid session id at a length or alphabet boundary.
-    """
-    # Given a valid Claude Code session variable.
-    variables = {"CLAUDE_CODE_SESSION_ID": value}
-
-    # When the session is identified.
-    identity, warnings = _identify(variables)
-
-    # Then the original value is the session and is recorded unchanged.
+    # Then the session matches by presence and is retained verbatim.
     assert identity == SessionIdentity(
         "claude-code", value, None, ("claude-code",), variables
     )
     assert warnings == ""
 
 
-def test_an_empty_session_variable_is_unset() -> None:
-    """AC-4 treats the empty string as an unset environment value.
-
-    An unset value contributes neither a match nor a diagnostic.
-    """
-    # Given an empty Claude Code session variable.
-    variables = {"CLAUDE_CODE_SESSION_ID": ""}
-
-    # When the session is identified.
-    identity, warnings = _identify(variables)
-
-    # Then the record has no matches or ids and stderr is empty.
-    assert identity == SessionIdentity(None, None, None, (), {})
-    assert warnings == ""
-
-
-def test_first_set_session_can_be_malformed() -> None:
-    """AC-4 preserves the distinction between subagents and main sessions.
-
-    A set thread variable establishes a match even when its id is unusable.
-    """
-    # Given a malformed thread id and a valid main session id.
-    variables = {"CODEX_THREAD_ID": "bad value!", "CODEX_SESSION_ID": "s1"}
-
-    # When the session is identified.
-    identity, warnings = _identify(variables)
-
-    # Then the harness is known, the session and parent are unknown, and the
-    # main session id still appears in ids.
-    assert identity == SessionIdentity(
-        "codex", None, None, ("codex",), {"CODEX_SESSION_ID": "s1"}
-    )
-    assert len(warnings.splitlines()) == 1
-    assert "CODEX_THREAD_ID" in warnings
-    assert "bad value!" not in warnings
-
-
-def test_malformed_parent_and_extra_values_are_dropped() -> None:
-    """AC-4 diagnoses unusable parent and extra values independently.
-
-    A valid thread id still identifies its session.
-    """
-    # Given a valid thread id and malformed ids for the parent and extra value.
-    variables = {
-        "CODEX_THREAD_ID": "t2",
-        "CODEX_SESSION_ID": "bad value!",
-        "AI_AGENT": "x/y",
-    }
-
-    # When the session is identified.
-    identity, warnings = _identify(variables)
-
-    # Then the parent is unknown and each dropped variable is diagnosed on stderr.
-    assert identity == SessionIdentity(
-        "codex", "t2", None, ("codex",), {"CODEX_THREAD_ID": "t2"}
-    )
-    assert len(warnings.splitlines()) == 2
-    assert warnings.count("CODEX_SESSION_ID") == 1
-    assert warnings.count("AI_AGENT") == 1
-    assert "bad value!" not in warnings
-    assert "x/y" not in warnings
-
-
-@pytest.mark.parametrize(("first_valid", "parent"), [("outer", "outer"), ("r9", None)])
-def test_parent_uses_the_first_valid_candidate(
-    first_valid: str, parent: str | None
+@pytest.mark.parametrize(
+    ("session", "first_parent", "parent"),
+    [("", "", None), ("thread", "", ""), ("thread", "outer\n", "outer\n")],
+)
+def test_first_set_session_and_parent_win(
+    session: str, first_parent: str, parent: str | None
 ) -> None:
-    """AC-4 derives the parent from the first well-shaped candidate.
-
-    Args:
-        first_valid: The first well-shaped parent id, which can equal the session.
-        parent: The expected distinct parent if the first valid candidate differs.
-    """
-    # Given a custom harness with a malformed parent before two valid candidates.
+    """AC-3 selects the first set fields and omits an equal parent."""
+    # Given ordered candidates with an unset variable before each set field.
     harness = Harness(
-        ("CURSOR_TRACE_ID",), ("BAD_PARENT", "FIRST_PARENT", "LAST_PARENT")
+        ("UNSET_SESSION", "FIRST_SESSION", "LAST_SESSION"),
+        ("UNSET_PARENT", "FIRST_PARENT", "LAST_PARENT"),
     )
-    log = replace(_DEFAULT_LOG, harnesses=freeze({"cursor": harness}))
+    log = Log(harnesses=freeze({"cursor": harness}))
     variables = {
-        "CURSOR_TRACE_ID": "r9",
-        "BAD_PARENT": "bad/value",
-        "FIRST_PARENT": first_valid,
-        "LAST_PARENT": "later",
+        "FIRST_SESSION": session,
+        "LAST_SESSION": "later",
+        "FIRST_PARENT": first_parent,
+        "LAST_PARENT": "later-parent",
     }
 
     # When the session is identified.
     identity, warnings = _identify(variables, log)
 
-    # Then the first valid parent is used only when distinct from the session.
+    # Then the first set fields are used, with an equal parent omitted.
     assert identity == SessionIdentity(
-        "cursor",
-        "r9",
-        parent,
-        ("cursor",),
-        {
-            "CURSOR_TRACE_ID": "r9",
-            "FIRST_PARENT": first_valid,
-            "LAST_PARENT": "later",
-        },
+        "cursor", session, parent, ("cursor",), variables
     )
-    assert len(warnings.splitlines()) == 1
-    assert "BAD_PARENT" in warnings
-    assert "bad/value" not in warnings
-
-
-def test_a_malformed_variable_named_twice_warns_once() -> None:
-    """AC-4 diagnoses a variable once across multiple lists.
-
-    A session lookup and extra recording can both name one variable.
-    """
-    # Given AI_AGENT in both a session list and the extra list.
-    harnesses = freeze(_DEFAULT_LOG.harnesses | {"cursor": Harness(("AI_AGENT",))})
-    log = replace(_DEFAULT_LOG, harnesses=harnesses)
-
-    # When both uses see a malformed value.
-    identity, warnings = _identify({"AI_AGENT": "x/y"}, log)
-
-    # Then Cursor still matches and one warning names AI_AGENT without its value.
-    assert identity == SessionIdentity("cursor", None, None, ("cursor",), {})
-    assert len(warnings.splitlines()) == 1
-    assert "AI_AGENT" in warnings
-    assert "x/y" not in warnings
+    assert warnings == ""
 
 
 def test_lookup_is_limited_and_ids_keep_first_occurrence_order() -> None:
-    """AC-5 limits environment reads and orders ids by config.
+    """AC-4 reads shared variables once and orders ids by config.
 
     Extra recording can share a name with a harness mapping.
     """
@@ -412,7 +293,7 @@ def test_lookup_is_limited_and_ids_keep_first_occurrence_order() -> None:
     identity = identify(log, environment, stdio)
 
     # Then the override picks Cursor and only configured id values are retained.
-    assert set(environment.reads) == {
+    expected_reads = {
         "CLAUDE_CODE_SESSION_ID",
         "CODEX_THREAD_ID",
         "CODEX_SESSION_ID",
@@ -420,10 +301,13 @@ def test_lookup_is_limited_and_ids_keep_first_occurrence_order() -> None:
         "AI_AGENT",
         "WIO_PREFER_HARNESS",
     }
+    assert set(environment.reads) == expected_reads
+    assert len(environment.reads) == len(expected_reads)
     assert tuple(identity.ids.items()) == (
         ("CLAUDE_CODE_SESSION_ID", "c1"),
         ("CURSOR_TRACE_ID", "r9"),
         ("AI_AGENT", "x"),
+        ("WIO_PREFER_HARNESS", "cursor"),
     )
     assert (identity.harness, identity.session, identity.parent) == (
         "cursor",
@@ -435,7 +319,7 @@ def test_lookup_is_limited_and_ids_keep_first_occurrence_order() -> None:
 
 
 def test_custom_session_mapping_identifies_a_harness() -> None:
-    """AC-5 uses effective harness mappings for session lookup.
+    """AC-2 matches harnesses using the effective mappings.
 
     A project can add a harness with its own variable names.
     """
@@ -454,31 +338,54 @@ def test_custom_session_mapping_identifies_a_harness() -> None:
     assert warnings == ""
 
 
-def test_the_preference_is_reserved_in_harness_lists() -> None:
-    """AC-5 reserves the override when a mapping names it.
-
-    Declaring the override as a session or parent variable leaves it available
-    exclusively for selecting among genuine matches.
-    """
-    # Given a config that also names the override in harness mappings.
-    harnesses = freeze(
-        _DEFAULT_LOG.harnesses
-        | {
-            "cursor": Harness(("WIO_PREFER_HARNESS",)),
-            "codex": Harness(("CODEX_THREAD_ID",), ("WIO_PREFER_HARNESS",)),
-        }
+@pytest.mark.parametrize(
+    ("override", "selected", "unknown"),
+    [("", "cursor", ""), (" missing , codex ", "codex", "missing")],
+)
+def test_preference_also_supplies_shared_fields(
+    override: str, selected: str, unknown: str
+) -> None:
+    """AC-2, AC-4 and AC-5 reuse the raw override while resolving preference."""
+    # Given an override shared by two mappings and the extra recorded variables.
+    name = "WIO_PREFER_HARNESS"
+    log = Log(
+        harnesses=freeze(
+            {
+                "cursor": Harness((name,)),
+                "codex": Harness(("CODEX_THREAD_ID",), (name,)),
+            }
+        ),
+        prefer_harness=("cursor",),
+        record_env_vars=(name,),
     )
-    log = replace(_DEFAULT_LOG, harnesses=harnesses)
-    actual = {"CLAUDE_CODE_SESSION_ID": "c1", "CODEX_THREAD_ID": "t2"}
-    preference = {"WIO_PREFER_HARNESS": "codex"}
+    variables = {name: override, "CODEX_THREAD_ID": "t2"}
 
-    # When the override is applied with and without genuine matches.
-    selected, warnings = _identify(actual | preference, log)
-    unresolved, unresolved_warnings = _identify(preference, log)
+    # When both harnesses match.
+    environment = FakeEnvironment(Path(), variables)
+    stderr = StringIO()
+    identity = identify(log, environment, FakeStdio(stderr=stderr))
 
-    # Then the override can select Codex and contributes no ids or matches.
-    assert selected == SessionIdentity(
-        "codex", "t2", None, ("claude-code", "codex"), actual
-    )
-    assert unresolved == SessionIdentity(None, None, None, (), {})
-    assert warnings == unresolved_warnings == ""
+    # Then the override is read once and supplies its raw value to the winner.
+    assert identity.matches == ("cursor", "codex")
+    assert identity.harness == selected
+    fields = (override, None) if selected == "cursor" else ("t2", override)
+    assert (identity.session, identity.parent) == fields
+    assert tuple(identity.ids.items()) == tuple(variables.items())
+    assert environment.reads.count(name) == 1
+    warning = f"warning: {name} names unknown harness {unknown!r}\n" if unknown else ""
+    assert stderr.getvalue() == warning
+
+
+def test_record_only_preference_warns_without_a_harness_match() -> None:
+    """AC-5 records an extra override and warns even when no harness matches."""
+    # Given an unknown override configured only as an extra recorded variable.
+    name = "WIO_PREFER_HARNESS"
+    log = replace(_DEFAULT_LOG, record_env_vars=(name,))
+    variables = {name: "missing"}
+
+    # When the session is identified without any set session variables.
+    identity, warnings = _identify(variables, log)
+
+    # Then the override is recorded verbatim and the unknown name is reported.
+    assert identity == SessionIdentity(None, None, None, (), variables)
+    assert warnings == "warning: WIO_PREFER_HARNESS names unknown harness 'missing'\n"

@@ -47,23 +47,27 @@ and custom mappings, preferences and diagnostics affect those fields.
 
 A nested run can inherit session variables from several harnesses. The
 preference describes which of those harnesses to use for this run. Keeping
-unresolved matches and valid ids gives a reader evidence when the inherited
+unresolved matches and recorded ids gives a reader evidence when the inherited
 environment is ambiguous.
 
 The [log settings](../config/README.md#log-settings) limit which environment
 variables can supply ids. `wio config check` validates the configured names.
-Project authors need to verify that the named variables hold ids, since a
-secret can satisfy the same shape check. The shape check assumes that
-supported harnesses emit ids in the accepted form. Identification takes a
-well-shaped id as supplied, without looking up its transcript.
+Choose variables whose values are suitable for the local log. Recording
+copies their values as supplied, including any secrets they contain.
+The [recording test](../../../tests/unit/log/test_sink.py) covers the round
+trip for values with undecodable bytes. The environment exposes them as
+surrogate-escaped strings, and the event codec escapes non-ASCII characters
+when it writes a line so those values survive recording.
 
 ## Appending an event
 
 [`LogSink`](sink.py) is the adapter of [`EventSink`](../ports.pyi) that stamps
 and records both kinds of event. It uses the shared session identification and
 [versioned line codec](../formats/README.md#event-log-lines) so every producer
-writes the same envelope. This assumes short records on a local filesystem
-where a single append keeps concurrent writers from interleaving event lines.
+writes the same envelope. The sink passes the encoded line to the append
+port at any length. The concurrency guarantee relies on short records on a
+local filesystem where a single append keeps concurrent writers from
+interleaving event lines. Long lines carry no additional atomicity guarantee.
 A torn append can also cost the following event if its line starts immediately
 after the incomplete bytes. The reader recovers at the next line boundary.
 
@@ -128,7 +132,9 @@ The report uses event time because an earlier event can appear later in a
 file. File names and line order settle ties between equal timestamps, giving
 the text and JSON views the same history. The
 [report renderer](render.py) uses the event codec's time formatter so the
-displayed UTC timestamps agree with the recorded ones.
+displayed UTC timestamps agree with the recorded ones. It quotes session
+and parent values as JSON strings in text so embedded controls and line
+breaks cannot change the report layout.
 
 Each file is decoded independently. A torn last line belongs to its own file, so
 the next file's first event stays readable. The skipped-line count describes the

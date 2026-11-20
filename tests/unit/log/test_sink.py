@@ -166,27 +166,32 @@ def test_a_codex_subagent_stamp_has_its_parent(recording: Recording) -> None:
     )
 
 
-def test_identification_warns_at_every_write(recording: Recording) -> None:
-    """AC-1 keeps identification warnings and records an unknown session.
-
-    Args:
-        recording: Fake ports with a configurable environment.
-    """
-    # Given an unusable Claude Code session id.
-    variables = {"CLAUDE_CODE_SESSION_ID": "bad value!"}
+def test_event_round_trips_verbatim_ids(recording: Recording) -> None:
+    """AC-1 round-trips configured values through the actual line codec."""
+    # Given a long session, an empty parent, and an extra value with a lone surrogate.
+    session = " \n" + "x" * 129
+    variables = {
+        "CODEX_THREAD_ID": session,
+        "CODEX_SESSION_ID": "",
+        "AI_AGENT": "é/\udcff",
+    }
     recording.environment.variables = variables
 
-    # When two events are written.
-    recording.sink.write(_REVIEW)
-    recording.sink.write(_REVIEW)
+    # When the sink writes an event and the encoded line is read back.
+    recording.sink.write(_CONTEXT)
+    (entry,) = _entries(recording)
 
-    # Then both events retain just the harness and both warnings omit the value.
-    expected = Envelope(
-        1795000000.0, "/w/app/sub", "claude-code", None, None, ("claude-code",), {}
+    # Then every set field survives unchanged without warnings or raw controls.
+    assert entry == Entry(
+        Envelope(
+            1795000000.0, "/w/app/sub", "codex", session, "", ("codex",), variables
+        ),
+        _CONTEXT,
     )
-    assert _entries(recording) == (Entry(expected, _REVIEW), Entry(expected, _REVIEW))
-    warning = "warning: CLAUDE_CODE_SESSION_ID has an invalid id"
-    assert recording.stderr.getvalue().splitlines() == [warning, warning]
+    _, text = recording.filesystem.appends[0]
+    assert text.isascii()
+    assert text.count("\n") == 1
+    assert recording.stderr.getvalue() == ""
 
 
 @pytest.mark.parametrize(
@@ -408,10 +413,10 @@ def test_failure_to_write_an_identification_warning_stops_the_append(
     Args:
         recording: Fake ports with a configurable environment and stderr.
     """
-    # Given a malformed session id and stderr that rejects identification warnings.
-    variables = {"CLAUDE_CODE_SESSION_ID": "bad value!"}
+    # Given an unknown preference and stderr that rejects identification warnings.
+    variables = {"WIO_PREFER_HARNESS": "unrecognized"}
     recording.environment.variables = variables
-    stderr = FailingStderr("warning: CLAUDE_CODE_SESSION_ID")
+    stderr = FailingStderr("warning: WIO_PREFER_HARNESS")
     recording.sink.stdio.stderr = stderr
 
     # When the event is written.
