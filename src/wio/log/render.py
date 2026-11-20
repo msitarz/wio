@@ -106,10 +106,15 @@ def _session_text(context: Envelope) -> str:
         return "unknown session"
     if context.session is None:
         return f"{context.harness}:unknown"
-    label = f"{context.harness}:{context.session}"
+    label = f"{context.harness}:{_session_literal(context.session)}"
     if context.parent is not None:
-        return f"{label} (parent {context.parent})"
+        return f"{label} (parent {_session_literal(context.parent)})"
     return label
+
+
+def _session_literal(value: str) -> str:
+    """Format a present session or parent value for a text report."""
+    return value
 
 
 def _json_row(row: Row) -> dict[str, object]:
