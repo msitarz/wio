@@ -37,10 +37,11 @@ rejects, losing information needed to associate log events with transcripts.
 
 ## Mechanisms
 
-- `wio.log.identify.identify` returns a `SessionIdentity` whose ID values
-  represent set variables.
+- `wio.log.identify.identify` returns a `SessionIdentity` whose `ids` hold every
+  set variable's value, empty ones included, and which matches and selects by
+  presence.
 - `wio.log.render` formats the session and parent of a context event for
-  `wio log show`, as a JSON string literal for each present value.
+  `wio log show`, with `wio.formats.encode_json` supplying the escaping.
 
 ## Acceptance criteria
 
@@ -62,11 +63,9 @@ Session identification distinguishes set values from unset variables.
 
 A set session variable, including an empty one, matches its harness; an unset
 variable does not. When several harnesses match, the first matching harness in
-the effective preference order is selected, and a single matching harness is
-selected whatever the preference. That order is the configured
-preference, replaced by the names in `WIO_PREFER_HARNESS` unless it is empty,
-and `none` there clears it. When no matching harness is preferred, the matches
-remain unresolved and no session is selected.
+the existing preference order is selected, and a single matching harness is
+selected whatever the preference. When no matching harness is preferred, the
+matches remain unresolved and no session is selected.
 
 ### **AC-3** Selected fields use the first set values
 
@@ -94,7 +93,8 @@ Given `WIO_PREFER_HARNESS` is listed in a harness mapping or in
 IDs, including when empty. It participates in harness matching and field
 selection like any other configured variable, while continuing to control
 harness preference. An empty value matches like any other set variable and
-expresses no preference.
+leaves the configured preference in force. Its warning about unknown harness
+names is unchanged and is not a warning about an invalid ID.
 
 ### **AC-6** Text reports safely present session values
 
@@ -102,8 +102,8 @@ Text reports make session and parent values readable without interpreting
 their contents as terminal controls or report structure.
 
 Given a recorded session or parent, `wio log show` text output shows each
-present value as a JSON string literal with every non-ASCII character and every
-ASCII control character, DEL included, escaped as `\uXXXX` or JSON's short
+present value as a JSON string literal with every UTF-16 code unit outside
+printable ASCII, DEL included, escaped as lowercase `\uXXXX` or JSON's short
 escape, so `abc` appears as `"abc"`, an empty value as `""`, a value of `a`, a
 newline, an escape character and `b` as `"a\n\u001bb"`, a quote as `\"`, a
 backslash as `\\` and DEL as `\u007f`. An absent value keeps its existing label,
