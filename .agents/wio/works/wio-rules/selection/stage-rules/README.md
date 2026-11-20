@@ -46,14 +46,22 @@ changes when any part of the file does.
 The action does not change which rules a stage selects, so `selected` takes it
 because its port does and does not read it.
 
+### A-3
+
+The config, the rule files and the Work's roots are read from the working tree,
+so the hash is that of the file on disk when `wio trailers` runs, which can
+differ from the staged or committed file; the reviewed commit is recorded
+separately by `wio trailers`.
+
 ## Mechanisms
 
 The names of the types and the functions below are provisional.
 
 - **`RuleSelector`** — a frozen dataclass in `wio.rules` whose collaborators are
   injected: `settings: Settings`, `repository: Repository` for the repository
-  root, `files: FileSystem` and `work_roots: WorkRoots`; `wio.cli` wires one
-  instance to both ports.
+  root, `files: FileSystem` and `work_roots: WorkRoots`; it builds the
+  `Mapping[str, LoadedRuleset]` by canonical name from `Discovery.rulesets` and
+  reads a rule's file at `root / rule.path`.
 - **`RuleSelector.selection(work_id: str, stage: str | None) -> Selection`** —
   runs the discovery of `8zn10d`, takes the roots from `stage_roots` of
   `ndwemw`, and calls `select` of `5yb4tz`; with no stage it selects the Work's
@@ -66,9 +74,10 @@ The names of the types and the functions below are provisional.
   the qualified code of each included rule to `rule_hash` of the bytes of its
   file.
 - **`rule_hash(data: bytes) -> str`** — in `wio.formats`, the hash of A-1.
-- **The refusal** — a `WioError` that carries the error diagnostics of the
-  discovery or the cause that the consumer cannot receive as an exception, which
-  `wio.cli` turns into exit 2.
+- **The refusal** — a `DiagnosticsError` of `wio.errors` that carries the error
+  diagnostics of the discovery, or a `WioError` that names a cause that
+  `wio trailers` cannot receive as an exception, which `wio.cli` turns into
+  exit 2.
 
 ## Constraints
 
@@ -78,6 +87,12 @@ The names of the types and the functions below are provisional.
 discovery reads, and `selected` reads in addition the bytes of the files of the
 rules it returns and of no others, all through the `FileSystem` port. AC-2
 verifies it.
+
+### C-2
+
+`wio.cli` wires one `RuleSelector` to the `RuleSelection` port of `wio.context`
+and the `StageRules` port of `wio.trailers`, in place of the `NoRules` that it
+wires today. AC-10 of [wio rules](../../README.md) verifies it.
 
 ## Acceptance criteria
 
@@ -110,8 +125,8 @@ different hash when a file changes.
 #### Included rules only
 
 - **Given** a Work and a stage whose selection includes `demo.ARC001`, whose
-  file has CRLF line endings, excludes `demo.ARC002`, which the roots cut, and a
-  file system that records every read of bytes.
+  file has CRLF line endings, excludes `demo.ARC002`, whose ruleset the roots
+  cut, and a file system that records every read of bytes.
 - **When** `selected` runs for the Work, two different actions and the stage,
   then the file of `ARC001` is edited and it runs again.
 - **Then** the mapping holds `demo.ARC001` with `rule_hash` of its bytes and no
@@ -139,8 +154,8 @@ selection or a mapping.
 
 - **Given** a ruleset `demo` that holds two rules with the code `ARC001`.
 - **When** `selection`, `select` and `selected` run.
-- **Then** each raises the `WioError` that carries the error naming both files,
-  and none returns a selection or a mapping.
+- **Then** each raises the `DiagnosticsError` that carries the error naming both
+  files, and none returns a selection or a mapping.
 
 ### **AC-5** Unknown names and a Work without roots are refused
 
@@ -154,8 +169,10 @@ declares none.
   a stage that selects the Work's roots.
 - **When** `selection`, `select` and `selected` run for each.
 - **Then** `selection` and `select` raise `KeyError`, `KeyError` and
-  `ValueError`, as the `RuleSelection` port declares, and `selected` raises a
-  `WioError` that names the cause, so that `wio trailers` exits 2 and not 70.
+  `ValueError`, the first and the last as the `RuleSelection` port declares and
+  the `KeyError` for the unknown Work as an addition to it, and `selected`
+  raises a `WioError` that names the cause, so that `wio trailers` exits 2 and
+  not 70.
 
 ### **AC-6** The result does not depend on the order of the inputs
 
@@ -175,7 +192,7 @@ mapping, whatever the order of the inputs.
   `src/wio/context/ports.pyi` and `src/wio/trailers/ports.pyi`; the class
   satisfies them structurally, as `WorkLookup` satisfies the ports of
   `wio.trailers`, and `wio.cli` replaces the `NoRules` that it wires to
-  `wio.trailers` today with this class.
+  `wio.trailers` today with this class, which C-2 states.
 - `wio rules list` for a Work at a stage may call `selection` instead of
   repeating its steps, which the criteria of `fjvj3x` verify.
 - `wio.context` will write a hash for every rule in its `context` event and will

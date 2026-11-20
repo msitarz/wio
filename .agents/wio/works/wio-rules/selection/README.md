@@ -17,8 +17,8 @@ Which rules apply to a stage is decided nowhere, so `wio rules list`,
 - One selection decides the rules for any view of a listing and for a Work at a
   stage: the layers in their order, the roots that apply, and a decision for
   every rule considered.
-- The roots that apply to a Work at a stage, to a file or to a named root are
-  found from the roots the stage selects.
+- The roots of a Work at a stage, and of a file, are found, so that the roots
+  that apply to a view are known.
 - Whether any entry of the config includes a rule is known, so the rules that
   nothing selects can be listed and a new rule can say whether it is selected.
 - `wio context` and `wio trailers` receive the selection of a Work at a stage
@@ -40,26 +40,13 @@ which roots it gives, so one function serves them all: `--root`, `--path` and
 `--work` give the roots, `--stage` gives the stage, and a view without roots
 applies none.
 
-### A-2
-
-A listing of references with no selector is the expansion of those references
-alone and is outside the four layers, as the concepts say of the `--preset`
-view, so it does not use the selection.
-
-### A-3
-
-A root reaches a ruleset when the include entries of its rule presets name it,
-as the concepts say, and a rule preset's exclude entry reaches nothing.
-
 ## Mechanisms
 
 The names of the types and the functions below are provisional.
 
-- **`select(roots, stage, config, rulesets) -> Selection`** — in `wio.rules`,
-  where `roots` is a `tuple[str, ...]` of root names or `None` when the roots
-  are not applied, `stage` is a stage name or `None`, and `config` and
-  `rulesets` are what the layers read; built by `5yb4tz`, which joins the layers
-  and the applicability.
+- **`select`** — the function of `wio.rules` that decides every rule for the
+  roots and the stage it is given, built by `5yb4tz`, which joins the layers and
+  the applicability.
 - **The four layers** — the rule presets of the roots, the stage's include and
   exclude, `rules_always_include` and `rules_always_exclude`, applied in that
   order to the expansions of `cyeth5`, built by `cm25z9`.
@@ -81,69 +68,84 @@ The names of the types and the functions below are provisional.
 
 ### C-1
 
-`select` does no input or output and every ordering in a `Selection` is that of
-C-2 of [wio rules](../README.md); only the selector of `9pfyfe` reads a rule
-file for a hash, through the `FileSystem` port. AC-4 verifies `select`, and AC-5
-and `9pfyfe` the selector.
+The function `select` does no input or output and every ordering in a
+`Selection` is that of C-2 of [wio rules](../README.md); only the selector of
+`9pfyfe` reads a rule file for a hash, through the `FileSystem` port. AC-8 of
+`5yb4tz` verifies `select`, and AC-2 of `9pfyfe` the selector.
 
 ### C-2
 
 A `Selection` holds every rule of every ruleset, each with one decision, so a
 listing, an explanation and the hashes are views of it and not a second
-computation. AC-1 and AC-2 verify it.
+computation. AC-1 and AC-6 of `5yb4tz` verify it.
 
 ## Visuals
 
-The diagrams are drawn from commit `dd02c05` of the branch
+The diagrams are drawn from commit `3219010` of the branch
 `docs/define-rules-tree`, and show only what the Work changes.
 
 ### Before
 
 `wio.context` and `wio.trailers` each declare a port for the rules of a stage
-and nothing satisfies either, and no code applies the layers or the roots.
+and nothing satisfies either, no code applies the layers or the roots, and
+`wio.contracts` resolves a Work's roots but offers no lookup by id.
 
 ```mermaid
 flowchart LR
     cfg["Config: roots, stages, rule presets, always fields"]
-    rules["rulesets on disk"]
+    none["wio.rules: no selection"]
     ctx["wio.context: RuleSelection port"]
-    trl["wio.trailers: StageRules port"]
-    ctx -. "no provider" .-> cfg
-    trl -. "no provider" .-> cfg
-    rules --- cfg
+    trl["wio.trailers: StageRules port, wired to NoRules"]
+    contracts["wio.contracts: Hierarchy.roots, no lookup by id"]
+    ctx -. "no provider" .-> none
+    trl -. "no provider" .-> none
+    cfg --- none
 ```
 
 ### After
 
 `select` expands the references of each layer, applies the layers in order and
-the roots that apply, and returns one `Selection`. The listing and the
-`RuleSelection` port read it, and the selector reads it for both ports and adds
-the hashes for `wio trailers`. New parts are marked.
+the roots that apply, and returns one `Selection`. The listing reads it, the
+selector reads it for both ports and adds the hashes for `wio trailers`, and
+`selected_anywhere` answers whether any entry includes a rule for the listing
+and for `wio rules new`. The roots of a Work come through a port that
+`wio.contracts` satisfies. New parts are marked.
 
 ```mermaid
 flowchart LR
     cfg["Config: roots, stages, rule presets, always fields"]
     rules["LoadedRulesets"]
-    subgraph sel["selection (new)"]
+    contracts["wio.contracts: WorkLookup.roots_of (changed)"]
+    files["FileSystem port (wio.io)"]
+    subgraph sel["wio.rules selection (new)"]
         roots["roots of a Work, a stage or a file"]
+        rootsport["WorkRoots port"]
         layers["four layers"]
-        applic["applicability"]
-        select["select"]
+        applic["applicability: select"]
+        anywhere["selected anywhere"]
         selector["RuleSelector"]
+        hash["rule_hash (wio.formats)"]
     end
     expand["expand (rule presets)"]
     ctxport["RuleSelection (wio.context)"]
     stageport["StageRules (wio.trailers)"]
-    listing["rules list"]
-    cfg --> roots
+    listing["rules list and rules new"]
     cfg --> layers
+    cfg --> roots
+    cfg --> anywhere
     rules --> expand
     expand --> layers
-    roots --> select
+    expand --> anywhere
+    roots --> rootsport
+    contracts -.-> rootsport
+    roots --> applic
     layers --> applic
-    applic --> select
-    select --> listing
-    select --> selector
+    applic --> listing
+    anywhere --> listing
+    applic --> selector
+    roots --> selector
+    selector --> hash
+    selector --> files
     selector -.-> ctxport
     selector -.-> stageport
 ```
@@ -172,52 +174,25 @@ with its roots and the layers that selected it, or out with the reason.
   selected it, `web.WEB001` is out because the roots cut it, and every rule has
   exactly one decision.
 
-### **AC-2** A view without roots lists the roots that reach each rule
-
-When the roots are not applied, the selection lists each included rule that is
-not root-independent with the roots that reach its ruleset, and cuts none by
-roots.
-
-#### A stage alone
-
-- **Given** the repository of AC-1 and a root-independent ruleset `process` with
-  `FIX001` that `rules_always_include` names.
-- **When** the selection is asked for that stage with no roots applied.
-- **Then** `demo.ARC001` is included with the root `api` as the root that
-  reaches it, `web.WEB001` is included with no root because none reaches `web`,
-  `process.FIX001` is included for every root, and no rule is out because of the
-  roots.
-
-### **AC-3** The stage decides which roots count
+### **AC-2** The stage decides which roots count
 
 A stage with its own `roots` selects exactly those, with `@work` for the Work's
 roots, and the roots it selects decide the rules.
 
 #### Roots of the stage
 
-- **Given** the repository of AC-1 and the ruleset `process` of AC-2, a root
-  `contract` with `rule_presets = ["web.core"]`, where the rule preset `core` of
-  `web` includes `WEB001`, a stage with `roots = ["contract"]`, a stage with
-  `roots = ["contract", "@work"]`, a stage with `roots = []`, and the Work of
-  AC-1 and a Work with no roots.
+- **Given** the repository of AC-1, a root-independent ruleset `process` with
+  `FIX001` that `rules_always_include` names, a root `contract` with
+  `rule_presets = ["web.core"]`, where the rule preset `core` of `web` includes
+  `WEB001`, stages with `roots = ["contract"]`, with
+  `roots = ["contract", "@work"]` and with `roots = []`, and the Work of AC-1
+  and a Work with no roots.
 - **When** the selection is asked for each stage and Work.
 - **Then** the first includes `web.WEB001` and not `demo.ARC001` for either
   Work, the second includes both for the Work in `api` and fails for the Work
   with no roots, and the third includes only `process.FIX001` for both.
 
-### **AC-4** The same inputs give the same selection
-
-The same config, rulesets and arguments give the same selection, whatever the
-order of the tables of the config and of the entries of its lists.
-
-#### Two orders
-
-- **Given** the repository of AC-1 declared in two orders, the roots, the stages
-  and the rule presets of the config and the entries of each list.
-- **When** the selection is asked for on each.
-- **Then** the two selections are equal, with their rules in the order of C-2.
-
-### **AC-5** `wio context` and `wio trailers` get the selection
+### **AC-3** `wio context` and `wio trailers` get the selection
 
 The selector gives `wio context` the selection of a Work at a stage, and gives
 `wio trailers` the qualified code and the hash of the file of every rule that
@@ -233,7 +208,7 @@ the selection includes for it, and no other.
   `demo.ARC001` with a hash and no other rule, and the second gives a different
   hash for `demo.ARC001`.
 
-### **AC-6** A rule that is not selected anywhere is never included
+### **AC-4** A rule that is not selected anywhere is never included
 
 A rule that `selected_anywhere` does not select is out in every view of
 `select`, and a rule that `select` includes is selected by `selected_anywhere`.
@@ -243,7 +218,8 @@ A rule that `selected_anywhere` does not select is out in every view of
 - **Given** the repository of AC-1, where no entry includes `demo.PAY002`.
 - **When** `selected_anywhere` runs, and `select` runs for each Work, stage and
   root of the config, and for no roots and no stage.
-- **Then** every rule that `select` includes is a key of its `selected`,
+- **Then** every rule that `select` includes is a key of
+  `SelectedAnywhere.selected`,
   `demo.ARC002` and `demo.PAY001` are keys although the stage excludes the first
   and the veto removes the second, and `demo.PAY002` is not a key and is out in
   every view.

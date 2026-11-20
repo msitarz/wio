@@ -48,8 +48,10 @@ uses it.
 
 ### A-3
 
-An entry that cannot be expanded delivers nothing and is no error here, as A-9
-of [wio rules](../../README.md) says; `wio rules check` reports it.
+An entry that cannot be expanded delivers nothing for the part that cannot be
+expanded and is no error here, as A-9 of [wio rules](../../README.md) says,
+while the rest of it still counts: a rule preset that includes itself delivers
+its other includes, as `cyeth5` says, and `wio rules check` reports the cycle.
 
 ## Mechanisms
 
@@ -64,12 +66,21 @@ The names of the types and the functions below are provisional.
   rule preset took out, with the entries; it does no input or output, and the
   criteria below speak of the keys and sources of `selected` unless they say
   `removed`.
-- **`Source`** — frozen, with `layer`, one of `root`, `stage` and
-  `always-include`, `name`, the root or the stage or none, and `routes`, the
-  routes of `cyeth5` that led from the entry to the rule.
+- **`Source`** — frozen, in `wio.rules` beside `SelectedAnywhere`, with
+  `layer: Literal["root", "stage", "always-include"]`, the layers of
+  `LayerEffect` of `cm25z9` that include, `name: str | None`, the root or the
+  stage or none, and `routes: Routes`, the routes of `cyeth5` that led from the
+  entry to the rule; its field set is required, because `qxfpg9` reads it.
 - **The sources** — the rule presets of each root, the `rules_include` of each
   stage and `rules_always_include`, each expanded with `expand` of `cyeth5` and
   no excludes of its own layer.
+
+## Constraints
+
+### C-1
+
+`selected_anywhere` does no input or output, and its sources are in the order
+root, stage, always-include, then by name, then by route. AC-7 verifies it.
 
 ## Acceptance criteria
 
@@ -96,16 +107,17 @@ and the root or the stage, and a rule that no entry delivers is not.
 
 ### **AC-2** A rule with several sources has all of them in order
 
-A rule that several entries deliver has one source for each, sorted by layer,
-then name, then route.
+A rule that several entries deliver has one source for each, sorted by layer in
+the order root, stage, always-include, then by name, then by route.
 
 #### Several entries
 
 - **Given** the repository of AC-1, a root `web` whose rule preset also includes
-  `demo.ARC001`, and stages `s` and `t` whose `rules_include` has `demo.ARC001`.
+  `demo.ARC001`, stages `s` and `t` whose `rules_include` has `demo.ARC001`, and
+  `rules_always_include` that also has `demo.ARC001`.
 - **When** `selected_anywhere` runs.
-- **Then** `demo.ARC001` has the sources root `api`, root `web`, stage `s` and
-  stage `t`, in that order.
+- **Then** `demo.ARC001` has the sources root `api`, root `web`, stage `s`,
+  stage `t` and always-include, in that order.
 
 ### **AC-3** Excludes of a layer and the veto do not unselect
 
@@ -131,17 +143,18 @@ An entry counts whatever the roots.
 
 ### **AC-5** What cannot be expanded delivers nothing and raises nothing
 
-An entry that names nothing, is malformed or closes a cycle selects nothing, and
-the rest are still found.
+An entry that names nothing, is malformed or closes a cycle selects nothing for
+that part, and the rest are still found.
 
 #### Bad entries
 
 - **Given** the repository of AC-1 with a stage whose `rules_include` has
   `demo.ZZZ`, `Docs`, `demo.loop` and `demo.PAY001`, where `loop` is a rule
-  preset of `demo` that includes itself.
+  preset of `demo` that includes `ARC001` and itself.
 - **When** `selected_anywhere` runs.
 - **Then** it raises nothing, `demo.PAY001` is a key with the source of that
-  stage, and the bad entries add no key.
+  stage, `demo.ARC001` has that stage as a source through the route
+  `("demo.loop", "demo.ARC001")`, and the bad entries add no other key.
 
 ### **AC-6** An alias gives the canonical name
 
@@ -156,16 +169,35 @@ A ruleset's alias works in an entry and a source shows the canonical name.
 
 ### **AC-7** The answer is deterministic and needs no file
 
-The same config and rulesets give the same mapping in the order of C-2 of
-[wio rules](../../README.md), whatever the order of the tables and entries, and
-a config with no roots, stages or always fields gives an empty mapping.
+The same config and rulesets give the same `selected` and `removed` in the order
+of C-2 of [wio rules](../../README.md), whatever the order of the tables and
+entries, and a config with no roots, stages or always fields gives empty
+mappings.
 
 #### Two orders and an empty config
 
-- **Given** the repository of AC-2 declared in two orders, and a config with no
+- **Given** the repository of AC-8 declared in two orders, and a config with no
   roots, stages or always fields, with no file system.
 - **When** `selected_anywhere` runs on each.
-- **Then** the first two mappings are equal and the last is empty.
+- **Then** the first two results are equal, in both mappings, and the last has
+  empty mappings.
+
+### **AC-8** What the excludes of rule presets took out is recorded
+
+`removed` holds each rule that an exclude of a rule preset took out, with the
+entry that did, also when another entry delivers the rule.
+
+#### A rule in both mappings and a removal through a stage
+
+- **Given** the repository of AC-1, a root `web` whose rule preset `demo.family`
+  includes `ARC`, and a stage `u` whose `rules_include` has `demo.extra`, a rule
+  preset of `demo` that includes `PAY` and excludes `PAY002`.
+- **When** `selected_anywhere` runs.
+- **Then** `selected` has `demo.ARC002` with the source root `web`, and
+  `removed` has `demo.ARC002` with the source root `api` and the route
+  `("demo.recommended", "demo.ARC002")`, so the rule is in both; `removed` also
+  has `demo.PAY002` with the source stage `u` and the route
+  `("demo.extra", "demo.PAY002")`.
 
 ## Additional context
 

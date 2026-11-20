@@ -68,7 +68,7 @@ The names of the functions below are provisional.
   by `9r1zpd` over `expand` of `cyeth5` and the rules selected anywhere of
   `1gs341`.
 - **`--explain`** — the source of each rule and the reason a rule is out, built
-  by `qxfpg9` from the events and the routes of the selection.
+  by `qxfpg9` from the effects and the routes of the selection.
 
 ## Constraints
 

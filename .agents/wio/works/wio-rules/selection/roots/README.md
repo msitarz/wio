@@ -45,6 +45,13 @@ The roots that a Work lists are roots of the config, which `wio contracts check`
 already enforces, so a name that is not is a mistake that is refused, not a root
 to skip.
 
+### A-3
+
+`roots_of` reads the Work from the view of the `WorkLookup` it is given, and
+`wio.cli` gives the selector one `WorkLookup` of the working tree, so for
+`wio trailers` the roots, the config and the rule files are those of the working
+tree, which differ from the index only for a change that is not staged yet.
+
 ## Mechanisms
 
 The names of the types and the functions below are provisional.
@@ -70,8 +77,9 @@ The names of the types and the functions below are provisional.
 
 ### C-1
 
-`stage_roots` and `roots_of_path` do no input or output, and `roots_of` only
-reads. AC-7 verifies the two functions, and AC-1 and AC-3 the method.
+`stage_roots` and `roots_of_path` do no input or output, and `roots_of` writes
+nothing. AC-7 verifies the two functions, and AC-3 that `roots_of` writes
+nothing, with a file system that records every write.
 
 ## Acceptance criteria
 
@@ -108,9 +116,12 @@ methods of `WorkLookup` print or return.
 #### The commands as they were
 
 - **Given** the scenarios of the acceptance tests of `wio contracts` and of the
-  `wio.trailers` commands that use `WorkLookup`.
-- **When** they run after `roots_of` is added.
-- **Then** every output and exit code is what it was before.
+  `wio.trailers` commands that use `WorkLookup`, and a file system that records
+  every write.
+- **When** they run after `roots_of` is added, and `roots_of` is asked for a
+  Work on the recording file system.
+- **Then** every output and exit code is what it was before, and the file system
+  that records writes recorded none.
 
 ### **AC-4** The stage decides which roots count
 
@@ -197,5 +208,6 @@ roots of the config, of a root's paths and of a stage's `roots`.
   already finds a Work by id for the ports of `wio.trailers`, and one class may
   satisfy the ports of several consumers, so no second adapter is added.
 - `wio.context` declares a provisional `RuleSelection.select(contract, stage)`
-  whose contract holds the roots as written; the adapter of `5yb4tz` calls this
-  port with the Work's id, so that signature need not carry the roots.
+  whose contract holds the roots as written; the `RuleSelector` of `9pfyfe`
+  calls this port with the id of the contract's Work, so that signature need not
+  carry the roots and does not change.
