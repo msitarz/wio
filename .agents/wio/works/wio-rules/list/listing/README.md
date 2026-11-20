@@ -2,7 +2,7 @@
 id = "fjvj3x"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["5yb4tz", "ndwemw", "9pfyfe", "xs3dsj"]
+depends_on = ["5yb4tz", "ndwemw", "xs3dsj"]
 -->
 
 # Listing by selection
@@ -23,7 +23,10 @@ read them.
   indented form of `wio contracts list`, or one line of JSON for a program.
 - The block layout is one renderer in `wio.formats` that `wio contracts list`
   and `wio rules list` both use.
-- A selector that cannot be used is refused before anything is printed.
+- A selector that cannot be used is refused before anything is printed, with
+  exit 2.
+- The arguments of the command, and what it reads the project through, are
+  declared here for the other leaves of `list` to use.
 
 ## Non-Goals
 
@@ -37,38 +40,64 @@ read them.
 
 ### A-1
 
-A rule that is out for a view is shown only when `--explain` is given, or when
-the header says `not selected`, which `9r1zpd` sets for the rules that nothing
-selects, so a listing without either holds the included rules only, and a
-listing without layers holds every rule.
+`Listing.rows` holds every rule considered, and a row is shown by the renderer
+when its rule is included or has no decision, or when the row has an
+`Explanation`, or when the header says `not selected`, which `9r1zpd` sets for
+the rules that nothing selects, so a listing without those holds the included
+rules only, and a listing without layers holds every rule.
 
 ### A-2
 
-The text of the view for the roots that a stage selects names the Work and the
-stage, and the names of the layers that applied are `roots`, `stage` and
-`always fields`.
+The names of the layers that applied are `roots`, `stage` and `always fields`.
+
+### A-3
+
+The command runs the discovery once and gives `list_view` the rulesets it found,
+so `list` does not call `RuleSelector.selection`, which would discover again.
 
 ## Mechanisms
 
-The names of the types and the functions below are provisional.
+The names of the types and the functions below are provisional, except that the
+field sets of `Header`, `Row` and `Listing` are required, because `9r1zpd` and
+`qxfpg9` read and fill them.
 
-- **`Listing`** — frozen, with `header: Header` and `rows: tuple[Row, ...]`; a
-  `Row` holds the `Rule`, its `Decision` or none when no layers applied, the
-  routes that the references delivered it by, and an `Explanation` or none; a
-  `Header` holds the view, the layers applied, the roots or none when they are
-  not applied, the stage, and the references and `--not-selected` that narrowing
-  fills in.
-- **`list_view(request, config, rulesets, selector) -> Listing`** — in
-  `wio.rules`, built from the selectors of the request: `roots_of_path` and
-  `stage_roots` of `ndwemw`, `select` of `5yb4tz` and `RuleSelector.selection`
-  of `9pfyfe` for a Work; it does no input or output.
-- **The command's arguments** — `--root`, `--path`, `--work`, `--stage`,
-  `--explain` and `--json`, and the references, read into a request.
-- **`render_blocks`** — in `wio.formats`, which writes items as blocks: each
-  `Block` has an indent depth, a key, a title, an optional suffix and detail
-  lines; the first line is the key padded to the widest key of the output, two
-  spaces and the title, and the details are indented to the title; moved out of
-  `wio.contracts`, which then calls it.
+- **`Listing`, `Header`, `Row` and `Explanation`** — in a new
+  `wio.models.listing`. A `Listing` is frozen, with `header: Header` and
+  `rows: tuple[Row, ...]`. A `Header` is frozen, with `view: str`,
+  `work: str | None`, `layers: tuple[str, ...]`,
+  `roots: tuple[str, ...] | None`, `stage: str | None`,
+  `references: tuple[str, ...]` and `not_selected: bool`, the last two filled by
+  `9r1zpd`. A `Row` is frozen, with `rule: Rule`, `decision: Decision | None`,
+  `via: Routes` and `explanation: Explanation | None`. An `Explanation` is a
+  `Protocol` with `lines() -> tuple[str, ...]` and
+  `fields() -> Mapping[str, object]`, which `qxfpg9` implements.
+- **`ListRequest`** — frozen, with `root: str | None`,
+  `path: PurePosixPath | None`, `work: str | None`, `stage: str | None`,
+  `references: tuple[str, ...]`, `not_selected: bool`, `explain: bool` and
+  `as_json: bool`, read from the arguments below.
+- **`list_view(request, config, rulesets, work_roots) -> Listing`** — in
+  `wio.rules`, where `config` is the `Config`, `rulesets` is a
+  `Mapping[str, LoadedRuleset]` and `work_roots` is a `WorkRoots`; it calls
+  `roots_of_path` and `stage_roots` of `ndwemw` and `select` of `5yb4tz`, and
+  does no input or output of its own.
+- **The arguments** — `--root`, `--path`, `--work`, `--stage`, `--not-selected`,
+  `--explain` and `--json`, and the references as the positional arguments,
+  declared here as one entry of `SUBCOMMANDS` of `xs3dsj`; `--root`, `--path`
+  and `--work` are a mutually exclusive group, so a conflict is a usage error.
+  The behaviour of `--not-selected` is `9r1zpd`'s and that of `--explain` is
+  `qxfpg9`'s.
+- **`Services`** — `xs3dsj` declares it, and this Work adds
+  `work_roots: WorkRoots` to it and wires `WorkLookup` to it in `wio.cli`.
+- **The refusal** — the handler turns the `KeyError` for an unknown stage, root
+  or Work and the `ValueError` for a Work with no roots into a `WioError` that
+  names the cause, so that they exit 2 and not 70.
+- **`render_blocks`** — in `wio.formats`, with `Block` frozen as
+  `depth: int`, `key: str`, `title: str`, `suffix: str | None` and
+  `details: tuple[str, ...]`: `render_blocks(blocks: Sequence[Block]) -> str`
+  writes each first line as two spaces for each depth, the key padded to the
+  widest key of all the blocks, two spaces and the title, then two more spaces
+  and the suffix when there is one, and each detail on its own line indented to
+  the title; moved out of `wio.contracts`, which then calls it.
 - **The rendering of a listing** — the header lines, the blocks and the JSON,
   through `render_blocks` and `encode_json` of `wio.formats`.
 
@@ -84,12 +113,14 @@ of C-2 of [wio rules](../../README.md), with no layers applied.
 - **Given** a ruleset `demo` with `ARC001` named `keep-it-small` with the
   description `A rule is one instruction.` and `PAY001` named `pay-first`
   without one whose body starts `Pay the invoice first.`, and a ruleset `web`
-  with `WEB001`.
+  with `WEB001` named `web-rule` and an empty body.
 - **When** `wio rules list` runs.
-- **Then** the header says the view is every rule, that no layers applied and
-  that roots are not applied, and the blocks are `demo.ARC001  keep-it-small`
-  with the description under it, `demo.PAY001  pay-first` with the summary under
-  it, and `web.WEB001`, in that order, with no `roots:` line.
+- **Then** the header is the lines `view: every rule`, `layers: none` and
+  `roots: not applied`, a blank line follows, and the blocks are
+  `demo.ARC001  keep-it-small` with the description under it,
+  `demo.PAY001  pay-first` with the summary under it, and
+  `web.WEB001  web-rule`, in that order, with the codes padded to one width and
+  no `roots:` line.
 
 ### **AC-2** A root, a path or a Work gives the rules that apply to it
 
@@ -99,16 +130,17 @@ and the listing holds the rules that are included for those roots.
 #### The three selectors
 
 - **Given** a ruleset `demo` that declares `ARC` and `PAY` with `ARC001`,
-  `ARC002` and `PAY001`, a root `api` with the path `src/api` whose rule preset
-  includes `ARC`, a ruleset `web` whose rule `WEB001` no root reaches, a
-  root-independent ruleset `process` with `FIX001` in `rules_always_include`,
-  and a Work whose `roots` list `api`.
+  `ARC002` and `PAY001`, a rule preset `arc` that includes `ARC`, a root `api`
+  with the path `src/api` and `rule_presets = ["demo.arc"]`, a ruleset `web`
+  whose rule `WEB001` no root reaches, a root-independent ruleset `process` with
+  `FIX001` in `rules_always_include`, and a Work `W` whose `roots` list `api`.
 - **When** `wio rules list --root api`, `wio rules list --path src/api/app.py`
-  and `wio rules list --work <id>` run.
+  and `wio rules list --work W` run.
 - **Then** each shows `demo.ARC001` and `demo.ARC002` with `roots: api` and
   `process.FIX001` with `roots: every root`, and not `demo.PAY001` or
-  `web.WEB001`, and the header names the layers `roots` and `always fields` and
-  the roots `api`.
+  `web.WEB001`, and the header is `layers: roots, always fields` and
+  `roots: api` with `view: root api`, `view: file src/api/app.py` and
+  `view: Work W`.
 
 ### **AC-3** A stage adds its layer and without roots nothing is cut
 
@@ -116,50 +148,78 @@ and the listing holds the rules that are included for those roots.
 not applied, and lists each rule that is not root-independent with the roots
 that reach its ruleset.
 
-#### A stage alone
+#### A stage alone and with a root
 
 - **Given** the repository of AC-2 and a stage `s` whose `rules_include` has
   `demo.PAY001` and `web.WEB001`.
 - **When** `wio rules list --stage s` and `wio rules list --root api --stage s`
   run.
-- **Then** the first shows `demo.PAY001` with `roots: api`, `web.WEB001` with
-  `roots: none` and `process.FIX001` with `roots: every root`, and its header
-  says that roots are not applied; the second shows `demo.PAY001`,
-  `demo.ARC001`, `demo.ARC002` and `process.FIX001` and not `web.WEB001`.
+- **Then** the first, whose header is `view: stage s`,
+  `layers: stage, always fields` and `roots: not applied`, shows `demo.PAY001`
+  with `roots: api`, `process.FIX001` with `roots: every root` and `web.WEB001`
+  with `roots: none`, in the order of C-2; the second, whose header also has the
+  line `stage: s`, shows `demo.ARC001`, `demo.ARC002`, `demo.PAY001` and
+  `process.FIX001`, in that order, and not `web.WEB001`.
 
-### **AC-4** Rules that are out are shown only with `--explain`
+### **AC-4** `--work` alone gives the Work's roots and `--stage` decides which count
 
-A rule that a layer excluded or the roots cut is left out of the listing and
-shown only with `--explain`, with the fact that it is out.
+`--work` without `--stage` lists the rules of the Work's own roots with no stage
+layer, and with `--stage` the stage's `roots` decide which roots count.
+
+#### With and without a stage
+
+- **Given** the repository of AC-2, a ruleset `web` with a rule preset `core`
+  that includes `WEB001`, a root `ui` with `rule_presets = ["web.core"]`, a
+  stage `s` with no rules of its own and no `roots`, and a stage `t` with
+  `roots = ["ui"]`.
+- **When** `wio rules list --work W`, `wio rules list --work W --stage s` and
+  `wio rules list --work W --stage t` run.
+- **Then** the first and the second show `demo.ARC001`, `demo.ARC002` and
+  `process.FIX001`, and the third shows `web.WEB001` and `process.FIX001` and no
+  rule of `demo`, its header being `roots: ui`.
+
+### **AC-5** A rule that is out is shown only when it is asked for
+
+A row whose rule is out is shown only when it has an `Explanation` or the header
+says `not selected`, and it carries its decision in the JSON.
 
 #### Included and out
 
-- **Given** the repository of AC-2 and a stage `x` whose `rules_exclude` has
-  `demo.ARC002`.
+- **Given** the repository of AC-2 with a stage `x` whose `rules_exclude` has
+  `demo.ARC002`, and a `Listing` built by hand with the same rows, one with a
+  fake `Explanation` and one with the header marked `not selected`.
 - **When** `wio rules list --root api --stage x` and the same with `--explain`
-  run.
-- **Then** the first lacks `demo.ARC002`, and the second shows it marked as out.
+  run on the repository, and the renderer runs on the hand-built listings.
+- **Then** the first lacks `demo.ARC002`, the second shows it, with `included`
+  false in the JSON, and the renderer shows the out rows of the two hand-built
+  listings and hides them in an unmarked one.
 
-### **AC-5** A selector that cannot be used is refused
+### **AC-6** A selector that cannot be used is refused
 
-An unknown stage or root, and a path outside the repository, are each refused
+Two selectors of `--root`, `--path` and `--work`, an unknown stage, root or
+Work, a Work with no roots and a path outside the repository are each refused
 with exit 2 and a message on standard error, and nothing is printed on standard
 output.
 
 #### Refusals of the views
 
-- **Given** the repository of AC-2.
-- **When** `wio rules list --stage none`, `wio rules list --root none` and
+- **Given** the repository of AC-2 and a Work `N` that lists no roots.
+- **When** `wio rules list --root api --path src/x.py`,
+  `wio rules list --stage none`, `wio rules list --root none`,
+  `wio rules list --work none`, `wio rules list --work N` and
   `wio rules list --path ../x.py` run.
-- **Then** each exits 2 and says which name does not exist or that the path is
-  outside the repository, and prints nothing on standard output.
+- **Then** each exits 2 and says which flags conflict, which name does not
+  exist, that the Work `N` has no roots, or that the path is outside the
+  repository, and prints nothing on standard output.
 
-### **AC-6** The text is indented blocks with a header
+### **AC-7** The text is a header and indented blocks
 
-The text holds a header of `key: value` lines, a blank line, and one block for
-each rule, whose first line is the qualified code padded to the widest code, two
-spaces and the name, with detail lines written only when they have something to
-say.
+The text holds the header lines `view:`, `layers:` and `roots:`, then `stage:`
+when a stage is given and the view is not the stage, `references:` when there
+are references and `filter: not selected` when marked, a blank line, and one
+block for each shown rule, whose first line is the qualified code padded to the
+widest code, two spaces and the name, with detail lines written only when they
+have something to say.
 
 #### The layout
 
@@ -171,21 +231,37 @@ say.
   rule without a description or a summary has no description line, nothing is
   cut or wrapped, and the output ends in a newline.
 
-### **AC-7** The JSON is one line with a fixed order
+### **AC-8** The JSON is one line with the header and the rules
 
-`--json` prints one object on one line with the header and the rules, with the
-same information as the text.
+`--json` prints one object on one line with the header keys and the rules, with
+the same information as the text.
 
 #### Text and JSON
 
 - **Given** the repository of AC-2.
-- **When** `wio rules list --root api --explain` runs as text and with `--json`.
-- **Then** the document holds `view`, `layers`, `roots`, `stage` and `rules` in
-  that order, each rule has `code`, `name`, `description` that is `null` when
-  there is none, `summary`, `roots`, `root_independent` and `included`, then the
-  fields of its explanation, and the rules are the ones the text shows.
+- **When** `wio rules list --work W --stage s --explain` runs as text and with
+  `--json`.
+- **Then** the document holds `view`, `work`, `layers`, `roots`, `stage`,
+  `references`, `not_selected` and `rules` in that order, with `work` `"W"`,
+  `roots` `["api"]`, `stage` `"s"`, `references` `[]` and `not_selected` false;
+  each rule has `code`, `name`, `description` that is `null` when there is none,
+  `summary`, `roots`, `root_independent` and `included`, then the fields of its
+  explanation, and the rules are the ones the text shows.
 
-### **AC-8** One renderer serves both commands and changes nothing
+### **AC-9** The renderer prints an explanation without knowing it
+
+A row with an `Explanation` has its `lines()` printed under its block and its
+`fields()` added to its JSON object.
+
+#### A fake explanation
+
+- **Given** a `Listing` whose row has an `Explanation` whose `lines()` is
+  `("note: one",)` and whose `fields()` is `{"note": "one"}`.
+- **When** the listing is rendered as text and as JSON.
+- **Then** the block has the line `note: one` under its other details, and the
+  object has `"note": "one"` after the fields of the rule.
+
+### **AC-10** One renderer serves both commands and changes nothing
 
 `wio contracts list` prints through `render_blocks` and its output, in text and
 in JSON, is what it was before.
@@ -198,25 +274,44 @@ in JSON, is what it was before.
   blocks.
 - **Then** every output of `wio contracts list` is byte for byte what it was,
   and `render_blocks` pads the keys to the widest, indents each block by two
-  spaces for each depth, and indents the details to the title.
+  spaces for each depth, writes the suffix after two more spaces, and indents
+  the details to the title.
 
-### **AC-9** The listing is deterministic and `list_view` needs no file
+### **AC-11** The listing is deterministic and `list_view` needs no file
 
 The same config, rulesets and arguments give the same listing in the order of
 C-2, whatever the order of the tables and entries.
 
 #### Two orders
 
-- **Given** the repository of AC-2 declared in two orders, with no file system.
+- **Given** the repository of AC-2 declared in two orders, with no file system
+  and a fake `WorkRoots`.
 - **When** `list_view` runs for each selector on each.
 - **Then** the listings are equal.
 
+### **AC-12** The boundaries of a listing
+
+An empty listing, a path in no root and a listing without layers have defined
+forms.
+
+#### Three boundaries
+
+- **Given** a repository with no rules, the repository of AC-2 with a file
+  `docs/readme.md`, and the repository of AC-1.
+- **When** `wio rules list`, `wio rules list --path docs/readme.md` and
+  `wio rules list --json` run on each.
+- **Then** the first prints the header, a blank line and nothing else, with
+  `"rules": []` in the JSON; the second has `roots: none`, applies no root and
+  shows only `process.FIX001` with `roots: every root`; and the third has for
+  each rule `roots` and `root_independent` null and `included` true, because no
+  decision was made.
+
 ## Additional context
 
-- The refusals of two selectors together, an unknown Work, a Work with no roots,
-  a reference that names nothing and a fault in the rules are verified by AC-3
-  of [wio rules list](../README.md), because the command raises them from more
-  than one of the leaves.
+- The refusals that more than one leaf can raise, a reference that names nothing
+  and a fault in the rules, are verified by AC-3 of
+  [wio rules list](../README.md); the others are verified here.
 - `render_blocks` takes the layout of `render_list` in
-  `src/wio/contracts/listing.py` and its first-line, padding and indent rules,
-  with the hierarchy left to the caller, which gives each block its depth.
+  [`src/wio/contracts/listing.py`](../../../../../../src/wio/contracts/listing.py)
+  and its first-line, padding and indent rules, with the hierarchy left to the
+  caller, which gives each block its depth.

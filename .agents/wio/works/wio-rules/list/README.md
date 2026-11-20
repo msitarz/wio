@@ -35,11 +35,13 @@ so nobody can ask which rules apply or where a rule came from.
 
 ### A-1
 
-The views are the concepts' table of views with the flag `--preset` replaced by
-references: no selector lists the rules that the references name with no layers,
-`--root`, `--stage`, `--work` and `--path` give the roots and the stage, and a
-reference is one of the forms `<ruleset>.<item>`, such as
-`demo.ARC001` or `demo.all`, or the bare name of a rule preset of the config.
+The views are the table of views in
+[the concepts](../../../../../docs/concepts.md#listing-rules) with the flag
+`--preset` replaced by references: no selector lists the rules that the
+references name with no layers, `--root`, `--stage`, `--work` and `--path` give
+the roots and the stage, and a reference is one of the forms `<ruleset>.<item>`,
+such as `demo.ARC001` or `demo.all`, or the bare name of a rule preset of the
+config.
 
 ### A-2
 
@@ -59,28 +61,50 @@ rule is a candidate.
 The names of the functions below are provisional.
 
 - **`wio rules list`** — the command, built by the integration of this Work from
-  the pieces below, which reads the config and the rule files through the ports
-  and writes through `render` of `wio.formats`.
+  the pieces below: the arguments and the entry of `SUBCOMMANDS` are `fjvj3x`'s,
+  and the integration runs the discovery once, refuses on an error of it, and
+  passes the listing through the pipeline of C-2 to the output of `fjvj3x`,
+  which writes through `render_blocks` and `encode_json` of `wio.formats`.
 - **The views and the output** — the selectors, their refusals, the header and
   the text and JSON of a listing, built by `fjvj3x` over `select` of `5yb4tz`
   and the roots of `ndwemw`.
 - **Narrowing** — the references that filter a view and `--not-selected`, built
   by `9r1zpd` over `expand` of `cyeth5` and the rules selected anywhere of
   `1gs341`.
-- **`--explain`** — the source of each rule and the reason a rule is out, built
+- **`--explain`** — the origin of each rule and the reason a rule is out, built
   by `qxfpg9` from the effects and the routes of the selection.
 
 ## Constraints
 
 ### C-1
 
-A refusal, a conflict of selectors, a reference that names nothing or a fault in
-the rules, exits 2 with its message on standard error and prints nothing on
-standard output. AC-3 verifies it.
+A refusal of this command prints nothing on standard output, as
+[the command line](../../../../../src/wio/cli/README.md) requires, and a
+refusal that a reference or a conflict raises happens before any output. AC-3
+verifies it.
+
+### C-2
+
+The pipeline is in this order: `list_view` of `fjvj3x` builds the `Listing`,
+`narrow` of `9r1zpd` narrows it, `explain` of `qxfpg9` explains it, and the
+renderer of `fjvj3x` prints it. AC-1 verifies it.
+
+### C-3
+
+`Listing.rows` holds every rule that the view considers, and the renderer shows
+a row only when its rule is included or has no decision, or when it has an
+`Explanation`, or when the header says `not selected`. AC-2 verifies it.
+
+### C-4
+
+The header holds `view`, `work`, `layers`, `roots`, `stage`, `references` and
+`not_selected`, in that order in the JSON, and every flag is declared by
+`fjvj3x`: the header, the flags and `Services` are verified by AC-8 and AC-4 of
+that Work.
 
 ## Visuals
 
-The diagrams are drawn from commit `f8b00d8` of the branch
+The diagrams are drawn from commit `1ddc8e1` of the branch
 `docs/define-rules-tree`, and show only what the Work changes.
 
 ### Before
@@ -111,6 +135,8 @@ flowchart LR
     end
     sel["select, expand, rules selected anywhere"]
     roots["roots of a Work, a stage or a file"]
+    shell["SUBCOMMANDS and Services with WorkRoots (xs3dsj)"]
+    shell --> views
     views --> roots
     views --> sel
     sel --> narrow
@@ -124,7 +150,7 @@ flowchart LR
 
 `wio rules list` combines a view, references and `--explain` in one listing: the
 rules of the view that the references name, each by its qualified code, name and
-description or summary, with its source or the reason it is out.
+description or summary, with its origin or the reason it is out.
 
 #### A Work at a stage, narrowed and explained
 
@@ -138,7 +164,9 @@ description or summary, with its source or the reason it is out.
 - **Then** the first shows `demo.ARC001` with the root `api` and the route
   `demo.recommended`, `demo.PAY001` with its description and the layer `stage`,
   and `demo.ARC002` and `demo.PAY002` out with their reasons, and a header that
-  names the layers applied; the second shows `demo.ARC001` only.
+  names the layers applied; the second shows `demo.ARC001` only. This is the
+  system-level check that the pipeline composes, as AC-5 and AC-6 of
+  [wio rules](../README.md) check the same selection from `context`.
 
 ### **AC-2** `--not-selected` limits any view to the rules that nothing selects
 
@@ -157,42 +185,27 @@ among the candidates of the view as A-3 says.
   `web`, the third shows `demo.PAY002`, and the fourth shows `demo.ARC002`,
   `demo.PAY002` and `web.WEB001`.
 
-### **AC-3** What cannot be listed is refused
+### **AC-3** A refusal prints nothing, whichever leaf raises it
 
-Conflicting selectors, a Work that does not exist or has no roots, a reference
-that names nothing, the flag that was dropped and a fault in the rules are each
-refused before anything is printed.
+A conflict of selectors, a reference that names nothing and a fault in the rules
+exit 2 with the message on standard error and nothing on standard output, so
+each is refused before any output.
 
-#### Usage refusals
+#### One of each source
 
-- **Given** the repository of AC-1.
-- **When** `wio rules list --root api --path src/x.py`,
-  `wio rules list --work none`, `wio rules list recommended`,
-  `wio rules list Docs` and `wio rules list --preset demo.recommended` run.
-- **Then** each exits 2, with a message on standard error that says which flags
-  conflict, that no Work has the id `none`, that `recommended` names no rule
-  preset of the config, that `Docs` is not a reference, and that `--preset` is
-  not an option, and each prints nothing on standard output.
-
-#### A Work without roots
-
-- **Given** a Work that lists no roots.
-- **When** `wio rules list --work <id>` and
-  `wio rules list --work <id> --stage s`, with a stage `s` that has no `roots`,
-  run.
-- **Then** each exits 2 with a message on standard error that says the Work has
-  no roots, and prints nothing on standard output.
-
-#### A fault in the rules
-
-- **Given** a repository with a ruleset `bad` that holds two rules of one code.
-- **When** `wio rules list demo.all` runs.
-- **Then** it exits 2 with the error of the duplicate code on standard error and
-  prints nothing on standard output.
+- **Given** the repository of AC-1 and a second ruleset `bad` that holds two
+  rules of one code.
+- **When** `wio rules list --root api --path src/x.py`, `wio rules list Docs`
+  and `wio rules list demo.all` run, and
+  `wio rules list --preset demo.recommended` runs on the repository without
+  `bad`.
+- **Then** each exits 2, the messages say which flags conflict, that `Docs` is
+  not a reference, the duplicate code, and that `--preset` is not an option, and
+  none prints anything on standard output.
 
 ### **AC-4** The JSON holds the same listing as the text
 
-`--json` prints one document with the same rules, header information, sources
+`--json` prints one document with the same rules, header information, origins
 and reasons as the text.
 
 #### Text and JSON
@@ -200,37 +213,9 @@ and reasons as the text.
 - **Given** the repository of AC-1.
 - **When** `wio rules list demo.all --work <id> --stage s --explain` runs as
   text and with `--json`.
-- **Then** the document holds the layers applied, the roots, and every rule with
-  its qualified code, name, description or summary, roots, sources and reason,
+- **Then** the document holds the header keys of C-4, the references `demo.all`,
+  and every rule with the fields that AC-8 of `fjvj3x` and AC-6 of `qxfpg9` fix,
   and nothing that the text lacks.
-
-### **AC-5** `--work` alone gives the Work's roots, `--stage` adds the stage
-
-`--work` without `--stage` lists the rules of the Work's own roots with no stage
-layer, and `--stage` with it adds the stage's layer and lets the stage decide
-which roots count.
-
-#### With and without a stage
-
-- **Given** the repository of AC-1, a ruleset `web` that holds `WEB001` and a
-  rule preset `core` that includes it, a root `web` with
-  `rule_presets = ["web.core"]`, and a stage `t` with `roots = ["web"]`.
-- **When** `wio rules list --work <id>`, `wio rules list --work <id> --stage s`
-  and `wio rules list --work <id> --stage t` run.
-- **Then** the first shows `demo.ARC001` and not `demo.PAY001`, the second also
-  shows `demo.PAY001`, and the third shows `web.WEB001` and no rule of `demo`.
-
-### **AC-6** Without a view or a reference every rule is listed
-
-`wio rules list` with no selector and no reference lists every rule of every
-ruleset in order, with no layers applied.
-
-#### Everything
-
-- **Given** the repository of AC-2.
-- **When** `wio rules list` runs.
-- **Then** it shows every rule of `demo` and `web` in the order of C-2 of
-  [wio rules](../README.md), and its header says that no layers were applied.
 
 ## Additional context
 

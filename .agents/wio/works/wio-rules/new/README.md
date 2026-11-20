@@ -217,7 +217,7 @@ A warning of the discovery does not refuse the command.
 
 ### **AC-9** The result says whether anything selects the new rule
 
-The result tells whether some entry delivers the new rule, and by which source,
+The result tells whether some entry delivers the new rule, and by which origin,
 in the chain form of `wio rules list --explain`.
 
 #### Selected and not yet
@@ -237,14 +237,14 @@ in the chain form of `wio rules list --explain`.
 ### **AC-10** The JSON is one line with a fixed order
 
 `--json` prints one object on one line with the qualified code, the name, the
-path, whether it is selected and the sources.
+path, whether it is selected and the origins.
 
 #### Text and JSON
 
 - **Given** the repository of AC-9.
 - **When** the two requests of AC-9 run with `--json`.
-- **Then** each document has `code`, `name`, `path`, `selected` and `sources` in
-  that order, with `code` the qualified code, `selected` true and `sources` the
+- **Then** each document has `code`, `name`, `path`, `selected` and `origins` in
+  that order, with `code` the qualified code, `selected` true and `origins` the
   two arrays of labels such as `["root api", "demo.recommended", "demo.ARC"]`
   for the first, and false and an empty array for the second, and says what the
   text says.

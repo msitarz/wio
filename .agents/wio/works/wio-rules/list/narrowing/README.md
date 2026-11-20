@@ -24,8 +24,8 @@ selects, without reading it all.
 
 ## Non-Goals
 
-- Building the listing and rendering it, which `fjvj3x` does, and explaining its
-  rules, which `qxfpg9` does.
+- Building the listing and rendering it, and declaring the arguments, which
+  `fjvj3x` does, and explaining its rules, which `qxfpg9` does.
 - Deciding which rules are selected anywhere, which `1gs341` does.
 - Expanding a reference, which `expand` of `cyeth5` does.
 
@@ -44,25 +44,40 @@ the person asked about each.
 
 ### A-3
 
-With a view that applies roots, the candidates of `--not-selected` are the rules
-whose ruleset is root-independent or reached by the roots of the view, as A-3 of
-[wio rules list](../README.md) says; without roots every rule is a candidate.
+The candidates of `--not-selected` are those that A-3 of
+[wio rules list](../README.md) states.
+
+### A-4
+
+A reference whose expansion returns any problem is refused, at any depth: a
+name that names nothing, a malformed one, a cycle, and a bad entry inside a rule
+preset that the reference reaches, because the person asked about it and a
+partial listing would hide that part of it was not read.
 
 ## Mechanisms
 
 The names of the functions below are provisional.
 
 - **`narrow(listing, references, not_selected, config, rulesets) -> Listing`** —
-  in `wio.rules`, on the `Listing` of `fjvj3x`; it does no input or output and
-  returns a listing whose header names the references and `--not-selected`, and
-  whose rows record the routes by which the references delivered each rule.
+  in `wio.rules`, with `listing: Listing` of `fjvj3x`, `references` as a
+  `Sequence[str]`, `not_selected: bool`, `config: Config` and
+  `rulesets: Mapping[str, LoadedRuleset]`; it does no input or output. It keeps
+  the rows whose rule a reference delivers, and with `not_selected` the rows of
+  the candidates that `selected_anywhere` does not select, shown although they
+  are out. It returns a listing whose header names the references and
+  `--not-selected`, and whose rows hold in `via`, a `Routes`, the routes by
+  which the references delivered the rule.
 - **The references** — `expand` of `cyeth5` for each, in the config scope.
 - **Selected anywhere** — `selected_anywhere` of `1gs341`, whose `selected` has
   as keys the rules that some entry delivers.
-- **The reach of the roots** — `reach` of `apply_layers` of `cm25z9`, for the
-  candidates of a view that applies roots.
+- **The reach of the roots** — the `reach` of `apply_layers(None, None, config,
+  rulesets)` of `cm25z9`, a second call that answers only the reach, which does
+  not depend on the roots or the stage, and that C-2 of the selection Work does
+  not forbid, because it forbids a second computation of the decisions.
 - **The refusal** — a `WioError` that names the reference, which `wio.cli` turns
-  into exit 2.
+  into exit 2; the scope of the expansion decides the wording, so a name that
+  names nothing in a ruleset is said to name nothing in it, and a bare name that
+  is not a rule preset of the config is said to be none.
 
 ## Acceptance criteria
 
@@ -78,9 +93,9 @@ and no others, and its header names the reference as it was written.
   `ARC` and excludes `ARC002`, and the listing of every rule with no layers.
 - **When** `narrow` runs for the references `demo.recommended`, `demo.ARC`,
   `demo.PAY001` and `demo.all`, each alone.
-- **Then** the rules are `ARC001`; `ARC001` and `ARC002`; `PAY001`; and all
-  four, each header names its reference, and the row of `ARC001` for the first
-  records the route `demo.recommended`, `demo.ARC`.
+- **Then** the rows are `ARC001`; `ARC001` and `ARC002`; `PAY001`; and all four,
+  each header names its reference, and the row of `ARC001` for the first records
+  the route `demo.recommended`, `demo.ARC`.
 
 ### **AC-2** Several references keep the rules that any delivers
 
@@ -91,21 +106,23 @@ them delivers, once, in the order of C-2 of [wio rules](../../README.md).
 
 - **Given** the repository of AC-1.
 - **When** `narrow` runs for `demo.PAY` and `demo.ARC001` together.
-- **Then** the rules are `ARC001`, `PAY001` and `PAY002`, in that order, and the
+- **Then** the rows are `ARC001`, `PAY001` and `PAY002`, in that order, and the
   header names both references.
 
 ### **AC-3** A reference narrows a listing that applied layers
 
-A reference keeps, among the rules of a layered listing, those that it delivers,
-and an empty result is not an error.
+A reference keeps, among the rows of a layered listing, those whose rule it
+delivers, and a result that shows nothing is not an error.
 
 #### Within a view
 
 - **Given** the repository of AC-1 with a root `api` whose rule preset
-  `demo.recommended` includes `ARC`, and the listing of the root `api`.
+  `demo.recommended` includes `ARC`, and the listing of the root `api`, which
+  holds every rule with its decision.
 - **When** `narrow` runs for `demo.ARC001`, and for `demo.PAY`.
-- **Then** the first holds `ARC001` with its decision and roots, and the second
-  holds no rule and is no error.
+- **Then** the first holds the row of `ARC001`, included and with its roots, and
+  the second holds only the out rows of `PAY001` and `PAY002`, so nothing is
+  shown, and neither is an error.
 
 ### **AC-4** `--not-selected` keeps the rules that no entry delivers
 
@@ -119,8 +136,8 @@ not select, shows them although they are out, and marks the header.
   `demo.PAY001`, a ruleset `web` with `WEB001` that no root reaches, and the
   listing of every rule with no layers.
 - **When** `narrow` runs with `--not-selected` and no references.
-- **Then** the rules are `ARC002`, `PAY002` and `WEB001`, the header says
-  `not selected`, and none of `ARC001` or `PAY001`, which entries deliver, is
+- **Then** the rows are `ARC002`, `PAY002` and `WEB001`, the header says
+  `not selected`, and neither `ARC001` nor `PAY001`, which entries deliver, is
   held.
 
 ### **AC-5** The candidates follow the roots of the view
@@ -148,23 +165,24 @@ entry delivers, so it says whether a rule preset or a family is in use.
   includes `PAY` and that no root, stage or always field names.
 - **When** `narrow` runs with `--not-selected` for `demo.spare`, for
   `demo.recommended` and for `demo.PAY`.
-- **Then** the first holds `PAY002`, the second holds no rule, because a root
+- **Then** the first holds `PAY002`, the second holds no row, because a root
   names it, and the third holds `PAY002`.
 
 ### **AC-7** A reference that cannot be used is refused
 
-A reference that names nothing, is not in the form of a reference, or closes a
-cycle is refused with its name, and no listing is returned.
+A reference that names nothing, is not in the form of a reference, closes a
+cycle, or reaches a rule preset with a bad entry is refused with its name, and
+no listing is returned.
 
 #### Refusals
 
-- **Given** the repository of AC-1 and a rule preset `loop` of `demo` that
-  includes itself.
+- **Given** the repository of AC-1, a rule preset `loop` of `demo` that includes
+  itself, and a rule preset `bad` of `demo` that includes `ZZZ`.
 - **When** `narrow` runs for `demo.ZZZ`, `demo.ARC999`, `demo.none`, `Docs`,
-  `recommended` and `demo.loop`, each alone.
+  `recommended`, `demo.loop` and `demo.bad`, each alone.
 - **Then** each raises a `WioError` that names the reference and says why: that
   it names nothing in its ruleset, is not a reference, is not a rule preset of
-  the config, or is a cycle.
+  the config, is a cycle, or reaches the entry `ZZZ` that names nothing.
 
 ### **AC-8** The result is deterministic and needs no file
 
@@ -181,10 +199,10 @@ the order of the references and of the tables, and `narrow` reads no file.
 
 ## Additional context
 
-- A rule that is out is shown by `--not-selected` although `fjvj3x` hides such
-  rules without `--explain`; the header's `not selected` mark is what tells the
-  renderer to show them, which that Work's criteria and this one verify from
-  both sides.
+- A rule that is out is shown by `--not-selected` although the renderer of
+  `fjvj3x` hides out rows otherwise; the header's `not selected` mark is what
+  tells it to show them, which AC-5 of that Work and AC-4 of this one verify
+  from both sides.
 - Whether any session would receive an unselected rule, for example because the
   only entry that names it is one that no root reaches, is not asked here; it is
   the warning of `785y9k` and a possible later view.

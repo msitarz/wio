@@ -459,7 +459,7 @@ the rule has no description.
   name and summary; its header names the layers it applied, which are none for
   `demo.recommended`, the root's rule presets and the always fields for `--root`
   and `--path`, the stage and the always fields for `--stage`, and all of them
-  for `--work`; and `--explain` names among the sources of the rule the root
+  for `--work`; and `--explain` names among the origins of the rule the root
   `api` and the rule preset `demo.recommended`.
 
 ### **AC-7** A rule file of either form is treated alike

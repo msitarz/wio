@@ -193,7 +193,8 @@ mapping, whatever the order of the inputs.
   satisfies them structurally, as `WorkLookup` satisfies the ports of
   `wio.trailers`, and `wio.cli` replaces the `NoRules` that it wires to
   `wio.trailers` today with this class, which C-2 states.
-- `wio rules list` for a Work at a stage may call `selection` instead of
-  repeating its steps, which the criteria of `fjvj3x` verify.
+- `wio rules list` does not call `selection`: it runs the discovery once itself
+  and calls `select` of `5yb4tz` with the roots that `stage_roots` gives, as
+  `fjvj3x` states.
 - `wio.context` will write a hash for every rule in its `context` event and will
   use `rule_hash` for it, which is why the function lives in `wio.formats`.

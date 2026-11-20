@@ -67,7 +67,7 @@ and `qxfpg9` read them.
   none for the others.
 - **`LayerEffect` and `Routes`** — move to `wio.models.rules` from `cm25z9` and
   `cyeth5`, because a `Decision` holds them and a model may not import a
-  component; `Source` of `1gs341` also holds `Routes`.
+  component; `Origin` of `1gs341` also holds `Routes`.
 - **`select(roots, stage, config, rulesets) -> Selection`** — the function in
   `wio.rules`, not the method of the same name of `RuleSelector`, where `roots`
   is a `tuple[str, ...]` or `None` and `stage` is a name or `None`; it calls

@@ -60,18 +60,18 @@ The names of the types and the functions below are provisional.
 - **`selected_anywhere(config, rulesets) -> SelectedAnywhere`** — in
   `wio.rules`, where `config` is the `Config` and `rulesets` is a
   `Mapping[str, LoadedRuleset]`; a `SelectedAnywhere` holds
-  `selected: Mapping[Rule, tuple[Source, ...]]`, only the rules that some entry
+  `selected: Mapping[Rule, tuple[Origin, ...]]`, only the rules that some entry
   delivers, so a rule that is not a key of it is unselected, and
-  `removed: Mapping[Rule, tuple[Source, ...]]`, the rules that an exclude of a
+  `removed: Mapping[Rule, tuple[Origin, ...]]`, the rules that an exclude of a
   rule preset took out, with the entries; it does no input or output, and the
-  criteria below speak of the keys and sources of `selected` unless they say
+  criteria below speak of the keys and origins of `selected` unless they say
   `removed`.
-- **`Source`** — frozen, in `wio.rules` beside `SelectedAnywhere`, with
+- **`Origin`** — frozen, in `wio.rules` beside `SelectedAnywhere`, with
   `layer: Literal["root", "stage", "always-include"]`, the layers of
   `LayerEffect` of `cm25z9` that include, `name: str | None`, the root or the
   stage or none, and `routes: Routes`, the routes of `cyeth5` that led from the
   entry to the rule; its field set is required, because `qxfpg9` reads it.
-- **The sources** — the rule presets of each root, the `rules_include` of each
+- **The entries** — the rule presets of each root, the `rules_include` of each
   stage and `rules_always_include`, each expanded with `expand` of `cyeth5` and
   no excludes of its own layer.
 
@@ -79,15 +79,15 @@ The names of the types and the functions below are provisional.
 
 ### C-1
 
-`selected_anywhere` does no input or output, and its sources are in the order
+`selected_anywhere` does no input or output, and its origins are in the order
 root, stage, always-include, then by name, then by route. AC-7 verifies it.
 
 ## Acceptance criteria
 
-### **AC-1** A rule that an entry delivers is selected, with its sources
+### **AC-1** A rule that an entry delivers is selected, with its origins
 
 Each rule that a root's rule presets, a stage's `rules_include` or
-`rules_always_include` expands to is a key, with a source that names the layer
+`rules_always_include` expands to is a key, with an origin that names the layer
 and the root or the stage, and a rule that no entry delivers is not.
 
 #### One of each kind
@@ -100,14 +100,14 @@ and the root or the stage, and a rule that no entry delivers is not.
   `rules_always_include = ["process.all"]`.
 - **When** `selected_anywhere` runs.
 - **Then** the keys are `demo.ARC001`, `demo.PAY001` and `process.FIX001`, with
-  the sources root `api`, stage `s` and always-include, each with its routes,
+  the origins root `api`, stage `s` and always-include, each with its routes,
   `demo.ARC002` and `demo.PAY002` are not keys, and `removed` holds
-  `demo.ARC002` with the source root `api` and the route `demo.recommended`,
+  `demo.ARC002` with the origin root `api` and the route `demo.recommended`,
   `demo.ARC002`.
 
-### **AC-2** A rule with several sources has all of them in order
+### **AC-2** A rule with several origins has all of them in order
 
-A rule that several entries deliver has one source for each, sorted by layer in
+A rule that several entries deliver has one origin for each, sorted by layer in
 the order root, stage, always-include, then by name, then by route.
 
 #### Several entries
@@ -116,7 +116,7 @@ the order root, stage, always-include, then by name, then by route.
   `demo.ARC001`, stages `s` and `t` whose `rules_include` has `demo.ARC001`, and
   `rules_always_include` that also has `demo.ARC001`.
 - **When** `selected_anywhere` runs.
-- **Then** `demo.ARC001` has the sources root `api`, root `web`, stage `s`,
+- **Then** `demo.ARC001` has the origins root `api`, root `web`, stage `s`,
   stage `t` and always-include, in that order.
 
 ### **AC-3** Excludes of a layer and the veto do not unselect
@@ -139,7 +139,7 @@ An entry counts whatever the roots.
 - **Given** a ruleset `py` that no root reaches, and a stage whose
   `rules_include` has `py.review`.
 - **When** `selected_anywhere` runs.
-- **Then** the rules of `py.review` are keys with the source of that stage.
+- **Then** the rules of `py.review` are keys with the origin of that stage.
 
 ### **AC-5** What cannot be expanded delivers nothing and raises nothing
 
@@ -152,13 +152,13 @@ that part, and the rest are still found.
   `demo.ZZZ`, `Docs`, `demo.loop` and `demo.PAY001`, where `loop` is a rule
   preset of `demo` that includes `ARC001` and itself.
 - **When** `selected_anywhere` runs.
-- **Then** it raises nothing, `demo.PAY001` is a key with the source of that
-  stage, `demo.ARC001` has that stage as a source through the route
+- **Then** it raises nothing, `demo.PAY001` is a key with the origin of that
+  stage, `demo.ARC001` has that stage as an origin through the route
   `("demo.loop", "demo.ARC001")`, and the bad entries add no other key.
 
 ### **AC-6** An alias gives the canonical name
 
-A ruleset's alias works in an entry and a source shows the canonical name.
+A ruleset's alias works in an entry and an origin shows the canonical name.
 
 #### An alias
 
@@ -193,10 +193,10 @@ entry that did, also when another entry delivers the rule.
   includes `ARC`, and a stage `u` whose `rules_include` has `demo.extra`, a rule
   preset of `demo` that includes `PAY` and excludes `PAY002`.
 - **When** `selected_anywhere` runs.
-- **Then** `selected` has `demo.ARC002` with the source root `web`, and
-  `removed` has `demo.ARC002` with the source root `api` and the route
+- **Then** `selected` has `demo.ARC002` with the origin root `web`, and
+  `removed` has `demo.ARC002` with the origin root `api` and the route
   `("demo.recommended", "demo.ARC002")`, so the rule is in both; `removed` also
-  has `demo.PAY002` with the source stage `u` and the route
+  has `demo.PAY002` with the origin stage `u` and the route
   `("demo.extra", "demo.PAY002")`.
 
 ## Additional context
