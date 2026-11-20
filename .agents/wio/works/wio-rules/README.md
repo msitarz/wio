@@ -16,7 +16,7 @@ stage's guidance cannot be created with stable codes, checked or listed, and
 ## Goals
 
 - A rule is created in a ruleset with the next code of its family, so codes
-  never clash.
+  never clash, and the result says whether anything selects it.
 - Rule files and rulesets are checked beyond what `wio config check` can see,
   with the errors and warnings that
   [the concepts](../../../../docs/concepts.md#checking-rules) give to
@@ -27,6 +27,8 @@ stage's guidance cannot be created with stable codes, checked or listed, and
 - The rules of a rule preset, a root, a stage, a Work at a stage or a file can
   be listed, and with `--explain` each rule shows where it came from or why it
   is out.
+- The rules that nothing selects can be listed, and every view of a listing can
+  be narrowed by references to rulesets, families, codes or rule presets.
 - A rule is shown by its qualified code with its metadata and its body as the
   reader returns it, and a listing shows each rule by its code, name and
   description.
@@ -112,8 +114,11 @@ reader sees which root brought it.
 For what this Work adds, which is `wio rules show`, `--json` on every
 subcommand, the optional `description` that a listing shows before the summary,
 the discovery of rule files at any depth of a ruleset, the form of a rule file's
-metadata block, and names that are unique within a ruleset, this contract is
-right, and the docs stage corrects the concepts and the scope document.
+metadata block, names that are unique within a ruleset, and `--not-selected`
+with references that narrow a listing in place of the two warnings that the
+concepts and the scope document give to `check` for a rule or a ruleset that
+nothing selects, this contract is right, and the docs stage corrects the
+concepts and the scope document.
 
 ### A-12
 
@@ -170,14 +175,15 @@ may carry either metadata block form.
   and `StageRules` structurally, with its collaborators injected, and the
   function `rule_hash` of `wio.formats` that it hashes a rule's file with, built
   by `9pfyfe`.
-- **`wio rules new`** — creates a rule with the next code of its family, built
-  by `km9cmc`.
+- **`wio rules new`** — creates a rule with the next code of its family and
+  says whether anything selects it, built by `km9cmc`.
 - **`wio rules check`** — the checks that need the rule files and the manifests,
   with the faults of reading them, built by `5qgs79` for the errors and `785y9k`
   for the warnings.
 - **`wio rules list`** — the listing by rule preset, root, stage, Work or file,
   showing each rule by its code, name and description or, without one, its
-  summary, built by `fjvj3x`, and `--explain`, built by `qxfpg9`.
+  summary, narrowed by references and with the view of the rules that nothing
+  selects, built by `fjvj3x`, and `--explain`, built by `qxfpg9`.
 - **`wio rules show`** — prints one rule by its qualified code with its metadata
   and its body, built by `ca70ny`.
 
@@ -322,9 +328,17 @@ A rule made by `wio rules new` is accepted by `wio rules check`, listed by
   `rule_presets = ["demo.recommended"]`, a Work whose `roots` list `api`, and a
   stage with no `roots`.
 - **When** a rule named `keep-it-small` is created in `ARC` of `demo`.
-- **Then** `wio rules check` reports no error for it, and
-  `wio rules list --work <id> --stage <name>` shows `demo.ARC002 keep-it-small`
-  with the root `api`.
+- **Then** `wio rules check` reports no error for it, `new` says that the rule
+  is selected, and `wio rules list --work <id> --stage <name>` shows
+  `demo.ARC002 keep-it-small` with the root `api`.
+
+#### A rule that nothing selects yet
+
+- **Given** the same repository with a family `PAY` that the manifest declares
+  and no rule preset includes.
+- **When** a rule named `pay-later` is created in `PAY` of `demo`.
+- **Then** `new` says that nothing selects it, `wio rules list --not-selected`
+  shows `demo.PAY001 pay-later`, and `wio rules check` prints no line about it.
 
 #### The selection through the port holds it too
 
@@ -373,8 +387,9 @@ rules as C-2 says and `--json` carries what the text carries.
 
 - **Given** one repository with rules in two rulesets and two families, `demo`
   with `ARC001`, `ARC002` and `PAY001` and `other` with `ARC001` and `ZZZ001`,
-  whose manifests declare the families they use, all selected for a stage except
-  `other.ZZZ001`, which no layer selects, and with a `rules_include` entry for
+  whose manifests declare the families they use, all selected for a stage, the
+  body of `other.ZZZ001` holding a Markdown heading, and with a `rules_include`
+  entry for
   `demo.XYZ`, a family that `demo` does not declare; the rules are written in
   two different file orders, and the config lists its tables and each root's
   `rule_presets` in two different orders.
@@ -412,12 +427,12 @@ exits 1 for the error, and exits 0 when only the warning is left.
 
 - **Given** a ruleset `demo` that declares the families `ARC` and `ZZZ`, is
   reached by a root whose rule preset includes `demo.ARC`, and holds `ARC001`,
-  which that preset selects, and `ZZZ001` named `unused-rule`, which no layer
-  selects, and a stage whose `rules_include` has `demo.XYZ`, a family that
-  `demo` does not declare.
+  which that preset selects, and `ZZZ001` named `loud-rule`, whose body holds a
+  Markdown heading, and a stage whose `rules_include` has `demo.XYZ`, a family
+  that `demo` does not declare.
 - **When** `wio rules check` runs.
 - **Then** it prints one error line for the reference and one warning line for
-  `demo.ZZZ001 unused-rule`, each of the form `<severity>: <where>: <message>`,
+  `demo.ZZZ001 loud-rule`, each of the form `<severity>: <where>: <message>`,
   and exits 1.
 
 #### Only a warning
@@ -426,7 +441,7 @@ exits 1 for the error, and exits 0 when only the warning is left.
   `demo.ARC`.
 - **When** `wio rules check` runs.
 - **Then** it prints no error line and the one warning line for
-  `demo.ZZZ001 unused-rule`, and exits 0.
+  `demo.ZZZ001 loud-rule`, and exits 0.
 
 ### **AC-6** One rule reaches every view of a listing
 
@@ -563,6 +578,26 @@ were.
 - **When** `wio rules check`, `wio rules list` and `wio rules show` run on each.
 - **Then** every file of the repository, tracked or not, is byte for byte what
   it was before.
+
+### **AC-12** A rule that nothing selects is listed, not warned about
+
+`wio rules list --not-selected` shows the rules that no root, stage or always
+field includes, a reference narrows it, and `wio rules check` reports nothing
+about them.
+
+#### Listed and not warned
+
+- **Given** a ruleset `demo` that declares `ARC` and `PAY` and holds `ARC001`,
+  `ARC002` and `PAY001`, a rule preset `recommended` that includes `ARC` and
+  excludes `ARC002`, and a root `api` with
+  `rule_presets = ["demo.recommended"]`.
+- **When** `wio rules list --not-selected`, `wio rules list demo.PAY
+  --not-selected`, `wio rules list demo.ARC --not-selected --explain` and
+  `wio rules check` run.
+- **Then** the first shows `demo.ARC002` and `demo.PAY001` and not
+  `demo.ARC001`, the second shows `demo.PAY001` only, the third shows
+  `demo.ARC002` with the exclude of `demo.recommended` that removed it, and
+  `check` prints no line about any of them and exits 0.
 
 ## Additional context
 
