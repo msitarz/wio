@@ -37,9 +37,10 @@ read them.
 
 ### A-1
 
-A rule that is out for a view is shown only when `--explain` is given, so a
-listing without it holds the included rules only, and a listing without layers
-holds every rule.
+A rule that is out for a view is shown only when `--explain` is given, or when
+the header says `not selected`, which `9r1zpd` sets for the rules that nothing
+selects, so a listing without either holds the included rules only, and a
+listing without layers holds every rule.
 
 ### A-2
 
