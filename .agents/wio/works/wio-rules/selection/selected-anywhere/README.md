@@ -2,7 +2,7 @@
 id = "1gs341"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["cyeth5"]
+depends_on = ["cyeth5", "w3k7vd"]
 -->
 
 # Rules selected anywhere
@@ -72,8 +72,9 @@ The names of the types and the functions below are provisional.
   stage or none, and `routes: Routes`, the routes of `cyeth5` that led from the
   entry to the rule; its field set is required, because `qxfpg9` reads it.
 - **The entries** — the rule presets of each root, the `rules_include` of each
-  stage and `rules_always_include`, each expanded with `expand` of `cyeth5` and
-  no excludes of its own layer.
+  stage and `rules_always_include`, each expanded with `expand` of `cyeth5`,
+  over the `Sources` of `build_sources` of `w3k7vd`, and no excludes of its own
+  layer.
 
 ## Constraints
 

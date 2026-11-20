@@ -2,7 +2,7 @@
 id = "785y9k"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["cm25z9"]
+depends_on = ["cm25z9", "5qgs79", "w3k7vd"]
 -->
 
 # Warnings of rules and rulesets
@@ -55,7 +55,9 @@ The names of the functions below are provisional.
 - **`check_warnings(config: Config, discovery: Discovery) -> tuple[Diagnostic, ...]`**
   — in `wio.rules`; it does no input or output. It returns the warnings of the
   discovery as they are, and judges each entry on its own with `expand` of
-  `cyeth5`.
+  `cyeth5`, over the `Sources` that `build_sources` of `w3k7vd` gives, and
+  writes its places with `join_path` and `item_path` that `5qgs79` moves to
+  `wio.formats`.
 - **The rulesets an entry names** — the `rulesets` of the `Expansion` that
   `expand` returns for an entry, nested rule presets included; a ruleset that
   the discovery left out is not among them, so it gives no warning.

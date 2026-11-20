@@ -85,9 +85,10 @@ verifies it.
 
 ### C-2
 
-The pipeline is in this order: `list_view` of `fjvj3x` builds the `Listing`,
-`narrow` of `9r1zpd` narrows it, `explain` of `qxfpg9` explains it, and the
-renderer of `fjvj3x` prints it. AC-1 verifies it.
+`selected_anywhere` of `1gs341` is called once by the command, and its result is
+given to `narrow` and to `explain`. The pipeline is in this order: `list_view`
+of `fjvj3x` builds the `Listing`, `narrow` of `9r1zpd` narrows it, `explain` of
+`qxfpg9` explains it, and the renderer of `fjvj3x` prints it. AC-1 verifies it.
 
 ### C-3
 
@@ -99,8 +100,8 @@ a row only when its rule is included or has no decision, or when it has an
 
 The header holds `view`, `work`, `layers`, `roots`, `stage`, `references` and
 `not_selected`, in that order in the JSON, and every flag is declared by
-`fjvj3x`: the header, the flags and `Services` are verified by AC-8 and AC-4 of
-that Work.
+`fjvj3x`: the header, the flags and `Services` are verified by AC-8 and AC-13
+of that Work.
 
 ## Visuals
 
@@ -165,8 +166,8 @@ description or summary, with its origin or the reason it is out.
   `demo.recommended`, `demo.PAY001` with its description and the layer `stage`,
   and `demo.ARC002` and `demo.PAY002` out with their reasons, and a header that
   names the layers applied; the second shows `demo.ARC001` only. This is the
-  system-level check that the pipeline composes, as AC-5 and AC-6 of
-  [wio rules](../README.md) check the same selection from `context`.
+  system-level check that the pipeline composes; AC-2 of
+  [wio rules](../README.md) checks the same selection from `context`.
 
 ### **AC-2** `--not-selected` limits any view to the rules that nothing selects
 

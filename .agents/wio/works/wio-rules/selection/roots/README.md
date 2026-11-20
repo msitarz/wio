@@ -59,8 +59,9 @@ The names of the types and the functions below are provisional.
 - **`WorkRoots`** — a port declared by `wio.rules` in its `ports.pyi`, with
   `roots_of(work_id: str) -> tuple[str, ...] | None`, the roots of the Work with
   `@descendants` expanded, each name once and sorted, and `None` for an id that
-  no Work has, as the ports of `wio.trailers` answer; `wio.cli` wires
-  `WorkLookup` to it.
+  no Work has, as the ports of `wio.trailers` answer; the wiring of `WorkLookup`
+  to it in `wio.cli` is `fjvj3x`'s for `wio rules list` and `9pfyfe`'s for the
+  selector.
 - **`WorkLookup.roots_of`** — a method of the `WorkLookup` of `wio.contracts`,
   which satisfies the port structurally as it does those of `wio.trailers`: it
   finds the Work in its views with the discovery of that component and reads the

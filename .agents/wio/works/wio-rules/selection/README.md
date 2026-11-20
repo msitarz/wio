@@ -50,6 +50,9 @@ The names of the types and the functions below are provisional.
 - **The four layers** — the rule presets of the roots, the stage's include and
   exclude, `rules_always_include` and `rules_always_exclude`, applied in that
   order to the expansions of `cyeth5`, built by `cm25z9`.
+- **The inputs** — the rulesets by name, the `Sources` of the expansion, the
+  resolution of an alias and the labels of a chain, built once by `w3k7vd` for
+  every function below and for the commands.
 - **Applicability** — the decision for each rule from its layers, the roots and
   the rulesets that the roots reach, built by `5yb4tz`.
 - **Rules selected anywhere** — `selected_anywhere`, the rules that some include

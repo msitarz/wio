@@ -2,7 +2,7 @@
 id = "qxfpg9"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["fjvj3x", "1gs341", "9r1zpd"]
+depends_on = ["fjvj3x", "1gs341", "9r1zpd", "w3k7vd"]
 -->
 
 # Explaining a listing
@@ -34,12 +34,13 @@ rule in or took it out.
 
 ### A-1
 
-A chain starts with the rule's qualified code, then the layer, then the route
-from the outermost rule preset to the entry that named the rule, each joined by
-`←`, as the concepts write the source of a rule, so the rule came from what is
-on its right; a `from:` line and a `by:` line are both chains, the second of
-what removed the rule, and the first line of the rule's block names it with its
-name, as C-4 of [wio rules](../../README.md) requires.
+The labels and chains are written by `layer_label`, `chain_labels` and
+`chain_text` of `w3k7vd`. A chain starts with the rule's qualified code, then
+the layer, then the route from the outermost rule preset to the entry that named
+the rule, each joined by `←`, as the concepts write the origin of a rule, so the
+rule came from what is on its right; a `from:` line and a `by:` line are both
+chains, the second of what removed the rule, and the first line of the rule's
+block names it with its name, as C-4 of [wio rules](../../README.md) requires.
 
 ### A-2
 

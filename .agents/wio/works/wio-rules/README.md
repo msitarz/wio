@@ -54,6 +54,12 @@ family, a code or a rule preset of that ruleset, even when excludes leave none
 of its rules selected, as
 [the concepts](../../../../docs/concepts.md#how-a-rule-is-selected) say.
 
+### Origin
+
+One way an include entry delivers a rule: the layer that holds the entry, the
+name of its root or stage, and the route, which `wio rules list --explain` and
+`wio rules new` show as a chain.
+
 ### Stray file
 
 A marked rule file directly in `.agents/wio/rules/`, outside every ruleset, or a
@@ -401,10 +407,9 @@ rules as C-2 says and `--json` carries what the text carries.
   `--json`.
 - **Then** the outputs are byte for byte the same, `list` shows `demo.ARC001`,
   `demo.ARC002`, `demo.PAY001`, `other.ARC001` and `other.ZZZ001` in that order,
-  `check` prints
-  its error for `demo.XYZ` and its warning for `other.ZZZ001` in the same order
-  each time, and the JSON of each command holds the same rules and diagnostics
-  as its text.
+  `check` prints its warning for `other.ZZZ001` and its error for `demo.XYZ` in
+  the order of C-2, the same each time, and the JSON of each command holds the
+  same rules and diagnostics as its text.
 
 ### **AC-4** `check` and `list` agree about what applies
 
@@ -430,8 +435,8 @@ A reference keeps, in each view of `wio rules list`, the rules that it delivers.
 
 - **Given** a ruleset `demo` that declares `ARC` and `PAY` and holds `ARC001`,
   `ARC002` and `PAY001`, a root `api` with the path `src/api` whose rule preset
-  includes `ARC` and `PAY`, a stage `s` with no rules of its own, and a Work
-  whose `roots` list `api`.
+  includes `ARC` and `PAY`, a stage `s` whose `rules_include` has `demo.ARC`,
+  and a Work whose `roots` list `api`.
 - **When** `wio rules list demo.ARC`, `wio rules list demo.ARC --root api`,
   `wio rules list demo.ARC --path src/api/app.py`,
   `wio rules list demo.ARC --stage s` and
@@ -563,7 +568,7 @@ were.
 ### **AC-12** A rule that nothing selects is listed, not warned about
 
 `wio rules list --not-selected` shows the rules that no root, stage or always
-field includes, a reference narrows it, and `wio rules check` reports nothing
+field includes, and `wio rules check` reports nothing
 about them.
 
 #### Listed and not warned
@@ -572,13 +577,9 @@ about them.
   `ARC002` and `PAY001`, a rule preset `recommended` that includes `ARC` and
   excludes `ARC002`, and a root `api` with
   `rule_presets = ["demo.recommended"]`.
-- **When** `wio rules list --not-selected`, `wio rules list demo.PAY
-  --not-selected`, `wio rules list demo.ARC --not-selected --explain` and
-  `wio rules check` run.
+- **When** `wio rules list --not-selected` and `wio rules check` run.
 - **Then** the first shows `demo.ARC002` and `demo.PAY001` and not
-  `demo.ARC001`, the second shows `demo.PAY001` only, the third shows
-  `demo.ARC002` with the exclude of `demo.recommended` that removed it, and
-  `check` prints no line about any of them and exits 0.
+  `demo.ARC001`, and `check` prints no line about any of them and exits 0.
 
 ## Additional context
 

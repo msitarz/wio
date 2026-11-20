@@ -2,7 +2,7 @@
 id = "cm25z9"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["cyeth5"]
+depends_on = ["cyeth5", "w3k7vd"]
 -->
 
 # Selection layers
@@ -60,10 +60,11 @@ field sets of `Layered`, `RuleLayers` and `LayerEffect` are required, because
 - **`apply_layers(roots, stage, config, rulesets) -> Layered`** — in
   `wio.rules`, where `roots` is a `tuple[str, ...]` of root names or `None`,
   `stage` is a stage name or `None`, `config` is the `Config` and `rulesets` is
-  a `Mapping[str, LoadedRuleset]`. It calls `expand` of `cyeth5` for the
-  includes of each layer, and for an exclude list, such as `rules_exclude` of
-  the stage, it expands the entries as a set of rules to remove from everything
-  that the earlier layers added, with an effect for each rule the entries name.
+  a `Mapping[str, LoadedRuleset]`. It calls `expand` of `cyeth5`, over the
+  `Sources` that `build_sources` of `w3k7vd` gives, for the includes of each
+  layer, and for an exclude list, such as `rules_exclude` of the stage, it
+  expands the entries as a set of rules to remove from everything that the
+  earlier layers added, with an effect for each rule the entries name.
 - **`Layered`** — frozen, with `rules: Mapping[Rule, RuleLayers]` for every rule
   of every ruleset, `reach: Mapping[str, frozenset[str]]` from each root of the
   config to the rulesets that it reaches, and `problems: tuple[Problem, ...]` of

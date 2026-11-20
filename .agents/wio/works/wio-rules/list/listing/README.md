@@ -2,7 +2,7 @@
 id = "fjvj3x"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["5yb4tz", "ndwemw", "xs3dsj"]
+depends_on = ["5yb4tz", "ndwemw", "xs3dsj", "w3k7vd"]
 -->
 
 # Listing by selection
@@ -53,7 +53,8 @@ The names of the layers that applied are `roots`, `stage` and `always fields`.
 ### A-3
 
 The command runs the discovery once and gives `list_view` the rulesets it found,
-so `list` does not call `RuleSelector.selection`, which would discover again.
+made by `ruleset_map` of `w3k7vd`, so `list` does not call
+`RuleSelector.selection`, which would discover again.
 
 ## Mechanisms
 
@@ -87,7 +88,9 @@ field sets of `Header`, `Row` and `Listing` are required, because `9r1zpd` and
   The behaviour of `--not-selected` is `9r1zpd`'s and that of `--explain` is
   `qxfpg9`'s.
 - **`Services`** — `xs3dsj` declares it, and this Work adds
-  `work_roots: WorkRoots` to it and wires `WorkLookup` to it in `wio.cli`.
+  `work_roots: WorkRoots` to it and wires the `WorkLookup` of `wio.contracts` to
+  it in `wio.cli`, the only place that does it for the command; AC-13 verifies
+  it.
 - **The refusal** — the handler turns the `KeyError` for an unknown stage, root
   or Work and the `ValueError` for a Work with no roots into a `WioError` that
   names the cause, so that they exit 2 and not 70.
@@ -186,13 +189,14 @@ says `not selected`, and it carries its decision in the JSON.
 #### Included and out
 
 - **Given** the repository of AC-2 with a stage `x` whose `rules_exclude` has
-  `demo.ARC002`, and a `Listing` built by hand with the same rows, one with a
-  fake `Explanation` and one with the header marked `not selected`.
-- **When** `wio rules list --root api --stage x` and the same with `--explain`
-  run on the repository, and the renderer runs on the hand-built listings.
-- **Then** the first lacks `demo.ARC002`, the second shows it, with `included`
-  false in the JSON, and the renderer shows the out rows of the two hand-built
-  listings and hides them in an unmarked one.
+  `demo.ARC002`, and `Listing`s built by hand with the same rows, one with a
+  fake `Explanation` on the row of `demo.ARC002` and one with the header marked
+  `not selected`.
+- **When** `wio rules list --root api --stage x` runs on the repository, and the
+  renderer runs on the hand-built listings as text and as JSON.
+- **Then** the command lacks `demo.ARC002`, the renderer shows the out row of
+  each hand-built listing with `included` false in the JSON and hides it in a
+  listing with neither.
 
 ### **AC-6** A selector that cannot be used is refused
 
@@ -239,14 +243,14 @@ the same information as the text.
 #### Text and JSON
 
 - **Given** the repository of AC-2.
-- **When** `wio rules list --work W --stage s --explain` runs as text and with
-  `--json`.
+- **When** `wio rules list --work W --stage s` runs as text and with `--json`.
 - **Then** the document holds `view`, `work`, `layers`, `roots`, `stage`,
   `references`, `not_selected` and `rules` in that order, with `work` `"W"`,
   `roots` `["api"]`, `stage` `"s"`, `references` `[]` and `not_selected` false;
   each rule has `code`, `name`, `description` that is `null` when there is none,
-  `summary`, `roots`, `root_independent` and `included`, then the fields of its
-  explanation, and the rules are the ones the text shows.
+  `summary`, `roots`, `root_independent` and `included`, and the rules are the
+  ones the text shows; the fields of an explanation follow them when there is
+  one, as AC-9 shows.
 
 ### **AC-9** The renderer prints an explanation without knowing it
 
@@ -305,6 +309,20 @@ forms.
   shows only `process.FIX001` with `roots: every root`; and the third has for
   each rule `roots` and `root_independent` null and `included` true, because no
   decision was made.
+
+### **AC-13** The command is declared and wired
+
+`wio rules list` is one entry of `SUBCOMMANDS` with the arguments of the
+Mechanisms, and its `Services` hold a `WorkRoots` that answers for the Works of
+the repository.
+
+#### The entry and the lookup
+
+- **Given** the table of `wio.cli` and a repository with a Work `W` whose roots
+  list `api`.
+- **When** `wio rules list --help` and `wio rules list --work W` run.
+- **Then** the help names every flag and the references, and the second shows
+  the rules of `api`, so `Services.work_roots` finds `W`.
 
 ## Additional context
 

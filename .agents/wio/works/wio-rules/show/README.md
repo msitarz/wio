@@ -2,7 +2,7 @@
 id = "ca70ny"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["8zn10d", "fjvj3x", "xs3dsj"]
+depends_on = ["8zn10d", "fjvj3x", "xs3dsj", "w3k7vd"]
 -->
 
 # wio rules show
@@ -51,7 +51,8 @@ the reader of the output as it is stored.
 ### A-4
 
 The command resolves the ruleset part of the reference, which may be an alias,
-from the `rulesets` of the config, and `show_rule` knows canonical names only.
+with `resolve_ruleset` of `w3k7vd`, and `show_rule` knows canonical names
+only.
 
 ## Mechanisms
 

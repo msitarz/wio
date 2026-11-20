@@ -2,7 +2,7 @@
 id = "9pfyfe"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["5yb4tz", "ndwemw"]
+depends_on = ["5yb4tz", "ndwemw", "w3k7vd"]
 -->
 
 # Rule selector for context and trailers
@@ -60,8 +60,8 @@ The names of the types and the functions below are provisional.
 - **`RuleSelector`** — a frozen dataclass in `wio.rules` whose collaborators are
   injected: `settings: Settings`, `repository: Repository` for the repository
   root, `files: FileSystem` and `work_roots: WorkRoots`; it builds the
-  `Mapping[str, LoadedRuleset]` by canonical name from `Discovery.rulesets` and
-  reads a rule's file at `root / rule.path`.
+  `Mapping[str, LoadedRuleset]` with `ruleset_map` of `w3k7vd` and reads a
+  rule's file at `root / rule.path`.
 - **`RuleSelector.selection(work_id: str, stage: str | None) -> Selection`** —
   runs the discovery of `8zn10d`, takes the roots from `stage_roots` of
   `ndwemw`, and calls `select` of `5yb4tz`; with no stage it selects the Work's
@@ -92,7 +92,8 @@ verifies it.
 
 `wio.cli` wires one `RuleSelector` to the `RuleSelection` port of `wio.context`
 and the `StageRules` port of `wio.trailers`, in place of the `NoRules` that it
-wires today. AC-10 of [wio rules](../../README.md) verifies it.
+wires today, and removes the `NoRules` class of `wio.cli.null` that nothing then
+uses. AC-10 of [wio rules](../../README.md) verifies it.
 
 ## Acceptance criteria
 

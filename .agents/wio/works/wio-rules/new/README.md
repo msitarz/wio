@@ -2,7 +2,7 @@
 id = "km9cmc"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["8zn10d", "1gs341", "xs3dsj"]
+depends_on = ["8zn10d", "1gs341", "xs3dsj", "w3k7vd"]
 -->
 
 # wio rules new
@@ -55,8 +55,8 @@ top Work says.
 
 ### A-4
 
-The command resolves an alias to the canonical name of the ruleset from the
-`rulesets` of the config before it plans the rule, so `plan_rule` knows
+The command resolves an alias to the canonical name of the ruleset with
+`resolve_ruleset` of `w3k7vd` before it plans the rule, so `plan_rule` knows
 canonical names only.
 
 ### A-5
@@ -218,7 +218,8 @@ A warning of the discovery does not refuse the command.
 ### **AC-9** The result says whether anything selects the new rule
 
 The result tells whether some entry delivers the new rule, and by which origin,
-in the chain form of `wio rules list --explain`.
+in the chain form that `chain_text` of `w3k7vd` writes, as `wio rules list
+--explain` does.
 
 #### Selected and not yet
 

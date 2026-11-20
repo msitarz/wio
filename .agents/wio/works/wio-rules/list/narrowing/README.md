@@ -2,7 +2,7 @@
 id = "9r1zpd"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["fjvj3x", "1gs341", "cyeth5", "cm25z9"]
+depends_on = ["fjvj3x", "1gs341", "cyeth5", "cm25z9", "w3k7vd"]
 -->
 
 # Narrowing a listing
@@ -58,18 +58,21 @@ partial listing would hide that part of it was not read.
 
 The names of the functions below are provisional.
 
-- **`narrow(listing, references, not_selected, config, rulesets) -> Listing`** —
-  in `wio.rules`, with `listing: Listing` of `fjvj3x`, `references` as a
-  `Sequence[str]`, `not_selected: bool`, `config: Config` and
-  `rulesets: Mapping[str, LoadedRuleset]`; it does no input or output. It keeps
+- **`narrow(listing, references, not_selected, config, rulesets, anywhere) ->
+  Listing`** — in `wio.rules`, with `listing: Listing` of `fjvj3x`,
+  `references` as a `Sequence[str]`, `not_selected: bool`, `config: Config`,
+  `rulesets: Mapping[str, LoadedRuleset]` and `anywhere: SelectedAnywhere`,
+  which the caller computes and the criteria take as that of the repository
+  given; it does no input or output. It keeps
   the rows whose rule a reference delivers, and with `not_selected` the rows of
   the candidates that `selected_anywhere` does not select, shown although they
   are out. It returns a listing whose header names the references and
   `--not-selected`, and whose rows hold in `via`, a `Routes`, the routes by
   which the references delivered the rule.
-- **The references** — `expand` of `cyeth5` for each, in the config scope.
-- **Selected anywhere** — `selected_anywhere` of `1gs341`, whose `selected` has
-  as keys the rules that some entry delivers.
+- **The references** — `expand` of `cyeth5` for each, in the config scope, over
+  the `Sources` that `build_sources` of `w3k7vd` gives.
+- **Selected anywhere** — the `SelectedAnywhere` of `1gs341` that the caller
+  gives, whose `selected` has as keys the rules that some entry delivers.
 - **The reach of the roots** — the `reach` of `apply_layers(None, None, config,
   rulesets)` of `cm25z9`, a second call that answers only the reach, which does
   not depend on the roots or the stage, and that C-2 of the selection Work does
