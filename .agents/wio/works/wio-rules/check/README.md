@@ -10,8 +10,8 @@ depends_on = []
 ## Purpose
 
 The faults that only the rule files and the config show together are reported by
-no command, so a repository can hold a reference that names nothing or a rule
-that nothing selects without anyone being told.
+no command, so a repository can hold a reference that names nothing or a
+selection that no root can reach without anyone being told.
 
 ## Goals
 
@@ -28,6 +28,8 @@ that nothing selects without anyone being told.
 - Judging the config itself, and the note on `rules_always_include`, which
   `wio config check` does.
 - Judging a rule's body beyond a Markdown heading in it.
+- Listing the rules that nothing selects, which `wio rules list --not-selected`
+  does, so `check` does not warn about them.
 - Fixing what it finds.
 
 ## Assumptions
@@ -52,7 +54,7 @@ The names of the functions below are provisional.
 - **`check_errors`** — every error: the errors of the discovery and the errors
   of the references, built by `5qgs79`.
 - **`check_warnings`** — every warning: the warnings of the discovery and the
-  warnings of the selections, built by `785y9k`.
+  warnings of the selections and of the rule bodies, built by `785y9k`.
 - **`check_rules(root, config, files) -> tuple[Diagnostic, ...]`** — in
   `wio.rules`, runs the discovery once, joins what the two functions return in
   the shared order, and is built by the integration of this Work.
@@ -96,7 +98,8 @@ flowchart LR
 ### After
 
 `wio rules check` runs the discovery once, adds the faults of the references and
-the warnings of the selections, and prints one report. New parts are marked.
+the warnings of the selections and the rule bodies, and prints one report. New
+parts are marked.
 
 ```mermaid
 flowchart LR
@@ -131,19 +134,20 @@ nothing.
 
 - **Given** a ruleset `demo` that declares `ARC` and `ZZZ`, holding `ARC001`,
   whose block has the unknown key `owner`, selected by the preset of a root, and
-  `ZZZ001` named `unused-rule`, which nothing selects, and a stage whose
+  `ZZZ001` named `loud-rule`, whose body holds a Markdown heading, and a stage
+  whose
   `rules_include` has `demo.XYZ`, a family that `demo` does not declare.
 - **When** `wio rules check` runs.
 - **Then** it prints three lines, an error for `demo.XYZ`, a warning for the
-  unknown key and a warning for `demo.ZZZ001 unused-rule`, each of the form
+  unknown key and a warning for `demo.ZZZ001 loud-rule`, each of the form
   `<severity>: <where>: <message>`, and exits 1.
 
 #### Only warnings, and nothing
 
 - **Given** the same repository with the stage's reference changed to `demo.ARC`
-  and the key `owner` removed, and then `ZZZ001` selected.
+  and the key `owner` removed, and then the heading removed from `ZZZ001`.
 - **When** `wio rules check` runs on each.
-- **Then** the first prints the one warning for `demo.ZZZ001 unused-rule` and
+- **Then** the first prints the one warning for `demo.ZZZ001 loud-rule` and
   exits 0, and the second prints `The rules pass.` and exits 0.
 
 ### **AC-2** The report is the same bytes in order, as text and as JSON
