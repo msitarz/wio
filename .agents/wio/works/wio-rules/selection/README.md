@@ -51,10 +51,11 @@ as the concepts say, and a rule preset's exclude entry reaches nothing.
 
 The names of the types and the functions below are provisional.
 
-- **`select(roots, stage, sources) -> Selection`** — in `wio.rules`, where
-  `roots` is a `tuple[str, ...]` of root names or `None` when the roots are not
-  applied, `stage` is a stage name or `None`, and `sources` holds the config and
-  the rulesets; built by `5yb4tz`, which joins the layers and the applicability.
+- **`select(roots, stage, config, rulesets) -> Selection`** — in `wio.rules`,
+  where `roots` is a `tuple[str, ...]` of root names or `None` when the roots
+  are not applied, `stage` is a stage name or `None`, and `config` and
+  `rulesets` are what the layers read; built by `5yb4tz`, which joins the layers
+  and the applicability and builds the adapter of the `RuleSelection` port.
 - **The four layers** — the rule presets of the roots, the stage's include and
   exclude, `rules_always_include` and `rules_always_exclude`, applied in that
   order to the expansions of `cyeth5`, built by `cm25z9`.

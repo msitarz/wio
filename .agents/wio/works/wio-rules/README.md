@@ -161,7 +161,7 @@ may carry either metadata block form.
   with the same selection that `wio rules list` shows; its form is provisional
   and is in `src/wio/context/ports.pyi`, except that a `Selection` holds every
   rule considered, with the roots of an included rule and the layers that
-  selected it, or the reason a rule is out.
+  selected it, or the reason a rule is out; `5yb4tz` builds its adapter.
 - **`StageRules`** — the port of `wio.trailers` that `wio.rules` satisfies,
   which maps each rule that a stage selects for a Work to the hash of its file,
   in place of the `NoRules` that `wio.cli` wires today, built by `9pfyfe`; it is
