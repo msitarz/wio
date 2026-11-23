@@ -186,10 +186,12 @@ def test_rules_that_share_a_code_or_a_name_are_errors_and_left_out() -> None:
 
     # Then one error names both files of the code and one names both of the name,
     # and `demo` holds `ARC009` only
-    assert sorted(w for _, w in kinds(found.diagnostics)) == [
-        f"{_REL}/demo/ARC001-first.md, {_REL}/demo/ARC001-second.md",
-        f"{_REL}/demo/ARC002-x.md, {_REL}/demo/ARC003-y.md",
-    ]
+    by_place = {d.where: d.message for d in found.diagnostics}
+    code_place = f"{_REL}/demo/ARC001-first.md, {_REL}/demo/ARC001-second.md"
+    name_place = f"{_REL}/demo/ARC002-x.md, {_REL}/demo/ARC003-y.md"
+    assert sorted(by_place) == [code_place, name_place]
+    assert "`ARC001`" in by_place[code_place]
+    assert "`keep-it-small`" in by_place[name_place]
     assert [r.code for r in found.rulesets[0].rules] == ["ARC009"]
 
 
@@ -230,6 +232,7 @@ def test_a_ruleset_is_named_by_its_directory() -> None:
     ]
     assert "ruleset name" in found.diagnostics[0].message
     assert "symbolic link" in found.diagnostics[1].message
+    assert not [p for op, p in disk.calls if op == "read_text" and ".cache" in p.parts]
 
 
 @_STUB

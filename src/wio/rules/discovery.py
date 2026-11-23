@@ -41,14 +41,30 @@ def discover(root: Path, files: FileSystem) -> Discovery:
     within a ruleset, are errors and leave those rules out, while the same code
     in two rulesets is no fault.
 
-    Faults are errors that name their place, and everything else is still read:
-    a rules directory that is a symbolic link or not a directory, which is not
-    walked; a directory that cannot be listed; a ruleset directory that is a
-    symbolic link or whose name has the wrong form; a missing or unreadable
-    `ruleset.toml`, one that is a symbolic link, and one below a ruleset's
-    directory; a file that is not valid UTF-8 or cannot be read; and a marked
-    rule file directly in `.agents/wio/rules`. A missing rules directory is no
-    fault. Nothing is raised for a fault of the files.
+    Faults are errors, and everything else is still read; nothing is raised for
+    a fault of the files. Each names its place, written with `/` and relative to
+    `root`:
+
+    - the file, followed by `:<line>` when the fault has a line, for a rule file
+      that cannot be read, decoded or parsed, a rule of a family that its
+      manifest does not declare, a `ruleset.toml` that is a symbolic link, one
+      below a ruleset's directory, and a marked rule file directly in
+      `.agents/wio/rules`;
+    - the manifest followed by `#` and the key path for a key of a manifest;
+    - the two files joined by `, `, written in order, for a code or a name that
+      two rules of one ruleset share;
+    - the directory for a fault of a directory: `.agents/wio/rules` that is a
+      symbolic link, not a directory or cannot be listed, and a ruleset
+      directory that is a symbolic link, has a name of the wrong form, has no
+      `ruleset.toml` or cannot be listed.
+
+    A missing rules directory is no fault. The warnings of `read_manifest` and
+    `read_rule` are returned with the errors. A ruleset whose rules are at fault
+    is still returned without those rules, and one whose directory, manifest or
+    name is at fault is left out. A file directly in `.agents/wio/rules` is a
+    stray rule file when `read_metadata_block` finds a block in it, and is
+    ignored otherwise. The rules of a ruleset are in the order of family, then
+    the number of the code, then the text of the code.
 
     Args:
         root: The repository root.

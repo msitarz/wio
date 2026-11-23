@@ -75,7 +75,7 @@ def test_an_empty_manifest_declares_nothing() -> None:
 def test_a_manifest_that_does_not_parse_is_one_error_with_its_line() -> None:
     """AC-2: the place is the path followed by `:` and the line of the fault."""
     # Given a manifest whose fault is on line 2
-    text = 'description = "ok"\nfamilies = [\n'
+    text = 'description = "ok"\nfamilies = ]\n'
 
     # When it is read
     reading = _read(text)
@@ -97,8 +97,8 @@ def test_a_manifest_that_does_not_parse_is_one_error_with_its_line() -> None:
         ('rule_presets.x = "all"\n', "rule_presets.x"),
         ('[rule_presets.x]\nrules_include = "ARC"\n', "rule_presets.x.rules_include"),
         (
-            "[rule_presets.x]\nrules_exclude = [3]\n",
-            "rule_presets.x.rules_exclude[0]",
+            "[rule_presets.x]\nrules_include = [3]\n",
+            "rule_presets.x.rules_include[0]",
         ),
     ],
 )
