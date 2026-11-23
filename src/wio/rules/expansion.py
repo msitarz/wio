@@ -9,7 +9,7 @@ apply are built on it elsewhere, and reporting a problem as a diagnostic is for
 """
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 from wio.formats.grammar import (
     Bare,
@@ -23,7 +23,7 @@ from wio.models.config import RulePreset
 from wio.models.frozen import freeze
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Generator, Mapping, Sequence
 
     from wio.models.rule import LoadedRuleset, Rule
     from wio.models.rules import Route, Routes
@@ -155,7 +155,7 @@ def expand(
         The expansion.
     """
     expander = _Expander(catalog)
-    result = expander.level(include, exclude, scope, (), (), named=True)
+    result = _run(expander.level(include, exclude, scope, (), (), named=True))
     return Expansion(
         rules=_ordered(result.selected),
         removed=_ordered(result.removed),
@@ -206,6 +206,38 @@ def _merge(target: dict[Rule, set[Route]], source: dict[Rule, set[Route]]) -> No
         target.setdefault(rule, set()).update(routes)
 
 
+type _Frame = Generator[_Frame, _Result, _Result]
+"""One step of an expansion that waits for the steps below it.
+
+It yields the step it needs, receives that step's result, and returns its own.
+`_run` drives the steps from a list and not from the call stack, so the depth of
+nested rule presets is limited by memory and never by the recursion limit.
+"""
+
+
+def _run(frame: _Frame) -> _Result:
+    """Run a step and the steps it waits for, deepest first.
+
+    Args:
+        frame: The outermost step.
+
+    Returns:
+        What the outermost step returned.
+    """
+    stack = [frame]
+    value: _Result | None = None
+    while stack:
+        try:
+            child = stack[-1].send(cast("_Result", value))
+        except StopIteration as done:
+            stack.pop()
+            value = done.value
+        else:
+            stack.append(child)
+            value = None
+    return cast("_Result", value)
+
+
 class _Expander:
     """One expansion: it resolves entries in a catalog and keeps what it meets."""
 
@@ -228,7 +260,7 @@ class _Expander:
         path: tuple[tuple[str, str], ...],
         *,
         named: bool,
-    ) -> _Result:
+    ) -> _Frame:
         """Expand one list: the includes, and then the excludes removed from them.
 
         Args:
@@ -246,12 +278,13 @@ class _Expander:
         """
         result = _Result()
         for text in include:
-            found = self.entry(text, scope, prefix, path, named=named)
+            found = yield self.entry(text, scope, prefix, path, named=named)
             _merge(result.selected, found.selected)
             _merge(result.removed, found.removed)
         taken: dict[Rule, set[Route]] = {}
         for text in exclude:
-            _merge(taken, self.entry(text, scope, prefix, path, named=False).selected)
+            excluded = yield self.entry(text, scope, prefix, path, named=False)
+            _merge(taken, excluded.selected)
         for rule, routes in taken.items():
             if rule in result.selected:
                 del result.selected[rule]
@@ -266,7 +299,7 @@ class _Expander:
         path: tuple[tuple[str, str], ...],
         *,
         named: bool,
-    ) -> _Result:
+    ) -> _Frame:
         """Expand one entry.
 
         Args:
@@ -286,14 +319,17 @@ class _Expander:
             case RulesetScope(), Qualified():
                 return self._problem("qualified-in-manifest", text, prefix)
             case ConfigScope(), Bare(name):
-                return self._config_preset(name, text, prefix, path, named=named)
+                return (
+                    yield self._config_preset(name, text, prefix, path, named=named)
+                )
             case RulesetScope(own), Bare(name):
-                return self._item(own, name, text, prefix, path, named=named)
+                return (yield self._item(own, name, text, prefix, path, named=named))
             case _, Qualified(ruleset, item):
                 canonical = self._canonical(ruleset)
                 if canonical is None:
                     return self._problem("unknown", text, prefix)
-                return self._item(canonical, item, text, prefix, path, named=named)
+                step = self._item(canonical, item, text, prefix, path, named=named)
+                return (yield step)
         return _Result()
 
     @staticmethod
@@ -350,7 +386,7 @@ class _Expander:
         path: tuple[tuple[str, str], ...],
         *,
         named: bool,
-    ) -> _Result:
+    ) -> _Frame:
         """Expand a bare name of the config's scope, a rule preset of the config.
 
         Args:
@@ -366,9 +402,10 @@ class _Expander:
         preset = self.catalog.presets.get(name)
         if preset is None:
             return self._problem("unknown", text, prefix)
-        return self._preset(
+        step = self._preset(
             ("", name), name, preset, ConfigScope(), text, prefix, path, named=named
         )
+        return (yield step)
 
     def _preset(
         self,
@@ -381,7 +418,7 @@ class _Expander:
         path: tuple[tuple[str, str], ...],
         *,
         named: bool,
-    ) -> _Result:
+    ) -> _Frame:
         """Expand a rule preset unless it is already being expanded.
 
         Args:
@@ -401,7 +438,7 @@ class _Expander:
         route = (*prefix, reference)
         if key in path:
             return self._problem("cycle", text, route)
-        return self.level(
+        step = self.level(
             preset.rules_include,
             preset.rules_exclude,
             scope,
@@ -409,6 +446,7 @@ class _Expander:
             (*path, key),
             named=named,
         )
+        return (yield step)
 
     def _item(
         self,
@@ -419,7 +457,7 @@ class _Expander:
         path: tuple[tuple[str, str], ...],
         *,
         named: bool,
-    ) -> _Result:
+    ) -> _Frame:
         """Expand a family, a code or a rule preset of a ruleset.
 
         Args:
@@ -442,7 +480,7 @@ class _Expander:
             self.named.add(canonical)
         route = (*prefix, f"{canonical}.{item}")
         if isinstance(found, RulePreset):
-            return self._preset(
+            step = self._preset(
                 (canonical, item),
                 f"{canonical}.{item}",
                 found,
@@ -452,6 +490,7 @@ class _Expander:
                 path,
                 named=named,
             )
+            return (yield step)
         return _Result(selected={rule: {route} for rule in found})
 
     @staticmethod

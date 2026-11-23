@@ -294,7 +294,10 @@ def test_a_cycle_is_one_problem_and_the_rest_still_expands() -> None:
     # Then one `cycle` problem has the route that closes it, and both rules are
     # selected
     assert found.problems == (Problem("cycle", "a", ("demo.a", "demo.b", "demo.a")),)
-    assert list(_by_code(found.rules)) == ["ARC001", "ARC002"]
+    assert _by_code(found.rules) == {
+        "ARC001": (("demo.a", "demo.ARC001"),),
+        "ARC002": (("demo.a", "demo.b", "demo.ARC002"),),
+    }
 
 
 def test_what_cannot_be_expanded_is_a_problem_that_selects_nothing() -> None:
@@ -422,3 +425,23 @@ def test_the_rulesets_that_the_includes_name_are_returned() -> None:
     assert not nested.rules
     assert unknown_ruleset.rulesets == frozenset()
     assert unknown_family.rulesets == frozenset()
+
+
+def test_a_long_chain_of_rule_presets_is_expanded_without_raising() -> None:
+    """C-1: the depth of nested rule presets is not limited by the call stack."""
+    # Given a manifest whose rule preset `p0` includes `p1`, which includes `p2`,
+    # and so on for fifteen hundred presets, the last of which includes a rule
+    depth = 1500
+    presets: dict[str, tuple[list[str], list[str]]] = {
+        f"p{i}": ([f"p{i + 1}"], []) for i in range(depth)
+    }
+    presets[f"p{depth}"] = (["ARC001"], [])
+    demo = _ruleset("demo", ["ARC"], ["ARC001"], presets)
+
+    # When `demo.p0` is expanded
+    found = expand(["demo.p0"], [], _CONFIG, _catalog(demo))
+
+    # Then the rule is selected through every preset and nothing is reported
+    (routes,) = _by_code(found.rules)["ARC001"]
+    assert len(routes) == depth + 2
+    assert found.problems == ()
