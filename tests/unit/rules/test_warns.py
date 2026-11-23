@@ -5,8 +5,6 @@ from dataclasses import replace
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
-import pytest
-
 from tests.unit.rules.support import make_ruleset
 from wio.models import config as settings
 from wio.models.diagnostics import Diagnostic, sort_diagnostics
@@ -20,7 +18,6 @@ if TYPE_CHECKING:
 
 
 _NAMES = ("demo", "py", "process", "broken")
-_PENDING = pytest.mark.xfail(raises=NotImplementedError, strict=True)
 type _Stages = Mapping[str, tuple[Sequence[str], Sequence[str], Sequence[str] | None]]
 
 
@@ -96,7 +93,6 @@ def _places(config: settings.Config, discovery: Discovery) -> list[str]:
     return [d.where for d in check_warnings(config, discovery)]
 
 
-@_PENDING
 def test_the_warnings_of_the_discovery_are_shown_and_its_errors_are_not() -> None:
     """AC-1: each warning comes back unchanged, and the error does not."""
     # Given a discovery with two warnings and an error
@@ -123,7 +119,6 @@ _STAGES: _Stages = {
 }
 
 
-@_PENDING
 def test_a_selection_that_no_root_reaches_is_a_warning_with_a_fix() -> None:
     """AC-2: a stage's entry that no selected root reaches names the fix."""
     # Given stages that include a ruleset that no root reaches, and a ruleset that
@@ -149,7 +144,6 @@ def test_a_selection_that_no_root_reaches_is_a_warning_with_a_fix() -> None:
         assert "rule_presets" in warning.message
 
 
-@_PENDING
 def test_the_work_roots_and_the_always_field_count_every_root() -> None:
     """AC-3: `@work`, no `roots` and the always include count any root."""
     # Given a stage on `contract` and `@work`, and an always include, that name a
@@ -171,7 +165,6 @@ def test_the_work_roots_and_the_always_field_count_every_root() -> None:
         assert "rule_presets" in warning.message
 
 
-@_PENDING
 def test_an_entry_that_names_several_rulesets_is_judged_for_each() -> None:
     """AC-4: a rule preset of two rulesets warns for the one no root reaches."""
     # Given a rule preset that names `demo` and, twice, the `py` that holds two
@@ -190,7 +183,6 @@ def test_an_entry_that_names_several_rulesets_is_judged_for_each() -> None:
     assert "`demo`" not in found[0].message
 
 
-@_PENDING
 def test_excludes_and_the_entries_of_the_roots_are_not_judged() -> None:
     """AC-5: an exclude and a root's entry get no warning."""
     # Given the stages of AC-2, an exclude of `py.review` and a root that names
@@ -206,7 +198,6 @@ def test_excludes_and_the_entries_of_the_roots_are_not_judged() -> None:
     assert len(places) == 4
 
 
-@_PENDING
 def test_a_rule_that_both_always_fields_name_is_a_warning_with_a_fix() -> None:
     """AC-6: the include entry names the exclude entries and the rules."""
     # Given an always include and an always exclude that overlap, in a ruleset
@@ -240,7 +231,7 @@ def test_a_rule_that_both_always_fields_name_is_a_warning_with_a_fix() -> None:
     assert "veto wins" in message
     assert "third-rule" not in message
     assert "ARC003" not in message
-    assert "remove" in message
+    assert "remove one of the two entries" in message
 
 
 def _with_bodies(discovery: Discovery) -> Discovery:
@@ -275,7 +266,6 @@ def _with_bodies(discovery: Discovery) -> Discovery:
     )
 
 
-@_PENDING
 def test_a_heading_in_a_rule_body_is_a_warning() -> None:
     """AC-7: the first real heading is the warning, and a fenced one is not."""
     # Given rules whose bodies have headings, one of them on a later line, and a
@@ -325,7 +315,6 @@ def _in_two_orders() -> tuple[tuple[settings.Config, Discovery], ...]:
     )
 
 
-@_PENDING
 def test_the_warnings_do_not_depend_on_the_order_of_the_inputs() -> None:
     """AC-8: two orders give equal results, and no warning is repeated."""
     # Given stages with several entries, an always veto, headings and warnings of
@@ -343,7 +332,6 @@ def test_the_warnings_do_not_depend_on_the_order_of_the_inputs() -> None:
     assert any("veto" in d.message for d in one)
 
 
-@_PENDING
 def test_a_ruleset_that_was_left_out_gives_no_warning() -> None:
     """AC-9: an entry that names a ruleset the discovery left out is not judged."""
     # Given a stage that includes a rule of a ruleset that was left out
