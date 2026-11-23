@@ -1,11 +1,12 @@
 # `wio.rules`
 
-The component behind `wio rules`. So far it holds the reader of one rule file,
-the reader of a ruleset's manifest, the discovery of the rulesets, the
-expansion of rule presets, the inputs that the selection shares, the layers that
-select the rules of a stage, the decision of each rule, the rules that any
-include entry delivers and the roots of a stage and of a path, which
-`wio rules check`, `list` and `show` build on.
+The component behind `wio rules`. So far it holds the group of subcommands that
+the subcommands will join, the reader of one rule file, the reader of a
+ruleset's manifest, the discovery of the rulesets, the expansion of rule
+presets, the inputs that the selection shares, the layers that select the rules
+of a stage, the decision of each rule, the rules that any include entry
+delivers and the roots of a stage and of a path, which `wio rules check`,
+`list` and `show` build on.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its
 code and name mean and
@@ -380,3 +381,40 @@ says what the forms of a stage's `roots` mean.
   differs from the index only for a change that is not staged yet.
 - **The results are sorted and each name is once,** whatever the order of the
   config's roots, of a root's paths or of a stage's `roots`.
+
+## The group of subcommands
+
+[`__init__.py`](__init__.py) holds `RulesSpec`, `Services`, `Subcommand`, the
+table `SUBCOMMANDS` and `json_option`, and [`command.py`](command.py) holds
+`RulesCommand`, which runs the subcommand that the arguments chose. It follows
+the pattern of [`wio.contracts`](../contracts/README.md#the-group), and its
+docstrings and [tests](../../../tests/unit/rules/test_command.py) say what each
+takes and returns. No subcommand has joined the table yet, so `wio rules` lists
+none.
+
+- **A subcommand is one entry of the table.** The group knows nothing else of
+  a subcommand, so adding one edits no other and builds no second shell.
+- **The table is in the package module, with its `configure` and its handler.**
+  Describing a command loads no module of its package besides `__init__`
+  ([import-light packages](../cli/README.md#import-light-packages)), and
+  `configure` runs while `wio --help` is described. So an entry's `configure` is
+  defined in `__init__.py`, and its handler is a function there that imports the
+  subcommand's own module when it runs. A `lazy from` in the tuple would defer
+  nothing, because the names are used as the tuple is built.
+- **Bare `wio rules` reads nothing.** It writes its usage without a repository
+  or a config, so it works anywhere, even when the config has an error.
+- **What a subcommand needs comes in `Services`.** The settings, the
+  repository, the file system and the environment are built in `wio.cli`, the
+  one place where they meet the group, and a subcommand that needs another port
+  adds a field. `wio.cli` wires them only when a subcommand is chosen.
+- **The group maps no failure itself.** A mistake the user must fix is a
+  `WioError`, which a handler raises and which the command line prints and
+  exits 2 for, with the lines of a `DiagnosticsError` written as they are, while
+  a handler returns 0, or 1 for a failed check, and never another code. Any
+  other exception is a bug and exits 70, and the
+  [command line](../cli/README.md#failures-and-exit-codes) owns that mapping
+  for every component, so that no two components can differ.
+- **`--json` has one declaration.** A subcommand declares it with `json_option`,
+  so it has one spelling and one help line to override, and a subcommand that
+  declares it writes one JSON document and nothing else on standard output for
+  exit 0 and 1, and nothing for exit 2.
