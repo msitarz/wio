@@ -21,6 +21,7 @@ from wio.formats.grammar import (
 )
 from wio.models.config import RulePreset
 from wio.models.frozen import freeze
+lazy from wio.rules.inputs import resolve_ruleset
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Mapping, Sequence
@@ -359,10 +360,7 @@ class _Expander:
             The canonical name, or `None` when no ruleset has it. A name wins
             over an alias.
         """
-        if name in self.catalog.rulesets:
-            return name
-        alias = self.catalog.aliases.get(name)
-        return alias if alias in self.catalog.rulesets else None
+        return resolve_ruleset(name, self.catalog)
 
     def _problem(self, kind: ProblemKind, text: str, route: Route) -> _Result:
         """Record a problem.
