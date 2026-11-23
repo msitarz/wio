@@ -6,8 +6,9 @@ ruleset's manifest, the discovery of the rulesets, the expansion of rule
 presets, the inputs that the selection shares, the layers that select the rules
 of a stage, the decision of each rule, the rules that any include entry
 delivers, the roots of a stage and of a path, the errors of the references, the
-warnings of the selections and the bodies, and the report of `wio rules check`,
-which joins them. `list`, `new` and `show` build on the rest.
+warnings of the selections and the bodies, the report of `wio rules check`,
+which joins them, and the selector that gives the rules of a stage to
+`wio trailers`. `list`, `new` and `show` build on the rest.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its
 code and name mean and
@@ -561,3 +562,42 @@ reads.
 - **It reads the config as valid and writes nothing.** The config is judged by
   `wio config check`, which stops every other command before this one runs, so
   a config with an error exits 2 and prints no report.
+
+## The rule selector
+
+[`RuleSelector`](chooser.py) gives the rules that a Work selects at a stage to
+the consumers that wait for them. Its `select` is the method of the
+`RuleSelection` port that [`wio.context`](../context/ports.pyi) declares, and
+its `selected` is the method of the `StageRules` port that
+[`wio.trailers`](../trailers/ports.pyi) declares, which `wio.cli` wires to it.
+Its docstrings say what each method takes, returns and raises, and its
+[tests](../../../tests/unit/rules/test_selector.py) say how each case reads.
+
+- **One class serves both ports, over one selection.** `select` and `selected`
+  both go through `selection`, which discovers the rulesets, takes the roots
+  that the stage selects for the Work and calls [`select`](applicability.py), so
+  the two consumers cannot give a rule different decisions.
+- **A fault in the rules is a refusal and never a partial answer.** When the
+  discovery reports an error, every method raises it, because a consumer that
+  worked from half of the rules would hide the fault.
+- **A Work without roots selects no rule, and raises nothing.** `wio trailers`
+  asks for the rules of every gate record, one that cites no rule included, and
+  it used to receive an empty mapping for every Work. So a stage that selects
+  the Work's roots gives such a Work every rule out as `not-selected`, where the
+  roots of the stage would otherwise raise `ValueError`.
+- **Unknown names are refused in the form each consumer expects.** `selection`
+  and `select` raise `KeyError` for an unknown stage or Work, as the port of
+  `wio.context` declares, while the port of `wio.trailers` declares no
+  exception, so `selected` raises a `WioError` that names the cause and
+  `wio trailers` exits 2 and not 70. A rule file that cannot be read for its
+  hash is such an error too.
+- **The hash is of the file on disk.** The config, the rule files and the
+  Work's roots are read from the working tree, so the hash of a rule is that of
+  the file when `wio trailers` runs, which can differ from the staged or the
+  committed file; `wio trailers` records the reviewed commit separately.
+- **Only the files of the included rules are read as bytes.** `selected` hashes
+  the bytes of the rules that the selection includes, as
+  [`rule_hash`](../formats/README.md#the-hash-of-a-rule-file) says, and the
+  other methods read only what the discovery reads. The action does not change
+  which rules a stage selects, so `selected` takes it because its port does and
+  does not read it.
