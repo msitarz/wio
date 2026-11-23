@@ -531,13 +531,22 @@ reads.
   that fault and not a repeat of it.
 - **Every ruleset is judged, whether or not anything selects it.** A fault in a
   ruleset that no root or stage includes is reported with the others in the same
-  run. The rules that nothing selects are `wio rules list --not-selected`'s, so
-  `check` does not warn about them.
+  run. The rules that nothing selects belong to `wio rules list`, so `check`
+  does not warn about them.
 - **The report is in the shared order, in text and in JSON,** and says
   `The rules pass.` for a repository with nothing to report, which includes one
   with no rules directory. It is exit 1 for an error, and 0 for a warning alone
   or for nothing. With `--json`, standard output holds one array and nothing
   else.
+- **Each finding names its place,** as the docstring of `check_rules` says, and
+  the places are those that the errors and the warnings above give.
+- **It judges only what the rule files and the config show together.** The
+  config itself, and the note on `rules_always_include`, are
+  `wio config check`'s, a rule's body is judged only for a Markdown heading, and
+  `check` fixes nothing.
+- **The references it judges are those whose item after the dot needs the rule
+  files.** The config is valid, so each reference is well-formed and the
+  question left is whether that item exists.
 - **It reads the config as valid and writes nothing.** The config is judged by
   `wio config check`, which stops every other command before this one runs, so
   a config with an error exits 2 and prints no report.
