@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from wio.models.diagnostics import Diagnostic
     from wio.models.rule import Rule
 
-NAME_FORM = "lower-case words of letters and digits joined by single hyphens"
+RULE_NAME_FORM = "lower-case words of letters and digits joined by single hyphens"
 """The form of a rule's name in words, as a message states it."""
 
 RULE_NAME = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
@@ -39,6 +39,9 @@ class RuleReading:
 
 def read_rule(ruleset: str, path: PurePosixPath, text: str) -> RuleReading:
     """Read the text of a rule file into a rule.
+
+    Reuses the code form `CODE` of `wio.formats.grammar`, the block reader
+    `read_metadata_block` and `closest_key` of `wio.formats`.
 
     Args:
         ruleset: The name of the ruleset whose directory holds the file.

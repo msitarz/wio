@@ -37,17 +37,18 @@ def _block(*keys: str) -> str:
     return "\n".join(["<!-- wio", *keys, "-->"]) + "\n"
 
 
-def _valid(code: str = "ARC001", name: str = "keep-it-small") -> str:
+def _valid(**keys: str) -> str:
     """Write a rule file that has a code, a name and a one-line body.
 
     Args:
-        code: The `code` key.
-        name: The `name` key.
+        **keys: The keys to write as TOML values, which replace the default
+            `code` and `name` or add a `description`.
 
     Returns:
         The text of the file.
     """
-    return _block(f'code = "{code}"', f'name = "{name}"') + "\nBody.\n"
+    values = {"code": '"ARC001"', "name": '"keep-it-small"', **keys}
+    return _block(*(f"{key} = {value}" for key, value in values.items())) + "\nBody.\n"
 
 
 def _front_matter(*keys: str) -> str:
@@ -125,7 +126,9 @@ def test_a_rule_without_a_description_has_none() -> None:
 def test_either_block_form_gives_the_same_rule() -> None:
     """AC-2: a comment block and `+++` front matter with `wio = 1` read alike."""
     # Given two texts with the same keys and body in the two forms
-    comment = _block('code = "ARC001"', 'name = "keep-it-small"') + "\nBody.\n"
+    comment = (
+        _block("wio = 1", 'code = "ARC001"', 'name = "keep-it-small"') + "\nBody.\n"
+    )
     front = _front_matter('code = "ARC001"', 'name = "keep-it-small"')
 
     # When each is read as a rule of `demo` at the same path
@@ -140,92 +143,47 @@ def test_either_block_form_gives_the_same_rule() -> None:
 
 @_STUB
 @pytest.mark.parametrize(
-    ("code", "read"),
+    ("key", "value", "read"),
     [
-        ("ARC001", True),
-        ("A1", True),
-        ("ARC1000", True),
-        ("arc001", False),
-        ("ARC", False),
-        ("001", False),
-        ("ARC-001", False),
-        ("ARC001a", False),
+        ("code", '"ARC001"', True),
+        ("code", '"A1"', True),
+        ("code", '"ARC1000"', True),
+        ("code", '"arc001"', False),
+        ("code", '"ARC"', False),
+        ("code", '"001"', False),
+        ("code", '"ARC-001"', False),
+        ("code", '"ARC001a"', False),
+        ("name", '"keep-it-small"', True),
+        ("name", '"keep-it-small2"', True),
+        ("name", '"x"', True),
+        ("name", '"Keep-It-Small"', False),
+        ("name", '"keep--it"', False),
+        ("name", '"keep-it-"', False),
+        ("name", '"-keep"', False),
+        ("name", '"2fast"', False),
+        ("name", '"keep_it"', False),
+        ("description", '"One line."', True),
+        ("description", '"  "', False),
+        ("description", '"two\\nlines"', False),
+        ("description", "3", False),
+        ("code", "3", False),
+        ("name", "3", False),
     ],
 )
-def test_a_code_is_a_family_followed_by_digits(code: str, read: bool) -> None:  # noqa: FBT001
-    """AC-3: a code of another form is one error that names the file."""
-    # Given a file with the code
-    text = _valid(code=code)
-
-    # When it is read
-    reading = _read(text)
-
-    # Then a code of the form is read, and any other is one error without a rule
-    assert (reading.rule is not None) is read
-    if not read:
-        assert _kinds(reading) == [("error", _FILE)]
-
-
-@_STUB
-@pytest.mark.parametrize(
-    ("name", "read"),
-    [
-        ("keep-it-small", True),
-        ("keep-it-small2", True),
-        ("x", True),
-        ("Keep-It-Small", False),
-        ("keep--it", False),
-        ("keep-it-", False),
-        ("-keep", False),
-        ("2fast", False),
-        ("keep_it", False),
-    ],
-)
-def test_a_name_is_hyphenated_words_that_start_with_a_letter(
-    name: str,
+def test_every_key_has_its_form_and_its_type(
+    key: str,
+    value: str,
     read: bool,  # noqa: FBT001
 ) -> None:
-    """AC-3: a name of another form is one error that names the file."""
-    # Given a file with the name
-    text = _valid(name=name)
+    """AC-3: a code, a name and a description of another form or type is an error."""
+    # Given a file whose key has the TOML value of the case
+    text = _valid(**{key: value})
 
     # When it is read
     reading = _read(text)
 
-    # Then a name of the form is read, and any other is one error without a rule
-    assert (reading.rule is not None) is read
-    if not read:
-        assert _kinds(reading) == [("error", _FILE)]
-
-
-@_STUB
-@pytest.mark.parametrize(
-    ("line", "read"),
-    [
-        ('description = "One line."', True),
-        ('description = "  "', False),
-        ('description = "two\\nlines"', False),
-        ("description = 3", False),
-        ("code = 3", False),
-        ("name = 3", False),
-    ],
-)
-def test_a_description_is_one_line_and_every_key_has_its_type(
-    line: str,
-    read: bool,  # noqa: FBT001
-) -> None:
-    """AC-3: a blank, multi-line or mistyped key is one error."""
-    # Given a block with a valid code and name and one more line of the case,
-    # which for `code` and `name` replaces the valid key
-    keys = [
-        k for k in ('code = "ARC001"', 'name = "keep-it-small"') if k[:4] != line[:4]
-    ]
-    text = _block(*keys, line) + "\nBody.\n"
-
-    # When it is read
-    reading = _read(text)
-
-    # Then a description of one line is read, and any other is one error
+    # Then a value of the form is read, and any other is one error that names the
+    # file and leaves the rule out
     assert (reading.rule is not None) is read
     if not read:
         assert [s for s, _ in _kinds(reading)] == ["error"]
@@ -270,26 +228,25 @@ def test_an_error_and_a_warning_are_both_reported() -> None:
 
 @_STUB
 @pytest.mark.parametrize(
-    "text",
+    ("text", "line"),
     [
-        '<!-- wio\ncode = "ARC001"\nname = "x"\n',
-        '<!-- wio\ncode = "ARC001"\nname = \n-->\n',
+        ('<!-- wio\ncode = "ARC001"\nname = "x"\n', 1),
+        ('<!-- wio\ncode = "ARC001"\nname = \n-->\n', 3),
     ],
 )
-def test_a_block_that_cannot_be_read_is_one_error_with_a_line(text: str) -> None:
+def test_a_block_that_cannot_be_read_is_one_error_with_a_line(
+    text: str, line: int
+) -> None:
     """AC-4: the place is the file's path, `:` and the line of the fault."""
-    # Given a comment block that does not close, and one whose TOML is wrong
+    # Given a comment block that does not close, whose fault is on line 1, and
+    # one whose TOML does not parse, whose fault is on line 3
 
     # When it is read
     reading = _read(text)
 
-    # Then it is one error whose place has the path and a line, and no rule
+    # Then it is one error whose place has the path and that line, and no rule
     assert reading.rule is None
-    assert len(reading.diagnostics) == 1
-    only = reading.diagnostics[0]
-    assert only.severity == "error"
-    assert only.where.startswith(f"{_FILE}:")
-    assert only.where.removeprefix(f"{_FILE}:").isdigit()
+    assert _kinds(reading) == [("error", f"{_FILE}:{line}")]
 
 
 @_STUB
@@ -304,8 +261,8 @@ def test_a_mistyped_key_is_a_warning_that_suggests_the_close_key() -> None:
     # Then one warning names the key and the suggestion, and the rule has no
     # description
     assert _kinds(reading) == [("warning", _FILE)]
-    assert "descriptions" in reading.diagnostics[0].message
-    assert "description" in reading.diagnostics[0].message
+    assert "`descriptions`" in reading.diagnostics[0].message
+    assert "Did you mean `description`?" in reading.diagnostics[0].message
     assert reading.rule is not None
     assert reading.rule.description is None
 
@@ -439,7 +396,7 @@ def test_rules_read_from_the_same_text_are_equal_values() -> None:
     """AC-8: the same text gives equal rules, another code gives another key."""
     # Given the same text read twice and the same text with another code
     first, second = _read(_valid()).rule, _read(_valid()).rule
-    other = _read(_valid(code="ARC002")).rule
+    other = _read(_valid(code='"ARC002"')).rule
 
     # When they are used as keys of one mapping
     assert first is not None
