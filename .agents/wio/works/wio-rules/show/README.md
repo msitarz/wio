@@ -148,7 +148,8 @@ what is wrong, and nothing is printed on standard output.
   rule's code, that `demo.recommended` and `demo.all` are rule presets, that
   `ARC001` has no ruleset, that `Docs` is not a reference, that no ruleset is
   `nope`, that `demo` holds `ARC001` and `ARC002` and not `ARC999`, and that
-  `demo.arc001` is not a code, which wins over reading it as a rule preset.
+  `demo.arc001` has the form of a rule preset name and not of a code, so `show`
+  does not take it.
 
 ### **AC-6** A warning refuses nothing
 

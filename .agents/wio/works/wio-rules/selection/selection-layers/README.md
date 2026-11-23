@@ -149,7 +149,7 @@ effect for a rule that nothing added.
 
 - **Given** the repository of AC-1 with `rules_always_include = ["demo.PAY001"]`
   and `rules_always_exclude = ["demo.PAY001"]`.
-- **When** `apply_layers` runs for `None` roots and a stage with no rules.
+- **When** `apply_layers` runs for `None` roots and no stage.
 - **Then** `PAY001` is not selected, with the effects always-include adds and
   always-exclude removes.
 

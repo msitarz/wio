@@ -154,9 +154,9 @@ may carry either metadata block form.
   fields, with `Rule` which moves to `wio.models.rule`; `5yb4tz` completes them,
   where a `Decision` holds the roots of an included rule and the layers that
   selected it, or the reason a rule is out.
-- **The shared grammar** — the reading of references and the forms of names,
-  moved from `wio.config` to `wio.formats`, built by `zq07av` for `cyeth5`,
-  `8zn10d` and `ht39xt`.
+- **The shared grammar and key paths** — the reading of references, the forms of
+  names and the writing of key paths, moved from `wio.config` to `wio.formats`,
+  built by `zq07av` for `cyeth5`, `8zn10d`, `ht39xt` and `5qgs79`.
 - **`Listing`, `Header`, `Row` and `Explanation`** — in a new
   `wio.models.listing`, built by `fjvj3x` for `list` to build, narrow, explain
   and print.
@@ -642,8 +642,12 @@ about them.
   `wio rules show`, `--json` on every subcommand, the optional `description`
   that a listing shows before the summary, the discovery of rule files at any
   depth of a ruleset, the form of a rule file's metadata block, a rule file with
-  any name, where the concepts still name it `<code>-<name>.md`, names that are
-  unique within a ruleset, references in place of the flag `--preset`, `--work`
-  that needs no `--stage`, and `--not-selected` with references that narrow a
-  listing in place of the two warnings that the concepts and the scope document
-  give to `check` for a rule or a ruleset that nothing selects.
+  any name, where the concepts still name it `<code>-<name>.md`, a rule name in
+  the form of lower-case words joined by hyphens, where the concepts say only a
+  readable name, a Work without roots that gets a selection with no included
+  rule from the port of `wio.context`, where the concepts have `wio context`
+  fail for it, names that are unique within a ruleset, references in place of
+  the flag `--preset`, `--work` that needs no `--stage`, and `--not-selected`
+  with references that narrow a listing in place of the two warnings that the
+  concepts and the scope document give to `check` for a rule or a ruleset that
+  nothing selects.

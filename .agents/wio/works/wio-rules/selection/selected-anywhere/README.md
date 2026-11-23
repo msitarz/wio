@@ -67,8 +67,8 @@ The names of the types and the functions below are provisional.
   criteria below speak of the keys and origins of `selected` unless they say
   `removed`.
 - **`Origin`** — frozen, in `wio.rules` beside `SelectedAnywhere`, with
-  `layer: Literal["root", "stage", "always-include"]`, the layers of
-  `LayerEffect` of `cm25z9` that include, `name: str | None`, the root or the
+  `layer: Literal["root", "stage", "always-include"]`, the three layers that
+  include, `name: str | None`, the root or the
   stage or none, and `routes: Routes` of `wio.models.rules`, the routes of
   `cyeth5` that led from the entry to the rule; its field set is required,
   because `qxfpg9` reads it.

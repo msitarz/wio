@@ -5,14 +5,15 @@ roots = ["wio"]
 depends_on = []
 -->
 
-# Shared grammar of references
+# Shared grammar and key paths
 
 ## Purpose
 
-What a reference is, and the form of a ruleset name, a family, a code and a rule
-preset name, is private to `wio.config`, so `wio.rules`, which may not import
-it, cannot read a reference in the files it reads, and a second copy would be
-flagged as duplicate code and could disagree with `wio config check`.
+What a reference is, the form of a ruleset name, a family, a code and a rule
+preset name, and how a key path is written are private to `wio.config`, so
+`wio.rules`, which may not import it, cannot read a reference or name the place
+of a fault in a manifest, and a second copy would be flagged as duplicate code
+and could disagree with `wio config check`.
 
 ## Goals
 
@@ -21,14 +22,15 @@ flagged as duplicate code and could disagree with `wio config check`.
   never disagree about what a reference is.
 - A bare entry of a manifest is read by one function that accepts a bare
   upper-case name, which the grammar of the config keeps malformed.
+- The key path of a fault is written by two functions that `wio.config` and
+  `wio.rules` share, so a place reads the same in both.
 - `wio config check` reports what it reported before the move.
 
 ## Non-Goals
 
 - Expanding a reference, which `expand` of `cyeth5` does with this grammar.
 - Judging a reference against the rule files, which `wio rules check` does.
-- Moving the key paths and the finding of cycles, which `5qgs79` does for its
-  own use.
+- Moving the finding of cycles, which `5qgs79` does for its own use.
 
 ## Assumptions
 
@@ -58,6 +60,9 @@ The names of the types and the functions below are provisional.
 - **`parse_own_item(text)`** — new in `wio.formats`, reading the entry of a
   manifest, where a bare upper-case name is a family or a code and a qualified
   name is returned as `Qualified` for the caller to report.
+- **`join_path(parent, key)` and `item_path(parent, index)`** — in
+  `wio.formats`, moved from `wio.config.messages`, which add a key, quoted as
+  TOML does when it needs it, or a list index to a key path.
 - **The name forms** — `_NAME`, `_FAMILY`, `_CODE` and `_NAME_FORM` of
   `wio.config` made public in `wio.formats`, which `8zn10d` reuses for the forms
   of a ruleset name, a family and a rule preset name and `ht39xt` for the form
@@ -78,18 +83,19 @@ The diagram is drawn from commit `a29b066` of the branch
 
 ### Before and after
 
-The grammar of a reference is private to `wio.config`, so `wio.rules`, which may
-not import it, has no way to read a reference. After the move both import it
-from `wio.formats`. New parts are marked.
+The grammar of a reference and the key paths are private to `wio.config`, so
+`wio.rules`, which may not import them, has no way to read a reference or write
+a place. After the move both import them from `wio.formats`. New parts are
+marked.
 
 ```mermaid
 flowchart LR
     subgraph before["Before"]
-        cfgb["wio.config: parse_reference, item_kind, name forms"]
-        rulesb["wio.rules: no reader of references"]
+        cfgb["wio.config: parse_reference, item_kind, name forms, join_path, item_path"]
+        rulesb["wio.rules: no reader of references, no key paths"]
     end
     subgraph after["After"]
-        fmt["wio.formats: parse_reference, item_kind, name forms, parse_own_item (new home)"]
+        fmt["wio.formats: parse_reference, item_kind, name forms, join_path, item_path, parse_own_item (new home)"]
         cfga["wio.config"]
         rulesa["wio.rules (later)"]
         cfga --> fmt
@@ -107,9 +113,11 @@ Moving the grammar and the name forms to `wio.formats` changes nothing that
 #### Every reference
 
 - **Given** the configs that the acceptance scenarios of `wio config check` use
-  for references of every fault, including a bare upper-case name.
+  for references of every fault, including a bare upper-case name, and for every
+  key path, including a key that needs quotes.
 - **When** `wio config check` runs on each after the move.
-- **Then** every diagnostic and every exit code is what it was before.
+- **Then** every diagnostic, with its place, and every exit code is what it was
+  before.
 
 ### **AC-2** A reference of the config is bare, qualified or malformed
 
@@ -150,10 +158,36 @@ upper-case letters followed by digits.
   matches and `Arc` does not, and `ARC001` and `A1` match and `arc001` and `ARC`
   do not.
 
+### **AC-5** A name is told apart by its form
+
+`item_kind` says whether the item after the dot is a family, a code or a rule
+preset name, and none for any other text.
+
+#### Five items
+
+- **Given** the items `ARC`, `ARC001`, `recommended`, `arc001` and `Docs`.
+- **When** `item_kind` runs on each.
+- **Then** the results are `family`, `code`, `rule preset`, `rule preset`, which
+  has the form of a rule preset name although it looks like a code, and none.
+
+### **AC-6** A key path is written as TOML writes it
+
+`join_path` adds a key and `item_path` adds an index, and a key that is not made
+of letters, digits, `_` and `-` is quoted.
+
+#### Keys and indexes
+
+- **Given** the parents and keys `""` and `description`, `rule_presets` and `x`,
+  and `families` and `a.b`, and the list `rules_include` with the index 0.
+- **When** `join_path` runs for each pair and `item_path` for the list.
+- **Then** the paths are `description`, `rule_presets.x` and `families."a.b"`,
+  and `rules_include[0]`.
+
 ## Additional context
 
 - `parse_reference`, its result types, `_item_kind` and the name forms are in
-  `src/wio/config/selection.py` today, and `wio.config` is their only user;
+  `src/wio/config/selection.py` and `join_path` and `item_path` in
+  `src/wio/config/messages.py` today, and `wio.config` is their only user;
   `wio.rules` may not import `wio.config`, so the delivery moves them.
 - The message of a malformed reference that `wio config check` writes uses
   `_NAME_FORM`, which is why the form is moved with its text.

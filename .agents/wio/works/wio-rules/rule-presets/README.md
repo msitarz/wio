@@ -146,11 +146,15 @@ ruleset's scope it is a family, a code or a rule preset of that ruleset.
 
 #### In the config
 
-- **Given** a rule preset `backend` of the config and a ruleset `demo` with a
-  rule preset `recommended`.
-- **When** `expand` expands `backend`, and `recommended`, each as an include in
-  the config scope.
-- **Then** `backend` expands, and `recommended` is one `unknown` problem.
+- **Given** a ruleset `demo` that declares `ARC`, holds `ARC001` and has a rule
+  preset `recommended` that includes `ARC`, and a rule preset `backend` of the
+  config with `rules_include = ["demo.recommended"]`.
+- **When** `expand` expands `backend`, `recommended` and `ARC001`, each as an
+  include in the config scope.
+- **Then** `backend` selects `ARC001` by the route
+  `("backend", "demo.recommended", "demo.ARC")`, `recommended` is one `unknown`
+  problem, and the bare upper-case `ARC001` is one `malformed` problem, as
+  `wio config check` judges it, and neither selects anything.
 
 #### In a manifest
 

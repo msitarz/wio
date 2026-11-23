@@ -75,6 +75,8 @@ The names of the types and the functions below are provisional.
 - **The name forms** — the forms of a ruleset name, a family and a rule preset
   name of `wio.formats`, which `zq07av` moves there with the grammar and which
   this Work reuses.
+- **The key paths** — `join_path` and `item_path` of `wio.formats`, which
+  `zq07av` moves there and `read_manifest` uses for the places of AC-2.
 - **`refuse_on_errors(discovery: Discovery) -> None`** — in `wio.rules`, raising
   the `DiagnosticsError` of `wio.errors` that carries the error diagnostics of
   the discovery, and not its warnings, and doing nothing when there is none.

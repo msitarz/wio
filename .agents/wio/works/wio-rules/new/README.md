@@ -73,8 +73,9 @@ The names of the functions below are provisional.
 - **`plan_rule(ruleset: str, family: str, name: str, description: str | None,
   discovery: Discovery) -> NewRule`** — in `wio.rules`, which judges the request
   against the `Discovery` of `8zn10d` and refuses an unknown ruleset, a family
-  that the manifest does not declare, a name or a description of the wrong form
-  and a name that the ruleset has, with no input or output.
+  that the manifest does not declare, a name or a description of the wrong form,
+  the form of a name being that of `ht39xt`, and a name that the ruleset has,
+  with no input or output.
 - **`NewRule`** — frozen, with `path: PurePosixPath`, `text: str` and
   `rule: Rule`.
 - **The command** — `wio rules new`, with `--name`, `--description` and

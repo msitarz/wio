@@ -2,7 +2,7 @@
 id = "5qgs79"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["w3k7vd"]
+depends_on = ["w3k7vd", "zq07av"]
 -->
 
 # Errors of rules and rulesets
@@ -20,8 +20,8 @@ and the config show together, and no command reports them.
   manifests.
 - Each fault is reported once, at the key where it is written, whatever the
   number of entries that reach it.
-- The key paths that name a place in the config and the finding of cycles are
-  written and done by functions that `wio config check` shares.
+- The key paths that name a place come from `zq07av`, and the finding of cycles
+  is done by a function that `wio config check` shares.
 
 ## Non-Goals
 
@@ -61,9 +61,9 @@ The names of the functions below are provisional.
 - **The problems that count** — a problem whose route is not empty belongs to a
   rule preset that the entry reached and is not the entry's, and a `cycle`
   problem is dropped, because cycles come from `find_cycles`.
-- **The key paths and the cycles** — `join_path` and `item_path`, moved from
-  `wio.config.messages`, and `find_cycles`, moved from `wio.config.pipelines`,
-  to `wio.formats`, which `wio.config` and `wio.rules` both import.
+- **The cycles** — `find_cycles`, moved from `wio.config.pipelines` to
+  `wio.formats`, which `wio.config` and `wio.rules` both import, with the key
+  paths of `zq07av`.
 - **The reach of the roots** — the `rulesets` of the `Expansion` of each entry
   of a root's rule presets, with the nested rule presets of the config, for the
   roots that reach a root-independent ruleset.
@@ -72,10 +72,9 @@ The names of the functions below are provisional.
 
 ### C-1
 
-`wio.config` imports `join_path`, `item_path` and `find_cycles` from
-`wio.formats` and does not keep a copy. `uv run tach check` and
-`uv run jscpd src tests` verify it, and AC-9 that the output of
-`wio config check` is unchanged.
+`wio.config` imports `find_cycles` from `wio.formats` and does not keep a copy.
+`uv run tach check` and `uv run jscpd src tests` verify it, and AC-9 that the
+output of `wio config check` is unchanged.
 
 ## Visuals
 
@@ -84,18 +83,18 @@ The diagram is drawn from commit `d1f3d5d` of the branch
 
 ### Before and after
 
-The key paths and the finding of cycles are private to `wio.config`, so
-`wio.rules`, which may not import it, cannot write a place or find a cycle.
-After the move both import them from `wio.formats`. New parts are marked.
+The finding of cycles is private to `wio.config`, so `wio.rules`, which may not
+import it, cannot find a cycle. After the move both import it from
+`wio.formats`. New parts are marked.
 
 ```mermaid
 flowchart LR
     subgraph before["Before"]
-        cfgb["wio.config: join_path, item_path, find_cycles"]
-        rulesb["wio.rules: no key paths, no cycles"]
+        cfgb["wio.config: find_cycles"]
+        rulesb["wio.rules: no cycles"]
     end
     subgraph after["After"]
-        fmt["wio.formats: join_path, item_path, find_cycles (new home)"]
+        fmt["wio.formats: find_cycles (new home)"]
         cfga["wio.config"]
         rulesa["wio.rules: check_errors (new)"]
         cfga --> fmt
@@ -248,8 +247,8 @@ rule, or to a whole ruleset, that it left out for its own fault is an error too.
 
 ### **AC-9** `wio config check` is unchanged by the move
 
-Moving `join_path`, `item_path` and `find_cycles` to `wio.formats` changes
-nothing that `wio config check` reports.
+Moving `find_cycles` to `wio.formats` changes nothing that `wio config check`
+reports.
 
 #### Every key path and cycle
 
@@ -284,10 +283,9 @@ the order of the tables and entries, and `check_errors` reads no file.
 
 ## Additional context
 
-- `join_path` and `item_path` are in `src/wio/config/messages.py` and
-  `find_cycles` in `src/wio/config/pipelines.py` today; `wio.rules` may not
-  import `wio.config`, so the delivery moves them, as `zq07av` moves
-  `parse_reference`.
+- `find_cycles` is in `src/wio/config/pipelines.py` today; `wio.rules` may not
+  import `wio.config`, so the delivery moves it, as `zq07av` moves
+  `parse_reference`, `join_path` and `item_path`.
 - The place `…#rule_presets.local.rules_include[0]` is the form that C-6 of
   [wio rules](../../README.md) states, and the cycle is placed at
   `rules_include` as `wio config check` places a cycle of the config's rule

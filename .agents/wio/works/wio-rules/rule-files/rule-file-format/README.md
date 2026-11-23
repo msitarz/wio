@@ -48,6 +48,8 @@ The names of the types and the functions below are provisional.
 - **`read_rule(ruleset: str, path: PurePosixPath, text: str) -> RuleReading`** —
   in `wio.rules`; a `RuleReading` holds `rule: Rule | None` and
   `diagnostics: tuple[Diagnostic, ...]`.
+- **The name form** — the form of a rule's name of AC-3, held once in
+  `wio.rules` and reused by `plan_rule` of `km9cmc`.
 - **The code form** — the form of a code that `wio.formats` holds with the
   grammar of `zq07av`, which `read_rule` reuses for AC-3.
 - **The block reader and `closest_key`** — `read_metadata_block` and

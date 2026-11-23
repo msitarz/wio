@@ -58,7 +58,7 @@ The names of the functions below are provisional.
 - **The entries** — each entry is judged on its own with `expand` of `cyeth5`,
   over the `RuleCatalog` that `build_rule_catalog` of `w3k7vd` gives from the
   `ruleset_map` of the discovery, and its places are written with `join_path`
-  and `item_path` that `5qgs79` moves to `wio.formats`.
+  and `item_path` of `wio.formats` from `zq07av`.
 - **The rulesets an entry names** — the `rulesets` of the `Expansion` that
   `expand` returns for an entry, nested rule presets included; a ruleset that
   the discovery left out is not among them, so it gives no warning.
@@ -116,9 +116,10 @@ reaches it.
 
 #### Any root
 
-- **Given** a root `api` that reaches `demo` and no root that reaches `py`, a
-  stage `v` with `roots = ["contract", "@work"]` that includes `demo.ARC` and
-  `py.review`, and `rules_always_include` with `py.FIX` and `demo.ARC`.
+- **Given** a root `api` that reaches `demo`, a root `contract` that reaches
+  nothing, no root that reaches `py`, a stage `v` with
+  `roots = ["contract", "@work"]` that includes `demo.ARC` and `py.review`, and
+  `rules_always_include` with `py.FIX` and `demo.ARC`.
 - **When** `check_warnings` runs.
 - **Then** it returns one warning at `stages.v.rules_include[1]` for `py` and
   one at `rules_always_include[0]` for `py`, with the same fix, and none for
