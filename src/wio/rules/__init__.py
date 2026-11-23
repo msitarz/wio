@@ -31,6 +31,7 @@ lazy from wio.rules.layers import Layered, RuleLayers, apply_layers
 lazy from wio.rules.manifest import ManifestReading, read_manifest
 lazy from wio.rules.reading import RULE_NAME, RULE_NAME_FORM, RuleReading, read_rule
 lazy from wio.rules.roots import roots_of_path, stage_roots
+lazy from wio.rules.warns import check_warnings
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -183,6 +184,7 @@ __all__ = [
     "chain_labels",
     "chain_text",
     "check_errors",
+    "check_warnings",
     "describe",
     "discover",
     "expand",
