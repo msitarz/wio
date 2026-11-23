@@ -125,6 +125,15 @@ def _contracts() -> Command:
     return ContractsCommand(services)
 
 
+def _rules() -> Command:
+    """Wire `wio rules` to the project's ports.
+
+    Returns:
+        The command, whose subcommands read the project through the adapters.
+    """
+    raise NotImplementedError
+
+
 def trailers_command(events: EventSink | None = None) -> Command:
     """Wire `wio trailers` to git, the contracts component and a sink.
 
