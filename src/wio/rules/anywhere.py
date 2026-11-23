@@ -10,6 +10,7 @@ can name the rules that nothing selects. It reads no file.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
+from wio.models.frozen import freeze
 from wio.rules.expansion import ConfigScope, expand
 from wio.rules.inputs import build_rule_catalog
 lazy from wio.models.rule import LoadedRuleset, Rule
@@ -125,8 +126,11 @@ def _entries(config: Config) -> list[_Entry]:
     roots = [_Entry("root", n, r.rule_presets) for n, r in config.roots.items()]
     stages = [_Entry("stage", n, s.rules_include) for n, s in config.stages.items()]
     always = _Entry("always-include", None, config.rules_always_include)
-    by_name = sorted(roots, key=_Entry.sort_name), sorted(stages, key=_Entry.sort_name)
-    return [*by_name[0], *by_name[1], always]
+    return [
+        *sorted(roots, key=_Entry.sort_name),
+        *sorted(stages, key=_Entry.sort_name),
+        always,
+    ]
 
 
 def _collect(found: Sequence[tuple[_Entry, Expansion]]) -> SelectedAnywhere:
@@ -141,5 +145,26 @@ def _collect(found: Sequence[tuple[_Entry, Expansion]]) -> SelectedAnywhere:
         each entry that delivered or took it out, and each mapping in the order
         of C-2 of `wio rules`.
     """
-    msg = "the gathering of the origins"
-    raise NotImplementedError(msg)
+    chosen: dict[Rule, list[Origin]] = {}
+    taken: dict[Rule, list[Origin]] = {}
+    for entry, expansion in found:
+        for target, rules in ((chosen, expansion.rules), (taken, expansion.removed)):
+            for rule, routes in rules.items():
+                target.setdefault(rule, []).append(
+                    Origin(entry.layer, entry.name, routes)
+                )
+    return SelectedAnywhere(_in_order(chosen), _in_order(taken))
+
+
+def _in_order(found: dict[Rule, list[Origin]]) -> Mapping[Rule, tuple[Origin, ...]]:
+    """Put rules in the order of C-2 of `wio rules` and freeze the mapping.
+
+    Args:
+        found: The origins of each rule, already in the order they are kept.
+
+    Returns:
+        A frozen mapping by ruleset name, family, number of the code and code
+        text.
+    """
+    order = sorted(found, key=lambda r: (r.ruleset, r.family, r.number, r.code))
+    return freeze({rule: tuple(found[rule]) for rule in order})

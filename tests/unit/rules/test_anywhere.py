@@ -3,8 +3,6 @@
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 from tests.unit.rules.support import make_ruleset
 from wio.models.config import Config, Root, Ruleset, Stage
 from wio.models.frozen import freeze
@@ -16,7 +14,6 @@ if TYPE_CHECKING:
 
     from wio.models.rule import Rule
 
-_PENDING = pytest.mark.xfail(raises=NotImplementedError, strict=True)
 type _Presets = Mapping[str, tuple[Sequence[str], Sequence[str]]]
 
 
@@ -100,7 +97,6 @@ def _origins(
     return [(o.layer, o.name) for o in found]
 
 
-@_PENDING
 def test_a_rule_that_an_entry_delivers_is_selected_with_its_origins() -> None:
     """AC-1: the keys are what the entries deliver, and removed has the rest."""
     # Given a root, a stage and an always include that each deliver rules
@@ -120,7 +116,6 @@ def test_a_rule_that_an_entry_delivers_is_selected_with_its_origins() -> None:
     assert removed[1][0].routes == (("demo.recommended", "demo.ARC002"),)
 
 
-@_PENDING
 def test_a_rule_with_several_origins_has_all_of_them_in_order() -> None:
     """AC-2: layers in order, then names, each origin holding all its routes."""
     # Given several roots, stages and an always include that deliver ARC001
@@ -143,7 +138,6 @@ def test_a_rule_with_several_origins_has_all_of_them_in_order() -> None:
     ]
 
 
-@_PENDING
 def test_an_exclude_of_a_stage_or_the_veto_does_not_unselect() -> None:
     """AC-3: a view's excludes leave the rule selected."""
     # Given a stage exclude and an always exclude of delivered rules
@@ -156,7 +150,6 @@ def test_an_exclude_of_a_stage_or_the_veto_does_not_unselect() -> None:
     assert {"demo.ARC001", "demo.PAY001"} <= set(_keys(found))
 
 
-@_PENDING
 def test_an_entry_that_no_root_reaches_still_delivers() -> None:
     """AC-4: an entry counts whatever the roots."""
     # Given a ruleset that no root reaches and a stage that includes its preset
@@ -170,7 +163,6 @@ def test_an_entry_that_no_root_reaches_still_delivers() -> None:
     assert _origins(found.selected, "py.PYT001") == [("stage", "s")]
 
 
-@_PENDING
 def test_what_cannot_be_expanded_delivers_nothing_and_raises_nothing() -> None:
     """AC-5: the bad entries add no key and the rest are found."""
     # Given a stage with a missing code, a malformed entry and a rule preset
@@ -191,7 +183,6 @@ def test_what_cannot_be_expanded_delivers_nothing_and_raises_nothing() -> None:
     assert arc[0].routes == (("demo.loop", "demo.ARC001"),)
 
 
-@_PENDING
 def test_an_alias_gives_the_canonical_name() -> None:
     """AC-6: the routes name the ruleset and not its alias."""
     # Given a stage that includes a rule by the alias of its ruleset
@@ -210,7 +201,6 @@ def test_an_alias_gives_the_canonical_name() -> None:
     assert found.selected[next(iter(found.selected))][0].routes == (("demo.PAY001",),)
 
 
-@_PENDING
 def test_the_answer_is_deterministic_and_needs_no_file() -> None:
     """AC-7: two orders give equal results, and an empty config gives nothing."""
     # Given the same repository declared in two orders, and an empty config
@@ -231,7 +221,6 @@ def test_the_answer_is_deterministic_and_needs_no_file() -> None:
     assert not nothing.removed
 
 
-@_PENDING
 def test_what_the_excludes_of_rule_presets_took_out_is_recorded() -> None:
     """AC-8: removed has the rule and the entry, also when it is selected."""
     # Given a second root and a stage whose rule presets exclude rules
@@ -253,3 +242,21 @@ def test_what_the_excludes_of_rule_presets_took_out_is_recorded() -> None:
     assert _origins(found.selected, "demo.ARC002") == [("root", "web")]
     assert _origins(found.removed, "demo.ARC002") == [("root", "api")]
     assert _origins(found.removed, "demo.PAY002") == [("stage", "u")]
+
+
+def test_an_origin_holds_all_the_routes_of_its_entry_sorted() -> None:
+    """C-1: two rule presets of one root that reach a rule give one origin."""
+    # Given a root whose two rule presets both include ARC001, listed unsorted
+    presets: _Presets = {"zed": (["ARC001"], []), "alpha": (["ARC"], [])}
+    config = _config(roots={"api": ["demo.zed", "demo.alpha"]}, include=[])
+
+    # When the rules selected anywhere are found
+    found = selected_anywhere(config, _repo(presets))
+
+    # Then the rule has one origin with both routes, sorted
+    (origin,) = found.selected[next(iter(found.selected))]
+    assert origin.routes == (
+        ("demo.alpha", "demo.ARC"),
+        ("demo.zed", "demo.ARC001"),
+    )
+    assert hash(found) == hash(selected_anywhere(config, _repo(presets)))
