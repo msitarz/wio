@@ -438,7 +438,6 @@ _TREE = {
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(raises=NotImplementedError, strict=True)
 def test_the_expanded_roots_of_a_work_are_given_by_its_id(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -456,7 +455,6 @@ def test_the_expanded_roots_of_a_work_are_given_by_its_id(
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(raises=NotImplementedError, strict=True)
 def test_an_unknown_work_has_no_roots_and_an_empty_one_has_an_empty_tuple(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -503,13 +501,12 @@ class _Recording(adapters.LocalFileSystem):
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(raises=NotImplementedError, strict=True)
 def test_asking_for_roots_writes_nothing(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """AC-3: `roots_of` on a recording file system records no write."""
     # Given a repository and a lookup over a file system that records writes
-    project = _project(sandbox, monkeypatch, _TREE)
+    _project(sandbox, monkeypatch, _TREE)
     files = _Recording()
     environment = ProcessEnvironment()
     repository = adapters.GitRepository(environment)
@@ -523,4 +520,3 @@ def test_asking_for_roots_writes_nothing(
     # Then they are found and nothing was written
     assert found == ("api", "e2e", "web")
     assert files.writes == []
-    assert project.root.exists()

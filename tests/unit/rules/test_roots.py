@@ -207,6 +207,8 @@ def test_the_roots_do_not_depend_on_the_order_of_the_inputs() -> None:
     forward = _stages(*_FOUR)
     backward = _stages(*reversed(_FOUR))
     swapped = Config(roots=freeze(dict(reversed(_paths().roots.items()))))
+    spread = Config(roots=freeze({"web": Root(("src/web", "src/api"))}))
+    other = Config(roots=freeze({"web": Root(("src/api", "src/web"))}))
     reordered = _stages(("both", ["@work", "contract"]))
 
     # When the functions run on each, with a fake for the port
@@ -217,4 +219,7 @@ def test_the_roots_do_not_depend_on_the_order_of_the_inputs() -> None:
     # Then the results are equal
     assert sorted(map(str, one[0])) == sorted(map(str, two[0]))
     assert one[1] == two[1]
+    assert roots_of_path(spread, PurePosixPath("src/api/x")) == roots_of_path(
+        other, PurePosixPath("src/api/x")
+    )
     assert both == ("api", "contract")

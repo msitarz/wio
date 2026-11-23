@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 from wio.contracts.body import BodyChecker
 from wio.contracts.discovery import discover_works, find_work
+from wio.contracts.hierarchy import build_hierarchy
 from wio.contracts.showing import shown_actions
 from wio.formats import read_metadata_block
 from wio.formats.errors import MetadataBlockError
@@ -163,8 +164,13 @@ class WorkLookup:
         Raises:
             ConfigurationError: If the config cannot be loaded.
         """
-        del work_id
-        raise NotImplementedError
+        found = self._find(work_id)
+        if found is None:
+            return None
+        config = self.settings.load()
+        discovery = discover_works(self.repository.root(), config.works, found.files)
+        hierarchy = build_hierarchy(discovery.works, config.works.hierarchy)
+        return hierarchy.roots.get(found.work.path, ())
 
     def _reading(self) -> _Reading:
         """Gather what a Work's template is read through.
