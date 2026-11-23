@@ -3,6 +3,9 @@
 
 lazy from wio.formats.block import read_metadata_block
 lazy from wio.formats.closest import closest_key
+lazy from wio.formats.cycles import (
+    find_cycles,
+)
 lazy from wio.formats.diagnostics import (
     encode_json,
     render_check,
@@ -82,6 +85,7 @@ __all__ = [
     "encode_json",
     "encode_line",
     "encode_toml",
+    "find_cycles",
     "find_items",
     "item_kind",
     "item_path",

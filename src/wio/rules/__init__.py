@@ -8,6 +8,7 @@ lazy from wio.rules.anywhere import Origin, SelectedAnywhere, selected_anywhere
 lazy from wio.rules.applicability import select
 lazy from wio.rules.command import RulesCommand
 lazy from wio.rules.discovery import Discovery, discover, refuse_on_errors
+lazy from wio.rules.errors import check_errors
 lazy from wio.rules.expansion import (
     ConfigScope,
     Expansion,
@@ -181,6 +182,7 @@ __all__ = [
     "build_rule_catalog",
     "chain_labels",
     "chain_text",
+    "check_errors",
     "describe",
     "discover",
     "expand",
