@@ -1,8 +1,8 @@
 # `wio.rules`
 
 The component behind `wio rules`. So far it holds the reader of one rule file,
-the reader of a ruleset's manifest and the discovery of the rulesets, which
-`wio rules check`, `list` and `show` build on.
+the reader of a ruleset's manifest, the discovery of the rulesets and the
+expansion of rule presets, which `wio rules check`, `list` and `show` build on.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its
 code and name mean and
@@ -116,3 +116,59 @@ where each diagnostic lies, and its
 - **The rules directory is judged before it is walked.** It is missing without
   fault, and a symbolic link or a file there is one error and is not entered,
   as for the templates and the Works.
+
+## Expanding rule presets
+
+[`expand`](expansion.py) turns a list of includes and excludes into the rules it
+selects, and every layer of the selection is built on it. It works on values:
+the rulesets, their aliases and the config's rule presets arrive as a
+[`RuleCatalog`](expansion.py), so it reads no file. Its docstring and
+[tests](../../../tests/unit/rules/test_expansion.py) say what each case returns,
+and [Rule presets](../../../docs/concepts.md#rule-presets) says what a rule
+preset is.
+
+- **A reference is read in the scope it is written in.** In the config a bare
+  name is a rule preset of the config, and in a manifest it is a family, a code
+  or a rule preset of that ruleset. So the same text can mean two things, and
+  the scope is a value that the caller gives. A bare upper-case name stays
+  malformed in the config, as `wio config check` judges it, because the grammar
+  is the one that `wio.formats` shares with it.
+- **An exclude reaches only its own level.** A rule preset resolves before
+  anything uses it, so an exclude inside it cannot remove what an outer rule
+  preset includes on its own. What a nested rule preset removed stays in
+  `removed`, so `--explain` can say that a rule was taken out there even when an
+  outer entry brought it back.
+- **Every rule carries the routes by which it was reached.** A route is the
+  canonical references from the outermost rule preset to the entry that named
+  the rule, and a rule reached twice has both, sorted. The route is what lets
+  `--explain` answer where a rule came from, and it never shows an alias, so one
+  ruleset has one spelling in every output. A `Route` is in
+  [`wio.models`](../models/rules.py), because a `Decision` holds routes and a
+  model may not import a component.
+- **What cannot be expanded is a problem and selects nothing.** An unknown name,
+  a malformed reference, a qualified name inside a manifest and a cycle each
+  become a `Problem` that names the entry and the rule presets it was found in,
+  and the other entries are still expanded. Expanding never raises, because
+  `wio rules check` has to show every fault at once, and a manifest is text that
+  anyone may write.
+- **A family that is declared and holds no rule is not a problem.** A ruleset
+  can be started before its first rule, and a preset that includes the family
+  keeps working once the rules arrive.
+- **The rulesets that the includes name are returned apart from the rules.** A
+  root reaches a ruleset by the rules it selects, but an exclude can leave none
+  of them, and the ruleset is still the one the author meant, so the
+  expansion names it. An exclude and an entry that names nothing name no
+  ruleset.
+- **The result does not depend on the order of the inputs.** The rules are
+  sorted by ruleset, family, number and code text, the routes of a rule are
+  sorted, and the problems are sorted by route, reference and kind, so the same
+  files give the same bytes.
+- **Nested rule presets are expanded from a list and not by recursion.** The
+  depth of a chain is limited by memory and never by the recursion limit, so a
+  long chain of rule presets does not raise.
+- **The cost grows with the paths through nested rule presets.** A rule keeps
+  every route, so a rule preset that two others include is expanded once for
+  each, and a diamond of presets takes time and memory that grow exponentially
+  with its depth, even when it selects nothing. A repository's own rule presets
+  are shallow, so this has not been bounded; a rule preset that is expanded by
+  value, once, with its routes rebased, would remove the cost.
