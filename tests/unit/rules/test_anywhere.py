@@ -111,6 +111,8 @@ def test_a_rule_that_an_entry_delivers_is_selected_with_its_origins() -> None:
     assert _origins(found.selected, "demo.ARC001") == [("root", "api")]
     assert _origins(found.selected, "demo.PAY001") == [("stage", "s")]
     assert _origins(found.selected, "process.FIX001") == [("always-include", None)]
+    arc = next(iter(found.selected.values()))
+    assert arc[0].routes == (("demo.recommended", "demo.ARC"),)
     (removed,) = found.removed.items()
     assert removed[0].code == "ARC002"
     assert removed[1][0].routes == (("demo.recommended", "demo.ARC002"),)
@@ -242,6 +244,8 @@ def test_what_the_excludes_of_rule_presets_took_out_is_recorded() -> None:
     assert _origins(found.selected, "demo.ARC002") == [("root", "web")]
     assert _origins(found.removed, "demo.ARC002") == [("root", "api")]
     assert _origins(found.removed, "demo.PAY002") == [("stage", "u")]
+    (pay,) = [v for r, v in found.removed.items() if r.code == "PAY002"]
+    assert pay[0].routes == (("demo.extra", "demo.PAY002"),)
 
 
 def test_an_origin_holds_all_the_routes_of_its_entry_sorted() -> None:
