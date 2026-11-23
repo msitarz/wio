@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The `wio rules` command: creating, checking and listing rules."""
 
+lazy from wio.rules.applicability import select
 lazy from wio.rules.discovery import Discovery, discover, refuse_on_errors
 lazy from wio.rules.expansion import (
     ConfigScope,
@@ -51,4 +52,5 @@ __all__ = [
     "refuse_on_errors",
     "resolve_ruleset",
     "ruleset_map",
+    "select",
 ]
