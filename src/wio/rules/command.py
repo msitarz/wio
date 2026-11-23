@@ -46,5 +46,9 @@ class RulesCommand:
             WioError: The handler raised it for a mistake the user must fix; it
                 reaches the command line, which exits 2.
         """
-        del args, stdio
-        raise NotImplementedError
+        name: str | None = args.rules_subcommand
+        if name is None:
+            stdio.stdout.write(args.rules_help())
+            return 0
+        (chosen,) = (entry for entry in self._table if entry.name == name)
+        return chosen.handler(self._services, args, stdio)

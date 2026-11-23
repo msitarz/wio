@@ -6,8 +6,6 @@ from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-import pytest
-
 from tests.fakes import FakeEnvironment
 from tests.unit.cli.fakes import run_main
 from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
@@ -23,7 +21,6 @@ if TYPE_CHECKING:
     from wio.io.ports import Stdio
     from wio.models.config import Config
 
-_PENDING = pytest.mark.xfail(strict=True)
 type _Handler = Callable[[Services, Namespace, Stdio], int]
 
 
@@ -142,7 +139,6 @@ def test_the_component_is_listed_by_the_help_of_wio() -> None:
     assert describe().help in out
 
 
-@_PENDING
 def test_the_bare_command_prints_its_subcommands() -> None:
     """AC-1: `wio rules` prints the usage and each subcommand's help line."""
     # Given a table with the subcommands `alpha` and `beta`
@@ -161,14 +157,14 @@ def test_the_bare_command_prints_its_subcommands() -> None:
     assert "The beta." in out
 
 
-@_PENDING
 def test_a_subcommand_is_run_with_its_arguments_and_gives_the_exit_code() -> None:
     """AC-2: the handler gets the services, the namespace and the streams."""
     # Given a subcommand `alpha` with `--flag` that returns 1 when it is set
     probe = _Probe()
 
-    def alpha(services: Services, args: Namespace, _stdio: Stdio) -> int:
+    def alpha(services: Services, args: Namespace, stdio: Stdio) -> int:
         probe.received.append((services, args))
+        stdio.stdout.write("seen")
         return 1 if args.flag else 0
 
     entry = _entry([_subcommand("alpha", alpha, _flag)], probe)
@@ -179,6 +175,7 @@ def test_a_subcommand_is_run_with_its_arguments_and_gives_the_exit_code() -> Non
 
     # Then they exit 1 and 0, and the handler received the services and `flag`
     assert (flagged[0], plain[0]) == (1, 0)
+    assert flagged[1] == "seen"
     assert [(type(s), a.flag) for s, a in probe.received] == [
         (Services, True),
         (Services, False),
@@ -201,7 +198,6 @@ def _fail_with(error: Exception) -> _Handler:
     return handler
 
 
-@_PENDING
 def test_failures_map_to_exit_codes() -> None:
     """AC-3: a `WioError` and diagnostics exit 2, anything else exits 70."""
     # Given subcommands that raise a `WioError`, a `DiagnosticsError` and a bug
@@ -239,7 +235,6 @@ def test_describing_is_light_and_only_the_chosen_subcommand_is_wired() -> None:
     assert (wired_by_help, probe.wired) == (0, 1)
 
 
-@_PENDING
 def test_json_has_one_declaration_and_one_behaviour() -> None:
     """AC-5: one document on exit 0 and 1, and nothing on stdout for exit 2."""
 
