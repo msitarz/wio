@@ -180,6 +180,15 @@ def test_an_exclude_takes_out_what_the_layers_so_far_added() -> None:
 
     # Then `PAY002` and `ARC002` are selected, and `ARC002` has three effects
     assert _selected(found) == ["ARC002", "PAY002"]
+    assert _effects(found, "ARC001") == [
+        ("root", "adds", "api"),
+        ("stage", "removes", None),
+    ]
+    assert _effects(found, "PAY001") == [
+        ("stage", "adds", None),
+        ("stage", "removes", None),
+        ("always-exclude", "removes", None),
+    ]
     assert _effects(found, "ARC002") == [
         ("root", "adds", "api"),
         ("stage", "removes", None),
@@ -267,11 +276,7 @@ def test_an_exclude_of_one_root_does_not_take_out_what_another_adds() -> None:
     """AC-5: the exclude acts on the includes of its own rule preset only."""
     # Given `recommended` excluding `ARC002`, and the root `web` with the family
     rulesets = _demo(recommended=(["ARC"], ["ARC002"]), family=(["ARC"], []))
-    config = _config(
-        roots={"api": ["demo.recommended"], "web": ["demo.family"]},
-        include=[],
-        exclude=[],
-    )
+    config = _config(roots={"api": ["demo.recommended"], "web": ["demo.family"]})
 
     # When the layers apply for `("api", "web")` and for `("web", "api")`
     first = apply_layers(("api", "web"), None, config, rulesets)
@@ -364,21 +369,30 @@ def test_an_unknown_name_is_refused_and_an_unknown_reference_is_a_problem() -> N
 @_STUB
 def test_the_result_does_not_depend_on_the_order_of_the_inputs() -> None:
     """AC-8: the tables, the entries and the roots argument in two orders."""
-    # Given the repository of AC-5 declared in two orders
+    # Given the repository of AC-5 with a stage, declared in two orders: the
+    # roots, the stages, the entries of a list and the rulesets reversed
     config, rulesets = _two_roots()
+    stages = {"s": (["demo.PAY001", "demo.PAY002"], ["demo.ARC001"]), "t": ([], [])}
+    config = replace(config, stages=_config(stages=stages).stages)
+    reversed_stages = {
+        "t": ([], []),
+        "s": (["demo.PAY002", "demo.PAY001"], ["demo.ARC001"]),
+    }
     reordered = replace(
-        config, roots=freeze(dict(reversed(list(config.roots.items()))))
+        config,
+        roots=freeze(dict(reversed(list(config.roots.items())))),
+        stages=_config(stages=reversed_stages).stages,
     )
+    backwards = freeze(dict(reversed(list(rulesets.items()))))
 
     # When the layers apply for each order of the roots
-    first = apply_layers(("web", "api"), None, config, rulesets)
-    second = apply_layers(
-        ("api", "web"), None, reordered, freeze(dict(reversed(list(rulesets.items()))))
-    )
+    first = apply_layers(("web", "api"), "s", config, rulesets)
+    second = apply_layers(("api", "web"), "s", reordered, backwards)
 
-    # Then the results are equal, in the same order, with the effects of the root
-    # layer in the order of the root names
+    # Then the results are equal, hash alike and list their rules in the same
+    # order, with the effects of the root layer in the order of the root names
     assert first == second
+    assert hash(first) == hash(second)
     assert list(first.rules.items()) == list(second.rules.items())
     assert [e.root for e in _layers(first, "ARC001").effects[:2]] == ["api", "web"]
 

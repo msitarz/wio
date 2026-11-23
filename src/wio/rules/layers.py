@@ -27,9 +27,10 @@ class RuleLayers:
 
     Attributes:
         selected: Whether the rule is in the set after the last layer.
-        effects: What each layer did to it, in the order the layers applied:
-            the root layer by root name, then the stage, the always includes and
-            the always excludes; inside a layer the adds before the removes.
+        effects: What each layer did to it, in the order the layers applied: the
+            root layer by root name, then the stage, the always includes and the
+            always excludes. Inside one root, and inside the stage, the adds of
+            an expansion come before its removes.
     """
 
     selected: bool
@@ -91,8 +92,11 @@ def apply_layers(
         rulesets: The rulesets by canonical name, as `ruleset_map` gives them.
 
     Returns:
-        The rules with their effects, the rulesets that each root reaches, and
-        the problems.
+        The rules with their effects, the rulesets that each root of the config
+        reaches whether or not it was given, so a call for no roots and no stage
+        still has them, and the problems of the expansions that were applied. A
+        problem that two expansions share, such as a bad entry of a rule preset
+        that two roots include, is listed once.
 
     Raises:
         KeyError: A name of `roots` is not a root of the config, or `stage` is not
