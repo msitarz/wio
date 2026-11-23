@@ -348,8 +348,8 @@ says what it takes and returns, and its
 
 [`stage_roots`](roots.py) finds the roots that count for a stage of a Work, and
 [`roots_of_path`](roots.py) the roots that contain a file. Both work on the
-config and on what the caller names, so every view of a listing and every bundle
-choose the same roots. The Work's own roots arrive through the
+config and on what the caller names, so that one answer to which roots count
+serves every consumer. The Work's own roots arrive through the
 [`WorkRoots`](ports.pyi) port, which
 [`WorkLookup`](../contracts/lookup.py) satisfies, so `wio.rules` reads no
 contract. Their docstrings say what each takes, returns and raises, and their
@@ -367,12 +367,16 @@ says what the forms of a stage's `roots` mean.
   roots, and the Work last, so the name that a `KeyError` carries is the first
   thing that was wrong in that order.
 - **A name that does not exist is refused,** not skipped: an unknown stage or
-  Work, and a root of a stage or of a Work that the config lacks. `wio contracts
-  check` already enforces the roots of a Work, so one that is not a root is a
+  Work, and a root of a stage or of a Work that the config lacks. a check of the
+  contracts already enforces the roots of a Work, so one that is not a root is a
   mistake and not a root to ignore.
 - **A path is in a root by whole components.** `src/api2/x.py` is not in a root
   `src/api`, and a root `.` holds every path. The path is relative to the
   repository root, normalized and written with `/`, and need not exist, because
-  the command that has the argument makes it so.
+  the caller is to make it so.
+- **Neither function does input or output.** A fake of the port and a config
+  are all a test needs, and the Work's own roots come from whichever view the
+  caller's `WorkRoots` reads: for `wio trailers`, the working tree, which
+  differs from the index only for a change that is not staged yet.
 - **The results are sorted and each name is once,** whatever the order of the
   config's roots, of a root's paths or of a stage's `roots`.
