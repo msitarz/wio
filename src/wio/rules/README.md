@@ -93,6 +93,14 @@ where each diagnostic lies, and its
   the walk follows none, so a ruleset copied in by a link would otherwise be
   silently empty. A directory that cannot be listed is one error at the
   directory.
+- **The discovery repeats what `wio config check` reports, on purpose.** A
+  directory without a `ruleset.toml` and a ruleset name of the wrong form are
+  errors of `wio config check` already, which stops every other command before
+  the discovery runs, so only a call of the discovery reaches them. `wio rules
+  check` shows them again with the other faults of the rules. `wio config check`
+  follows symbolic links and accepts a link to a ruleset, so the error of the
+  discovery is the only report of one. The checks are not redundant, and
+  removing them from the discovery loses a report.
 - **A rule is judged against its own ruleset only.** A family its manifest does
   not declare, a code or a name that two rules share, are errors that leave the
   rules out, while the same code in two rulesets is no fault, because a
