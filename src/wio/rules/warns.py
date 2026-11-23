@@ -10,10 +10,18 @@ the discovery. The errors are `wio.rules.errors`'s.
 
 from typing import TYPE_CHECKING
 
+from wio.models.diagnostics import sort_diagnostics
+from wio.rules.inputs import build_rule_catalog, ruleset_map
+from wio.rules.layers import apply_layers
+
 if TYPE_CHECKING:
+    from collections.abc import Iterator, Mapping, Sequence
+
     from wio.models.config import Config
     from wio.models.diagnostics import Diagnostic
+    from wio.models.rule import LoadedRuleset
     from wio.rules.discovery import Discovery
+    from wio.rules.expansion import RuleCatalog
 
 
 def check_warnings(config: Config, discovery: Discovery) -> tuple[Diagnostic, ...]:
@@ -63,5 +71,59 @@ def check_warnings(config: Config, discovery: Discovery) -> tuple[Diagnostic, ..
     Returns:
         The warnings, each at the key or the file that the author has to edit.
     """
-    del config, discovery
+    rulesets = ruleset_map(discovery)
+    catalog = build_rule_catalog(config, rulesets)
+    reach = apply_layers(None, None, config, rulesets).reach
+    found = [
+        *(d for d in discovery.diagnostics if d.severity == "warning"),
+        *_reach_warnings(config, catalog, reach),
+        *_veto_warnings(config, catalog),
+        *_heading_warnings(discovery.rulesets),
+    ]
+    return tuple(dict.fromkeys(sort_diagnostics(found)))
+
+
+def _reach_warnings(
+    config: Config, catalog: RuleCatalog, reach: Mapping[str, frozenset[str]]
+) -> Iterator[Diagnostic]:
+    """Warn about the entries whose rulesets no counted root reaches.
+
+    Args:
+        config: The settings, whose stages, always includes and rulesets are read.
+        catalog: What the entries are resolved in.
+        reach: The rulesets that each root reaches, as `apply_layers` gives them.
+
+    Returns:
+        A warning for each ruleset that an entry names and that is neither
+        root-independent nor reached by a root that the entry counts.
+    """
+    del config, catalog, reach
+    raise NotImplementedError
+
+
+def _veto_warnings(config: Config, catalog: RuleCatalog) -> Iterator[Diagnostic]:
+    """Warn about the always includes that the always excludes veto.
+
+    Args:
+        config: The settings, whose always fields are read.
+        catalog: What the entries are resolved in.
+
+    Returns:
+        A warning at each include entry whose rules an exclude entry also names.
+    """
+    del config, catalog
+    raise NotImplementedError
+
+
+def _heading_warnings(rulesets: Sequence[LoadedRuleset]) -> Iterator[Diagnostic]:
+    """Warn about the rules whose body has a real Markdown heading.
+
+    Args:
+        rulesets: The rulesets that were read.
+
+    Returns:
+        A warning at the file and the line of the first heading of each such
+        rule.
+    """
+    del rulesets
     raise NotImplementedError
