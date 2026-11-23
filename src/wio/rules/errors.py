@@ -10,16 +10,19 @@ reading a file, so that `wio rules check` can add them to the faults of the
 discovery.
 """
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from wio.formats.wording import item_path, join_path
+from wio.formats.cycles import find_cycles
+from wio.formats.grammar import Qualified, item_kind, parse_reference
+from wio.formats.wording import and_list, declared, item_path, join_path
 from wio.models.diagnostics import Diagnostic, sort_diagnostics
 from wio.rules.expansion import ConfigScope, RulesetScope, expand
-from wio.rules.inputs import build_rule_catalog, ruleset_map
+from wio.rules.inputs import build_rule_catalog, resolve_ruleset, ruleset_map
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Iterator, Mapping, Sequence
 
     from wio.models.config import Config, RulePreset
     from wio.models.rule import LoadedRuleset
@@ -47,16 +50,18 @@ def check_errors(config: Config, discovery: Discovery) -> tuple[Diagnostic, ...]
     The reason of a failed entry is derived from the entry and the catalog,
     because a `Problem` carries only its kind, reference and route: an unknown
     family lists the families that the ruleset declares, an unknown code the
-    codes of its family, an unknown rule preset the rule presets of its manifest
-    and a ruleset that was not read says so, with `declared`; an entry that is
-    not in the form of a reference says that, and a qualified entry of a
-    manifest says that a manifest names only its own items.
+    codes of its family and an unknown rule preset the rule presets of its
+    manifest, each worded with `declared`; a ruleset that was not read says so,
+    an entry that is not in the form of a reference says that, and a qualified
+    entry of a manifest says that a manifest names only its own items.
 
     A cycle of the rule presets of a manifest is one error for each cycle, at
     the `rules_include` of the first member by name, or at its `rules_exclude`
-    when the edge that leaves it is an exclude, naming every member with
+    when none of its includes names a member, naming every member with
     `and_list`. The edges are the entries of both lists that name a rule preset
-    of the manifest, so a cycle that closes through an exclude is reported too.
+    of the manifest, so a cycle that closes through an exclude is reported too,
+    and `all`, which is the whole ruleset and never a rule preset, is no edge and
+    no node.
     A rule preset called `all` is one error at its key that says `all` is
     reserved for the whole ruleset. A root whose rule presets reach a
     root-independent ruleset, directly or through a rule preset of the config,
@@ -213,8 +218,54 @@ def _reason(problem: Problem, entry: _Entry, catalog: RuleCatalog) -> str:
     Returns:
         The message, which lists the families, codes or rule presets that exist.
     """
-    del problem, entry, catalog
-    raise NotImplementedError
+    text = entry.text
+    match problem.kind, entry.scope:
+        case "malformed", _:
+            return f"`{text}` is not a reference."
+        case "qualified-in-manifest", _:
+            return f"`{text}` is qualified; a manifest names only its own items."
+        case _, RulesetScope(own):
+            return f"`{text}` names nothing. {_siblings(own, text, catalog)}"
+    match parse_reference(text):
+        case Qualified(ruleset, item):
+            canonical = resolve_ruleset(ruleset, catalog)
+            if canonical is None:
+                return f"`{ruleset}` is not a ruleset that was read."
+            return f"`{text}` names nothing. {_siblings(canonical, item, catalog)}"
+    known = declared(
+        "Declared rule presets", "None is declared.", sorted(catalog.presets)
+    )
+    return f"`{text}` names no rule preset of the config. {known}"
+
+
+def _siblings(ruleset: str, item: str, catalog: RuleCatalog) -> str:
+    """List what exists next to an item that names nothing.
+
+    Args:
+        ruleset: The canonical name of the ruleset.
+        item: The family, code or rule preset that was written.
+        catalog: The rulesets that were read.
+
+    Returns:
+        The families, the codes of the item's family or the rule presets of the
+        ruleset's manifest, depending on what the item looks like.
+    """
+    loaded = catalog.rulesets[ruleset]
+    match item_kind(item):
+        case "family":
+            names = list(loaded.manifest.families)
+            return declared("Declared families", "No families are declared.", names)
+        case "code":
+            family = re.match(r"[A-Z]+", item)
+            codes = [r.code for r in loaded.rules_of(family[0] if family else "")]
+            return declared(
+                f"Codes of `{family[0] if family else ''}`",
+                "No rule has that family.",
+                codes,
+            )
+        case _:
+            names = sorted(loaded.manifest.rule_presets)
+            return declared("Rule presets", "No rule presets are declared.", names)
 
 
 def _cycle_errors(rulesets: Sequence[LoadedRuleset]) -> Iterator[Diagnostic]:
@@ -224,10 +275,54 @@ def _cycle_errors(rulesets: Sequence[LoadedRuleset]) -> Iterator[Diagnostic]:
         rulesets: The rulesets that were read.
 
     Returns:
-        An error for each cycle, as `check_errors` words it.
+        An error for each cycle, at the key of its first member by name.
     """
-    del rulesets
-    raise NotImplementedError
+    for ruleset in rulesets:
+        presets = {n: p for n, p in ruleset.manifest.rule_presets.items() if n != "all"}
+        for cycle in find_cycles(_edges(presets)):
+            yield _cycle_error(ruleset, presets[cycle[0]], cycle)
+
+
+def _edges(presets: Mapping[str, RulePreset]) -> dict[str, list[str]]:
+    """Find which rule presets of a manifest name which.
+
+    Args:
+        presets: The rule presets of a manifest, without `all`.
+
+    Returns:
+        For each rule preset, the entries of its includes and excludes that name
+        a rule preset of the manifest.
+    """
+    return {
+        name: [e for e in (*p.rules_include, *p.rules_exclude) if e in presets]
+        for name, p in presets.items()
+    }
+
+
+def _cycle_error(
+    ruleset: LoadedRuleset, first: RulePreset, cycle: Sequence[str]
+) -> Diagnostic:
+    """Word the error of one cycle.
+
+    Args:
+        ruleset: The ruleset whose manifest has the cycle.
+        first: The first member of the cycle by name.
+        cycle: The members, sorted.
+
+    Returns:
+        The error, at the `rules_include` of the first member when one of its
+        includes names a member, and at its `rules_exclude` otherwise.
+    """
+    named = any(entry in cycle for entry in first.rules_include)
+    key = "rules_include" if named else "rules_exclude"
+    where = f"{ruleset.path}/ruleset.toml#{join_path('rule_presets', cycle[0])}"
+    names = and_list([f"`{name}`" for name in cycle])
+    phrase = "name one another" if len(cycle) > 1 else "names itself"
+    message = f"{names} {phrase}; a rule preset cannot reach itself."
+    return Diagnostic("error", join_path(where, key), message)
+
+
+_RESERVED = "`all` is reserved for the whole ruleset; name the rule preset otherwise."
 
 
 def _reserved_errors(rulesets: Sequence[LoadedRuleset]) -> Iterator[Diagnostic]:
@@ -245,9 +340,6 @@ def _reserved_errors(rulesets: Sequence[LoadedRuleset]) -> Iterator[Diagnostic]:
             yield Diagnostic("error", where, _RESERVED)
 
 
-_RESERVED = "`all` is reserved for the whole ruleset; name the rule preset otherwise."
-
-
 def _reach_errors(config: Config, catalog: RuleCatalog) -> Iterator[Diagnostic]:
     """Report a root that reaches a root-independent ruleset.
 
@@ -256,8 +348,53 @@ def _reach_errors(config: Config, catalog: RuleCatalog) -> Iterator[Diagnostic]:
         catalog: What the entries of the roots are resolved in.
 
     Returns:
-        An error at the entry of each root that reaches one, as `check_errors`
-        words it.
+        An error at the entry of each root that reaches one, naming the
+        ruleset, the root and the rule preset of the config that the entry names.
     """
-    del config, catalog
-    raise NotImplementedError
+    apart = {n for n, ruleset in config.rulesets.items() if ruleset.root_independent}
+    for name, root in config.roots.items():
+        yield from _root_reach(name, root.rule_presets, apart, catalog)
+
+
+def _root_reach(
+    root: str, entries: Sequence[str], apart: set[str], catalog: RuleCatalog
+) -> Iterator[Diagnostic]:
+    """Report the entries of one root that reach a root-independent ruleset.
+
+    Args:
+        root: The root's name.
+        entries: Its rule presets, as written.
+        apart: The canonical names of the root-independent rulesets.
+        catalog: What the entries are resolved in.
+
+    Returns:
+        An error at each entry that reaches one.
+    """
+    where = join_path(join_path("roots", root), "rule_presets")
+    for index, text in enumerate(entries):
+        reached = expand([text], [], ConfigScope(), catalog).rulesets & apart
+        if reached:
+            message = _reached(root, text, sorted(reached), catalog)
+            yield Diagnostic("error", item_path(where, index), message)
+
+
+def _reached(root: str, text: str, names: Sequence[str], catalog: RuleCatalog) -> str:
+    """Word the error of a root that reaches root-independent rulesets.
+
+    Args:
+        root: The root's name.
+        text: The entry of the root, as written.
+        names: The root-independent rulesets that it reaches.
+        catalog: The rule presets of the config.
+
+    Returns:
+        The message, which names the rulesets, the root and, when the entry is a
+        rule preset of the config, that rule preset.
+    """
+    through = f" through the rule preset `{text}`" if text in catalog.presets else ""
+    listed = and_list([f"`{name}`" for name in names])
+    return (
+        f"The root `{root}` reaches {listed}{through}, which "
+        f"{'is' if len(names) == 1 else 'are'} root-independent and apply to every "
+        "root; a stage includes it, not a root."
+    )

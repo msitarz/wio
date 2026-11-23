@@ -3,8 +3,6 @@
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 from tests.unit.rules.support import make_ruleset
 from wio.models.config import Config, Root, RulePreset, Ruleset, Stage
 from wio.models.diagnostics import Diagnostic, sort_diagnostics
@@ -17,7 +15,6 @@ if TYPE_CHECKING:
 
     from wio.models.rule import LoadedRuleset
 
-_PENDING = pytest.mark.xfail(raises=NotImplementedError, strict=True)
 _MANIFEST = ".agents/wio/rules/demo/ruleset.toml"
 type _Presets = Mapping[str, tuple[Sequence[str], Sequence[str]]]
 type _Lists = Mapping[str, Sequence[str]]
@@ -83,7 +80,13 @@ def _config(
         rules_always_include=tuple(fields.get("include", ())),
         rules_always_exclude=tuple(fields.get("exclude", ())),
         rule_presets=freeze(named),
-        rulesets=freeze({"process": Ruleset(root_independent=True)}),
+        rulesets=freeze(
+            {
+                "demo": Ruleset(),
+                "broken": Ruleset(),
+                "process": Ruleset(root_independent=True),
+            }
+        ),
     )
 
 
@@ -100,7 +103,6 @@ def _found(config: Config, discovery: Discovery) -> list[tuple[str, str]]:
     return [(d.where, d.message) for d in check_errors(config, discovery)]
 
 
-@_PENDING
 def test_the_errors_of_the_discovery_are_shown_and_its_warnings_are_not() -> None:
     """AC-1: each error comes back unchanged, and the warning does not."""
     # Given a discovery with two errors and a warning
@@ -128,7 +130,6 @@ _BAD = [
 ]
 
 
-@_PENDING
 def test_a_reference_of_the_config_that_names_nothing_is_an_error() -> None:
     """AC-2: each field that takes references reports its entries that fail."""
     # Given references that fail and references that name something, in every
@@ -161,7 +162,6 @@ def test_a_reference_of_the_config_that_names_nothing_is_an_error() -> None:
     assert len(found) == len(expected)
 
 
-@_PENDING
 def test_the_message_lists_what_exists() -> None:
     """AC-2: an unknown family, code and rule preset each list their siblings."""
     # Given a stage that includes an unknown family, code and rule preset
@@ -180,7 +180,6 @@ def test_the_message_lists_what_exists() -> None:
 _LOCAL: _Presets = {"local": (["ZZZ", "Docs", "demo.ARC"], ["ARC999"])}
 
 
-@_PENDING
 def test_a_reference_of_a_manifest_that_cannot_be_used_is_an_error() -> None:
     """AC-3: a name that is nothing, a malformed one and a qualified one fail."""
     # Given a manifest whose rule preset has three entries that cannot be used
@@ -197,13 +196,12 @@ def test_a_reference_of_a_manifest_that_cannot_be_used_is_an_error() -> None:
         f"{base}.rules_include[1]",
         f"{base}.rules_include[2]",
     ]
-    assert "ARC999" in found[0][1]
-    assert "ZZZ" in found[1][1]
-    assert "not a reference" in found[2][1]
-    assert "qualified" in found[3][1]
+    assert "`ARC999` names nothing" in found[0][1]
+    assert "`ZZZ` names nothing" in found[1][1]
+    assert "`Docs` is not a reference" in found[2][1]
+    assert "qualified; a manifest names only its own items" in found[3][1]
 
 
-@_PENDING
 def test_a_fault_is_reported_once_however_many_entries_reach_it() -> None:
     """AC-4: the entries that reach a faulty rule preset get no error."""
     # Given the manifest of AC-3 reached by a config rule preset, a root, a stage
@@ -223,7 +221,6 @@ def test_a_fault_is_reported_once_however_many_entries_reach_it() -> None:
     assert all(where.startswith(_MANIFEST) for where, _ in found)
 
 
-@_PENDING
 def test_a_cycle_of_rule_presets_is_one_error_that_names_them() -> None:
     """AC-5: each cycle is one error at its first preset, and a bystander none."""
     # Given presets that include each other, one that includes itself, and one
@@ -245,7 +242,6 @@ def test_a_cycle_of_rule_presets_is_one_error_that_names_them() -> None:
     assert "`c`" in found[1][1]
 
 
-@_PENDING
 def test_a_manifest_cannot_define_all() -> None:
     """AC-6: a preset called `all` is an error, and referring to `all` is not."""
     # Given a manifest that defines `all` and a preset that includes it, and a
@@ -270,7 +266,6 @@ def _process() -> LoadedRuleset:
     return make_ruleset("process", ["FIX"], ["FIX001"])
 
 
-@_PENDING
 def test_a_root_must_not_reach_a_root_independent_ruleset() -> None:
     """AC-7: the entry of the root that reaches it is the error, not the stage."""
     # Given a root whose second entry names `process`, and a stage that includes
@@ -289,7 +284,6 @@ def test_a_root_must_not_reach_a_root_independent_ruleset() -> None:
     assert "`api`" in found[0][1]
 
 
-@_PENDING
 def test_a_root_reaching_it_through_a_rule_preset_names_the_preset() -> None:
     """AC-7: the error is at the root's entry and names the config's preset."""
     # Given a config rule preset that includes `process.all`, a root that
@@ -308,7 +302,6 @@ def test_a_root_reaching_it_through_a_rule_preset_names_the_preset() -> None:
     assert all(f"`{name}`" in found[0][1] for name in ("process", "api", "backend"))
 
 
-@_PENDING
 def test_a_reference_to_what_the_discovery_left_out_is_reported() -> None:
     """AC-8: a rule or a ruleset that was left out is a reference to nothing."""
     # Given a ruleset whose rules were left out, a ruleset that was left out
@@ -331,10 +324,11 @@ def test_a_reference_to_what_the_discovery_left_out_is_reported() -> None:
         "stages.s.rules_include[0]",
         "stages.s.rules_include[1]",
     }
-    assert "not a ruleset that was read" in dict(found)["stages.s.rules_include[1]"]
+    messages = dict(found)
+    assert "`demo.ARC001` names nothing" in messages["stages.s.rules_include[0]"]
+    assert "not a ruleset that was read" in messages["stages.s.rules_include[1]"]
 
 
-@_PENDING
 def test_a_family_that_holds_no_rule_is_not_an_error() -> None:
     """AC-10: a declared family without a rule is a valid reference."""
     # Given a manifest that declares `ARC` and `PAY` and holds only `ARC001`, and
@@ -348,7 +342,6 @@ def test_a_family_that_holds_no_rule_is_not_an_error() -> None:
     assert found == []
 
 
-@_PENDING
 def test_the_errors_do_not_depend_on_the_order_of_the_inputs() -> None:
     """AC-11: two orders of the tables and the rulesets give equal results."""
     # Given a config and rulesets with errors of several kinds, in two orders
@@ -366,3 +359,30 @@ def test_the_errors_do_not_depend_on_the_order_of_the_inputs() -> None:
     # Then the results are equal
     assert one == two
     assert one
+
+
+def test_a_cycle_that_closes_through_an_exclude_is_reported_at_its_exclude() -> None:
+    """AC-5: an exclude is an edge, and the error is at the list that has it."""
+    # Given a rule preset that excludes another, which includes the first
+    discovery = _demo({"a": ([], ["b"]), "b": (["a"], [])})
+
+    # When the errors are found
+    found = _found(Config(), discovery)
+
+    # Then one error names both, at the first by name, whose edge is an exclude
+    assert [w for w, _ in found] == [f"{_MANIFEST}#rule_presets.a.rules_exclude"]
+    assert "`a` and `b`" in found[0][1]
+
+
+def test_a_preset_called_all_makes_no_cycle_with_the_rule_presets_that_name_it() -> (
+    None
+):
+    """AC-6: `all` is the whole ruleset, so it is no node of a cycle."""
+    # Given a rule preset `all` that includes `x`, and `x` that includes `all`
+    discovery = _demo({"all": (["x"], []), "x": (["all"], [])})
+
+    # When the errors are found
+    found = _found(Config(), discovery)
+
+    # Then only the reserved name is an error
+    assert [w for w, _ in found] == [f"{_MANIFEST}#rule_presets.all"]
