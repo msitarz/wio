@@ -246,8 +246,9 @@ def test_an_alias_names_its_ruleset_and_a_route_never_shows_it() -> None:
     # Then the rules and the removals are the same, and no route names `d`
     assert by_alias.rules == by_name.rules
     assert by_alias.removed == by_name.removed
-    routes = [r for rs in by_alias.rules.values() for r in rs]
-    assert all(part.split(".")[0] != "d" for route in routes for part in route)
+    selected = [r for rs in by_alias.rules.values() for r in rs]
+    removed = [r for rs in by_alias.removed.values() for r in rs]
+    assert all(part.split(".")[0] != "d" for rt in [*selected, *removed] for part in rt)
 
 
 @_STUB
@@ -355,15 +356,21 @@ def _two_orders() -> tuple[Expansion, Expansion]:
         The expansion of each order.
     """
     entries = ["demo.recommended", "other.ARC", "demo.ARC001", "none", "nope.X"]
+    excludes = ["other.ARC002"]
     results = []
     for reverse in (False, True):
-        demo = _demo()
+        step = -1 if reverse else 1
+        demo = _ruleset(
+            "demo",
+            ["ARC", "PAY"],
+            ["ARC001", "ARC002", "PAY001"],
+            {"recommended": (["ARC", "ZZZ"], ["ARC002"])},
+        )
         other = _ruleset("other", ["ARC"], ["ARC002", "ARC001"])
-        rulesets = [demo, other][:: -1 if reverse else 1]
-        backend = RulePreset(tuple(entries[:: -1 if reverse else 1]), ())
+        backend = RulePreset(tuple(entries[::step]), tuple(excludes[::step]))
         presets = {"zeta": RulePreset((), ()), "backend": backend}
         order = dict(reversed(presets.items())) if reverse else presets
-        catalog = _catalog(*rulesets, presets=order)
+        catalog = _catalog(*[demo, other][::step], presets=order)
         results.append(expand(["backend"], [], _CONFIG, catalog))
     return results[0], results[1]
 
@@ -376,11 +383,25 @@ def test_the_expansion_does_not_depend_on_the_order_of_the_inputs() -> None:
     # When the preset is expanded on each
     first, second = _two_orders()
 
-    # Then both list their rules, removals, routes and problems alike
+    # Then both list their rules, removals, routes and problems alike, the rules
+    # by ruleset, family and number, the removals likewise, and the problems by
+    # route, then reference
     assert list(first.rules.items()) == list(second.rules.items())
     assert list(first.removed.items()) == list(second.removed.items())
     assert first.problems == second.problems
-    assert [r.ruleset for r in first.rules] == ["demo", "demo", "other", "other"]
+    assert [(r.ruleset, r.code) for r in first.rules] == [
+        ("demo", "ARC001"),
+        ("other", "ARC001"),
+    ]
+    assert [(r.ruleset, r.code) for r in first.removed] == [
+        ("demo", "ARC002"),
+        ("other", "ARC002"),
+    ]
+    assert first.problems == (
+        Problem("unknown", "none", ()),
+        Problem("unknown", "nope.X", ()),
+        Problem("unknown", "ZZZ", ("backend", "demo.recommended")),
+    )
 
 
 @_STUB

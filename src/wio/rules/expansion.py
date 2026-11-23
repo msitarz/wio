@@ -86,8 +86,9 @@ class Problem:
 class Expansion:
     """The rules that a list of entries selects, and how.
 
-    It is immutable. The rules are in the order of ruleset name, family, number
-    of the code and text of the code.
+    It is immutable and hashable: `expand` builds the mappings as `frozendict`s,
+    and a caller that builds one does the same. The rules are in the order of
+    ruleset name, family, number of the code and text of the code.
 
     Attributes:
         rules: The rules selected, each with every route that selected it.
