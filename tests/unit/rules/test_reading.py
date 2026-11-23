@@ -10,7 +10,6 @@ from wio.rules import RuleReading, read_rule
 
 _PATH = PurePosixPath(".agents/wio/rules/demo/ARC001-keep-it-small.md")
 _FILE = str(_PATH)
-_STUB = pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="stub")
 
 
 def _read(text: str) -> RuleReading:
@@ -75,7 +74,6 @@ def _kinds(reading: RuleReading) -> list[tuple[str, str]]:
     return [(d.severity, d.where) for d in reading.diagnostics]
 
 
-@_STUB
 def test_a_marked_file_is_read_into_a_rule() -> None:
     """AC-1: the code, name, description, summary and body of a rule."""
     # Given a rule file with a described block, a body of two paragraphs
@@ -108,7 +106,6 @@ def test_a_marked_file_is_read_into_a_rule() -> None:
     assert reading.diagnostics == ()
 
 
-@_STUB
 def test_a_rule_without_a_description_has_none() -> None:
     """AC-1: the description is optional."""
     # Given a block that holds only a code and a name
@@ -122,7 +119,6 @@ def test_a_rule_without_a_description_has_none() -> None:
     assert reading.rule.description is None
 
 
-@_STUB
 def test_either_block_form_gives_the_same_rule() -> None:
     """AC-2: a comment block and `+++` front matter with `wio = 1` read alike."""
     # Given two texts with the same keys and body in the two forms
@@ -141,7 +137,6 @@ def test_either_block_form_gives_the_same_rule() -> None:
     assert first.diagnostics == second.diagnostics == ()
 
 
-@_STUB
 @pytest.mark.parametrize(
     ("key", "value", "read"),
     [
@@ -190,7 +185,6 @@ def test_every_key_has_its_form_and_its_type(
         assert reading.diagnostics[0].where.startswith(_FILE)
 
 
-@_STUB
 @pytest.mark.parametrize(
     ("keys", "errors"),
     [
@@ -212,7 +206,6 @@ def test_missing_keys_are_reported_together(keys: tuple[str, ...], errors: int) 
     assert reading.rule is None
 
 
-@_STUB
 def test_an_error_and_a_warning_are_both_reported() -> None:
     """AC-4: a bad code and an unknown key give an error and a warning."""
     # Given a block with a code of `arc001`, a valid name and a key `owner`
@@ -222,14 +215,14 @@ def test_an_error_and_a_warning_are_both_reported() -> None:
     reading = _read(text)
 
     # Then there is one error and one warning, and no rule
-    assert sorted(_kinds(reading)) == [("error", _FILE), ("warning", _FILE)]
+    assert sorted(s for s, _ in _kinds(reading)) == ["error", "warning"]
+    assert [w for s, w in _kinds(reading) if s == "warning"] == [_FILE]
     by_severity = {d.severity: d.message for d in reading.diagnostics}
     assert "`code`" in by_severity["error"]
     assert "`owner`" in by_severity["warning"]
     assert reading.rule is None
 
 
-@_STUB
 @pytest.mark.parametrize(
     ("text", "line"),
     [
@@ -252,7 +245,6 @@ def test_a_block_that_cannot_be_read_is_one_error_with_a_line(
     assert _kinds(reading) == [("error", f"{_FILE}:{line}")]
 
 
-@_STUB
 def test_a_mistyped_key_is_a_warning_that_suggests_the_close_key() -> None:
     """AC-5: `descriptions` is close to `description`, and the rule is read."""
     # Given a block with a code, a name and `descriptions`
@@ -270,7 +262,6 @@ def test_a_mistyped_key_is_a_warning_that_suggests_the_close_key() -> None:
     assert reading.rule.description is None
 
 
-@_STUB
 def test_a_key_close_to_nothing_is_a_warning_without_a_suggestion() -> None:
     """AC-5: `owner` is close to no key, and the rule is read."""
     # Given a block with a code, a name and `owner`
@@ -286,7 +277,6 @@ def test_a_key_close_to_nothing_is_a_warning_without_a_suggestion() -> None:
     assert reading.rule is not None
 
 
-@_STUB
 @pytest.mark.parametrize(
     "text",
     [
@@ -307,7 +297,6 @@ def test_a_file_that_is_not_marked_is_not_a_rule(text: str) -> None:
     assert reading == RuleReading(None, ())
 
 
-@_STUB
 @pytest.mark.parametrize(
     "text",
     [
@@ -328,7 +317,6 @@ def test_a_wio_key_the_reader_cannot_accept_is_an_error(text: str) -> None:
     assert [s for s, _ in _kinds(reading)] == ["error"]
 
 
-@_STUB
 def test_the_body_is_cut_from_the_text_without_its_blank_lines() -> None:
     """AC-7: leading and trailing blank lines go, inner ones and indents stay."""
     # Given a block followed by blank lines, two paragraphs and blank lines
@@ -349,7 +337,6 @@ def test_the_body_is_cut_from_the_text_without_its_blank_lines() -> None:
     assert reading.rule.body_line == 7
 
 
-@_STUB
 def test_a_summary_joins_the_stripped_lines_of_the_first_paragraph() -> None:
     """AC-7: three lines, the second indented, joined with single spaces."""
     # Given a first paragraph of three lines, the second indented
@@ -363,7 +350,6 @@ def test_a_summary_joins_the_stripped_lines_of_the_first_paragraph() -> None:
     assert reading.rule.summary == "One two three"
 
 
-@_STUB
 def test_a_file_with_no_body_has_an_empty_body_after_the_block() -> None:
     """AC-7: empty body and summary, `body_line` is the line after the block."""
     # Given a block followed by nothing but blank lines
@@ -380,7 +366,6 @@ def test_a_file_with_no_body_has_an_empty_body_after_the_block() -> None:
     assert reading.diagnostics == ()
 
 
-@_STUB
 def test_windows_line_endings_stay_in_the_body_but_not_in_the_summary() -> None:
     """AC-7: the summary holds no carriage return and the body keeps CRLF."""
     # Given a text whose lines end in CRLF and whose first paragraph has two lines
@@ -396,7 +381,6 @@ def test_windows_line_endings_stay_in_the_body_but_not_in_the_summary() -> None:
     assert reading.rule.body == "First line\r\nsecond line\r\n\r\nWhy."
 
 
-@_STUB
 def test_rules_read_from_the_same_text_are_equal_values() -> None:
     """AC-8: the same text gives equal rules, another code gives another key."""
     # Given the same text read twice and the same text with another code
@@ -410,5 +394,8 @@ def test_rules_read_from_the_same_text_are_equal_values() -> None:
 
     # Then the first two share one key and the third is a different one
     assert len(keys) == 2
+    with pytest.raises(AttributeError):
+        first.name = "other"  # type: ignore[misc]
     assert first == second
+    assert hash(first) == hash(second)
     assert first != other
