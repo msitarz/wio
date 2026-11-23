@@ -22,7 +22,6 @@ from wio.rules import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-_STUB = pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="stub")
 _ROUTE = ("demo.recommended", "demo.ARC")
 
 
@@ -72,7 +71,6 @@ def _config(
     )
 
 
-@_STUB
 def test_the_rulesets_are_keyed_by_canonical_name_in_order() -> None:
     """AC-1: `demo` before `web`, whatever the order of the discovery."""
     # Given a discovery that holds `web` and then `demo`
@@ -87,7 +85,6 @@ def test_the_rulesets_are_keyed_by_canonical_name_in_order() -> None:
     assert found["web"].name == "web"
 
 
-@_STUB
 def test_the_catalog_carries_the_aliases_and_the_rule_presets_of_the_config() -> None:
     """AC-2: the rulesets as given, an alias for each that has one, the presets."""
     # Given a config with `demo` aliased `d`, `web` without an alias and a rule
@@ -105,7 +102,6 @@ def test_the_catalog_carries_the_aliases_and_the_rule_presets_of_the_config() ->
     assert list(catalog.presets) == ["backend"]
 
 
-@_STUB
 def test_a_ruleset_that_the_discovery_lacks_is_not_in_the_catalog() -> None:
     """AC-3: its alias is still held."""
     # Given the config of AC-2 and a discovery that returns only `demo`
@@ -120,7 +116,6 @@ def test_a_ruleset_that_the_discovery_lacks_is_not_in_the_catalog() -> None:
     assert dict(catalog.aliases) == {"d": "demo"}
 
 
-@_STUB
 def test_an_alias_of_a_ruleset_that_the_discovery_lacks_resolves_to_none() -> None:
     """AC-3, AC-4: the alias is held, and names nothing without the ruleset."""
     # Given a config whose ruleset `web` has the alias `w` and a discovery
@@ -136,7 +131,6 @@ def test_an_alias_of_a_ruleset_that_the_discovery_lacks_resolves_to_none() -> No
     assert found == ["demo", None, None]
 
 
-@_STUB
 @pytest.mark.parametrize(
     ("written", "canonical"), [("demo", "demo"), ("d", "demo"), ("nope", None)]
 )
@@ -155,7 +149,6 @@ def test_a_name_or_an_alias_is_resolved_to_the_canonical_name(
     assert found == canonical
 
 
-@_STUB
 def test_the_labels_and_the_chain_are_the_text_that_the_outputs_print() -> None:
     """AC-5: each layer, the chain of the first, and its text."""
     # Given the four layers and a route
@@ -180,7 +173,6 @@ def test_the_labels_and_the_chain_are_the_text_that_the_outputs_print() -> None:
     assert text == "demo.ARC001 ← root api ← demo.recommended ← demo.ARC"
 
 
-@_STUB
 def test_a_chain_of_references_has_no_layer_label() -> None:
     """AC-6: the route alone, joined with the code."""
     # Given a route and no layer
@@ -193,7 +185,6 @@ def test_a_chain_of_references_has_no_layer_label() -> None:
     assert text == "demo.ARC001 ← demo.recommended ← demo.ARC"
 
 
-@_STUB
 def test_the_inputs_do_not_depend_on_the_order_of_the_config_or_the_discovery() -> None:
     """AC-7: the same results for the same inputs declared in two orders."""
     # Given the config and the discovery of AC-2 declared in two orders

@@ -10,6 +10,9 @@ This module reads no file.
 
 from typing import TYPE_CHECKING, Literal
 
+from wio.models.frozen import freeze
+lazy from wio.rules.expansion import RuleCatalog
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
@@ -17,7 +20,6 @@ if TYPE_CHECKING:
     from wio.models.rule import LoadedRuleset
     from wio.models.rules import Route
     from wio.rules.discovery import Discovery
-    from wio.rules.expansion import RuleCatalog
 
 type Layer = Literal["root", "stage", "always-include", "always-exclude"]
 """The four layers that select rules, in the order they apply."""
@@ -34,7 +36,8 @@ def ruleset_map(discovery: Discovery) -> Mapping[str, LoadedRuleset]:
         by the name of its directory, in the order of ruleset name that C-2 of
         `wio rules` gives, whatever the order of the discovery.
     """
-    raise NotImplementedError
+    ordered = sorted(discovery.rulesets, key=lambda ruleset: ruleset.name)
+    return freeze({ruleset.name: ruleset for ruleset in ordered})
 
 
 def build_rule_catalog(
@@ -56,9 +59,14 @@ def build_rule_catalog(
         ruleset's name, even for a ruleset whose files were not read, and the
         config's rule presets.
     """
-    del rulesets
-    msg = f"build_rule_catalog of {len(config.rulesets)} rulesets is declared"
-    raise NotImplementedError(msg)
+    aliases = {
+        table.alias: name for name, table in config.rulesets.items() if table.alias
+    }
+    return RuleCatalog(
+        rulesets=freeze(dict(rulesets)),
+        aliases=freeze(aliases),
+        presets=config.rule_presets,
+    )
 
 
 def resolve_ruleset(name: str, catalog: RuleCatalog) -> str | None:
@@ -74,9 +82,10 @@ def resolve_ruleset(name: str, catalog: RuleCatalog) -> str | None:
         alias of a ruleset whose files were not read. A command turns `None` into
         a refusal that names what was written.
     """
-    msg = f"resolve_ruleset of {name} is declared"
-    del catalog
-    raise NotImplementedError(msg)
+    if name in catalog.rulesets:
+        return name
+    canonical = catalog.aliases.get(name)
+    return canonical if canonical in catalog.rulesets else None
 
 
 def layer_label(layer: Layer, name: str | None) -> str:
@@ -91,8 +100,13 @@ def layer_label(layer: Layer, name: str | None) -> str:
         `root <name>`, `stage <name>`, `rules_always_include` or
         `rules_always_exclude`.
     """
-    del layer, name
-    raise NotImplementedError("layer_label is declared")  # noqa: EM101
+    match layer:
+        case "root" | "stage":
+            return f"{layer} {name}"
+        case "always-include":
+            return "rules_always_include"
+        case "always-exclude":
+            return "rules_always_exclude"
 
 
 def chain_labels(label: str | None, route: Route) -> tuple[str, ...]:
@@ -107,9 +121,7 @@ def chain_labels(label: str | None, route: Route) -> tuple[str, ...]:
         The label when there is one, followed by the elements of the route; the
         array that the JSON output carries.
     """
-    msg = f"chain_labels of {label} is declared"
-    del route
-    raise NotImplementedError(msg)
+    return route if label is None else (label, *route)
 
 
 def chain_text(code: str, labels: tuple[str, ...]) -> str:
@@ -122,6 +134,4 @@ def chain_text(code: str, labels: tuple[str, ...]) -> str:
     Returns:
         The code and the labels joined by ` ← `.
     """
-    msg = f"chain_text of {code} is declared"
-    del labels
-    raise NotImplementedError(msg)
+    return " ← ".join((code, *labels))
