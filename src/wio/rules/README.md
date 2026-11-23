@@ -106,6 +106,17 @@ where each diagnostic lies, and its
   follows symbolic links and accepts a link to a ruleset, so the error of the
   discovery is the only report of one. The checks are not redundant, and
   removing them from the discovery loses a report.
+- **A rule behind a link is never read.** The rule files are what the shared
+  `walk_markdown` finds, at any depth of the ruleset's directory, and it follows
+  no symbolic link, so a link to a ruleset directory is reported, as is a
+  `ruleset.toml` that is one, and a link to a rule file is skipped.
+- **A ruleset cannot be nested, and it holds no setting of the config.** It is
+  named by its directory directly under `.agents/wio/rules`, so a reference
+  cannot name a nested one, and its alias and its root independence stay in the
+  config, where the selection joins them to it.
+- **A stray file is reported and leaves nothing out.** A rule file outside a
+  ruleset is an error, and the rulesets and rules that were read are still
+  returned whole.
 - **A rule is judged against its own ruleset only.** A family its manifest does
   not declare, a code or a name that two rules share, are errors that leave the
   rules out, while the same code in two rulesets is no fault, because a
