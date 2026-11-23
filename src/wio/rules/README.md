@@ -3,7 +3,8 @@
 The component behind `wio rules`. So far it holds the reader of one rule file,
 the reader of a ruleset's manifest, the discovery of the rulesets, the
 expansion of rule presets, the inputs that the selection shares, the layers that
-select the rules of a stage and the decision of each rule, which
+select the rules of a stage, the decision of each rule and the rules that any
+include entry delivers, which
 `wio rules check`, `list` and `show` build on.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its
@@ -305,3 +306,36 @@ reads. `Decision` and `Reason` are in [`wio.models`](../models/rules.py).
   of the config, of the entries of its lists or of the roots, and `select`
   raises the `KeyError` of the layers for a root or a stage that the config does
   not have.
+
+## The rules selected anywhere
+
+[`selected_anywhere`](anywhere.py) answers for the whole config what the layers
+answer for one stage: which rules some include entry delivers, and by which
+entries. A listing of the rules that nothing selects and the report of
+`wio rules new` read this one answer, so they cannot disagree. Its docstring
+says what it takes and returns, and its
+[tests](../../../tests/unit/rules/test_anywhere.py) say how each case reads.
+`Origin` and `SelectedAnywhere` are in [`anywhere.py`](anywhere.py).
+
+- **An entry counts whatever the roots and the stages in use.** An entry that
+  names a ruleset that no root reaches, or a stage that no pipeline uses, still
+  delivers its rules, because the question is whether anything selects the rule
+  and not whether a session would receive it; `wio rules check` warns about
+  such an entry.
+- **A rule preset's exclude is a resolved set, and a view's exclude is not.**
+  What the exclude of a rule preset took out of an entry is not delivered by
+  it, while a stage's `rules_exclude` and the always excludes remove a rule from
+  a view and leave it selected. Otherwise a rule that a stage hides would be
+  reported as unselected, and an author would add it again.
+- **What an exclude took out is kept in `removed`,** with the entries that did,
+  also for a rule that another entry delivers, so a listing can say what removed
+  a rule that nothing selects.
+- **One origin for each layer and name, with all its routes.** Two rule presets
+  of one root that reach a rule are one origin with two routes, so a listing
+  shows the entry once and the routes that explain it.
+- **What cannot be expanded delivers nothing and raises nothing,** as for the
+  layers, and the rest of the entry still counts. `wio rules check` reports the
+  problem.
+- **The same inputs give the same answer** whatever the order of the tables of
+  the config or of the entries of a list: origins are in the order root, stage,
+  always-include and then by name, and the rules in the order of the layers.
