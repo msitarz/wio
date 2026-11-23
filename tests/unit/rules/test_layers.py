@@ -15,7 +15,6 @@ lazy from wio.models.rule import LoadedRuleset
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-_STUB = pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="stub")
 _ALL = ("ARC001", "ARC002", "PAY001", "PAY002")
 
 
@@ -139,7 +138,6 @@ def _selected(layered: Layered, ruleset: str = "demo") -> list[str]:
     ]
 
 
-@_STUB
 def test_the_four_layers_apply_in_order() -> None:
     """AC-1: a rule is selected when the last layer leaves it in the set."""
     # Given the roots, the stage and the always fields of the contract
@@ -165,7 +163,6 @@ def test_the_four_layers_apply_in_order() -> None:
     assert _effects(found, "PAY002") == []
 
 
-@_STUB
 def test_an_exclude_takes_out_what_the_layers_so_far_added() -> None:
     """AC-2: the stage's excludes remove, and the always include adds back."""
     # Given a stage `t` that includes `demo.PAY` and excludes `demo.PAY001` and
@@ -196,7 +193,6 @@ def test_an_exclude_takes_out_what_the_layers_so_far_added() -> None:
     ]
 
 
-@_STUB
 def test_the_veto_is_final_and_records_what_it_names() -> None:
     """AC-3: it wins over an always include and records a rule nothing added."""
     # Given `demo.PAY001` as both an always include and an always exclude
@@ -218,7 +214,6 @@ def test_the_veto_is_final_and_records_what_it_names() -> None:
     assert _effects(second, "PAY002") == [("always-exclude", "removes", None)]
 
 
-@_STUB
 def test_a_layer_is_applied_only_when_its_input_is_given() -> None:
     """AC-4: no roots, no root layer; no stage, no stage layer."""
     # Given the repository of AC-1
@@ -254,7 +249,6 @@ def _two_roots() -> tuple[Config, Mapping[str, LoadedRuleset]]:
     return config, rulesets
 
 
-@_STUB
 def test_several_roots_add_together_in_the_order_of_their_names() -> None:
     """AC-5: a rule that two roots add has an effect for each."""
     # Given the roots `api` with `ARC001` and `web` with the family `ARC`
@@ -271,7 +265,6 @@ def test_several_roots_add_together_in_the_order_of_their_names() -> None:
     assert _effects(found, "ARC002") == [("root", "adds", "web")]
 
 
-@_STUB
 def test_an_exclude_of_one_root_does_not_take_out_what_another_adds() -> None:
     """AC-5: the exclude acts on the includes of its own rule preset only."""
     # Given `recommended` excluding `ARC002`, and the root `web` with the family
@@ -313,7 +306,6 @@ def _reach_repository() -> tuple[Config, Mapping[str, LoadedRuleset]]:
     return config, freeze({"demo": demo, "other": other, "third": third})
 
 
-@_STUB
 def test_the_rulesets_that_a_root_reaches_are_returned_for_every_root() -> None:
     """AC-6: even when its excludes leave none of their rules."""
     # Given `api` whose `base` includes `demo.recommended` (which excludes all of
@@ -338,7 +330,6 @@ def test_the_rulesets_that_a_root_reaches_are_returned_for_every_root() -> None:
     assert [e.routes for e in removal] == [(("base", "demo.recommended", "demo.ARC"),)]
 
 
-@_STUB
 def test_an_unknown_name_is_refused_and_an_unknown_reference_is_a_problem() -> None:
     """AC-7: `KeyError` for a stage or a root, a problem for a reference."""
     # Given the repository of AC-1 and a stage `bad` with entries that cannot expand
@@ -366,7 +357,6 @@ def test_an_unknown_name_is_refused_and_an_unknown_reference_is_a_problem() -> N
     assert _selected(found) == _selected(baseline)
 
 
-@_STUB
 def test_the_result_does_not_depend_on_the_order_of_the_inputs() -> None:
     """AC-8: the tables, the entries and the roots argument in two orders."""
     # Given the repository of AC-5 with a stage, declared in two orders: the
@@ -409,7 +399,6 @@ def test_the_result_does_not_depend_on_the_order_of_the_inputs() -> None:
     assert [e.root for e in _layers(first, "ARC001").effects[:2]] == ["api", "web"]
 
 
-@_STUB
 def test_an_exclude_of_a_nested_rule_preset_stays_inside_its_entry() -> None:
     """AC-9: it records an effect and unselects nothing that another layer added."""
     # Given a preset `extra` of `demo` that includes `PAY` and `ARC001` and
@@ -434,7 +423,6 @@ def test_an_exclude_of_a_nested_rule_preset_stays_inside_its_entry() -> None:
     assert _effects(found, "PAY002") == [("stage", "adds", None)]
 
 
-@_STUB
 def test_a_problem_that_two_roots_share_is_listed_once() -> None:
     """A shared problem: two roots that include one rule preset with a bad entry."""
     # Given a rule preset `broken` of `demo` with an unknown entry, that the roots
@@ -449,11 +437,10 @@ def test_a_problem_that_two_roots_share_is_listed_once() -> None:
     assert found.problems == (Problem("unknown", "ZZZ", ("demo.broken",)),)
 
 
-@_STUB
 def test_a_root_that_is_not_given_adds_no_problem_but_has_its_reach() -> None:
     """The problems of the applied expansions only; `reach` for every root."""
     # Given a root `web` whose rule preset has an unknown entry
-    rulesets = _demo(broken=(["ZZZ"], []))
+    rulesets = _demo(recommended=(["ARC"], []), broken=(["ZZZ"], []))
     config = _config(roots={"api": ["demo.recommended"], "web": ["demo.broken"]})
 
     # When the layers apply for `api` only
