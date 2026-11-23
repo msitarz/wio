@@ -9,7 +9,7 @@ import pytest
 from wio.models.config import RulePreset
 from wio.models.frozen import freeze
 from wio.models.rule import LoadedRuleset, Manifest, Rule
-from wio.rules.expansion import (
+from wio.rules import (
     ConfigScope,
     Expansion,
     Problem,
@@ -369,7 +369,7 @@ def _two_orders() -> tuple[Expansion, Expansion]:
             "demo",
             ["ARC", "PAY"],
             ["ARC001", "ARC002", "PAY001"],
-            {"recommended": (["ARC", "ZZZ"], ["ARC002"])},
+            {"recommended": (["ARC", "ZZZ"][::step], ["ARC002"])},
         )
         other = _ruleset("other", ["ARC"], ["ARC002", "ARC001"])
         backend = RulePreset(tuple(entries[::step]), tuple(excludes[::step]))
