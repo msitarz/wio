@@ -507,9 +507,12 @@ what inherits and why.
 ## Looking up a Work for a record
 
 `WorkLookup` in [`lookup.py`](lookup.py) finds the item ids and the pipeline of
-the Work that a record names, for the commands of `wio trailers`. It satisfies
-the `Contracts` port of [`wio.trailers`](../trailers/ports.pyi) without
-importing it, and `wio.cli` wires it in, as it does the template catalog. Its
+the Work that a record names, for the commands of `wio trailers`, and the roots
+of a Work, for `wio.rules`. It satisfies the `Contracts` port of
+[`wio.trailers`](../trailers/ports.pyi) and the `WorkRoots` port of
+[`wio.rules`](../rules/ports.pyi) without importing either. `wio.cli` wires it
+to `wio.trailers`, as it does the template catalog, and the wiring to
+`wio.rules` comes with the commands of `wio rules` that use it. Its
 docstrings say what each member takes, returns and raises, and its
 [tests](../../../tests/integration/contracts/test_lookup.py) say how each case
 reads.
@@ -539,6 +542,11 @@ reads.
   with the same finder as the check of the body, so a constraint a parent
   writes is never an item of its children. A Work with no template, or with one
   that cannot be used, has none.
+- **The roots are those of the hierarchy of the view that has the Work.** They
+  have `@descendants` expanded through the Work's children, each name once and
+  sorted, as `wio contracts show` reads them, so no second resolution exists. A
+  Work with no roots and a leaf that lists `@descendants` give an empty tuple,
+  and an id that no view has gives `None`. It writes nothing.
 - **The pipeline is resolved as `wio contracts show` resolves it.** The Work's
   own `[actions]` replace its template's, or the config defaults for a Work with
   no template, and a stage preset is expanded from the config. An action that

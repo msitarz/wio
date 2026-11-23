@@ -12,7 +12,7 @@ import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 import pytest
 
@@ -62,6 +62,7 @@ def _work(
     items: tuple[str, ...] = ("AC-1",),
     constraints: tuple[str, ...] = (),
     actions: dict[str, list[str]] | None = None,
+    roots: tuple[str, ...] | None = None,
 ) -> str:
     """Write the text of a leaf Work.
 
@@ -70,6 +71,7 @@ def _work(
         items: The ids of its acceptance criteria.
         constraints: The ids of its constraints, which a parent writes.
         actions: Its own `[actions]`, by action name.
+        roots: Its `roots`, or `None` to write none.
 
     Returns:
         The text of the contract.
@@ -78,7 +80,10 @@ def _work(
         f"{name} = {json.dumps(stages)}\n" for name, stages in (actions or {}).items()
     )
     section = f"\n[actions]\n{table}" if actions else ""
-    head = f'<!-- wio\nid = "{work_id}"\ntemplate = "feature.leaf"\n{section}-->\n'
+    listed = "" if roots is None else f"roots = {json.dumps(list(roots))}\n"
+    head = (
+        f'<!-- wio\nid = "{work_id}"\ntemplate = "feature.leaf"\n{listed}{section}-->\n'
+    )
     criteria = "".join(f"### **{item}** A criterion\n\nText.\n\n" for item in items)
     rules = "".join(f"### {item}\n\nA constraint.\n\n" for item in constraints)
     return (
@@ -420,3 +425,114 @@ def test_a_file_that_is_not_text_keeps_no_other_work_from_being_found(
     # Then the Work is found, the unknown id is absent, and nothing is raised
     assert found == [frozenset({"AC-1", "AC-3"})] * 2
     assert unknown == [None, None]
+
+
+_TREE = {
+    "p/README.md": _work("pppppp", roots=("e2e", "@descendants")),
+    "p/a/README.md": _work("aaaaaa", roots=("api",)),
+    "p/b/README.md": _work("bbbbbb", roots=("@descendants",)),
+    "p/b/c/README.md": _work("cccccc", roots=("web", "web")),
+    "x/README.md": _work("xxxxxx"),
+    "y/README.md": _work("yyyyyy", roots=("@descendants",)),
+}
+
+
+@pytest.mark.slow
+def test_the_expanded_roots_of_a_work_are_given_by_its_id(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-1: `@descendants` is expanded through the children, sorted and once."""
+    # Given a tree of Works with roots in the working tree
+    project = _project(sandbox, monkeypatch, _TREE)
+
+    # When the roots of four Works are asked for
+    found = [
+        project.working.roots_of(i) for i in ("pppppp", "bbbbbb", "aaaaaa", "cccccc")
+    ]
+
+    # Then each is expanded, each name once and sorted
+    assert found == [("api", "e2e", "web"), ("web",), ("api",), ("web",)]
+
+
+@pytest.mark.slow
+def test_an_unknown_work_has_no_roots_and_an_empty_one_has_an_empty_tuple(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-2: `None` for an id that no Work has, `()` for no roots."""
+    # Given a Work with no roots and a leaf that lists `@descendants`
+    project = _project(sandbox, monkeypatch, _TREE)
+
+    # When the roots of those and of an unknown id are asked for
+    found = [project.working.roots_of(i) for i in ("xxxxxx", "yyyyyy", "none")]
+
+    # Then the first two are empty and the last is absent
+    assert found == [(), (), None]
+
+
+class _Recording(adapters.LocalFileSystem):
+    """A file system that records every write."""
+
+    def __init__(self) -> None:
+        """Start with no writes."""
+        super().__init__()
+        self.writes: list[Path] = []
+
+    @override
+    def write_text(self, path: Path, text: str) -> None:
+        """Record and make a write.
+
+        Args:
+            path: The file.
+            text: What to write.
+        """
+        self.writes.append(path)
+        super().write_text(path, text)
+
+    @override
+    def append_text(self, path: Path, text: str) -> None:
+        """Record and make an append.
+
+        Args:
+            path: The file.
+            text: What to append.
+        """
+        self.writes.append(path)
+        super().append_text(path, text)
+
+
+@pytest.mark.slow
+def test_asking_for_roots_writes_nothing(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-3: `roots_of` on a recording file system records no write."""
+    # Given a repository and a lookup over a file system that records writes
+    _project(sandbox, monkeypatch, _TREE)
+    files = _Recording()
+    environment = ProcessEnvironment()
+    repository = adapters.GitRepository(environment)
+    settings = ConfigSettings(repository, files)
+    catalog = TemplatesCatalog(settings, repository, files)
+    lookup = WorkLookup(settings, repository, catalog, files, [files])
+
+    # When the roots of a Work are asked for
+    found = lookup.roots_of("pppppp")
+
+    # Then they are found and nothing was written
+    assert found == ("api", "e2e", "web")
+    assert files.writes == []
+
+
+@pytest.mark.slow
+def test_the_roots_of_a_work_that_only_head_has_are_found_by_both_adapters(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-1: a Work that the commit being made deletes still has its roots."""
+    # Given a Work `cccccc` in `HEAD` and in neither the working tree nor the index
+    project = _project(sandbox, monkeypatch, _TREE)
+    git(sandbox, "rm", "-q", "-r", str(WORKS / "p/b/c"), check=True)
+
+    # When its roots are asked for on each adapter
+    found = [lookup.roots_of("cccccc") for lookup in (project.working, project.index)]
+
+    # Then each returns them
+    assert found == [("web",), ("web",)]

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 from wio.contracts.body import BodyChecker
 from wio.contracts.discovery import discover_works, find_work
+from wio.contracts.hierarchy import build_hierarchy
 from wio.contracts.showing import shown_actions
 from wio.formats import read_metadata_block
 from wio.formats.errors import MetadataBlockError
@@ -145,6 +146,31 @@ class WorkLookup:
         if found is None:
             return None
         return _stages(found.work, action, self.settings.load(), self._reading())
+
+    def roots_of(self, work_id: str) -> tuple[str, ...] | None:
+        """Find the roots of a Work, with `@descendants` expanded.
+
+        The roots come from the `Hierarchy` of the view that has the Work, the
+        one that `wio contracts show` reads, so a name is each once and sorted.
+        It writes nothing.
+
+        Args:
+            work_id: The Work's id.
+
+        Returns:
+            The roots, empty for a Work that has none or a leaf that lists
+            `@descendants`, or `None` when no view has such a Work.
+
+        Raises:
+            ConfigurationError: If the config cannot be loaded.
+        """
+        found = self._find(work_id)
+        if found is None:
+            return None
+        config = self.settings.load()
+        discovery = discover_works(self.repository.root(), config.works, found.files)
+        hierarchy = build_hierarchy(discovery.works, config.works.hierarchy)
+        return hierarchy.roots.get(found.work.path, ())
 
     def _reading(self) -> _Reading:
         """Gather what a Work's template is read through.
