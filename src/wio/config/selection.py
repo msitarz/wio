@@ -17,13 +17,21 @@ its names with `and_list` and its lists with `declared` of
 The checks are appended to `wio.config.CHECKS`.
 """
 
-import re
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import TYPE_CHECKING
 
-from wio.config.messages import and_list, declared, item_path, join_path
 from wio.config.pipelines import find_cycles
+from wio.formats.grammar import (
+    NAME,
+    NAME_FORM,
+    Bare,
+    Malformed,
+    Qualified,
+    item_kind,
+    parse_reference,
+)
+from wio.formats.wording import and_list, declared, item_path, join_path
 from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:
@@ -31,48 +39,6 @@ if TYPE_CHECKING:
 
     from wio.config.checks import CheckInputs
     from wio.models.config import Config
-
-
-@dataclass(frozen=True)
-class Bare:
-    """A reference without a dot, which names a rule preset of the config.
-
-    Attributes:
-        name: The rule preset's name, a lowercase letter, then lowercase
-            letters, digits, `-` and `_`.
-    """
-
-    name: str
-
-
-@dataclass(frozen=True)
-class Qualified:
-    """A reference with exactly one dot, which names an item of a ruleset.
-
-    Attributes:
-        ruleset: The ruleset's name or alias, in the form of a ruleset name.
-        item: A family (upper-case letters), a code (a family and digits) or a
-            rule preset, in the form of a rule preset name.
-    """
-
-    ruleset: str
-    item: str
-
-
-@dataclass(frozen=True)
-class Malformed:
-    """A reference of the wrong form.
-
-    Attributes:
-        message: The sentence that says which part is wrong and the form that
-            part should have, as `judge_reference` returns it.
-    """
-
-    message: str
-
-
-type Reference = Bare | Qualified | Malformed
-"""What a reference is, judged from its text alone."""
 
 
 class Takes(Enum):
@@ -103,10 +69,6 @@ class Rulesets:
 
 
 _RULES = ".agents/wio/rules"
-_NAME = re.compile(r"[a-z][a-z0-9_-]*")
-_FAMILY = re.compile(r"[A-Z]+")
-_CODE = re.compile(r"[A-Z]+[0-9]+")
-_NAME_FORM = "a lowercase letter, then lowercase letters, digits, `-` and `_`"
 _VETO = "only qualified codes and families are allowed in `rules_always_exclude`"
 
 
@@ -129,40 +91,6 @@ def read_rulesets(inputs: CheckInputs) -> Rulesets:
     names = tuple(sorted(p.name for p in files.list_dir(rules) if files.is_dir(p)))
     bare = tuple(n for n in names if not files.exists(rules / n / "ruleset.toml"))
     return Rulesets(names, bare)
-
-
-def parse_reference(text: str) -> Reference:
-    """Judge the form of a reference from its text.
-
-    Args:
-        text: The reference as the config writes it.
-
-    Returns:
-        `Bare` for a name without a dot in the form of a rule preset name, and
-        `Qualified` for `<ruleset>.<item>` whose parts have their forms. Any
-        other text is `Malformed`, with the sentence that says which part is wrong
-        and the form it should have: the whole text of a bare name, more than one
-        dot, the ruleset part, or the item.
-    """
-    if "." not in text:
-        if _NAME.fullmatch(text):
-            return Bare(text)
-        message = f"`{text}` is not a rule preset name; a bare name is a rule preset"
-        return Malformed(f"{message} of the config, {_NAME_FORM}.")
-    if text.count(".") > 1:
-        message = "has more than one dot; a reference is a bare name or"
-        return Malformed(f"`{text}` {message} `<ruleset>.<item>`.")
-    ruleset, item = text.split(".")
-    if not _NAME.fullmatch(ruleset):
-        message = f"the ruleset part `{ruleset}` of `{text}` is not a ruleset name; "
-        return Malformed(f"{message}a ruleset name is {_NAME_FORM}.")
-    if _item_kind(item) is None:
-        message = f"the item `{item}` of `{text}` is not a family (upper-case "
-        return Malformed(
-            f"{message}letters), a code (a family and digits) or a rule preset "
-            f"({_NAME_FORM})."
-        )
-    return Qualified(ruleset, item)
 
 
 def judge_reference(
@@ -261,8 +189,8 @@ def check_rulesets(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
     """
     rulesets = read_rulesets(inputs)
     for name in rulesets.names:
-        if not _NAME.fullmatch(name):
-            message = f"`{name}` is not a ruleset name; a ruleset name is {_NAME_FORM}."
+        if not NAME.fullmatch(name):
+            message = f"`{name}` is not a ruleset name; a ruleset name is {NAME_FORM}."
             yield Diagnostic("error", f"{_RULES}/{name}", message)
     for name in rulesets.without_manifest:
         message = f"`{name}` has no `ruleset.toml`; its rules would be skipped."
@@ -302,11 +230,11 @@ def _known_names(config: Config, rulesets: Rulesets) -> list[str]:
         The sorted directory names in the form of a ruleset name, and the valid
         alias of each `[rulesets.<name>]` table whose name is a directory.
     """
-    names = [name for name in rulesets.names if _NAME.fullmatch(name)]
+    names = [name for name in rulesets.names if NAME.fullmatch(name)]
     aliases = [
         table.alias
         for name, table in config.rulesets.items()
-        if name in rulesets.names and table.alias and _NAME.fullmatch(table.alias)
+        if name in rulesets.names and table.alias and NAME.fullmatch(table.alias)
     ]
     return sorted({*names, *aliases})
 
@@ -323,22 +251,6 @@ def _cycle_message(group: Sequence[str]) -> str:
     names = and_list([f"`{name}`" for name in group])
     verb = "include one another" if len(group) > 1 else "includes itself"
     return f"{names} {verb}; a cycle has no resolved set."
-
-
-def _item_kind(item: str) -> str | None:
-    """Tell what kind of name the part after the dot is.
-
-    Args:
-        item: The part of a qualified reference after the dot.
-
-    Returns:
-        `family`, `code` or `rule preset`, or `None` when it has no such form.
-    """
-    if _FAMILY.fullmatch(item):
-        return "family"
-    if _CODE.fullmatch(item):
-        return "code"
-    return "rule preset" if _NAME.fullmatch(item) else None
 
 
 def _judge_bare(name: str, takes: Takes, presets: Sequence[str]) -> str | None:
@@ -375,7 +287,7 @@ def _judge_qualified(
     Returns:
         The problem, or `None`.
     """
-    kind = _item_kind(item)
+    kind = item_kind(item)
     if takes is Takes.ROOT and kind != "rule preset":
         return f"a root takes rule presets only; `{text}` is a {kind}."
     if takes is Takes.VETO and kind == "rule preset":
@@ -489,8 +401,8 @@ def _alias_fault(
         table, or the name of another ruleset; `None` when there is none.
     """
     head = f"alias `{alias}` of `{name}`"
-    if not _NAME.fullmatch(alias):
-        return f"{head} is not a ruleset name; a ruleset name is {_NAME_FORM}."
+    if not NAME.fullmatch(alias):
+        return f"{head} is not a ruleset name; a ruleset name is {NAME_FORM}."
     if alias in taken:
         return f"{head} is also the alias of `{taken[alias]}`."
     if alias != name and alias in names:

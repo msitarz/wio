@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, cast
 
-from wio.config.messages import join_path
+from wio.formats.wording import join_path
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping

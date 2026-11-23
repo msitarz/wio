@@ -17,6 +17,7 @@ from wio.config.schema import (
     schema,
     tables,
 )
+from wio.formats.wording import item_path, join_path
 from wio.models.config import Config, Log, Stage
 from wio.models.diagnostics import Diagnostic
 from wio.models.frozen import freeze
@@ -106,7 +107,7 @@ class _Walk:
         """
         builtins = Log().harnesses
         for name in builtins.keys() - log.harnesses.keys():
-            path = messages.join_path("log.harnesses", name)
+            path = join_path("log.harnesses", name)
             self.sources[f"{path}.session"] = "default"
             self.sources[f"{path}.parent"] = "default"
         return replace(log, harnesses=freeze(builtins | log.harnesses))
@@ -142,7 +143,7 @@ class _Walk:
             if key not in valid:
                 elsewhere = _elsewhere(key, spec)
                 text = messages.unknown_key(key, spec, valid, elsewhere)
-                self.error(messages.join_path(path, key), text)
+                self.error(join_path(path, key), text)
 
     def _goal_or_skill(self, raw: Mapping[str, object], path: str) -> None:
         """Report a stage that sets both or neither of `goal` and `skill`.
@@ -166,7 +167,7 @@ class _Walk:
         Returns:
             The value, or what stands in for a missing or invalid one.
         """
-        where = messages.join_path(path, slot.name)
+        where = join_path(path, slot.name)
         if slot.name in raw:
             value = self.value(slot.spec, raw[slot.name], where, slot.description)
             if not isinstance(value, _Dropped):
@@ -302,7 +303,7 @@ class _Walk:
             self.error(where, messages.wrong_type(raw, Strings(), description))
             return DROPPED
         items = (
-            self.value(Atom(str), item, messages.item_path(where, index), description)
+            self.value(Atom(str), item, item_path(where, index), description)
             for index, item in enumerate(raw)
         )
         return tuple(item for item in items if not isinstance(item, _Dropped))
@@ -363,7 +364,7 @@ class _Walk:
         """
         kept: dict[str, object] = {}
         for name, entry in raw.items():
-            path = messages.join_path(where, name)
+            path = join_path(where, name)
             value = self.value(spec.value, entry, path, description)
             if not isinstance(value, _Dropped):
                 kept[name] = value

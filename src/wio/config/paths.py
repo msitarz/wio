@@ -21,7 +21,7 @@ from functools import partial
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Literal
 
-from wio.config.messages import and_list, item_path, join_path
+from wio.formats.wording import and_list, item_path, join_path
 from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:

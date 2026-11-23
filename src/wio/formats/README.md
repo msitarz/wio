@@ -154,6 +154,37 @@ docstrings say what each takes and returns, and the
   order given, because each command orders its findings by its own rule. It
   imports `json` only for JSON.
 
+## The grammar of a reference and the wording of messages
+
+`parse_reference`, `parse_own_item` and `item_kind` in
+[`grammar.py`](grammar.py) are the one reading of a reference and of the forms
+of the names it is made of, and `join_path`, `item_path`, `quoted`, `declared`
+and `and_list` in [`wording.py`](wording.py) are the one writing of a key path
+and of a list of names in a message. Their docstrings say what each takes and
+returns, and their [tests](../../../tests/unit/formats/test_grammar.py) say how
+each case reads, in
+[`test_wording.py`](../../../tests/unit/formats/test_wording.py) for the
+wording.
+
+- **`wio.config` and `wio.rules` import them and keep no copy.** `wio.rules` may
+  not import `wio.config`, and a second copy would disagree with
+  `wio config check` about what a reference is, where a fault is and how a list
+  of names reads. `tach` and `jscpd` hold this.
+- **A reference is judged as text alone.** Whether its ruleset or its item
+  exists needs the directories or the rule files, which the caller has.
+- **A bare upper-case name is malformed in the config and bare in a
+  manifest.** The config's bare name is a rule preset, so `ARC001` there is
+  almost certainly a family or a code that lost its ruleset, and the message
+  says so. A manifest names only its own items, so `parse_own_item` accepts a
+  family, a code or a rule preset name without a dot, and returns a qualified
+  name as `Qualified` for the caller to report.
+- **A code that looks like a rule preset name is a code.** `item_kind` checks a
+  family, then a code, then a rule preset name, so the form that is more
+  specific wins; `arc001` has the form of a rule preset name only.
+- **A key is quoted as TOML quotes it.** A key of letters, digits, `_` and `-`
+  is written as it is, and any other is a basic string, so a name with a dot
+  stays one key in the path. `quote_string` is the same quoting for a value.
+
 ## The items of a section
 
 `find_items` and `judge_items` in [`items.py`](items.py) are the one rule for
