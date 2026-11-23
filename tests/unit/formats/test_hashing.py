@@ -1,12 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of the hash of a rule file."""
 
-import pytest
-
 from wio.formats import rule_hash
 
 
-@pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="stub")
 def test_the_hash_is_the_sha256_of_the_bytes() -> None:
     """AC-3: the digests of the empty input and of `abc`."""
     # Given the bytes of the empty input and of `abc`

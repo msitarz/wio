@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """The hash that identifies the bytes of a rule file."""
 
+import hashlib
+
 
 def rule_hash(data: bytes) -> str:
     """Hash the bytes of a rule file.
@@ -16,5 +18,4 @@ def rule_hash(data: bytes) -> str:
     Returns:
         The SHA-256 of `data` as 64 lower-case hexadecimal digits.
     """
-    del data
-    raise NotImplementedError
+    return hashlib.sha256(data).hexdigest()

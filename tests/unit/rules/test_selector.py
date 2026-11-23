@@ -17,11 +17,9 @@ from wio.models.works import Work
 from wio.rules import RuleSelector, discover, ruleset_map, select
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
 
     from wio.models.rules import Selection
-
-pytestmark = pytest.mark.xfail(strict=True, reason="stub")
 
 _RULES = ROOT / ".agents" / "wio" / "rules"
 _ARC1 = _RULES / "demo" / "ARC001-keep.md"
@@ -132,6 +130,20 @@ class _Disk(MemoryFileSystem):
 
     read: list[Path] = field(default_factory=list)
     unreadable: set[Path] = field(default_factory=set)
+    reverse: bool = False
+
+    @override
+    def list_dir(self, path: Path) -> Sequence[Path]:
+        """List a directory, reversed when asked.
+
+        Args:
+            path: The directory.
+
+        Returns:
+            The entries, in the stored order or the opposite one.
+        """
+        entries = super().list_dir(path)
+        return list(reversed(entries)) if self.reverse else entries
 
     @override
     def read_bytes(self, path: Path) -> bytes:
@@ -301,9 +313,12 @@ def test_unknown_names_are_refused_in_the_form_of_each_port() -> None:
 
 def test_the_result_does_not_depend_on_the_order_of_the_inputs() -> None:
     """AC-6: the same selections and mappings for two orders of the inputs."""
-    # Given the repository in two orders of its files and of its config tables
-    forward = _selector(MemoryFileSystem(_files()), _config())
-    backward = _selector(MemoryFileSystem(_files(reverse=True)), _config(reverse=True))
+    # Given the repository in two orders of its files, of their listing and of
+    # its config tables
+    forward = _selector(_Disk(_files()), _config())
+    backward = _selector(
+        _Disk(_files(reverse=True), reverse=True), _config(reverse=True)
+    )
 
     # When `selection` and `selected` run on each
     # Then the selections are equal and the mappings are equal
