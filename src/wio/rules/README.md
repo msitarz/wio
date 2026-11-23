@@ -320,8 +320,8 @@ says what it takes and returns, and its
 - **An entry counts whatever the roots and the stages in use.** An entry that
   names a ruleset that no root reaches, or a stage that no pipeline uses, still
   delivers its rules, because the question is whether anything selects the rule
-  and not whether a session would receive it; `wio rules check` warns about
-  such an entry.
+  and not whether a session would receive it. A later `wio rules check` warns
+  about an entry that names a ruleset that no root of the stage reaches.
 - **A rule preset's exclude is a resolved set, and a view's exclude is not.**
   What the exclude of a rule preset took out of an entry is not delivered by
   it, while a stage's `rules_exclude` and the always excludes remove a rule from
@@ -334,8 +334,12 @@ says what it takes and returns, and its
   of one root that reach a rule are one origin with two routes, so a listing
   shows the entry once and the routes that explain it.
 - **What cannot be expanded delivers nothing and raises nothing,** as for the
-  layers, and the rest of the entry still counts. `wio rules check` reports the
-  problem.
+  layers, and the rest of the entry still counts. A later `wio rules check`
+  reports the problem.
+- **It does no input or output.** A listing and `wio rules new` call it with
+  the config and the rulesets they already hold, so it runs the same on a
+  config with no files and on every case of a test.
 - **The same inputs give the same answer** whatever the order of the tables of
   the config or of the entries of a list: origins are in the order root, stage,
-  always-include and then by name, and the rules in the order of the layers.
+  always-include and then by name, and the rules in the order of the rulesets
+  and their codes.
