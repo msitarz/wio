@@ -4,8 +4,6 @@
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
-import pytest
-
 from wio.models.config import RulePreset
 from wio.models.frozen import freeze
 from wio.models.rule import LoadedRuleset, Manifest, Rule
@@ -23,7 +21,6 @@ if TYPE_CHECKING:
 
     from wio.models.rules import Routes
 
-_STUB = pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="stub")
 _CONFIG = ConfigScope()
 
 
@@ -131,7 +128,6 @@ def _by_code(mapping: Mapping[Rule, Routes]) -> dict[str, Routes]:
     return {rule.code: routes for rule, routes in mapping.items()}
 
 
-@_STUB
 def test_a_family_a_code_and_a_rule_preset_expand_to_rules() -> None:
     """AC-1: a rule preset takes its includes and then removes its excludes."""
     # Given `demo` with a rule preset `recommended` that includes `ARC` and
@@ -154,7 +150,6 @@ def test_a_family_a_code_and_a_rule_preset_expand_to_rules() -> None:
     assert preset.problems == ()
 
 
-@_STUB
 def test_an_outer_include_brings_back_what_an_inner_exclude_removed() -> None:
     """AC-2: an exclude reaches only the includes of its own level."""
     # Given a config preset `backend` that includes `demo.recommended` and
@@ -174,7 +169,6 @@ def test_an_outer_include_brings_back_what_an_inner_exclude_removed() -> None:
     }
 
 
-@_STUB
 def test_an_exclude_list_removes_from_the_includes_of_its_own_list() -> None:
     """AC-2: includes `demo.ARC` and excludes `demo.ARC001`."""
     # Given the ruleset `demo`
@@ -188,7 +182,6 @@ def test_an_exclude_list_removes_from_the_includes_of_its_own_list() -> None:
     assert _by_code(found.removed) == {"ARC001": (("demo.ARC001",),)}
 
 
-@_STUB
 def test_in_the_config_a_bare_name_is_a_rule_preset_of_the_config() -> None:
     """AC-3: a ruleset's preset or a bare code in the config is a problem."""
     # Given `demo` with a preset `recommended` and a config preset `backend`
@@ -212,7 +205,6 @@ def test_in_the_config_a_bare_name_is_a_rule_preset_of_the_config() -> None:
     assert not code.rules
 
 
-@_STUB
 def test_in_a_manifest_a_bare_name_is_a_family_a_code_or_a_rule_preset() -> None:
     """AC-3: the entries of a manifest name its own items."""
     # Given `demo` whose preset `mixed` includes a code and its preset `local`
@@ -233,7 +225,6 @@ def test_in_a_manifest_a_bare_name_is_a_family_a_code_or_a_rule_preset() -> None
     }
 
 
-@_STUB
 def test_an_alias_names_its_ruleset_and_a_route_never_shows_it() -> None:
     """AC-4: `d.recommended` and `demo.recommended` give the same expansion."""
     # Given `demo` with the alias `d`
@@ -251,7 +242,6 @@ def test_an_alias_names_its_ruleset_and_a_route_never_shows_it() -> None:
     assert all(part.split(".")[0] != "d" for rt in [*selected, *removed] for part in rt)
 
 
-@_STUB
 def test_every_ruleset_has_a_rule_preset_all_whatever_its_manifest_says() -> None:
     """AC-5: `all` holds every rule, also where a manifest defines `all`."""
     # Given `demo` and `other`, whose manifest defines `all` as `ARC001` only
@@ -270,7 +260,6 @@ def test_every_ruleset_has_a_rule_preset_all_whatever_its_manifest_says() -> Non
     assert list(_by_code(shadowed.rules)) == ["ARC001", "ARC002"]
 
 
-@_STUB
 def test_a_rule_reached_twice_has_both_routes_sorted() -> None:
     """AC-6: one rule, two routes."""
     # Given a config preset that includes `demo.recommended` and `demo.ARC001`
@@ -289,7 +278,6 @@ def test_a_rule_reached_twice_has_both_routes_sorted() -> None:
     }
 
 
-@_STUB
 def test_a_cycle_is_one_problem_and_the_rest_still_expands() -> None:
     """AC-7: two presets that include each other."""
     # Given presets `a` and `b` of `demo` that include each other
@@ -309,7 +297,6 @@ def test_a_cycle_is_one_problem_and_the_rest_still_expands() -> None:
     assert list(_by_code(found.rules)) == ["ARC001", "ARC002"]
 
 
-@_STUB
 def test_what_cannot_be_expanded_is_a_problem_that_selects_nothing() -> None:
     """AC-8: unknown, malformed and qualified entries."""
     # Given a preset `broken` whose entries include every kind of problem
@@ -335,7 +322,6 @@ def test_what_cannot_be_expanded_is_a_problem_that_selects_nothing() -> None:
     assert nope.problems == (Problem("unknown", "nope.ARC", ()),)
 
 
-@_STUB
 def test_a_declared_family_that_holds_no_rule_is_no_problem() -> None:
     """AC-9: it selects nothing."""
     # Given `demo` that declares `ARC` and `PAY` and holds only `ARC001`
@@ -380,7 +366,6 @@ def _two_orders() -> tuple[Expansion, Expansion]:
     return results[0], results[1]
 
 
-@_STUB
 def test_the_expansion_does_not_depend_on_the_order_of_the_inputs() -> None:
     """AC-10: rules, removals, routes and problems come in the same order."""
     # Given a catalog and the entries of a preset declared in two orders
@@ -410,7 +395,6 @@ def test_the_expansion_does_not_depend_on_the_order_of_the_inputs() -> None:
     )
 
 
-@_STUB
 def test_the_rulesets_that_the_includes_name_are_returned() -> None:
     """AC-11: by canonical name, also when the excludes leave none of their rules."""
     # Given `demo` with the alias `d`, `other` and `third`
