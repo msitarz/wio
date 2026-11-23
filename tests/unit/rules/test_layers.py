@@ -372,16 +372,28 @@ def test_the_result_does_not_depend_on_the_order_of_the_inputs() -> None:
     # Given the repository of AC-5 with a stage, declared in two orders: the
     # roots, the stages, the entries of a list and the rulesets reversed
     config, rulesets = _two_roots()
+    both = Root(("src",), ("demo.one", "demo.family"))
     stages = {"s": (["demo.PAY001", "demo.PAY002"], ["demo.ARC001"]), "t": ([], [])}
-    config = replace(config, stages=_config(stages=stages).stages)
+    config = replace(
+        config,
+        stages=_config(stages=stages).stages,
+        roots=freeze({**config.roots, "api": both}),
+        rules_always_include=("demo.ARC002", "demo.PAY002"),
+    )
     reversed_stages = {
         "t": ([], []),
         "s": (["demo.PAY002", "demo.PAY001"], ["demo.ARC001"]),
     }
+    api = config.roots["api"]
+    reordered_roots = {
+        **dict(reversed(list(config.roots.items()))),
+        "api": replace(api, rule_presets=tuple(reversed(api.rule_presets))),
+    }
     reordered = replace(
         config,
-        roots=freeze(dict(reversed(list(config.roots.items())))),
+        roots=freeze(reordered_roots),
         stages=_config(stages=reversed_stages).stages,
+        rules_always_include=tuple(reversed(config.rules_always_include)),
     )
     backwards = freeze(dict(reversed(list(rulesets.items()))))
 
@@ -420,3 +432,33 @@ def test_an_exclude_of_a_nested_rule_preset_stays_inside_its_entry() -> None:
     )
     assert _effects(found, "PAY001") == [("stage", "adds", None)]
     assert _effects(found, "PAY002") == [("stage", "adds", None)]
+
+
+@_STUB
+def test_a_problem_that_two_roots_share_is_listed_once() -> None:
+    """A shared problem: two roots that include one rule preset with a bad entry."""
+    # Given a rule preset `broken` of `demo` with an unknown entry, that the roots
+    # `api` and `web` both include
+    rulesets = _demo(broken=(["ARC001", "ZZZ"], []))
+    config = _config(roots={"api": ["demo.broken"], "web": ["demo.broken"]})
+
+    # When the layers apply for both roots
+    found = apply_layers(("api", "web"), None, config, rulesets)
+
+    # Then the one problem is listed once, with the route of the preset
+    assert found.problems == (Problem("unknown", "ZZZ", ("demo.broken",)),)
+
+
+@_STUB
+def test_a_root_that_is_not_given_adds_no_problem_but_has_its_reach() -> None:
+    """The problems of the applied expansions only; `reach` for every root."""
+    # Given a root `web` whose rule preset has an unknown entry
+    rulesets = _demo(broken=(["ZZZ"], []))
+    config = _config(roots={"api": ["demo.recommended"], "web": ["demo.broken"]})
+
+    # When the layers apply for `api` only
+    found = apply_layers(("api",), None, config, rulesets)
+
+    # Then there is no problem, and `web` is still a key of `reach`
+    assert found.problems == ()
+    assert set(found.reach) == {"api", "web"}

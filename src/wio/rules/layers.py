@@ -52,7 +52,8 @@ class Layered:
             canonical names of the rulesets that the include entries of its rule
             presets name, even when its excludes leave none of their rules.
         problems: The problems of the expansions that were applied, sorted as
-            `wio.rules.expand` sorts them.
+            `wio.rules.expand` sorts them; a root that was not given contributes
+            none, although its `reach` is returned.
     """
 
     rules: Mapping[Rule, RuleLayers]
