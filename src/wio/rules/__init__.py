@@ -2,10 +2,12 @@
 """The `wio rules` command: creating, checking and listing rules."""
 
 from dataclasses import astuple, dataclass
+from functools import partial
 from typing import TYPE_CHECKING, Final
 
 lazy from wio.rules.anywhere import Origin, SelectedAnywhere, selected_anywhere
 lazy from wio.rules.applicability import select
+lazy from wio.rules.checking import check_rules
 lazy from wio.rules.command import RulesCommand
 lazy from wio.rules.discovery import Discovery, discover, refuse_on_errors
 lazy from wio.rules.errors import check_errors
@@ -100,7 +102,29 @@ def json_option(parser: ArgumentParser, *, help: str) -> None:  # noqa: A002
     parser.add_argument("--json", dest="json", action="store_true", help=help)
 
 
-SUBCOMMANDS: Final[Sequence[Subcommand]] = ()
+_CHECK_HELP = "Report every fault of the rule files and the references."
+_CHECK_JSON = "Write one JSON array of the findings instead of the text."
+
+
+def _check(services: Services, args: Namespace, stdio: Stdio) -> int:
+    """Run `wio rules check` through its own module.
+
+    Args:
+        services: What the subcommand reads the project through.
+        args: The parsed arguments.
+        stdio: Where the report goes.
+
+    Returns:
+        The exit code, 1 when the report holds an error.
+    """
+    from wio.rules.checking import run_check
+
+    return run_check(services, args, stdio)
+
+
+SUBCOMMANDS: Final[Sequence[Subcommand]] = (
+    Subcommand("check", _CHECK_HELP, partial(json_option, help=_CHECK_JSON), _check),
+)
 """The subcommands of `wio rules`, to which each subcommand Work adds an entry.
 
 It lives here and not in a module of its own, because describing the command
@@ -184,6 +208,7 @@ __all__ = [
     "chain_labels",
     "chain_text",
     "check_errors",
+    "check_rules",
     "check_warnings",
     "describe",
     "discover",
