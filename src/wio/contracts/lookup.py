@@ -146,6 +146,26 @@ class WorkLookup:
             return None
         return _stages(found.work, action, self.settings.load(), self._reading())
 
+    def roots_of(self, work_id: str) -> tuple[str, ...] | None:
+        """Find the roots of a Work, with `@descendants` expanded.
+
+        The roots come from the `Hierarchy` of the view that has the Work, the
+        one that `wio contracts show` reads, so a name is each once and sorted.
+        It writes nothing.
+
+        Args:
+            work_id: The Work's id.
+
+        Returns:
+            The roots, empty for a Work that has none or a leaf that lists
+            `@descendants`, or `None` when no view has such a Work.
+
+        Raises:
+            ConfigurationError: If the config cannot be loaded.
+        """
+        del work_id
+        raise NotImplementedError
+
     def _reading(self) -> _Reading:
         """Gather what a Work's template is read through.
 
