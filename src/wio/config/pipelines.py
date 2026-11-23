@@ -16,11 +16,12 @@ appended to `wio.config.CHECKS`.
 
 from typing import TYPE_CHECKING
 
+from wio.formats.cycles import find_cycles
 from wio.formats.wording import and_list, declared, item_path, join_path, quoted
 from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, Sequence
+    from collections.abc import Iterable, Sequence
 
     from wio.config.checks import CheckInputs
     from wio.models.config import Config
@@ -114,26 +115,6 @@ def check_gate_results(config: Config, inputs: CheckInputs) -> Iterable[Diagnost
     elif repeated:
         verb = "repeat" if len(repeated) > 1 else "repeats"
         yield _error("gates.results", f"{_NEEDS} {quoted(repeated)} {verb}.")
-
-
-def find_cycles(after: Mapping[str, Sequence[str]]) -> tuple[tuple[str, ...], ...]:
-    """Find the cycles of a graph by a depth-first search.
-
-    Args:
-        after: Each action's name mapped to the names it comes after. A name
-            that is not a key has no edges, and an edge to it ends the search.
-
-    Returns:
-        One sorted tuple of names for each strongly connected component that has
-        a cycle, a self loop included, and the tuples sorted by first name.
-    """
-    reach = {name: _reachable(after, name) for name in after}
-    groups = {
-        tuple(sorted(other for other in reach[name] if name in reach.get(other, ())))
-        for name in after
-        if name in reach[name]
-    }
-    return tuple(sorted(groups))
 
 
 def _error(where: str, message: str) -> Diagnostic:
@@ -295,23 +276,3 @@ def _cycles(config: Config) -> Iterable[Diagnostic]:
         names = and_list([f"`{name}`" for name in cycle])
         phrase = "come after one another" if len(cycle) > 1 else "comes after itself"
         yield _error(where, f"{names} {phrase}; `after` has no cycle.")
-
-
-def _reachable(graph: Mapping[str, Sequence[str]], start: str) -> set[str]:
-    """Find the names that a name reaches by one edge or more.
-
-    Args:
-        graph: Each name mapped to the names it has an edge to.
-        start: The name to start from.
-
-    Returns:
-        The names reached, `start` among them only when it lies on a cycle.
-    """
-    seen: set[str] = set()
-    stack = list(graph[start])
-    while stack:
-        name = stack.pop()
-        if name not in seen:
-            seen.add(name)
-            stack.extend(graph.get(name, ()))
-    return seen

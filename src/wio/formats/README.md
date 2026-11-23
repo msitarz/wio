@@ -185,6 +185,22 @@ wording.
   is written as it is, and any other is a basic string, so a name with a dot
   stays one key in the path. `quote_string` is the same quoting for a value.
 
+## The cycles of a graph of names
+
+[`find_cycles`](cycles.py) finds the cycles of a graph that maps each name to
+the names it comes after, includes or names. Its docstring says what it takes
+and returns, and its [tests](../../../tests/unit/formats/test_cycles.py) say how
+each case reads.
+
+- **`wio.config` and `wio.rules` import it and keep no copy.** The config finds
+  the cycles of `after` and of its rule presets, and `wio.rules` those of a
+  manifest's, and neither may import the other, so a second copy could disagree
+  about what a cycle is. `tach` and `jscpd` hold this.
+- **A cycle is reported once, by its members.** A strongly connected group of
+  names is one tuple of sorted names however many names lead into it, and a name
+  that only reaches a cycle is not part of it, so a caller reports one error at
+  the least name.
+
 ## The items of a section
 
 `find_items` and `judge_items` in [`items.py`](items.py) are the one rule for

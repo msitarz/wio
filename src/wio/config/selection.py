@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import TYPE_CHECKING
 
-from wio.config.pipelines import find_cycles
+from wio.formats.cycles import find_cycles
 from wio.formats.grammar import (
     NAME,
     NAME_FORM,
