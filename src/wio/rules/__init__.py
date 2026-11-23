@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The `wio rules` command: creating, checking and listing rules."""
 
+lazy from wio.rules.anywhere import Origin, SelectedAnywhere, selected_anywhere
 lazy from wio.rules.applicability import select
 lazy from wio.rules.discovery import Discovery, discover, refuse_on_errors
 lazy from wio.rules.expansion import (
@@ -34,12 +35,14 @@ __all__ = [
     "Layer",
     "Layered",
     "ManifestReading",
+    "Origin",
     "Problem",
     "RuleCatalog",
     "RuleLayers",
     "RuleReading",
     "RulesetScope",
     "Scope",
+    "SelectedAnywhere",
     "apply_layers",
     "build_rule_catalog",
     "chain_labels",
@@ -53,4 +56,5 @@ __all__ = [
     "resolve_ruleset",
     "ruleset_map",
     "select",
+    "selected_anywhere",
 ]
