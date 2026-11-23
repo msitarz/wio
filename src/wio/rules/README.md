@@ -5,9 +5,9 @@ the subcommands will join, the reader of one rule file, the reader of a
 ruleset's manifest, the discovery of the rulesets, the expansion of rule
 presets, the inputs that the selection shares, the layers that select the rules
 of a stage, the decision of each rule, the rules that any include entry
-delivers, the roots of a stage and of a path, the errors of the references and
-the warnings of the selections and the bodies, which `wio rules check`,
-`list`, `new` and `show` build on.
+delivers, the roots of a stage and of a path, the errors of the references, the
+warnings of the selections and the bodies, and the report of `wio rules check`,
+which joins them. `list`, `new` and `show` build on the rest.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its
 code and name mean and
@@ -322,7 +322,7 @@ says what it takes and returns, and its
 - **An entry counts whatever the roots and the stages in use.** An entry that
   names a ruleset that no root reaches, or a stage that no pipeline uses, still
   delivers its rules, because the question is whether anything selects the rule
-  and not whether a session would receive it. A later `wio rules check` warns
+  and not whether a session would receive it. `wio rules check` warns
   about an entry that names a ruleset that no root of the stage reaches.
 - **A rule preset's exclude is a resolved set, and a view's exclude is not.**
   What the exclude of a rule preset took out of an entry is not delivered by
@@ -336,7 +336,7 @@ says what it takes and returns, and its
   of one root that reach a rule are one origin with two routes, so a listing
   shows the entry once and the routes that explain it.
 - **What cannot be expanded delivers nothing and raises nothing,** as for the
-  layers, and the rest of the entry still counts. A later `wio rules check`
+  layers, and the rest of the entry still counts. `wio rules check`
   reports the problem.
 - **It does no input or output.** A listing and `wio rules new` call it with
   the config and the rulesets they already hold, so it runs the same on a
@@ -390,8 +390,7 @@ table `SUBCOMMANDS` and `json_option`, and [`command.py`](command.py) holds
 `RulesCommand`, which runs the subcommand that the arguments chose. It follows
 the pattern of [`wio.contracts`](../contracts/README.md#the-group), and its
 docstrings and [tests](../../../tests/unit/rules/test_command.py) say what each
-takes and returns. No subcommand has joined the table yet, so `wio rules` lists
-none.
+takes and returns. So far `check` is the only subcommand in the table.
 
 - **A subcommand is one entry of the table.** The group knows nothing else of
   a subcommand, so adding one edits no other and builds no second shell.
@@ -428,7 +427,7 @@ root-independent ruleset that a root reaches. Its docstring says what it takes,
 returns and words, and its
 [tests](../../../tests/unit/rules/test_errors.py) say how each case reads. It
 returns the errors of the discovery as they are, so one function holds every
-error that `wio rules check` will report, and the warnings are another's. It
+error that `wio rules check` reports, and the warnings are another's. It
 takes the config to be valid, as `wio config check` has judged it, so every
 reference in it is well-formed and the question left is whether the item after
 the dot exists.
@@ -514,3 +513,31 @@ reach them.
   and the line of the first heading.
 - **Each warning is reported once, in the shared order,** whatever the order of
   the tables of the config and of the rulesets, and no file is read.
+
+## The report of `wio rules check`
+
+[`check_rules`](checking.py) judges the whole repository and returns every fault
+in one list, and `run_check` prints it as the `check` entry of the table. Their
+docstrings say what they take and return, and their
+[tests](../../../tests/unit/rules/test_checking.py) and
+[scenarios](../../../tests/acceptance/rules/test_check.py) say how each case
+reads.
+
+- **One discovery serves both lists.** `check_errors` and `check_warnings` each
+  return the faults of the discovery that have their severity, so a fault of a
+  rule file or a manifest comes through exactly one of them and is one line. The
+  references are judged against what the discovery returned, so a reference to a
+  rule that was left out for its own fault is reported too, as a consequence of
+  that fault and not a repeat of it.
+- **Every ruleset is judged, whether or not anything selects it.** A fault in a
+  ruleset that no root or stage includes is reported with the others in the same
+  run. The rules that nothing selects are `wio rules list --not-selected`'s, so
+  `check` does not warn about them.
+- **The report is in the shared order, in text and in JSON,** and says
+  `The rules pass.` for a repository with nothing to report, which includes one
+  with no rules directory. It is exit 1 for an error, and 0 for a warning alone
+  or for nothing. With `--json`, standard output holds one array and nothing
+  else.
+- **It reads the config as valid and writes nothing.** The config is judged by
+  `wio config check`, which stops every other command before this one runs, so
+  a config with an error exits 2 and prints no report.
