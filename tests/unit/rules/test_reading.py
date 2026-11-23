@@ -5,6 +5,7 @@ from pathlib import PurePosixPath
 
 import pytest
 
+from tests.unit.rules.support import kinds
 from wio.models.rule import Rule
 from wio.rules import RuleReading, read_rule
 
@@ -60,18 +61,6 @@ def _front_matter(*keys: str) -> str:
         The front matter and a one-line body.
     """
     return "\n".join(["+++", "wio = 1", *keys, "+++"]) + "\n\nBody.\n"
-
-
-def _kinds(reading: RuleReading) -> list[tuple[str, str]]:
-    """List the severity and the place of each diagnostic.
-
-    Args:
-        reading: What the reader gave.
-
-    Returns:
-        A pair for each diagnostic.
-    """
-    return [(d.severity, d.where) for d in reading.diagnostics]
 
 
 def test_a_marked_file_is_read_into_a_rule() -> None:
@@ -181,7 +170,7 @@ def test_every_key_has_its_form_and_its_type(
     # file and leaves the rule out
     assert (reading.rule is not None) is read
     if not read:
-        assert [s for s, _ in _kinds(reading)] == ["error"]
+        assert [s for s, _ in kinds(reading.diagnostics)] == ["error"]
         assert reading.diagnostics[0].where.startswith(_FILE)
 
 
@@ -202,7 +191,7 @@ def test_missing_keys_are_reported_together(keys: tuple[str, ...], errors: int) 
     reading = _read(text)
 
     # Then there is one error for each missing key and no rule
-    assert _kinds(reading) == [("error", _FILE)] * errors
+    assert kinds(reading.diagnostics) == [("error", _FILE)] * errors
     assert reading.rule is None
 
 
@@ -215,8 +204,8 @@ def test_an_error_and_a_warning_are_both_reported() -> None:
     reading = _read(text)
 
     # Then there is one error and one warning, and no rule
-    assert sorted(s for s, _ in _kinds(reading)) == ["error", "warning"]
-    assert [w for s, w in _kinds(reading) if s == "warning"] == [_FILE]
+    assert sorted(s for s, _ in kinds(reading.diagnostics)) == ["error", "warning"]
+    assert [w for s, w in kinds(reading.diagnostics) if s == "warning"] == [_FILE]
     by_severity = {d.severity: d.message for d in reading.diagnostics}
     assert "`code`" in by_severity["error"]
     assert "`owner`" in by_severity["warning"]
@@ -242,7 +231,7 @@ def test_a_block_that_cannot_be_read_is_one_error_with_a_line(
 
     # Then it is one error whose place has the path and that line, and no rule
     assert reading.rule is None
-    assert _kinds(reading) == [("error", f"{_FILE}:{line}")]
+    assert kinds(reading.diagnostics) == [("error", f"{_FILE}:{line}")]
 
 
 def test_a_mistyped_key_is_a_warning_that_suggests_the_close_key() -> None:
@@ -255,7 +244,7 @@ def test_a_mistyped_key_is_a_warning_that_suggests_the_close_key() -> None:
 
     # Then one warning names the key and the suggestion, and the rule has no
     # description
-    assert _kinds(reading) == [("warning", _FILE)]
+    assert kinds(reading.diagnostics) == [("warning", _FILE)]
     assert "`descriptions`" in reading.diagnostics[0].message
     assert "Did you mean `description`?" in reading.diagnostics[0].message
     assert reading.rule is not None
@@ -271,7 +260,7 @@ def test_a_key_close_to_nothing_is_a_warning_without_a_suggestion() -> None:
     reading = _read(text)
 
     # Then one warning names the key and suggests none, and the rule is read
-    assert _kinds(reading) == [("warning", _FILE)]
+    assert kinds(reading.diagnostics) == [("warning", _FILE)]
     assert "`owner`" in reading.diagnostics[0].message
     assert "Did you mean" not in reading.diagnostics[0].message
     assert reading.rule is not None
@@ -314,7 +303,7 @@ def test_a_wio_key_the_reader_cannot_accept_is_an_error(text: str) -> None:
 
     # Then it is one error and no rule
     assert reading.rule is None
-    assert [s for s, _ in _kinds(reading)] == ["error"]
+    assert [s for s, _ in kinds(reading.diagnostics)] == ["error"]
 
 
 def test_the_body_is_cut_from_the_text_without_its_blank_lines() -> None:
