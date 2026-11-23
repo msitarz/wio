@@ -6,7 +6,7 @@ from pathlib import PurePosixPath
 import pytest
 
 from wio.models.rule import Rule
-from wio.rules.reading import RuleReading, read_rule
+from wio.rules import RuleReading, read_rule
 
 _PATH = PurePosixPath(".agents/wio/rules/demo/ARC001-keep-it-small.md")
 _FILE = str(_PATH)
@@ -222,7 +222,10 @@ def test_an_error_and_a_warning_are_both_reported() -> None:
     reading = _read(text)
 
     # Then there is one error and one warning, and no rule
-    assert sorted(s for s, _ in _kinds(reading)) == ["error", "warning"]
+    assert sorted(_kinds(reading)) == [("error", _FILE), ("warning", _FILE)]
+    by_severity = {d.severity: d.message for d in reading.diagnostics}
+    assert "`code`" in by_severity["error"]
+    assert "`owner`" in by_severity["warning"]
     assert reading.rule is None
 
 
@@ -278,7 +281,7 @@ def test_a_key_close_to_nothing_is_a_warning_without_a_suggestion() -> None:
 
     # Then one warning names the key and suggests none, and the rule is read
     assert _kinds(reading) == [("warning", _FILE)]
-    assert "owner" in reading.diagnostics[0].message
+    assert "`owner`" in reading.diagnostics[0].message
     assert "Did you mean" not in reading.diagnostics[0].message
     assert reading.rule is not None
 
@@ -337,11 +340,13 @@ def test_the_body_is_cut_from_the_text_without_its_blank_lines() -> None:
     # When it is read
     reading = _read(text)
 
-    # Then the body keeps the leading spaces and the blank line between, and the
-    # summary is the first paragraph
+    # Then the body keeps the leading spaces and the blank line between, starts on
+    # line 7 after the blank line and the line of spaces, and the summary is the
+    # first paragraph
     assert reading.rule is not None
     assert reading.rule.body == "  Keep it small.\n\nWhy: it is easier to check."
     assert reading.rule.summary == "Keep it small."
+    assert reading.rule.body_line == 7
 
 
 @_STUB
