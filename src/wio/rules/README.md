@@ -5,7 +5,8 @@ the subcommands will join, the reader of one rule file, the reader of a
 ruleset's manifest, the discovery of the rulesets, the expansion of rule
 presets, the inputs that the selection shares, the layers that select the rules
 of a stage, the decision of each rule, the rules that any include entry
-delivers and the roots of a stage and of a path, which `wio rules check`,
+delivers, the roots of a stage and of a path and the errors of the references,
+which `wio rules check`,
 `list`, `new` and `show` build on.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its
@@ -417,3 +418,43 @@ none.
 - **`--json` has one declaration,** `json_option`, so that every subcommand that
   writes JSON gives one document and nothing else on standard output for exit 0
   and 1, and nothing for exit 2.
+
+## The errors of the references
+
+[`check_errors`](errors.py) finds the errors that only the rule files and the
+config show together: a reference that names nothing in its ruleset, a cycle of
+the rule presets of a manifest, a manifest that defines `all`, and a
+root-independent ruleset that a root reaches. Its docstring says what it takes,
+returns and words, and its
+[tests](../../../tests/unit/rules/test_errors.py) say how each case reads. It
+returns the errors of the discovery as they are, so one function holds every
+error that `wio rules check` will report, and the warnings are another's.
+
+- **An entry is judged where it is written and by itself.** Each is expanded
+  alone, so a fault in a rule preset that an entry reaches is the rule preset's
+  and is reported at its own key, once, however many roots, stages and rule
+  presets reach it. Otherwise an author would see one fault at ten places and
+  fix the wrong one.
+- **A reference is judged against what the discovery returned.** A rule or a
+  whole ruleset that the discovery left out for its own fault is a reference to
+  nothing, and the message says so, so the author finds the cause in the
+  discovery's error beside it. A family that the manifest declares and that
+  holds no rule is valid, because a ruleset is started before its first rule.
+- **The reason is worked out again from the entry.** A problem of the expansion
+  carries only its kind, so the message lists the families, the codes of the
+  family or the rule presets that exist, as `wio config check` lists what
+  exists, and an author corrects the entry in one turn.
+- **A cycle is one error at its first member, and an exclude is an edge.** A
+  rule preset that excludes one that includes it cannot be expanded either, and
+  an expansion drops the cycle it meets, so the cycles are found from the graph
+  of both lists, with `find_cycles` that `wio.config` shares. The error is at
+  the first member's `rules_include`, or at its `rules_exclude` when none of its
+  includes names a member. `all` is the whole ruleset and never a rule preset,
+  so it is no node of the graph, and a manifest that defines it is one error.
+- **A root must not reach a root-independent ruleset, and a stage may include
+  one.** A root-independent ruleset applies to every root, so a root that names
+  it adds nothing, and the error is at the root's entry and names the rule
+  preset of the config that the entry names, so the author knows which line to
+  change. A stage selects rules for a view and is no reach.
+- **The result is in the shared order** whatever the order of the tables of the
+  config and of the rulesets, and no file is read.
