@@ -214,3 +214,16 @@ def test_the_roots_do_not_depend_on_the_order_of_the_inputs() -> None:
         other, PurePosixPath("src/api/x")
     )
     assert both == ("api", "contract")
+
+
+def test_each_root_is_named_once_and_sorted() -> None:
+    """AC-4: repeated roots of the stage and of the Work come out once."""
+    # Given a stage that repeats a root and `@work`, and a Work that repeats one
+    config = _stages(("both", ["contract", "contract", "@work"]))
+    works = _Works({"w": ("api", "api")})
+
+    # When the roots of the stage are found
+    found = stage_roots(config, "both", "w", works)
+
+    # Then each name is once, in order
+    assert found == ("api", "contract")
