@@ -8,9 +8,10 @@ chain of labels. Each is written here once, so that no two consumers can differ.
 This module reads no file.
 """
 
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from wio.models.frozen import freeze
+lazy from wio.models.rules import Layer
 lazy from wio.rules.expansion import RuleCatalog
 
 if TYPE_CHECKING:
@@ -20,9 +21,6 @@ if TYPE_CHECKING:
     from wio.models.rule import LoadedRuleset
     from wio.models.rules import Route
     from wio.rules.discovery import Discovery
-
-type Layer = Literal["root", "stage", "always-include", "always-exclude"]
-"""The four layers that select rules, in the order they apply."""
 
 
 def ruleset_map(discovery: Discovery) -> Mapping[str, LoadedRuleset]:

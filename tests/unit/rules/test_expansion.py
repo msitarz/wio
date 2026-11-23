@@ -1,12 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of the expansion of rule presets, families and codes into rules."""
 
-from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
+from tests.unit.rules.support import make_ruleset as _ruleset
 from wio.models.config import RulePreset
 from wio.models.frozen import freeze
-from wio.models.rule import LoadedRuleset, Manifest, Rule
 from wio.rules import (
     ConfigScope,
     Expansion,
@@ -17,66 +16,12 @@ from wio.rules import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Mapping
 
+    from wio.models.rule import LoadedRuleset, Rule
     from wio.models.rules import Routes
 
 _CONFIG = ConfigScope()
-
-
-def _rule(ruleset: str, code: str) -> Rule:
-    """Build a rule of a ruleset.
-
-    Args:
-        ruleset: The ruleset's name.
-        code: The rule's code, which is also the stem of its name.
-
-    Returns:
-        The rule.
-    """
-    name = code.lower()
-    return Rule(
-        ruleset=ruleset,
-        code=code,
-        name=name,
-        description=None,
-        summary="Summary.",
-        body="Summary.",
-        body_line=5,
-        path=PurePosixPath(f".agents/wio/rules/{ruleset}/{code}-{name}.md"),
-    )
-
-
-def _ruleset(
-    name: str,
-    families: Sequence[str],
-    codes: Sequence[str],
-    presets: Mapping[str, tuple[Sequence[str], Sequence[str]]] | None = None,
-) -> LoadedRuleset:
-    """Build a ruleset with rules in the order of its codes.
-
-    Args:
-        name: The ruleset's name.
-        families: The families its manifest declares.
-        codes: The codes of its rules.
-        presets: Its rule presets by name, with their includes and excludes.
-
-    Returns:
-        The ruleset, whose rules are in the order of family, number and code.
-    """
-    rules = sorted(
-        (_rule(name, code) for code in codes),
-        key=lambda r: (r.family, r.number, r.code),
-    )
-    manifest = Manifest(
-        families=freeze(dict.fromkeys(families, "Topic")),
-        rule_presets=freeze(
-            {n: RulePreset(tuple(i), tuple(e)) for n, (i, e) in (presets or {}).items()}
-        ),
-    )
-    return LoadedRuleset(
-        name, PurePosixPath(f".agents/wio/rules/{name}"), manifest, tuple(rules)
-    )
 
 
 def _demo() -> LoadedRuleset:

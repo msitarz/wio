@@ -20,6 +20,7 @@ lazy from wio.rules.inputs import (
     resolve_ruleset,
     ruleset_map,
 )
+lazy from wio.rules.layers import Layered, RuleLayers, apply_layers
 lazy from wio.rules.manifest import ManifestReading, read_manifest
 lazy from wio.rules.reading import RULE_NAME, RULE_NAME_FORM, RuleReading, read_rule
 
@@ -30,12 +31,15 @@ __all__ = [
     "Discovery",
     "Expansion",
     "Layer",
+    "Layered",
     "ManifestReading",
     "Problem",
     "RuleCatalog",
+    "RuleLayers",
     "RuleReading",
     "RulesetScope",
     "Scope",
+    "apply_layers",
     "build_rule_catalog",
     "chain_labels",
     "chain_text",
