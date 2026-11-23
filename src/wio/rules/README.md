@@ -5,8 +5,8 @@ the subcommands will join, the reader of one rule file, the reader of a
 ruleset's manifest, the discovery of the rulesets, the expansion of rule
 presets, the inputs that the selection shares, the layers that select the rules
 of a stage, the decision of each rule, the rules that any include entry
-delivers, the roots of a stage and of a path and the errors of the references,
-which `wio rules check`,
+delivers, the roots of a stage and of a path, the errors of the references and
+the warnings of the selections and the bodies, which `wio rules check`,
 `list`, `new` and `show` build on.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its
@@ -467,3 +467,50 @@ the dot exists.
   selects rules for a view and is no reach.
 - **The result is in the shared order** whatever the order of the tables of the
   config and of the rulesets, and no file is read.
+
+## The warnings of the selections and the bodies
+
+[`check_warnings`](warns.py) finds the warnings that only the rule files and the
+config show together: a selection that no root can reach, a rule that both
+always fields name, and a heading in a rule's body. Its docstring says what it
+takes, returns and words, and its
+[tests](../../../tests/unit/rules/test_warns.py) say how each case reads. It
+returns the warnings of the discovery as they are, and not its errors, so one
+function holds every warning that needs the rule files and the config together,
+and the errors are [another's](#the-errors-of-the-references). It takes the
+config to be valid, so every reference in it is well-formed and names a
+ruleset, and the question left is which rulesets an entry names and which roots
+reach them.
+
+- **A selection nothing can reach fails silently, so it is a warning with a
+  fix.** The layers select its rules and the roots then always cut them, so a
+  rule never reaches a session and nothing says so. The warning names the
+  ruleset and the two ways out: mark it `root_independent`, or name it in a
+  root's `rule_presets`. A ruleset that the config's `rulesets` table does not
+  list is not root-independent.
+- **Which roots count depends on where the entry is written.** A stage counts
+  the roots of its own `roots`, and `@work`, a stage with no `roots` and
+  `rules_always_include` count every root of the config, because the Work's
+  roots are not known to a check of the repository. `roots = []` counts none,
+  so a stage that selects no roots reaches only the root-independent rulesets.
+  A root reaches the rulesets that the include entries of its rule presets name,
+  which is the reach that the layers report.
+- **An entry is judged for each ruleset it names.** A rule preset that names two
+  rulesets is one warning for the one that nothing reaches, at the entry, and a
+  ruleset that the discovery left out is not judged, because its fault is the
+  discovery's and a second warning would only repeat it.
+- **An exclude and a root's own entry are not judged.** An exclude removes rules
+  from a view and selects nothing, and a root that names a root-independent
+  ruleset is an error of the references, so neither is a warning here.
+- **A veto that wins is a warning at the include entry.** An entry of
+  `rules_always_include` whose rules an entry of `rules_always_exclude` also
+  delivers adds nothing for those rules, so the warning names the exclude
+  entries and the rules, with their names, and says that one of the two entries
+  can go.
+- **A heading in a body breaks the bundle.** A real heading in it, as
+  `read_outline` finds one, breaks the structure of the bundle that holds the
+  rule. A heading in
+  code, a comment, a quote or a list is not one, and the warning is at the file
+  and the line of the first heading.
+- **Each warning is reported once, in the shared order,** whatever the order of
+  the tables of the config and of the rulesets, and no file is read.
