@@ -400,9 +400,9 @@ def test_the_result_does_not_depend_on_the_order_of_the_inputs() -> None:
 @_STUB
 def test_an_exclude_of_a_nested_rule_preset_stays_inside_its_entry() -> None:
     """AC-9: it records an effect and unselects nothing that another layer added."""
-    # Given a preset `extra` of `demo` that includes `PAY` and excludes `ARC001`,
-    # and a stage `u` that includes it, with no always field
-    rulesets = _demo(recommended=(["ARC"], []), extra=(["PAY"], ["ARC001"]))
+    # Given a preset `extra` of `demo` that includes `PAY` and `ARC001` and
+    # excludes `ARC001`, and a stage `u` that includes it, with no always field
+    rulesets = _demo(recommended=(["ARC"], []), extra=(["PAY", "ARC001"], ["ARC001"]))
     config = _config(stages={"u": (["demo.extra"], [])}, include=[], exclude=[])
 
     # When the layers apply for `api` and `u`
