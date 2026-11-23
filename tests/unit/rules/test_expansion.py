@@ -350,7 +350,12 @@ def test_a_declared_family_that_holds_no_rule_is_no_problem() -> None:
 
 
 def _two_orders() -> tuple[Expansion, Expansion]:
-    """Expand the same entries over a catalog declared in two orders.
+    """Expand a preset over the catalog of AC-6, enlarged and declared in two orders.
+
+    The catalog adds a ruleset `other`, an exclude of the preset and entries that
+    name nothing, so that there are removals and problems whose order can be
+    compared; the rulesets, the config's preset table and the entries of the
+    preset are each in another order in the second catalog.
 
     Returns:
         The expansion of each order.
@@ -397,9 +402,10 @@ def test_the_expansion_does_not_depend_on_the_order_of_the_inputs() -> None:
         ("demo", "ARC002"),
         ("other", "ARC002"),
     ]
+    assert hash(first) == hash(second)
     assert first.problems == (
-        Problem("unknown", "none", ()),
-        Problem("unknown", "nope.X", ()),
+        Problem("unknown", "none", ("backend",)),
+        Problem("unknown", "nope.X", ("backend",)),
         Problem("unknown", "ZZZ", ("backend", "demo.recommended")),
     )
 
@@ -419,6 +425,8 @@ def test_the_rulesets_that_the_includes_name_are_returned() -> None:
         _CONFIG,
         catalog,
     )
+    wrapped = RulePreset(("third.ARC",), ("third.ARC001",))
+    nested = expand(["wrap"], [], _CONFIG, _catalog(third, presets={"wrap": wrapped}))
     unknown_ruleset = expand(["nope.ARC"], [], _CONFIG, catalog)
     unknown_family = expand(["other.XYZ"], [], _CONFIG, catalog)
 
@@ -426,5 +434,7 @@ def test_the_rulesets_that_the_includes_name_are_returned() -> None:
     # not named, and an entry that names nothing names no ruleset
     assert found.rulesets == frozenset({"demo", "other"})
     assert all(rule.ruleset != "other" for rule in found.rules)
+    assert nested.rulesets == frozenset({"third"})
+    assert not nested.rules
     assert unknown_ruleset.rulesets == frozenset()
     assert unknown_family.rulesets == frozenset()

@@ -71,7 +71,8 @@ class Problem:
             that is not a reference, `qualified-in-manifest` for `<ruleset>.<item>`
             inside a manifest, and `cycle` for a rule preset that includes
             itself.
-        reference: The entry as written.
+        reference: The entry as written; for a cycle, the entry that closes it,
+            which names the rule preset where the cycle started.
         route: The rule presets it was found in, outermost first, empty for an
             entry of the list that was expanded; for a cycle it ends with the
             rule preset that closes it.
