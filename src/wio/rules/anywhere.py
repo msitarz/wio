@@ -10,12 +10,16 @@ can name the rules that nothing selects. It reads no file.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
+from wio.rules.expansion import ConfigScope, expand
+from wio.rules.inputs import build_rule_catalog
+lazy from wio.models.rule import LoadedRuleset, Rule
+
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
 
     from wio.models.config import Config
-    from wio.models.rule import LoadedRuleset, Rule
     from wio.models.rules import Routes
+    from wio.rules.expansion import Expansion
 
 type OriginLayer = Literal["root", "stage", "always-include"]
 """The three layers that include, in the order that origins are sorted."""
@@ -82,5 +86,60 @@ def selected_anywhere(
     Returns:
         The rules delivered and the rules taken out, each with its origins.
     """
-    del config, rulesets
-    raise NotImplementedError
+    catalog = build_rule_catalog(config, rulesets)
+    found = [
+        (entry, expand(entry.references, [], ConfigScope(), catalog))
+        for entry in _entries(config)
+    ]
+    return _collect(found)
+
+
+@dataclass(frozen=True)
+class _Entry:
+    """The references of one layer and name, as written in the config."""
+
+    layer: OriginLayer
+    name: str | None
+    references: tuple[str, ...]
+
+    def sort_name(self) -> str:
+        """Give the name that the entries of one layer are sorted by.
+
+        Returns:
+            The name of the root or of the stage.
+        """
+        return self.name or ""
+
+
+def _entries(config: Config) -> list[_Entry]:
+    """List the include entries of the config.
+
+    Args:
+        config: The settings.
+
+    Returns:
+        The rule presets of each root, the `rules_include` of each stage and
+        `rules_always_include`, in the order root, stage, always-include and then
+        by name.
+    """
+    roots = [_Entry("root", n, r.rule_presets) for n, r in config.roots.items()]
+    stages = [_Entry("stage", n, s.rules_include) for n, s in config.stages.items()]
+    always = _Entry("always-include", None, config.rules_always_include)
+    by_name = sorted(roots, key=_Entry.sort_name), sorted(stages, key=_Entry.sort_name)
+    return [*by_name[0], *by_name[1], always]
+
+
+def _collect(found: Sequence[tuple[_Entry, Expansion]]) -> SelectedAnywhere:
+    """Gather the expansions of the entries into the rules and their origins.
+
+    Args:
+        found: Each entry with its expansion, in the order that origins are
+            sorted.
+
+    Returns:
+        The rules delivered and the rules taken out, each with one origin for
+        each entry that delivered or took it out, and each mapping in the order
+        of C-2 of `wio rules`.
+    """
+    msg = "the gathering of the origins"
+    raise NotImplementedError(msg)
