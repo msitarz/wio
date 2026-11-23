@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Final
 lazy from wio.rules.anywhere import Origin, SelectedAnywhere, selected_anywhere
 lazy from wio.rules.applicability import select
 lazy from wio.rules.checking import check_rules
+lazy from wio.rules.chooser import RuleSelector
 lazy from wio.rules.command import RulesCommand
 lazy from wio.rules.discovery import Discovery, discover, refuse_on_errors
 lazy from wio.rules.errors import check_errors
@@ -196,6 +197,7 @@ __all__ = [
     "RuleCatalog",
     "RuleLayers",
     "RuleReading",
+    "RuleSelector",
     "RulesCommand",
     "RulesSpec",
     "RulesetScope",
