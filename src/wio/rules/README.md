@@ -211,3 +211,55 @@ docstrings say what each takes and returns, and their
   and `expansion` resolves a ruleset, so either would need the other at import
   time, and both use lazy imports to break the cycle. Importing `wio.rules`
   loads neither.
+
+## The layers of the selection
+
+[`apply_layers`](layers.py) applies the four layers to the rulesets, in the
+order that
+[How a rule is selected](../../../docs/concepts.md#how-a-rule-is-selected)
+gives: the rule presets of the roots, the stage's includes and excludes, the
+always includes and the always excludes. Its docstring says what it takes and
+returns, and its [tests](../../../tests/unit/rules/test_layers.py) say how each
+case reads.
+
+- **Every rule is in the result, with what each layer did to it.** A listing has
+  to say that a rule was excluded, vetoed or never named, and not only that it
+  is out, so a rule keeps a `LayerEffect` for each layer that added it or that
+  an exclude named it in, with the routes of the expansion. `selected` is the
+  set after the last layer, and the effects are the reason.
+- **A layer works on what the layers before it built.** The stage's excludes
+  take out what the roots and the stage's includes added, the always includes
+  add over any earlier exclude, and the always excludes are the final veto,
+  which wins over the always includes. So the same rule can be added, removed
+  and added back, and its effects show the three steps in order.
+- **An exclude records an effect for every rule it names.** The author decided
+  about the rule whether or not it was in the set, and a listing can then say
+  that it was excluded or vetoed. An exclude list is expanded as includes, to
+  know every rule its entries name.
+- **An exclude inside a rule preset stays inside its entry.** It takes rules out
+  of that entry's includes only, so it records a `removes` effect, from the
+  `removed` of the expansion, and never unselects what another entry or layer
+  added. What `selected` holds is decided by the includes and the layer-level
+  excludes alone.
+- **The roots add together, in the order of their names.** The rules of each
+  given root are added, a rule that two roots add has an effect for each, and
+  one root's exclude does not take out what another adds, so the order of the
+  roots argument never decides whether a rule is selected.
+- **A layer is applied only when its input is given.** Without roots there is no
+  layer of the roots, without a stage there is none of the stage, and the always
+  fields apply in every call, as the views of `wio rules list` need.
+- **The rulesets that each root reaches are returned for every root of the
+  config,** given or not, because applying the roots needs to know which
+  rulesets a root can reach, and it does so even when its excludes leave none of
+  their rules.
+- **An unknown root or stage is refused and an unknown reference is a problem.**
+  A name that the config does not have raises `KeyError`, which the command
+  turns into a refusal, while a reference that cannot be expanded selects
+  nothing and is listed once in the result, so `wio rules check` shows every
+  fault at once.
+- **The result does not depend on the order of the inputs** and is hashable. The
+  rules are in the order of the rulesets and their codes, the effects in the
+  order the layers applied, and the problems sorted, so the same files give the
+  same bytes. `LayerEffect` is in
+  [`wio.models`](../models/rules.py), because a `Decision` holds it and a model
+  may not import a component.

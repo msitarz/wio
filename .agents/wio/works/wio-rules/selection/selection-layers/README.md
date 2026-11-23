@@ -265,7 +265,7 @@ another layer added.
 
 - **Given** the repository of AC-1 with no `rules_always_include` and no
   `rules_always_exclude`, a rule preset `extra` of `demo` that includes `PAY`
-  and excludes `ARC001`, and a stage `u` whose `rules_include` is
+  and `ARC001` and excludes `ARC001`, and a stage `u` whose `rules_include` is
   `["demo.extra"]`.
 - **When** `apply_layers` runs for `("api",)` and the stage `u`.
 - **Then** `ARC001` is selected, with the effects root adds and stage removes,

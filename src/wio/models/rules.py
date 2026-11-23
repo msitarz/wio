@@ -6,7 +6,8 @@ in its fields; until then it has none. A `Route` is here and not in `wio.rules`
 because a `Decision` holds routes and a model may not import a component.
 """
 
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -22,6 +23,36 @@ an alias."""
 
 type Routes = tuple[Route, ...]
 """Every route of one rule, sorted."""
+
+
+type Layer = Literal["root", "stage", "always-include", "always-exclude"]
+"""The four layers that select rules, in the order they apply."""
+
+type EffectAction = Literal["adds", "removes"]
+"""What a layer did to a rule: put it in the set, or took it out."""
+
+
+@dataclass(frozen=True)
+class LayerEffect:
+    """What one layer did to one rule, and by which routes.
+
+    It is immutable and hashable, and a `Decision` holds it.
+
+    Attributes:
+        layer: The layer that acted.
+        action: `adds` when an include of the layer selected the rule, and
+            `removes` when an exclude named it, or when the exclude of a rule
+            preset that an include entry named took it out of that entry's
+            includes.
+        root: The name of the root, for the `root` layer, and `None` for the
+            others.
+        routes: The routes of `wio.rules.expand` that led to the rule, sorted.
+    """
+
+    layer: Layer
+    action: EffectAction
+    root: str | None
+    routes: Routes
 
 
 class Decision:
