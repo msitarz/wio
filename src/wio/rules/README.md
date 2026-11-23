@@ -6,7 +6,7 @@ ruleset's manifest, the discovery of the rulesets, the expansion of rule
 presets, the inputs that the selection shares, the layers that select the rules
 of a stage, the decision of each rule, the rules that any include entry
 delivers and the roots of a stage and of a path, which `wio rules check`,
-`list` and `show` build on.
+`list`, `new` and `show` build on.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its
 code and name mean and
@@ -397,16 +397,16 @@ none.
 - **The table is in the package module, with its `configure` and its handler.**
   Describing a command loads no module of its package besides `__init__`
   ([import-light packages](../cli/README.md#import-light-packages)), and
-  `configure` runs while `wio --help` is described. So an entry's `configure` is
-  defined in `__init__.py`, and its handler is a function there that imports the
-  subcommand's own module when it runs. A `lazy from` in the tuple would defer
-  nothing, because the names are used as the tuple is built.
+  `configure` runs while `wio --help` is described, so the table cannot defer
+  its entries with a `lazy from`; the docstring of
+  [`SUBCOMMANDS`](__init__.py) says how an entry defers its handler.
 - **Bare `wio rules` reads nothing.** It writes its usage without a repository
   or a config, so it works anywhere, even when the config has an error.
-- **What a subcommand needs comes in `Services`.** The settings, the
-  repository, the file system and the environment are built in `wio.cli`, the
-  one place where they meet the group, and a subcommand that needs another port
-  adds a field. `wio.cli` wires them only when a subcommand is chosen.
+- **What a subcommand needs comes in `Services`.** They are built in `wio.cli`,
+  the one place where they meet the group, and a subcommand that needs another
+  port adds a field. `wio.cli` builds them when `wio rules` is chosen and never
+  while describing, and building them reads nothing, which bare `wio rules`
+  depends on.
 - **The group maps no failure itself.** A mistake the user must fix is a
   `WioError`, which a handler raises and which the command line prints and
   exits 2 for, with the lines of a `DiagnosticsError` written as they are, while
@@ -414,7 +414,6 @@ none.
   other exception is a bug and exits 70, and the
   [command line](../cli/README.md#failures-and-exit-codes) owns that mapping
   for every component, so that no two components can differ.
-- **`--json` has one declaration.** A subcommand declares it with `json_option`,
-  so it has one spelling and one help line to override, and a subcommand that
-  declares it writes one JSON document and nothing else on standard output for
-  exit 0 and 1, and nothing for exit 2.
+- **`--json` has one declaration,** `json_option`, so that every subcommand that
+  writes JSON gives one document and nothing else on standard output for exit 0
+  and 1, and nothing for exit 2.
