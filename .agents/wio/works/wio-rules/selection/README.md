@@ -120,7 +120,8 @@ flowchart LR
     rules["LoadedRulesets"]
     contracts["wio.contracts: WorkLookup.roots_of (changed)"]
     files["FileSystem port (wio.io)"]
-    subgraph sel["wio.rules selection (new)"]
+        subgraph sel["wio.rules selection (new)"]
+        inputs["inputs: rule catalog, aliases, labels"]
         roots["roots of a Work, a stage or a file"]
         rootsport["WorkRoots port"]
         layers["four layers"]
@@ -136,6 +137,9 @@ flowchart LR
     cfg --> layers
     cfg --> roots
     cfg --> anywhere
+        rules --> inputs
+    cfg --> inputs
+    inputs --> expand
     rules --> expand
     expand --> layers
     expand --> anywhere
@@ -220,8 +224,8 @@ A rule that `selected_anywhere` does not select is out in every view of
 #### The two answers agree
 
 - **Given** the repository of AC-1, where no entry includes `demo.PAY002`.
-- **When** `selected_anywhere` runs, and `select` runs for each Work, stage and
-  root of the config, and for no roots and no stage.
+- **When** `selected_anywhere` runs, and the function `select` of `5yb4tz` runs
+  for each Work, stage and root of the config, and for no roots and no stage.
 - **Then** every rule that `select` includes is a key of
   `SelectedAnywhere.selected`,
   `demo.ARC002` and `demo.PAY001` are keys although the stage excludes the first

@@ -2,7 +2,7 @@
 id = "cyeth5"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["8zn10d"]
+depends_on = ["8zn10d", "zq07av"]
 -->
 
 # Rule presets
@@ -24,8 +24,8 @@ route.
 - Every ruleset has a rule preset `all`, and the rulesets that the include
   entries of an expansion name are returned, so the roots that reach a ruleset
   can be known.
-- The grammar of references is shared with `wio config check`, so the two never
-  disagree about what a reference is.
+- The grammar of references is the one that `wio config check` uses, from
+  `zq07av`, so the two never disagree about what a reference is.
 
 ## Non-Goals
 
@@ -81,13 +81,9 @@ The names of the types and the functions below are provisional.
   `qualified-in-manifest` and `cycle`, the `reference` as written, and the
   `route` of the rule presets it was found in; for a cycle the route ends with
   the rule preset that closes it.
-- **The shared grammar** — `parse_reference` with `Bare`, `Qualified` and
-  `Malformed`, the private `_item_kind` as the public `item_kind`, and the name
-  forms `_NAME`, `_FAMILY`, `_CODE` and `_NAME_FORM`, moved from `wio.config` to
-  `wio.formats`, which `8zn10d` and `ht39xt` reuse for the forms of a ruleset
-  name, a family, a rule preset name and a code, with `parse_own_item(text)`
-  added for the bare entries of a manifest; `wio.config` keeps calling
-  `parse_reference` and `wio.rules` calls both, so a bare upper-case name stays
+- **The shared grammar** — `parse_reference` and `item_kind` for the entries of
+  the config and `parse_own_item` for the bare entries of a manifest, all of
+  `wio.formats` and built by `zq07av`, so a bare upper-case name stays
   malformed in the config scope, as `wio config check` says today.
 - **`LoadedRuleset`, `Rule` and `RulePreset`** — of `wio.models.rule` and
   `wio.models.config`, the values the expansion reads.
@@ -98,32 +94,6 @@ The names of the types and the functions below are provisional.
 
 `expand` does no input or output and raises nothing for a reference or a cycle:
 every criterion below runs it on values alone.
-
-## Visuals
-
-The diagram is drawn from commit `aedbf64` of the branch
-`docs/define-rules-tree`, and shows only what the Work changes.
-
-### Before and after
-
-The grammar of a reference is private to `wio.config`, so `wio.rules`, which may
-not import it, has no way to read a reference. After the move both import it
-from `wio.formats`. The new parts are marked.
-
-```mermaid
-flowchart LR
-    subgraph before["Before"]
-        cfgb["wio.config: parse_reference, item_kind"]
-        rulesb["wio.rules: no reader of references"]
-    end
-    subgraph after["After"]
-        fmt["wio.formats: parse_reference, item_kind, parse_own_item (new home)"]
-        cfga["wio.config"]
-        rulesa["wio.rules: expand (new)"]
-        cfga --> fmt
-        rulesa --> fmt
-    end
-```
 
 ## Acceptance criteria
 
@@ -289,19 +259,7 @@ the catalog and of the entries of a list.
 - **Then** the two expansions list their rules, removed rules, routes and
   problems in the same order.
 
-### **AC-11** `wio config check` is unchanged by the move
-
-Moving `parse_reference` and its helper to `wio.formats` changes nothing that
-`wio config check` reports.
-
-#### Every reference
-
-- **Given** the configs that the acceptance scenarios of `wio config check` use
-  for references of every fault, including a bare upper-case name.
-- **When** `wio config check` runs on each after the move.
-- **Then** every diagnostic and every exit code is what it was before.
-
-### **AC-12** The rulesets that the includes name are returned
+### **AC-11** The rulesets that the includes name are returned
 
 An expansion returns the canonical names of the rulesets that its include
 entries name, nested rule presets included, even when its excludes leave none of
@@ -321,12 +279,9 @@ ruleset.
 
 ## Additional context
 
-- `parse_reference` and its types live in `src/wio/config/selection.py` today,
-  and `find_cycles` in `src/wio/config/pipelines.py`; `wio.rules` may not import
-  `wio.config`, and a second copy would be flagged as duplicate code, so the
-  delivery moves the grammar to `wio.formats`; `find_cycles` moves with
+- `find_cycles` lives in `src/wio/config/pipelines.py` today and moves with
   `5qgs79`, the only user in `wio.rules`, because this expansion finds a cycle
-  by its own route.
+  by its own route; the grammar of references moved earlier, with `zq07av`.
 - The config's own references are well-formed and its rule presets do not cycle
   once `wio config check` passes, so a problem of the config scope arises only
   from a config the commands have refused already; the expansion still returns

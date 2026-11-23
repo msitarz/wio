@@ -65,6 +65,11 @@ included or out.
 The first line of a rule's block names it with its name, as C-4 of
 [wio rules](../../README.md) requires.
 
+### A-6
+
+The name of the stage in a label comes from the `Header` of the listing, because
+a `LayerEffect` holds only the name of a root.
+
 ## Mechanisms
 
 The names of the types and the functions below are provisional.
@@ -88,8 +93,8 @@ The names of the types and the functions below are provisional.
 
 ### **AC-1** An included rule shows where it came from
 
-Each rule of a layered listing shows one `from:` line for each origin, which
-names the rule, the layer and the route.
+Each rule of a layered listing shows one `from:` line for each route of each
+origin, which names the rule, the layer and the route.
 
 #### Three layers
 
@@ -107,8 +112,8 @@ names the rule, the layer and the route.
 
 ### **AC-2** A rule with several origins shows all of them in order
 
-A rule that several layers or routes selected has one `from:` line for each,
-sorted by layer, then name, then route.
+A rule that several layers or routes selected has one `from:` line for each
+route of each origin, sorted by layer, then name, then route.
 
 #### Two layers
 

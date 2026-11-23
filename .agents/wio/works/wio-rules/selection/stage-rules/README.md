@@ -103,7 +103,14 @@ verifies it.
 `wio.contracts`, to the `RuleSelection` port of `wio.context`
 and the `StageRules` port of `wio.trailers`, in place of the `NoRules` that it
 wires today, and removes the `NoRules` class of `wio.cli.null` that nothing then
-uses. AC-10 of [wio rules](../../README.md) verifies it.
+uses. AC-10 of [wio rules](../../README.md) verifies the wiring and AC-9 the
+removal.
+
+### C-3
+
+The docstring of `RuleSelection.select` in `src/wio/context/ports.pyi` says that
+a Work without roots gets a selection with no included rule, in place of the
+`ValueError` it documents today, and AC-7 verifies the behaviour it states.
 
 ## Acceptance criteria
 
@@ -226,6 +233,18 @@ that names the file, and not an unhandled `OSError`.
 - **Then** it raises a `WioError` that names the file of `ARC001`, so that
   `wio trailers` exits 2 and not 70.
 
+### **AC-9** The selector replaces `NoRules`
+
+The `NoRules` class of `wio.cli.null` is gone, and `wio.cli` wires the selector
+where it wired it.
+
+#### No `NoRules`
+
+- **Given** the package `wio.cli` after the delivery.
+- **When** `wio.cli.null` is imported and the wiring of `wio trailers` is built.
+- **Then** `wio.cli.null` has no `NoRules`, and the `StageRules` that `wio.cli`
+  gives `wio trailers` is a `RuleSelector`.
+
 ## Additional context
 
 - The `RuleSelection` and `StageRules` ports are declared by their consumers in
@@ -236,8 +255,5 @@ that names the file, and not an unhandled `OSError`.
 - `wio rules list` does not call `selection`: it runs the discovery once itself
   and calls `select` of `5yb4tz` with the roots that `stage_roots` gives, as
   `fjvj3x` states, so it still refuses a Work with no roots.
-- `RuleSelection.select` in `src/wio/context/ports.pyi` documents a `ValueError`
-  for a Work without roots, which the delivery changes to say that such a Work
-  gets a selection with no included rule, as AC-7 states.
 - `wio.context` will write a hash for every rule in its `context` event and will
   use `rule_hash` for it, which is why the function lives in `wio.formats`.

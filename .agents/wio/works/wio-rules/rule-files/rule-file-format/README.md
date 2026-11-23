@@ -2,7 +2,7 @@
 id = "ht39xt"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = []
+depends_on = ["zq07av"]
 -->
 
 # Rule file format
@@ -49,7 +49,7 @@ The names of the types and the functions below are provisional.
   in `wio.rules`; a `RuleReading` holds `rule: Rule | None` and
   `diagnostics: tuple[Diagnostic, ...]`.
 - **The code form** — the form of a code that `wio.formats` holds with the
-  grammar of `cyeth5`, which `read_rule` reuses for AC-3.
+  grammar of `zq07av`, which `read_rule` reuses for AC-3.
 - **The block reader and `closest_key`** — `read_metadata_block` and
   `closest_key` of `wio.formats`, which read either block form and suggest the
   known key that a mistyped one is close to.
@@ -153,7 +153,8 @@ and an error leaves the rule out.
 
 #### An error and a warning
 
-- **Given** a block with a `code` of `arc001` and a key `owner = "me"`.
+- **Given** a block with a `code` of `arc001`, a valid `name` and a key
+  `owner = "me"`.
 - **When** `read_rule` reads it.
 - **Then** it reports one error for the code and one warning for the key, and
   returns no rule.

@@ -133,7 +133,8 @@ added, and an exclude of a layer reaches no later layer's includes.
 - **Given** the repository of AC-1 with a stage `t` whose
   `rules_include = ["demo.PAY"]` and
   `rules_exclude = ["demo.PAY001", "demo.ARC"]`, and
-  `rules_always_include = ["demo.ARC002"]`.
+  `rules_always_include = ["demo.ARC002"]` in place of the one of AC-1, with its
+  `rules_always_exclude` unchanged.
 - **When** `apply_layers` runs for `("api",)` and the stage `t`.
 - **Then** `PAY001` is not selected, `PAY002` is selected, `ARC001` is not
   selected, and `ARC002` is selected because the always include added it back,
@@ -262,8 +263,9 @@ another layer added.
 
 #### A stage entry that excludes what the roots added
 
-- **Given** the repository of AC-1 with a rule preset `extra` of `demo` that
-  includes `PAY` and excludes `ARC001`, and a stage `u` whose `rules_include` is
+- **Given** the repository of AC-1 with no `rules_always_include` and no
+  `rules_always_exclude`, a rule preset `extra` of `demo` that includes `PAY`
+  and excludes `ARC001`, and a stage `u` whose `rules_include` is
   `["demo.extra"]`.
 - **When** `apply_layers` runs for `("api",)` and the stage `u`.
 - **Then** `ARC001` is selected, with the effects root adds and stage removes,

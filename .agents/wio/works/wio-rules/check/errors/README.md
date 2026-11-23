@@ -286,7 +286,7 @@ the order of the tables and entries, and `check_errors` reads no file.
 
 - `join_path` and `item_path` are in `src/wio/config/messages.py` and
   `find_cycles` in `src/wio/config/pipelines.py` today; `wio.rules` may not
-  import `wio.config`, so the delivery moves them, as `cyeth5` moves
+  import `wio.config`, so the delivery moves them, as `zq07av` moves
   `parse_reference`.
 - The place `…#rule_presets.local.rules_include[0]` is the form that C-6 of
   [wio rules](../../README.md) states, and the cycle is placed at

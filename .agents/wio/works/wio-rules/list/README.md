@@ -60,12 +60,12 @@ rule is a candidate.
 
 The names of the functions below are provisional.
 
-- **`wio rules list`** — the command, built by the integration of this Work from
-  the pieces below: the arguments and the entry of `SUBCOMMANDS` are `fjvj3x`'s,
-  and the integration runs the discovery once, refuses on an error of it with
-  `refuse_on_errors` of `8zn10d`, and passes the listing through the pipeline of
-  C-2 to the output of `fjvj3x`, which writes through `render_blocks` and
-  `encode_json` of `wio.formats`.
+- **`wio rules list`** — the command, built by `fjvj3x` as a handler that runs
+  the discovery once and prints the listing it builds, and completed by the
+  integration of this Work, which adds the refusal on an error of the discovery
+  with `refuse_on_errors` of `8zn10d` and passes the listing through the
+  pipeline of C-2 to the output of `fjvj3x`, which writes through
+  `render_blocks` and `encode_json` of `wio.formats`.
 - **The views and the output** — the selectors, their refusals, the header and
   the text and JSON of a listing, built by `fjvj3x` over `select` of `5yb4tz`
   and the roots of `ndwemw`.

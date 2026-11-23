@@ -57,8 +57,8 @@ of its rules selected, as
 ### Origin
 
 One way an include entry delivers a rule: the layer that holds the entry, the
-name of its root or stage, and the route, which `wio rules list --explain` and
-`wio rules new` show as a chain.
+name of its root or stage, and the routes that led to the rule, which
+`wio rules list --explain` and `wio rules new` show as a chain.
 
 ### Stray file
 
@@ -154,6 +154,12 @@ may carry either metadata block form.
   fields, with `Rule` which moves to `wio.models.rule`; `5yb4tz` completes them,
   where a `Decision` holds the roots of an included rule and the layers that
   selected it, or the reason a rule is out.
+- **The shared grammar** — the reading of references and the forms of names,
+  moved from `wio.config` to `wio.formats`, built by `zq07av` for `cyeth5`,
+  `8zn10d` and `ht39xt`.
+- **`Listing`, `Header`, `Row` and `Explanation`** — in a new
+  `wio.models.listing`, built by `fjvj3x` for `list` to build, narrow, explain
+  and print.
 - **`Route`, `Routes` and `LayerEffect`** — in `wio.models.rules`, defined by
   `cyeth5` and `cm25z9` from the start, because the `Decision` that `5yb4tz`
   completes holds them and a model may not import a component.
@@ -255,7 +261,7 @@ by `#` and the key path for a fault in a key of a manifest, such as
 `.agents/wio/rules/demo/ruleset.toml#rule_presets.local.rules_include[0]`; and
 the key path of the config for a fault in the config, as `wio config check`
 writes it. A fault of two files names both, joined by `, `, as `wio.templates`
-writes it. The criteria of `rule-files`, `5qgs79` and `785y9k` verify it.
+writes it. The criteria of `gtqngp`, `5qgs79` and `785y9k` verify it.
 
 ## Visuals
 
@@ -307,6 +313,7 @@ flowchart LR
     end
     ruledata["wio.models.rule (new): Rule, Manifest, LoadedRuleset"]
     models["wio.models.rules: Decision, Selection (stubs completed)"]
+    listing["wio.models.listing (new): Listing, Header, Row"]
     io["wio.io: file ports"]
     fmt["wio.formats: block reader (changed: reference grammar, key paths, rule_hash, render_blocks)"]
     settings["Settings port (wio.ports)"]
@@ -327,6 +334,7 @@ flowchart LR
     select --> rootsport
     rules --- ruledata
     rules --- models
+    rules --- listing
     rules --> io
     rules --> fmt
     rules --> settings

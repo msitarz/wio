@@ -81,8 +81,9 @@ The names of the types and the functions below are provisional.
 
 ### C-1
 
-`selected_anywhere` does no input or output, and its origins are in the order
-root, stage, always-include, then by name, then by route. AC-7 verifies it.
+`selected_anywhere` does no input or output, and its origins are one for each
+layer and name, in the order root, stage, always-include, then by name, with the
+routes of each sorted. AC-7 verifies it.
 
 ## Acceptance criteria
 
@@ -109,8 +110,9 @@ and the root or the stage, and a rule that no entry delivers is not.
 
 ### **AC-2** A rule with several origins has all of them in order
 
-A rule that several entries deliver has one origin for each, sorted by layer in
-the order root, stage, always-include, then by name, then by route.
+A rule that several entries deliver has one origin for each layer and name,
+sorted by layer in the order root, stage, always-include, then by name, each
+holding all its routes, sorted.
 
 #### Several entries
 

@@ -2,7 +2,7 @@
 id = "8zn10d"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["ht39xt"]
+depends_on = ["ht39xt", "zq07av"]
 -->
 
 # Ruleset manifest
@@ -73,7 +73,7 @@ The names of the types and the functions below are provisional.
   through `decode_toml` and `closest_key` of `wio.formats`; a `ManifestReading`
   holds `manifest: Manifest | None` and `diagnostics: tuple[Diagnostic, ...]`.
 - **The name forms** — the forms of a ruleset name, a family and a rule preset
-  name of `wio.formats`, which `cyeth5` moves there with the grammar and which
+  name of `wio.formats`, which `zq07av` moves there with the grammar and which
   this Work reuses.
 - **`refuse_on_errors(discovery: Discovery) -> None`** — in `wio.rules`, raising
   the `DiagnosticsError` of `wio.errors` that carries the error diagnostics of
