@@ -346,6 +346,6 @@ written as 64 lower-case hexadecimal digits. The event models carry a rule's
 hash as an opaque string, the log already hashes with SHA-256, and a hash of the
 bytes changes when any part of the file does, a line ending included, which a
 hash of decoded text would not. One function gives it to every producer, so that
-the hash that `wio trailers` receives is the one that a `context` event
-records. Its docstring says what it takes and returns, and its
+the hash that `wio trailers` receives is the one that a `context` event will
+record. Its docstring says what it takes and returns, and its
 [test](../../../tests/unit/formats/test_hashing.py) pins two known digests.
