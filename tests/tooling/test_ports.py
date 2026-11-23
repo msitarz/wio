@@ -324,7 +324,7 @@ def test_the_temporary_directory_rule_is_in_the_docstring() -> None:
     assert missing == []
 
 
-@pytest.mark.parametrize("path", MODELS, ids=_name)
+@pytest.mark.parametrize("path", [*MODELS, *IMPLEMENTED], ids=_name)
 def test_a_shared_type_stub_imports_only_the_stdlib_and_shared_types(
     path: Path,
 ) -> None:
