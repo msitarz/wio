@@ -171,6 +171,7 @@ depends_on = [
     "wio.io.views",
     "wio.log",
     "wio.ports",
+    "wio.rules",
     "wio.templates",
     "wio.trailers",
 ]

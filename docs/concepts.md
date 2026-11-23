@@ -131,6 +131,7 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 | --- | --- | --- | --- |
 | `code` | *required* | The rule's identifier, whose letters are its family. | [Codes and families](#codes-and-families) |
 | `name` | *required* | The rule's readable name, shown with its code. | [Codes and families](#codes-and-families) |
+| `description` | *optional* | One line that says what the rule is for, shown with it by `wio rules list` and `wio rules show`; it is not the summary, which is cut from the body. | [What a rule is](#what-a-rule-is) |
 | Body | — | The text a bundle shows as written: instruction, `Why:` and `Example:`. | [What a rule is](#what-a-rule-is) |
 
 ### A ruleset's `ruleset.toml`
@@ -1598,9 +1599,10 @@ Why: a dict hides the contract from the type checker, so drift appears at runtim
 Example: `fetch_user(id) -> User | NotFound`, not `fetch_user(id) -> dict`.
 ```
 
-The metadata holds the code and the name, and nothing about where the rule
-applies. Which stages see a rule is decided by the roots and stages that name
-it ([How a rule is selected](#how-a-rule-is-selected)), so a rule copied from
+The metadata holds the code, the name and an optional one-line description, and
+nothing about where the rule applies. Which stages see a rule is decided by the
+roots and stages that name it
+([How a rule is selected](#how-a-rule-is-selected)), so a rule copied from
 another repository carries no labels that must be mapped onto this one's.
 
 Everything after the metadata block is the rule's **body**, and the bundle shows
@@ -2481,8 +2483,6 @@ and its own selection give it.
 
 ## 15. Open points
 
-- Whether rule files accept `+++` front matter as well. The rule example above
-  uses the `<!-- wio -->` block, as contracts do.
 - Stage-level ordering across the tree. A parent waits for its children,
   and a shared boundary is a leaf of its own, so interleaved stages
   are not needed. Records and the log key on the Work, the action and the stage,
