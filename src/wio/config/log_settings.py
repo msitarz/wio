@@ -5,7 +5,7 @@ import re
 from collections import Counter
 from typing import TYPE_CHECKING
 
-from wio.config.messages import join_path, quoted
+from wio.formats.wording import join_path, quoted
 from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:

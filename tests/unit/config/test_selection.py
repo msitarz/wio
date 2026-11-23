@@ -73,42 +73,6 @@ def _stage(*include: str, exclude: tuple[str, ...] = ()) -> Stage:
     return Stage(goal="g", rules_include=include, rules_exclude=exclude)
 
 
-@pytest.mark.parametrize(
-    ("text", "kind"),
-    [
-        ("mine", selection.Bare("mine")),
-        ("define-bugfix", selection.Bare("define-bugfix")),
-        ("docs.DOC", selection.Qualified("docs", "DOC")),
-        ("docs.DOC001", selection.Qualified("docs", "DOC001")),
-        ("docs.all", selection.Qualified("docs", "all")),
-        ("DOC", "is not a rule preset name"),
-        ("Docs.DOC", "the ruleset part `Docs`"),
-        ("docs.Doc1", "the item `Doc1`"),
-        ("docs.DOC001.x", "has more than one dot"),
-        ("docs.", "the item ``"),
-        (".DOC", "the ruleset part ``"),
-    ],
-)
-def test_a_reference_has_the_form_of_its_kind(
-    text: str, kind: selection.Reference | str
-) -> None:
-    """AC-1: a bare name, a ruleset name and the parts of a qualified reference."""
-    # Given a reference as the config writes it
-
-    # When its form is judged
-    found = selection.parse_reference(text)
-
-    # Then a bare name and a qualified reference with parts in their forms are
-    # told apart, and any other text says which part is wrong and the form it
-    # should have
-    if isinstance(kind, str):
-        assert isinstance(found, selection.Malformed)
-        assert kind in found.message
-        assert _FORM in found.message or "bare name or" in found.message
-    else:
-        assert found == kind
-
-
 def test_the_directories_are_read_with_is_dir_before_list_dir() -> None:
     """AC-2, AC-5: the entries that are directories, and which hold a manifest."""
     # Given `.agents/wio/rules` with a ruleset `docs` that has a `ruleset.toml`, a

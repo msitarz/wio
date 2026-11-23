@@ -6,8 +6,8 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
-from wio.config.messages import and_list, join_path, quoted
 from wio.errors import ConfigurationError
+from wio.formats.wording import and_list, join_path, quoted
 lazy from wio.formats import closest_key
 
 if TYPE_CHECKING:

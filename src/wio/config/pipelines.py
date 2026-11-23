@@ -16,7 +16,7 @@ appended to `wio.config.CHECKS`.
 
 from typing import TYPE_CHECKING
 
-from wio.config.messages import and_list, declared, item_path, join_path, quoted
+from wio.formats.wording import and_list, declared, item_path, join_path, quoted
 from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:

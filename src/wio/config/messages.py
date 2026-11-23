@@ -2,56 +2,13 @@
 """The words of the diagnostics of the shape and the key paths they name."""
 
 import datetime
-import re
 from typing import TYPE_CHECKING
 
 from wio.config.schema import Atom, Choice, Open, PresetOrStages, Spec, Strings, Table
-lazy from wio.formats import closest_key
+lazy from wio.formats import and_list, closest_key, quote_string, quoted
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-_BARE = re.compile(r"[A-Za-z0-9_-]+")
-
-
-def join_path(parent: str, key: str) -> str:
-    """Add a key to a key path, quoting it as TOML does when it needs it.
-
-    Args:
-        parent: The key path so far; empty at the top level.
-        key: The key to add.
-
-    Returns:
-        The longer key path.
-    """
-    name = key if _BARE.fullmatch(key) else _quote(key)
-    return f"{parent}.{name}" if parent else name
-
-
-def _quote(key: str) -> str:
-    """Quote a key as a TOML basic string.
-
-    Args:
-        key: The key.
-
-    Returns:
-        The key in double quotes, with backslashes and quotes escaped.
-    """
-    escaped = key.replace("\\", "\\\\").replace('"', '\\"')
-    return f'"{escaped}"'
-
-
-def item_path(parent: str, index: int) -> str:
-    """Add a list index to a key path.
-
-    Args:
-        parent: The key path of the list.
-        index: The position of the item.
-
-    Returns:
-        The key path of the item, such as `rules_include[0]`.
-    """
-    return f"{parent}[{index}]"
 
 
 def show(value: object) -> str:
@@ -67,7 +24,7 @@ def show(value: object) -> str:
         case bool():
             return "true" if value else "false"
         case str():
-            return _quote(value)
+            return quote_string(value)
         case int() | float():
             return str(value)
         case list():
@@ -76,46 +33,6 @@ def show(value: object) -> str:
             return "a table"
         case _:
             return type(value).__name__
-
-
-def quoted(names: Sequence[str]) -> str:
-    """Join names in code quotes for a sentence.
-
-    Args:
-        names: The names.
-
-    Returns:
-        Each name in backticks, joined by commas.
-    """
-    return ", ".join(f"`{name}`" for name in names)
-
-
-def declared(label: str, none: str, names: Sequence[str]) -> str:
-    """List what is declared, or say that nothing is.
-
-    Args:
-        label: The words that start the list, such as `Declared stages`.
-        none: The sentence for no name, such as `No stages are declared.`.
-        names: The names, in the order to list them.
-
-    Returns:
-        "<label>: `a`, `b`." for some names, and `none` for none.
-    """
-    return f"{label}: {quoted(names)}." if names else none
-
-
-def and_list(items: Sequence[str]) -> str:
-    """Join items as English does.
-
-    Args:
-        items: The items, at least one.
-
-    Returns:
-        `a`, `a and b` or `a, b and c`.
-    """
-    if len(items) == 1:
-        return items[0]
-    return f"{', '.join(items[:-1])} and {items[-1]}"
 
 
 def expected(spec: Spec) -> str:
@@ -170,7 +87,7 @@ def wrong_type(value: object, spec: Spec, description: str) -> str:
         return f"{found} stage names. {description}"
     allowed = ""
     if isinstance(spec, Choice):
-        allowed = f"; allowed {and_list([_quote(v) for v in spec.values])}"
+        allowed = f"; allowed {and_list([quote_string(v) for v in spec.values])}"
     return f"received {show(value)}, expected {expected(spec)}{allowed}. {description}"
 
 
@@ -185,7 +102,7 @@ def wrong_value(value: object, spec: Choice, description: str) -> str:
     Returns:
         The received value, the allowed values and the description.
     """
-    allowed = and_list([_quote(v) for v in spec.values])
+    allowed = and_list([quote_string(v) for v in spec.values])
     return f"received {show(value)}, allowed {allowed}. {description}"
 
 
