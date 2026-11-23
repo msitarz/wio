@@ -2,7 +2,8 @@
 
 The component behind `wio rules`. So far it holds the reader of one rule file,
 the reader of a ruleset's manifest, the discovery of the rulesets, the
-expansion of rule presets and the inputs that the selection shares, which
+expansion of rule presets, the inputs that the selection shares, the layers that
+select the rules of a stage and the decision of each rule, which
 `wio rules check`, `list` and `show` build on.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its
@@ -285,7 +286,8 @@ reads. `Decision` and `Reason` are in [`wio.models`](../models/rules.py).
   rules have no roots and `root_independent` true, whether or not a root also
   reaches it; `wio rules check` reports that case, and the decision does not
   depend on it.
-- **No roots and no roots given are different.** `None` means the roots are not
+- **Roots not applied and roots applied with none selected are different.**
+  `None` means the roots are not
   applied, as for a listing of the whole repository: nothing is cut, and a rule
   lists the roots of the config that reach its ruleset. An empty tuple means the
   roots are applied and none was selected, so only the root-independent rules
