@@ -1,8 +1,9 @@
 # `wio.rules`
 
 The component behind `wio rules`. So far it holds the reader of one rule file,
-the reader of a ruleset's manifest, the discovery of the rulesets and the
-expansion of rule presets, which `wio rules check`, `list` and `show` build on.
+the reader of a ruleset's manifest, the discovery of the rulesets, the
+expansion of rule presets and the inputs that the selection shares, which
+`wio rules check`, `list` and `show` build on.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its
 code and name mean and
@@ -172,3 +173,41 @@ preset is.
   with its depth, even when it selects nothing. A repository's own rule presets
   are shallow, so this has not been bounded; a rule preset that is expanded by
   value, once, with its routes rebased, would remove the cost.
+
+## The inputs of the selection
+
+[`inputs.py`](inputs.py) holds what every consumer of the selection would
+otherwise build for itself: the rulesets of a discovery by canonical name
+(`ruleset_map`), the [`RuleCatalog`](expansion.py) that `expand` resolves its
+references in (`build_rule_catalog`), the resolution of a ruleset's name or
+alias (`resolve_ruleset`), and the labels and the text of the chain that says
+where a rule came from (`layer_label`, `chain_labels`, `chain_text`). Their
+docstrings say what each takes and returns, and their
+[tests](../../../tests/unit/rules/test_inputs.py) say how each case reads.
+
+- **Each shape is built in one place.** The layers, the rules selected anywhere,
+  the checks and the commands all need the same catalog and the same chain, and
+  a second builder could differ from the first in an alias or a label, so that
+  `list --explain` and `new` would print different text for one rule. The one
+  place that knows what a catalog is made of is this module and `expand`, so a
+  change to the catalog is made there. `expand` resolves a ruleset through
+  `resolve_ruleset` and keeps no resolution of its own.
+- **A name wins over an alias.** A ruleset is named by its directory, and the
+  config keeps an alias from naming another ruleset, so the order only matters
+  to a config that is not valid; there the directory name is the one that cannot
+  change under an edit of the config.
+- **An alias is kept for a ruleset whose files were not read, and names
+  nothing.** The catalog holds every alias of the config, because it is the
+  config's, but resolves one only when its ruleset is in the catalog, so a
+  command can tell a ruleset it does not know from one it could not read, by
+  looking at the config, and neither is expanded as if its rules were there.
+- **The rulesets and the labels are in a fixed order and a fixed text.** The
+  rulesets are keyed in the order of ruleset name whatever the order of the
+  discovery, and a layer's label and a chain are the text that the text and the
+  JSON of `list --explain` and `new` both print, so the two cannot disagree. A
+  listing of references has no layer and so no label; its chain is the route
+  alone.
+- **The two modules import each other lazily.** `inputs` builds a `RuleCatalog`
+  and `expansion` resolves a ruleset, so either would need the other at import
+  time, and both use lazy imports to break the cycle. Importing `wio.rules`
+  loads neither.
