@@ -395,6 +395,7 @@ def _reached(root: str, text: str, names: Sequence[str], catalog: RuleCatalog) -
     listed = and_list([f"`{name}`" for name in names])
     return (
         f"The root `{root}` reaches {listed}{through}, which "
-        f"{'is' if len(names) == 1 else 'are'} root-independent and apply to every "
-        "root; a stage includes it, not a root."
+        f"{'is' if len(names) == 1 else 'are'} root-independent and "
+        f"{'applies' if len(names) == 1 else 'apply'} to every root; a stage "
+        "includes it, not a root."
     )
