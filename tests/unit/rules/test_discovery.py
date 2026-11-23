@@ -18,7 +18,6 @@ if TYPE_CHECKING:
 
 RULES = ROOT / ".agents" / "wio" / "rules"
 _REL = ".agents/wio/rules"
-_STUB = pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="stub")
 
 
 @dataclass
@@ -102,7 +101,6 @@ def _demo(
     return files
 
 
-@_STUB
 def test_rulesets_are_found_by_name_and_rules_by_family_and_code() -> None:
     """AC-3: the order of the rules, `rules_of` and `get`."""
     # Given `demo` with six rules in no order and `acme` with one
@@ -135,7 +133,6 @@ def test_rulesets_are_found_by_name_and_rules_by_family_and_code() -> None:
     assert demo.get("ARC3") is None
 
 
-@_STUB
 def test_a_ruleset_is_a_value() -> None:
     """AC-3: equal with one hash, and not equal when a rule differs."""
     # Given two discoveries of the same files and one with a rule renamed
@@ -153,7 +150,6 @@ def test_a_ruleset_is_a_value() -> None:
     assert first.rulesets != changed.rulesets
 
 
-@_STUB
 def test_a_rule_of_an_undeclared_family_is_an_error_and_left_out() -> None:
     """AC-4: the error names the file and the family."""
     # Given `demo` that declares `ARC` and holds `ARC001` and `ZZZ001`
@@ -169,7 +165,6 @@ def test_a_rule_of_an_undeclared_family_is_an_error_and_left_out() -> None:
     assert [r.code for r in found.rulesets[0].rules] == ["ARC001"]
 
 
-@_STUB
 def test_rules_that_share_a_code_or_a_name_are_errors_and_left_out() -> None:
     """AC-4: one error for the code and one for the name, each naming both files."""
     # Given two files with `ARC001`, two rules named `keep-it-small` and `ARC009`
@@ -195,7 +190,6 @@ def test_rules_that_share_a_code_or_a_name_are_errors_and_left_out() -> None:
     assert [r.code for r in found.rulesets[0].rules] == ["ARC009"]
 
 
-@_STUB
 def test_the_same_code_in_two_rulesets_is_no_fault() -> None:
     """AC-4: a qualified code is unique."""
     # Given two rulesets that each declare `ARC` and hold `ARC001`
@@ -211,7 +205,6 @@ def test_the_same_code_in_two_rulesets_is_no_fault() -> None:
     assert [len(r.rules) for r in found.rulesets] == [1, 1]
 
 
-@_STUB
 def test_a_ruleset_is_named_by_its_directory() -> None:
     """AC-5: a wrong name and a link are errors, a hidden directory is ignored."""
     # Given `demo`, `My_Rules`, `.cache` and a link `linked`, each with a manifest
@@ -235,7 +228,6 @@ def test_a_ruleset_is_named_by_its_directory() -> None:
     assert not [p for op, p in disk.calls if op == "read_text" and ".cache" in p.parts]
 
 
-@_STUB
 def test_the_faults_of_rulesets_and_stray_files_are_reported() -> None:
     """AC-6: one error for each, and the good rulesets are returned whole."""
     # Given `bare` with no manifest, `broken` that does not parse, `outer` with a
@@ -266,7 +258,6 @@ def test_the_faults_of_rulesets_and_stray_files_are_reported() -> None:
     assert [len(r.rules) for r in found.rulesets] == [1, 1]
 
 
-@_STUB
 def test_a_file_that_cannot_be_read_is_one_error_and_raises_nothing() -> None:
     """AC-6: bad UTF-8, an `OSError` and a linked manifest."""
     # Given `demo` with a rule that is not UTF-8, one whose read fails and a valid
@@ -301,7 +292,6 @@ def test_a_file_that_cannot_be_read_is_one_error_and_raises_nothing() -> None:
     assert [r.code for r in found.rulesets[0].rules] == ["ARC003"]
 
 
-@_STUB
 @pytest.mark.parametrize("shape", ["missing", "link", "file"])
 def test_the_rules_directory_is_checked_before_it_is_walked(shape: str) -> None:
     """AC-7: missing is no fault, a link or a file is one error and not walked."""
@@ -324,7 +314,6 @@ def test_the_rules_directory_is_checked_before_it_is_walked(shape: str) -> None:
     assert ("list_dir", RULES) not in disk.calls
 
 
-@_STUB
 @pytest.mark.parametrize("whole", [True, False])
 def test_a_directory_that_cannot_be_listed_is_one_error(whole: bool) -> None:  # noqa: FBT001
     """AC-7: the rules directory, or one ruleset's directory beside a good one."""
@@ -344,7 +333,6 @@ def test_a_directory_that_cannot_be_listed_is_one_error(whole: bool) -> None:  #
     assert [r.name for r in found.rulesets] == ([] if whole else ["demo"])
 
 
-@_STUB
 def test_the_diagnostics_do_not_depend_on_the_order_of_the_listing() -> None:
     """AC-8: the same rulesets and diagnostics, in the order of `sort_diagnostics`."""
     # Given a rule whose block does not close, a rule of an undeclared family, a
@@ -364,7 +352,6 @@ def test_the_diagnostics_do_not_depend_on_the_order_of_the_listing() -> None:
     assert len(forward.diagnostics) == 4
 
 
-@_STUB
 def test_a_discovery_with_an_error_is_refused_and_one_with_a_warning_is_not() -> None:
     """AC-9: the refusal carries the errors and not the warnings."""
     # Given a discovery with an error and a warning, and one with a warning only

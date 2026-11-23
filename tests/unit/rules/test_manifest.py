@@ -11,7 +11,6 @@ from wio.rules import ManifestReading, read_manifest
 
 _PATH = PurePosixPath(".agents/wio/rules/demo/ruleset.toml")
 _FILE = str(_PATH)
-_STUB = pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="stub")
 
 
 def _read(text: str) -> ManifestReading:
@@ -26,7 +25,6 @@ def _read(text: str) -> ManifestReading:
     return read_manifest(_PATH, text)
 
 
-@_STUB
 def test_a_full_manifest_is_read_in_the_order_written() -> None:
     """AC-1: the description, the families and the rule presets."""
     # Given a manifest with a description, two families and one rule preset
@@ -54,7 +52,6 @@ def test_a_full_manifest_is_read_in_the_order_written() -> None:
     assert reading.diagnostics == ()
 
 
-@_STUB
 def test_an_empty_manifest_declares_nothing() -> None:
     """AC-1: a ruleset can be started before its first rule."""
     # Given an empty `ruleset.toml`
@@ -71,7 +68,6 @@ def test_an_empty_manifest_declares_nothing() -> None:
     assert reading.diagnostics == ()
 
 
-@_STUB
 def test_a_manifest_that_does_not_parse_is_one_error_with_its_line() -> None:
     """AC-2: the place is the path followed by `:` and the line of the fault."""
     # Given a manifest whose fault is on line 2
@@ -85,7 +81,6 @@ def test_a_manifest_that_does_not_parse_is_one_error_with_its_line() -> None:
     assert kinds(reading.diagnostics) == [("error", f"{_FILE}:2")]
 
 
-@_STUB
 @pytest.mark.parametrize(
     ("text", "key"),
     [
@@ -114,7 +109,6 @@ def test_a_fault_of_the_shape_is_one_error_at_its_key_path(text: str, key: str) 
     assert kinds(reading.diagnostics) == [("error", f"{_FILE}#{key}")]
 
 
-@_STUB
 @pytest.mark.parametrize(
     ("text", "key", "close"),
     [
