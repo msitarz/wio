@@ -263,3 +263,43 @@ case reads.
   same bytes. `LayerEffect` is in
   [`wio.models`](../models/rules.py), because a `Decision` holds it and a model
   may not import a component.
+
+## The decision of every rule
+
+[`select`](applicability.py) applies the layers and decides every rule of every
+ruleset: included, with the roots it applies to, or out, with the reason. One
+function serves every view of a listing and every consumer of a selection, so
+`wio context` and `wio rules list` cannot give a rule different decisions. Its
+docstring says what it takes and returns, and its
+[tests](../../../tests/unit/rules/test_applicability.py) say how each case
+reads. `Decision` and `Reason` are in [`wio.models`](../models/rules.py).
+
+- **The layers decide first and the roots cut after.** A rule that a layer
+  removed is out for that layer's reason, and only a rule that the layers kept
+  can be cut by the roots. Otherwise a rule that a stage excluded in a ruleset
+  no root reaches would be reported as cut by the roots, and a person would look
+  for the wrong cause.
+- **A selected rule applies where its ruleset is reached.** It is included when
+  its ruleset is root-independent or a selected root reaches it, and is cut by
+  the roots otherwise. A root-independent ruleset applies to every root, so its
+  rules have no roots and `root_independent` true, whether or not a root also
+  reaches it; `wio rules check` reports that case, and the decision does not
+  depend on it.
+- **No roots and no roots given are different.** `None` means the roots are not
+  applied, as for a listing of the whole repository: nothing is cut, and a rule
+  lists the roots of the config that reach its ruleset. An empty tuple means the
+  roots are applied and none was selected, so only the root-independent rules
+  remain and the others are cut, which is what a stage with no root selects.
+- **The reason is the last layer that removed the rule.** A rule that the root
+  added and the stage removed is excluded by the stage, and one that the stage
+  removed and the veto removed again is vetoed, because the last removal is what
+  left it out. A rule that no layer touched is not selected. The exclude of a
+  rule preset inside an entry of the always includes took nothing out of the
+  set, so it gives no reason, and a rule that only it removed is not selected.
+- **Each decision carries the effects of the layers,** so a listing can explain
+  a rule without applying the layers again, and the order of the selection is
+  that of the layers: every rule once, in the order of ruleset, family and code.
+- **The same inputs give the same selection** whatever the order of the tables
+  of the config, of the entries of its lists or of the roots, and `select`
+  raises the `KeyError` of the layers for a root or a stage that the config does
+  not have.
