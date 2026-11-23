@@ -207,6 +207,39 @@ def test_the_reason_is_the_last_layer_that_removed_the_rule() -> None:
 
 
 @_STUB
+def test_the_last_layer_that_removed_a_rule_decides_the_reason() -> None:
+    """A-1: stage after root, veto after stage, and an always-include nested exclude."""
+    # Given `ARC001` removed by the root's rule preset and then by the stage,
+    # `ARC002` removed by the stage and then vetoed, and `PAY001` that only the
+    # exclude of a rule preset of the always includes removed
+    demo = make_ruleset(
+        "demo",
+        ["ARC", "PAY"],
+        ["ARC001", "ARC002", "PAY001", "PAY002"],
+        {
+            "recommended": (["ARC"], ["ARC001"]),
+            "extra": (["PAY001", "PAY002"], ["PAY001"]),
+        },
+    )
+    config = _config(
+        {"api": ["demo.recommended"]},
+        {"s": ([], ["demo.ARC001", "demo.ARC002"])},
+        include=["demo.extra"],
+        exclude=["demo.ARC002"],
+    )
+
+    # When the rules are selected for `api` and `s`
+    found = select(("api",), "s", config, freeze({"demo": demo}))
+
+    # Then each reason is that of the last layer that removed the rule, and the
+    # nested exclude of the always includes gives none
+    assert _reason(_of(found, "demo", "ARC001")) == ("excluded", "stage")
+    assert _reason(_of(found, "demo", "ARC002")) == ("vetoed", None)
+    assert _reason(_of(found, "demo", "PAY001")) == ("not-selected", None)
+    assert _of(found, "demo", "PAY002").roots == ("api",)
+
+
+@_STUB
 def test_without_roots_nothing_is_cut_and_a_rule_lists_the_roots_that_reach_it() -> (
     None
 ):
@@ -234,10 +267,12 @@ def test_without_roots_nothing_is_cut_and_a_rule_lists_the_roots_that_reach_it()
     # Then `ARC001` lists the root `api`, `WEB001` has no root, `FIX001` is
     # root-independent, and nothing is cut by the roots; with no stage only the
     # always fields apply, so nothing the stage selects is included
-    assert _of(with_stage, "demo", "ARC001").roots == ("api",)
-    assert _of(with_stage, "web", "WEB001").included
-    assert _of(with_stage, "web", "WEB001").roots == ()
-    assert _of(with_stage, "process", "FIX001").root_independent
+    arc = _of(with_stage, "demo", "ARC001")
+    assert (arc.included, arc.roots) == (True, ("api",))
+    web = _of(with_stage, "web", "WEB001")
+    assert (web.included, web.roots) == (True, ())
+    fix = _of(with_stage, "process", "FIX001")
+    assert (fix.included, fix.root_independent) == (True, True)
     for found in (with_stage, neither):
         assert all(
             d.reason is None or d.reason.kind != "cut-by-roots" for d in found.values()

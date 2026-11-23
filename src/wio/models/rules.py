@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """The types for the selection of rules for a stage, and the routes it records.
 
-`Decision` is declared by the Work that implements `wio rules list`, which fills
-in its fields; until then it has none. A `Route` is here and not in `wio.rules`
-because a `Decision` holds routes and a model may not import a component.
+A `Decision` holds the effects of the layers and a `Reason`, and a `LayerEffect`
+holds routes, so all of them are here and not in `wio.rules`: a model may not
+import a component.
 """
 
 from dataclasses import dataclass
