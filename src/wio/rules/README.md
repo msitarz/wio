@@ -475,16 +475,19 @@ config show together: a selection that no root can reach, a rule that both
 always fields name, and a heading in a rule's body. Its docstring says what it
 takes, returns and words, and its
 [tests](../../../tests/unit/rules/test_warns.py) say how each case reads. It
-returns the warnings of the discovery as they are, so one function holds every
-warning that `wio rules check` will report, and the errors are
-[another's](#the-errors-of-the-references).
+returns the warnings of the discovery as they are, and not its errors, so one
+function holds every warning that needs the rule files and the config together,
+and the errors are [another's](#the-errors-of-the-references). It takes the
+config to be valid, so every reference in it is well-formed and names a
+ruleset, and the question left is which rulesets an entry names and which roots
+reach them.
 
 - **A selection nothing can reach fails silently, so it is a warning with a
   fix.** The layers select its rules and the roots then always cut them, so a
   rule never reaches a session and nothing says so. The warning names the
   ruleset and the two ways out: mark it `root_independent`, or name it in a
-  root's `rule_presets`. It is a warning because the config is valid, and
-  because a ruleset can be wired before its root exists.
+  root's `rule_presets`. A ruleset that the config's `rulesets` table does not
+  list is not root-independent.
 - **Which roots count depends on where the entry is written.** A stage counts
   the roots of its own `roots`, and `@work`, a stage with no `roots` and
   `rules_always_include` count every root of the config, because the Work's
@@ -504,9 +507,9 @@ warning that `wio rules check` will report, and the errors are
   delivers adds nothing for those rules, so the warning names the exclude
   entries and the rules, with their names, and says that one of the two entries
   can go.
-- **A heading in a body breaks the bundle.** The bundle that holds a rule writes
-  the body under the rule's own heading, so a real heading in it, as
-  `read_outline` finds one, changes the structure of the bundle. A heading in
+- **A heading in a body breaks the bundle.** A real heading in it, as
+  `read_outline` finds one, breaks the structure of the bundle that holds the
+  rule. A heading in
   code, a comment, a quote or a list is not one, and the warning is at the file
   and the line of the first heading.
 - **Each warning is reported once, in the shared order,** whatever the order of
