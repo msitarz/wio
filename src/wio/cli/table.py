@@ -19,6 +19,8 @@ lazy from wio.io import views
 lazy from wio.log.command import LogCommand
 lazy from wio.log.review import ReviewCommand
 lazy from wio.log.sink import LogSink
+lazy from wio.rules import RulesCommand
+lazy from wio.rules import Services as RulesServices
 lazy from wio.templates import TemplatesCatalog, TemplatesCommand
 lazy from wio.trailers import Services as TrailersServices
 lazy from wio.trailers import TrailersCommand
@@ -131,7 +133,13 @@ def _rules() -> Command:
     Returns:
         The command, whose subcommands read the project through the adapters.
     """
-    raise NotImplementedError
+    environment = env.ProcessEnvironment()
+    repository = io.GitRepository(environment)
+    files = io.LocalFileSystem()
+    services = RulesServices(
+        ConfigSettings(repository, files), repository, files, environment
+    )
+    return RulesCommand(services)
 
 
 def trailers_command(events: EventSink | None = None) -> Command:
@@ -236,6 +244,7 @@ COMMANDS: Final[Sequence[Entry]] = (
     component_entry("config", _config),
     component_entry("contracts", _contracts),
     component_entry("log", _log),
+    component_entry("rules", _rules),
     component_entry("templates", _templates),
     component_entry("trailers", trailers_command),
 )

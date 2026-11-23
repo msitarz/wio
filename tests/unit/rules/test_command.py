@@ -129,7 +129,6 @@ def _zero(_services: Services, _args: Namespace, _stdio: Stdio) -> int:
     return 0
 
 
-@_PENDING
 def test_the_component_is_listed_by_the_help_of_wio() -> None:
     """AC-1: `wio --help` lists `rules` with its description."""
     # Given the real table of commands
@@ -221,8 +220,7 @@ def test_failures_map_to_exit_codes() -> None:
     # Then the messages go to standard error with exit 2, and the bug is 70
     assert found["mistake"] == (2, "", "error: cannot go on\n")
     assert found["findings"][0:2] == (2, "")
-    assert "one" in found["findings"][2]
-    assert "two" in found["findings"][2]
+    assert found["findings"][2].splitlines() == lines.splitlines()
     assert found["bug"][0] == 70
 
 
