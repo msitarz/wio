@@ -10,9 +10,10 @@ depends_on = []
 ## Purpose
 
 What a reference is, the form of a ruleset name, a family, a code and a rule
-preset name, and how a key path is written are private to `wio.config`, so
-`wio.rules`, which may not import it, cannot read a reference or name the place
-of a fault in a manifest, and a second copy would be flagged as duplicate code
+preset name, how a key path is written and how a list of names is worded in a
+message are private to `wio.config`, so `wio.rules`, which may not import it,
+cannot read a reference, name the place of a fault in a manifest or word a list
+of names, and a second copy would be flagged as duplicate code
 and could disagree with `wio config check`.
 
 ## Goals
@@ -22,8 +23,9 @@ and could disagree with `wio config check`.
   never disagree about what a reference is.
 - A bare entry of a manifest is read by one function that accepts a bare
   upper-case name, which the grammar of the config keeps malformed.
-- The key path of a fault is written by two functions that `wio.config` and
-  `wio.rules` share, so a place reads the same in both.
+- The key path of a fault and a list of names in a message are written by
+  functions that `wio.config` and `wio.rules` share, so a place and a list read
+  the same in both.
 - `wio config check` reports what it reported before the move.
 
 ## Non-Goals
@@ -63,6 +65,10 @@ The names of the types and the functions below are provisional.
 - **`join_path(parent, key)` and `item_path(parent, index)`** — in
   `wio.formats`, moved from `wio.config.messages`, which add a key, quoted as
   TOML does when it needs it, or a list index to a key path.
+- **`quoted`, `declared` and `and_list`** — in `wio.formats`, moved from
+  `wio.config.messages`, which write names in backticks joined by commas, a list
+  that says what is declared or that nothing is, and items joined as English
+  does.
 - **The name forms** — `_NAME`, `_FAMILY`, `_CODE` and `_NAME_FORM` of
   `wio.config` made public in `wio.formats`, which `8zn10d` reuses for the forms
   of a ruleset name, a family and a rule preset name and `ht39xt` for the form
@@ -83,19 +89,19 @@ The diagram is drawn from commit `a29b066` of the branch
 
 ### Before and after
 
-The grammar of a reference and the key paths are private to `wio.config`, so
-`wio.rules`, which may not import them, has no way to read a reference or write
-a place. After the move both import them from `wio.formats`. New parts are
-marked.
+The grammar of a reference, the key paths and the words of a list are private to
+`wio.config`, so `wio.rules`, which may not import them, has no way to read a
+reference, write a place or word a list. After the move both import them from
+`wio.formats`. New parts are marked.
 
 ```mermaid
 flowchart LR
     subgraph before["Before"]
-        cfgb["wio.config: parse_reference, item_kind, name forms, join_path, item_path"]
+        cfgb["wio.config: parse_reference, item_kind, name forms, join_path, item_path, quoted, declared, and_list"]
         rulesb["wio.rules: no reader of references, no key paths"]
     end
     subgraph after["After"]
-        fmt["wio.formats: parse_reference, item_kind, name forms, join_path, item_path, parse_own_item (new home)"]
+        fmt["wio.formats: parse_reference, item_kind, name forms, join_path, item_path, quoted, declared, and_list, parse_own_item (new home)"]
         cfga["wio.config"]
         rulesa["wio.rules (later)"]
         cfga --> fmt
@@ -183,11 +189,29 @@ of letters, digits, `_` and `-` is quoted.
 - **Then** the paths are `description`, `rule_presets.x` and `families."a.b"`,
   and `rules_include[0]`.
 
+### **AC-7** A list of names is worded as the config words it
+
+`quoted` writes names in backticks, `declared` says what is declared or that
+nothing is, and `and_list` joins items as English does.
+
+#### Lists
+
+- **Given** the names `ARC` and `PAY`, none, and the items `a`, `b` and `c`.
+- **When** `quoted` runs for `ARC` and `PAY`, `declared` runs with the label
+  `Declared families` and the sentence `No families are declared.` for the two
+  names and for none, and `and_list` runs for `a`, for `a` and `b`, and for
+  `a`, `b` and `c`.
+- **Then** the results are `` `ARC`, `PAY` ``,
+  ``Declared families: `ARC`, `PAY`.``, `No families are declared.`, `a`,
+  `a and b` and `a, b and c`.
+
 ## Additional context
 
 - `parse_reference`, its result types, `_item_kind` and the name forms are in
   `src/wio/config/selection.py` and `join_path` and `item_path` in
   `src/wio/config/messages.py` today, and `wio.config` is their only user;
   `wio.rules` may not import `wio.config`, so the delivery moves them.
+- `wio.rules` words its lists of names with these in the messages of `5qgs79`,
+  `8zn10d`, `km9cmc` and `ca70ny`.
 - The message of a malformed reference that `wio config check` writes uses
   `_NAME_FORM`, which is why the form is moved with its text.

@@ -37,7 +37,8 @@ stage's guidance cannot be created with stable codes, checked or listed, and
 - `wio trailers` can cite the rules that a stage selects, with the hash of each
   rule's file.
 - Every `wio rules` command reads a rule file in either metadata block form, a
-  `<!-- wio -->` comment or `+++` front matter, whatever the file is named.
+  `<!-- wio -->` comment or `+++` front matter, whatever the name of the `.md`
+  file.
 
 ## Glossary
 
@@ -156,11 +157,14 @@ may carry either metadata block form.
   selected it, or the reason a rule is out.
 - **The shared grammar and key paths** — the reading of references, the forms of
   names and the writing of key paths, moved from `wio.config` to `wio.formats`,
-  built by `zq07av` for `cyeth5`, `8zn10d`, `ht39xt` and `5qgs79`.
+  built by `zq07av` for `cyeth5`, `8zn10d`, `ht39xt`, `5qgs79`, `785y9k` and
+  `ca70ny`, with the finding of cycles moved by `5qgs79`.
 - **`Listing`, `Header`, `Row` and `Explanation`** — in a new
   `wio.models.listing`, built by `fjvj3x` for `list` to build, narrow, explain
   and print.
-- **`Route`, `Routes` and `LayerEffect`** — in `wio.models.rules`, defined by
+- **`Route`, `Routes` and `LayerEffect`** — in `wio.models.rules`, which
+  `cyeth5`, the first Work to need a runtime type there, turns from a stub into
+  code, defined by
   `cyeth5` and `cm25z9` from the start, because the `Decision` that `5yb4tz`
   completes holds them and a model may not import a component.
 - **The rule file** — a Markdown file with a `wio` metadata block that holds
@@ -315,7 +319,7 @@ flowchart LR
     models["wio.models.rules: Decision, Selection (stubs completed)"]
     listing["wio.models.listing (new): Listing, Header, Row"]
     io["wio.io: file ports"]
-    fmt["wio.formats: block reader (changed: reference grammar, key paths, rule_hash, render_blocks)"]
+    fmt["wio.formats: block reader (changed: reference grammar, key paths, find_cycles, rule_hash, render_blocks)"]
     settings["Settings port (wio.ports)"]
     selport["RuleSelection (port of wio.context)"]
     stageport["StageRules (port of wio.trailers)"]

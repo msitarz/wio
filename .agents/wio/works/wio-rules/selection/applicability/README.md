@@ -58,7 +58,8 @@ and `qxfpg9` read them.
 - **`Decision`** — a frozen dataclass in `wio.models.rules` with
   `included: bool`, `roots: tuple[str, ...]`, `root_independent: bool`,
   `effects: tuple[LayerEffect, ...]` and `reason: Reason | None`, replacing the
-  stub, with `Selection` as the `Mapping[Rule, Decision]` of the same module.
+  empty `Decision` of `cyeth5`, with `Selection` as the
+  `Mapping[Rule, Decision]` of the same module.
 - **`root_independent` and `roots`** — `root_independent` is the setting of the
   rule's ruleset in the config, for every rule, included or out, and `roots` is
   empty for a rule that is out and, for an included rule that is not
@@ -213,5 +214,5 @@ and `select` reads no file.
 ## Additional context
 
 - `LayerEffect` and `Routes` are defined in `wio.models.rules` by `cm25z9` and
-  `cyeth5`, so this Work only completes the stub of `Decision` there;
+  `cyeth5`, so this Work only gives `Decision` its fields there;
   `uv run tach check` verifies that no model imports a component.

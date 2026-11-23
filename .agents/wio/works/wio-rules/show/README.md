@@ -2,7 +2,7 @@
 id = "ca70ny"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["8zn10d", "fjvj3x", "xs3dsj", "w3k7vd"]
+depends_on = ["8zn10d", "fjvj3x", "xs3dsj", "w3k7vd", "zq07av"]
 -->
 
 # wio rules show
@@ -61,7 +61,8 @@ The names of the functions below are provisional.
 
 - **`show_rule(reference: str, discovery: Discovery) -> Rule`** — in
   `wio.rules`, which judges the reference with `parse_reference` and `item_kind`
-  of `wio.formats`, finds the rule in the `Discovery` of `8zn10d` by its
+  of `wio.formats`, telling a bare code from other malformed text with
+  `parse_own_item`, finds the rule in the `Discovery` of `8zn10d` by its
   canonical ruleset and code, or refuses; it does no input or output.
 - **The command** — `wio rules show`, with `--json`, an entry of `SUBCOMMANDS`
   of `xs3dsj`, which refuses on an error of the discovery with

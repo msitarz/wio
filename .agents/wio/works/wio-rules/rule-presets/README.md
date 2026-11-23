@@ -69,9 +69,14 @@ The names of the types and the functions below are provisional.
   selected, `removed: Mapping[Rule, Routes]` of the rules an exclude took out,
   `rulesets: frozenset[str]` of the canonical names of the rulesets that an
   include entry named, and `problems: tuple[Problem, ...]` sorted by route, then
-  reference, then kind; a rule is in both `rules` and `removed` when one entry
-  includes it and an exclude of another takes it out, each with its own routes.
-- **`Route` and `Routes`** — in `wio.models.rules`, because a `Decision` holds
+  reference, then kind; an exclude removes from the includes of its own list,
+  and that of a nested rule preset is recorded in `removed` without reaching
+  outside that preset, so a rule is in both `rules` and `removed` when one entry
+  includes it and an exclude inside another entry's rule preset names it, each
+  with its own routes.
+- **`Route` and `Routes`** — in `wio.models.rules`, which this Work turns from
+  `rules.pyi` into `rules.py` with `Decision` and `Selection` left as they are,
+  because a stub and its code never coexist, and because a `Decision` holds
   them and a model may not import a component, where a `Route` is a
   `tuple[str, ...]` of the canonical references from the outermost rule preset
   to the entry that named the rule, such as

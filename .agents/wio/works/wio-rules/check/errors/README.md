@@ -58,6 +58,9 @@ The names of the functions below are provisional.
   `ruleset_map` of the discovery, an entry of the config in the config scope and
   each entry of each rule preset of a manifest, include or exclude, in the
   `RulesetScope` of its ruleset.
+- **The words of a message** — `quoted`, `declared` and `and_list` of
+  `wio.formats` from `zq07av`, which write the lists of names of AC-2, AC-3 and
+  AC-5.
 - **The problems that count** — a problem whose route is not empty belongs to a
   rule preset that the entry reached and is not the entry's, and a `cycle`
   problem is dropped, because cycles come from `find_cycles`.
