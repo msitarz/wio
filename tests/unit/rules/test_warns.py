@@ -35,7 +35,7 @@ def _repo(*, reverse: bool = False) -> Discovery:
     """
     both = [
         make_ruleset("demo", ["ARC", "PAY"], ["ARC001", "ARC002", "ARC003", "PAY001"]),
-        make_ruleset("py", ["FIX"], ["FIX001"], {"review": (["FIX"], [])}),
+        make_ruleset("py", ["FIX"], ["FIX001", "FIX002"], {"review": (["FIX"], [])}),
         make_ruleset("process", ["FIX"], ["FIX001"]),
     ]
     return Discovery(tuple(reversed(both) if reverse else both), ())
@@ -141,11 +141,12 @@ def test_a_selection_that_no_root_reaches_is_a_warning_with_a_fix() -> None:
         "stages.w.rules_include[0]",
     ]
     assert all(d.severity == "warning" for d in found)
-    first = found[0].message
-    assert "`py`" in first
-    assert "not root-independent" in first
-    assert "root_independent" in first
-    assert "rule_presets" in first
+    for warning, name in zip(found, ("py", "py", "demo", "demo"), strict=True):
+        assert f"`{name}`" in warning.message
+        assert "not root-independent" in warning.message
+        assert "none of the roots" in warning.message
+        assert "root_independent" in warning.message
+        assert "rule_presets" in warning.message
 
 
 @_PENDING
@@ -165,6 +166,7 @@ def test_the_work_roots_and_the_always_field_count_every_root() -> None:
     # Then only the entries of `py` are warned about
     assert places == ["rules_always_include[0]", "stages.v.rules_include[1]"]
     for warning in check_warnings(config, _repo()):
+        assert "none of the roots" in warning.message
         assert "root_independent" in warning.message
         assert "rule_presets" in warning.message
 
@@ -172,9 +174,11 @@ def test_the_work_roots_and_the_always_field_count_every_root() -> None:
 @_PENDING
 def test_an_entry_that_names_several_rulesets_is_judged_for_each() -> None:
     """AC-4: a rule preset of two rulesets warns for the one no root reaches."""
-    # Given a rule preset that includes `demo.ARC` and `py.review`, and a stage
+    # Given a rule preset that names `demo` and, twice, the `py` that holds two
+    # rules, and a stage that includes it
     config = _config(
-        stages={"s": (["mixed"], [], None)}, mixed=["demo.ARC", "py.review"]
+        stages={"s": (["mixed"], [], None)},
+        mixed=["demo.ARC", "py.FIX", "py.review"],
     )
 
     # When the warnings are found
@@ -232,7 +236,7 @@ def test_a_rule_that_both_always_fields_name_is_a_warning_with_a_fix() -> None:
     assert message.index("demo.ARC001 first-rule") < message.index(
         "demo.ARC002 second-rule"
     )
-    assert "demo.ARC001" in message
+    assert "`demo.ARC001`, `demo.ARC002`" in message
     assert "veto wins" in message
     assert "third-rule" not in message
     assert "ARC003" not in message
@@ -247,12 +251,12 @@ def _with_bodies(discovery: Discovery) -> Discovery:
 
     Returns:
         A discovery whose `ARC001` has headings, `ARC002` a heading in code and
-        `ARC003` a heading in front matter form.
+        `ARC003` a heading on a later line of its body.
     """
     bodies = {
         "ARC001": ("keep-it-small", "## Notes\n\nText.\n\n### More\n", 6),
         "ARC002": ("fenced", "```\n# not a heading\n```\n", 6),
-        "ARC003": ("front-matter", "# Real\n", 7),
+        "ARC003": ("later-heading", "Intro.\n\n# Real\n", 7),
     }
 
     def given(rule: Rule) -> Rule:
@@ -274,8 +278,8 @@ def _with_bodies(discovery: Discovery) -> Discovery:
 @_PENDING
 def test_a_heading_in_a_rule_body_is_a_warning() -> None:
     """AC-7: the first real heading is the warning, and a fenced one is not."""
-    # Given rules whose bodies have headings, a heading in a fenced block and a
-    # heading in a rule of the other block form
+    # Given rules whose bodies have headings, one of them on a later line, and a
+    # heading in a fenced block
     discovery = _with_bodies(_repo())
 
     # When the warnings are found
@@ -285,29 +289,58 @@ def test_a_heading_in_a_rule_body_is_a_warning() -> None:
     places = [d.where for d in found]
     assert places == [
         ".agents/wio/rules/demo/ARC001-keep-it-small.md:6",
-        ".agents/wio/rules/demo/ARC003-front-matter.md:7",
+        ".agents/wio/rules/demo/ARC003-later-heading.md:9",
     ]
     assert "demo.ARC001 keep-it-small" in found[0].message
     assert "## Notes" in found[0].message
     assert "### More" not in found[0].message
 
 
+def _in_two_orders() -> tuple[tuple[settings.Config, Discovery], ...]:
+    """Build stages, an always veto, headings and warnings in two orders.
+
+    Returns:
+        The config and the discovery in one order, and in the opposite order.
+    """
+    roots: dict[str, list[str]] = {"web": [], "api": ["demo.ARC"]}
+    stages: _Stages = {**_STAGES, "z": (["demo.PAY", "py.review"], [], None)}
+    always = {"include": ["py.FIX", "demo.ARC"], "exclude": ["demo.ARC001"]}
+    notes = (
+        Diagnostic("warning", ".agents/wio/rules/demo/b.md", "unknown key"),
+        Diagnostic("warning", ".agents/wio/rules/demo/a.md", "unknown key"),
+    )
+    swapped = (
+        dict(reversed(list(roots.items()))),
+        dict(reversed(list(stages.items()))),
+    )
+    return (
+        (
+            _config(roots, stages, **always),
+            replace(_with_bodies(_repo()), diagnostics=notes),
+        ),
+        (
+            _config(*swapped, **always),
+            replace(_with_bodies(_repo(reverse=True)), diagnostics=notes[::-1]),
+        ),
+    )
+
+
 @_PENDING
 def test_the_warnings_do_not_depend_on_the_order_of_the_inputs() -> None:
     """AC-8: two orders give equal results, and no warning is repeated."""
-    # Given the stages and rules of the examples in two orders
-    roots = {"web": [], "api": ["demo.ARC"]}
-    forward = _config(stages=_STAGES, include=["py.FIX"])
-    backward = _config(roots, dict(reversed(list(_STAGES.items()))), include=["py.FIX"])
+    # Given stages with several entries, an always veto, headings and warnings of
+    # the discovery, in two orders
+    first, second = _in_two_orders()
 
     # When the warnings are found for each
-    one = check_warnings(forward, _with_bodies(_repo()))
-    two = check_warnings(backward, _with_bodies(_repo(reverse=True)))
+    one, two = check_warnings(*first), check_warnings(*second)
 
-    # Then the results are equal and none repeats
+    # Then the results are equal, none repeats, and the entry of a later stage and
+    # the veto are among them
     assert one == two
     assert len(set(one)) == len(one)
-    assert one
+    assert any(d.where == "stages.z.rules_include[1]" for d in one)
+    assert any("veto" in d.message for d in one)
 
 
 @_PENDING

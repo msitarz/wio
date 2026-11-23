@@ -31,7 +31,9 @@ def check_warnings(config: Config, discovery: Discovery) -> tuple[Diagnostic, ..
     which ruleset it is, that it is not root-independent and that none of the
     roots reaches it, and that the fix is to mark it `root_independent` or to name
     it in a root's `rule_presets`. A root reaches the rulesets that the include
-    entries of its rule presets name. A stage counts the roots of its own
+    entries of its rule presets name, which `apply_layers` gives for no roots and
+    no stage; a ruleset that the config's `rulesets` table does not list is not
+    root-independent. A stage counts the roots of its own
     `roots`, with `@work`, which is not known here, standing for every root of the
     config, so a stage with no `roots`, a stage with `@work` and the entries of
     `rules_always_include` count a ruleset as reached when any root reaches it,
@@ -40,9 +42,9 @@ def check_warnings(config: Config, discovery: Discovery) -> tuple[Diagnostic, ..
 
     A veto warning is one for each entry of `rules_always_include` whose rules an
     entry of `rules_always_exclude` also delivers. It is placed at the include
-    entry, names the exclude entries and the rules with their qualified codes and
-    names in the order of C-2 of `wio rules`, says that the veto wins and that
-    one of the two entries should go.
+    entry, names the exclude entries, each in backticks as written, and the rules
+    with their qualified codes and names in the order of C-2 of `wio rules`, says
+    that the veto wins and that one of the two entries should go.
 
     A heading warning is one for each rule whose body has a real Markdown
     heading, as `read_outline` finds it, at the file and the line of the first
