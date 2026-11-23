@@ -23,6 +23,8 @@ know what a ruleset declares.
 - A fault of a manifest, of a rules directory, of a ruleset's directory or
   files, of a stray file, or of how the rules of one ruleset relate, is reported
   with its place, and everything else is still read.
+- A discovery with an error is refused by one function that every command that
+  must not work from it calls.
 
 ## Non-Goals
 
@@ -70,6 +72,12 @@ The names of the types and the functions below are provisional.
   `wio.rules`, reads the text of one `ruleset.toml` and does no input or output,
   through `decode_toml` and `closest_key` of `wio.formats`; a `ManifestReading`
   holds `manifest: Manifest | None` and `diagnostics: tuple[Diagnostic, ...]`.
+- **The name forms** — the forms of a ruleset name, a family and a rule preset
+  name of `wio.formats`, which `cyeth5` moves there with the grammar and which
+  this Work reuses.
+- **`refuse_on_errors(discovery: Discovery) -> None`** — in `wio.rules`, raising
+  the `DiagnosticsError` of `wio.errors` that carries the error diagnostics of
+  the discovery, and not its warnings, and doing nothing when there is none.
 - **`LoadedRuleset`** — a frozen dataclass in `wio.models.rule` with
   `name: str`, `path: PurePosixPath`, `manifest: Manifest` and
   `rules: tuple[Rule, ...]` in the order of C-2 of [wio rules](../../README.md),
@@ -274,6 +282,19 @@ files and directories.
 - **When** the discovery runs with each.
 - **Then** the rulesets and the diagnostics returned are equal, and the
   diagnostics are in the order of `sort_diagnostics`.
+
+### **AC-9** A discovery with an error is refused, with a warning it is not
+
+`refuse_on_errors` raises for a discovery that holds an error and returns for
+one that holds a warning only, so that every command refuses alike.
+
+#### An error and a warning
+
+- **Given** a discovery with a rule whose block does not close and an unknown
+  key in a manifest, and another with the unknown key only.
+- **When** `refuse_on_errors` runs on each.
+- **Then** the first raises a `DiagnosticsError` that carries the error and not
+  the warning, and the second returns.
 
 ## Additional context
 

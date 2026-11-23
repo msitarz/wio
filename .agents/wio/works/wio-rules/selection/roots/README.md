@@ -162,10 +162,10 @@ names it.
 
 #### Unknown names
 
-- **Given** a config with the root `api`, a Work whose roots are `["nope"]`, and
-  a stage with `roots = ["missing"]`.
+- **Given** a config with the root `api`, a Work whose roots are `["nope"]`, a
+  stage `plain` with no `roots` and a stage `bad` with `roots = ["missing"]`.
 - **When** `stage_roots` runs for a stage `none`, for an id `none`, for the Work
-  with the stage that has no `roots`, and for the stage with `["missing"]`.
+  with the stage `plain`, and for the stage `bad`.
 - **Then** each raises `KeyError` naming `none`, `none`, `nope` and `missing`.
 
 ### **AC-6** The roots that contain a file

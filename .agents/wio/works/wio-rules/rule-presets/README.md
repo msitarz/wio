@@ -53,40 +53,42 @@ a manifest defines under that name is ignored, and `wio rules check` reports it.
 
 The names of the types and the functions below are provisional.
 
-- **`expand(include, exclude, scope, sources) -> Expansion`** — in `wio.rules`,
+- **`expand(include, exclude, scope, catalog) -> Expansion`** — in `wio.rules`,
   with `include` and `exclude` as `Sequence[str]` of references as written, a
-  `Scope` and `Sources`; the includes are expanded, then the excludes are
+  `Scope` and `RuleCatalog`; the includes are expanded, then the excludes are
   expanded and removed from them.
 - **`Scope`** — `ConfigScope()`, where a bare name is a rule preset of the
   config and an item of a ruleset is written `<ruleset>.<item>`, or
   `RulesetScope(name: str)`, where a bare name is a family, a code or a rule
   preset of that ruleset; both are frozen dataclasses.
-- **`Sources`** — frozen, with the values the expansion reads:
-  `rulesets: Mapping[str, LoadedRuleset]` by canonical name,
+- **`RuleCatalog`** — frozen, the lookup that the references of an expansion are
+  resolved in, with `rulesets: Mapping[str, LoadedRuleset]` by canonical name,
   `aliases: Mapping[str, str]` from an alias to a canonical name, and
   `presets: Mapping[str, RulePreset]` of the config.
 - **`Expansion`** — frozen, with `rules: Mapping[Rule, Routes]` of the rules
   selected, `removed: Mapping[Rule, Routes]` of the rules an exclude took out,
   `rulesets: frozenset[str]` of the canonical names of the rulesets that an
   include entry named, and `problems: tuple[Problem, ...]` sorted by route, then
-  reference, then kind. A `Route` is a `tuple[str, ...]` of the canonical
-  references from the outermost rule preset to the entry that named the rule,
-  such as `("backend", "demo.recommended", "demo.ARC")`, and `Routes` is a
-  sorted `tuple[Route, ...]`; the route of a removal ends with the exclude
-  entry. A rule is in both `rules` and `removed` when one entry includes it and
-  an exclude of another takes it out, each with its own routes. `Route` and
-  `Routes` are defined in `wio.rules` here and move to `wio.models.rules` with
-  `5yb4tz`, which completes `Decision` there, because a `Decision` holds them.
+  reference, then kind; a rule is in both `rules` and `removed` when one entry
+  includes it and an exclude of another takes it out, each with its own routes.
+- **`Route` and `Routes`** — in `wio.models.rules`, because a `Decision` holds
+  them and a model may not import a component, where a `Route` is a
+  `tuple[str, ...]` of the canonical references from the outermost rule preset
+  to the entry that named the rule, such as
+  `("backend", "demo.recommended", "demo.ARC")`, `Routes` is a sorted
+  `tuple[Route, ...]`, and the route of a removal ends with the exclude entry.
 - **`Problem`** — frozen, with `kind`, one of `unknown`, `malformed`,
   `qualified-in-manifest` and `cycle`, the `reference` as written, and the
   `route` of the rule presets it was found in; for a cycle the route ends with
   the rule preset that closes it.
 - **The shared grammar** — `parse_reference` with `Bare`, `Qualified` and
-  `Malformed`, and the private `_item_kind` as the public `item_kind`, moved
-  from `wio.config` to `wio.formats`, with `parse_own_item(text)` added for the
-  bare entries of a manifest; `wio.config` keeps calling `parse_reference` and
-  `wio.rules` calls both, so a bare upper-case name stays malformed in the
-  config scope, as `wio config check` says today.
+  `Malformed`, the private `_item_kind` as the public `item_kind`, and the name
+  forms `_NAME`, `_FAMILY`, `_CODE` and `_NAME_FORM`, moved from `wio.config` to
+  `wio.formats`, which `8zn10d` and `ht39xt` reuse for the forms of a ruleset
+  name, a family, a rule preset name and a code, with `parse_own_item(text)`
+  added for the bare entries of a manifest; `wio.config` keeps calling
+  `parse_reference` and `wio.rules` calls both, so a bare upper-case name stays
+  malformed in the config scope, as `wio config check` says today.
 - **`LoadedRuleset`, `Rule` and `RulePreset`** — of `wio.models.rule` and
   `wio.models.config`, the values the expansion reads.
 
@@ -276,13 +278,13 @@ is no problem.
 
 The rules are in the order of C-2 of [wio rules](../README.md), the routes of a
 rule are sorted, and the result is the same whatever the order of the tables of
-the sources and of the entries of a list.
+the catalog and of the entries of a list.
 
 #### Two orders
 
-- **Given** the sources of AC-6 declared in two orders, the rule presets of the
-  config, the rulesets and the entries of `rules_include` each in a different
-  order.
+- **Given** the repository of AC-6 declared in two orders, with the rule presets
+  of the config, the rulesets and the entries of `rules_include` each in a
+  different order.
 - **When** `expand` expands `backend` on each.
 - **Then** the two expansions list their rules, removed rules, routes and
   problems in the same order.

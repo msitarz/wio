@@ -63,14 +63,15 @@ The names of the functions below are provisional.
   `references` as a `Sequence[str]`, `not_selected: bool`, `config: Config`,
   `rulesets: Mapping[str, LoadedRuleset]` and `anywhere: SelectedAnywhere`,
   which the caller computes and the criteria take as that of the repository
-  given; it does no input or output. It keeps
-  the rows whose rule a reference delivers, and with `not_selected` the rows of
-  the candidates that `selected_anywhere` does not select, shown although they
-  are out. It returns a listing whose header names the references and
-  `--not-selected`, and whose rows hold in `via`, a `Routes`, the routes by
-  which the references delivered the rule.
+  given, and it does no input or output.
+- **The rows that narrowing keeps** — the rows whose rule a reference delivers,
+  and with `not_selected` the rows of the candidates that `selected_anywhere`
+  does not select, shown although they are out.
+- **The header and `via`** — `narrow` returns a listing whose header names the
+  references and `--not-selected`, and whose rows hold in `via`, a `Routes`, the
+  routes by which the references delivered the rule.
 - **The references** — `expand` of `cyeth5` for each, in the config scope, over
-  the `Sources` that `build_sources` of `w3k7vd` gives.
+  the `RuleCatalog` that `build_rule_catalog` of `w3k7vd` gives.
 - **Selected anywhere** — the `SelectedAnywhere` of `1gs341` that the caller
   gives, whose `selected` has as keys the rules that some entry delivers.
 - **The reach of the roots** — the `reach` of `apply_layers(None, None, config,

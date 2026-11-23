@@ -57,19 +57,20 @@ and `qxfpg9` read them.
 
 - **`Decision`** — a frozen dataclass in `wio.models.rules` with
   `included: bool`, `roots: tuple[str, ...]`, `root_independent: bool`,
-  `effects: tuple[LayerEffect, ...]` and `reason: Reason | None`; it replaces
-  the stub, and `Selection` is the `Mapping[Rule, Decision]` of the same module.
-  `root_independent` is the setting of the rule's ruleset in the config, for
-  every rule, included or out, and `roots` is empty for a rule that is out; with
-  the roots not applied it holds, for an included rule that is not
-  root-independent, the roots of the config that reach its ruleset.
+  `effects: tuple[LayerEffect, ...]` and `reason: Reason | None`, replacing the
+  stub, with `Selection` as the `Mapping[Rule, Decision]` of the same module.
+- **`root_independent` and `roots`** — `root_independent` is the setting of the
+  rule's ruleset in the config, for every rule, included or out, and `roots` is
+  empty for a rule that is out and, for an included rule that is not
+  root-independent, the selected roots that reach its ruleset, or the roots of
+  the config that reach it when the roots are not applied.
 - **`Reason`** — frozen, with
   `kind: Literal["not-selected", "excluded", "vetoed", "cut-by-roots"]` and
   `layer: Literal["root", "stage"] | None`, which is set for `excluded` and
   none for the others.
-- **`LayerEffect` and `Routes`** — move to `wio.models.rules` from `cm25z9` and
+- **`LayerEffect` and `Routes`** — defined in `wio.models.rules` by `cm25z9` and
   `cyeth5`, because a `Decision` holds them and a model may not import a
-  component; `Origin` of `1gs341` also holds `Routes`.
+  component, and `Origin` of `1gs341` also holds `Routes`.
 - **`select(roots, stage, config, rulesets) -> Selection`** — the function in
   `wio.rules`, not the method of the same name of `RuleSelector`, where `roots`
   is a `tuple[str, ...]` or `None` and `stage` is a name or `None`; it calls
@@ -211,7 +212,6 @@ and `select` reads no file.
 
 ## Additional context
 
-- `LayerEffect` and `Routes` are defined by `cm25z9` and `cyeth5` and move to
-  `wio.models.rules` with this Work, which completes the stub there; those
-  Works' criteria name the types by their fields, so the move changes none of
-  them, and `uv run tach check` verifies that no model imports a component.
+- `LayerEffect` and `Routes` are defined in `wio.models.rules` by `cm25z9` and
+  `cyeth5`, so this Work only completes the stub of `Decision` there;
+  `uv run tach check` verifies that no model imports a component.

@@ -53,11 +53,12 @@ of `rules_always_include`, which belong to no stage.
 The names of the functions below are provisional.
 
 - **`check_warnings(config: Config, discovery: Discovery) -> tuple[Diagnostic, ...]`**
-  — in `wio.rules`; it does no input or output. It returns the warnings of the
-  discovery as they are, and judges each entry on its own with `expand` of
-  `cyeth5`, over the `Sources` that `build_sources` of `w3k7vd` gives from the
-  `ruleset_map` of the discovery, and writes its places with `join_path` and
-  `item_path` that `5qgs79` moves to `wio.formats`.
+  — in `wio.rules`, returning the warnings of the discovery as they are and the
+  warnings of the entries, with no input or output.
+- **The entries** — each entry is judged on its own with `expand` of `cyeth5`,
+  over the `RuleCatalog` that `build_rule_catalog` of `w3k7vd` gives from the
+  `ruleset_map` of the discovery, and its places are written with `join_path`
+  and `item_path` that `5qgs79` moves to `wio.formats`.
 - **The rulesets an entry names** — the `rulesets` of the `Expansion` that
   `expand` returns for an entry, nested rule presets included; a ruleset that
   the discovery left out is not among them, so it gives no warning.
@@ -175,8 +176,9 @@ in code is not one.
 
 #### Real headings only
 
-- **Given** a rule `demo.ARC001` named `keep-it-small` whose block takes lines 1
-  to 4, followed by a blank line and a body whose first line, line 6, is
+- **Given** a rule `demo.ARC001` named `keep-it-small` in
+  `.agents/wio/rules/demo/ARC001-keep-it-small.md`, whose block takes lines 1 to
+  4, followed by a blank line and a body whose first line, line 6, is
   `## Notes`, followed later by `### More`, a rule `demo.ARC002` whose body has
   `# not a heading` in a fenced code block, and a rule in the `+++` front matter
   form whose body has a real heading.

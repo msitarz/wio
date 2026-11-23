@@ -54,10 +54,11 @@ The names of the functions below are provisional, except that they live in
 - **`ruleset_map(discovery: Discovery) -> Mapping[str, LoadedRuleset]`** — the
   rulesets of a `Discovery` by canonical name, in the order of C-2 of
   [wio rules](../../README.md).
-- **`build_sources(config: Config, rulesets: Mapping[str, LoadedRuleset])
-  -> Sources`** — the `Sources` of `cyeth5`: the rulesets as given, the aliases
-  from the `alias` of each ruleset of the config, and its rule presets.
-- **`resolve_ruleset(name: str, sources: Sources) -> str | None`** — the
+- **`build_rule_catalog(config, rulesets) -> RuleCatalog`** — over the `Config`
+  and the `Mapping[str, LoadedRuleset]` of `ruleset_map`, the `RuleCatalog` of
+  `cyeth5`: the rulesets as given, the aliases from the `alias` of each ruleset
+  of the config, and its rule presets.
+- **`resolve_ruleset(name: str, catalog: RuleCatalog) -> str | None`** — the
   canonical name of a ruleset that `name` names, as a name or as an alias, or
   none; the commands turn none into a refusal that names it.
 - **`layer_label(layer: str, name: str | None) -> str`** — `root api`,
@@ -94,27 +95,27 @@ canonical name, in the order of C-2.
 - **Then** the keys are `demo` and `web`, in that order, and each value is the
   `LoadedRuleset` of that name.
 
-### **AC-2** The sources carry the aliases and the rule presets of the config
+### **AC-2** The catalog carries the aliases and the rule presets of the config
 
-`build_sources` holds the rulesets as given, an alias for each ruleset of the
-config that has one, and the config's rule presets.
+`build_rule_catalog` holds the rulesets as given, an alias for each ruleset of
+the config that has one, and the config's rule presets.
 
 #### Aliases and presets
 
 - **Given** a config with a ruleset `demo` with the alias `d`, a ruleset `web`
   with none, a rule preset `backend`, and the discovery of `demo` and `web`.
-- **When** `build_sources` runs.
+- **When** `build_rule_catalog` runs.
 - **Then** the aliases are `{"d": "demo"}`, the rulesets are those of the
   discovery, and the presets are `backend` only.
 
-### **AC-3** A ruleset that the discovery lacks is not in the sources
+### **AC-3** A ruleset that the discovery lacks is not in the catalog
 
 A ruleset of the config whose files were not read is left out.
 
 #### A ruleset with no files
 
 - **Given** the config of AC-2 and a discovery that returns only `demo`.
-- **When** `build_sources` runs.
+- **When** `build_rule_catalog` runs.
 - **Then** its rulesets have only `demo`, and its aliases still hold `d`.
 
 ### **AC-4** A name or an alias is resolved to the canonical name
@@ -124,7 +125,7 @@ anything else.
 
 #### Three names
 
-- **Given** the sources of AC-2.
+- **Given** the catalog of AC-2.
 - **When** `resolve_ruleset` runs for `demo`, `d` and `nope`.
 - **Then** it returns `demo`, `demo` and none.
 
@@ -172,5 +173,5 @@ function reads a file.
 ## Additional context
 
 - The function that the consumers call is the one place that knows what a
-  `Sources` is made of, so a change to `Sources` is made here and in `expand`
-  only.
+  `RuleCatalog` is made of, so a change to `RuleCatalog` is made here and in
+  `expand` only.

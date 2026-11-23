@@ -51,6 +51,18 @@ was in the set, because the author decided about it and a listing can then say
 that it was excluded or vetoed and not that nothing selected it; the effects
 live in the result of one call and are written nowhere.
 
+### A-4
+
+An exclude inside an include entry's own rule preset takes rules out of that
+entry's includes only, so it records a `removes` effect and never unselects a
+rule that another entry or layer added.
+
+### A-5
+
+The include entries of all the roots add together, so the order of the effects
+of the layer of the roots, which is by root name, never decides whether a rule
+is selected.
+
 ## Mechanisms
 
 The names of the types and the functions below are provisional, except that the
@@ -60,10 +72,11 @@ field sets of `Layered`, `RuleLayers` and `LayerEffect` are required, because
 - **`apply_layers(roots, stage, config, rulesets) -> Layered`** — in
   `wio.rules`, where `roots` is a `tuple[str, ...]` of root names or `None`,
   `stage` is a stage name or `None`, `config` is the `Config` and `rulesets` is
-  a `Mapping[str, LoadedRuleset]`. It calls `expand` of `cyeth5`, over the
-  `Sources` that `build_sources` of `w3k7vd` gives, for the includes of each
-  layer, and for an exclude list, such as `rules_exclude` of the stage, it
-  expands the entries as a set of rules to remove from everything that the
+  a `Mapping[str, LoadedRuleset]`, calling `expand` of `cyeth5`, over the
+  `RuleCatalog` that `build_rule_catalog` of `w3k7vd` gives, for the includes of
+  each layer.
+- **The excludes of a layer** — an exclude list, such as `rules_exclude` of the
+  stage, is expanded as a set of rules to remove from everything that the
   earlier layers added, with an effect for each rule the entries name.
 - **`Layered`** — frozen, with `rules: Mapping[Rule, RuleLayers]` for every rule
   of every ruleset, `reach: Mapping[str, frozenset[str]]` from each root of the
@@ -72,7 +85,8 @@ field sets of `Layered`, `RuleLayers` and `LayerEffect` are required, because
 - **`RuleLayers`** — frozen, with `selected: bool`, whether the rule is in the
   set after the last layer, and `effects: tuple[LayerEffect, ...]` in the order
   the layers applied.
-- **`LayerEffect`** — frozen, with
+- **`LayerEffect`** — frozen, in `wio.models.rules` because a `Decision` holds
+  it and a model may not import a component, with
   `layer: Literal["root", "stage", "always-include", "always-exclude"]`,
   `action: Literal["adds", "removes"]`, `root: str | None`, the root of the
   `root` layer, and `routes: Routes`, the routes of `cyeth5` that led to the
@@ -163,8 +177,9 @@ of the stage, and the always fields apply in every call.
 
 ### **AC-5** Several roots add together
 
-The layer of the roots adds the rules of each root, and a rule that two roots
-add has an effect for each.
+The layer of the roots adds the rules of each root, a rule that two roots add
+has an effect for each, and an exclude of one root's rule preset does not take
+out what another root adds.
 
 #### Two roots
 
@@ -175,6 +190,18 @@ add has an effect for each.
 - **When** `apply_layers` runs for `("web", "api")` and no stage.
 - **Then** `ARC001` has two root effects, for `api` and then `web`, and `ARC002`
   has one, for `web`.
+
+#### An exclude of one root and an include of another
+
+- **Given** the repository of AC-1 with `recommended` also excluding `ARC002`,
+  and a root `web` with `rule_presets = ["demo.family"]`, where `family`
+  includes `ARC`.
+- **When** `apply_layers` runs for `("api", "web")` and no stage, and for
+  `("web", "api")`.
+- **Then** both give the same result, in which `ARC002` is selected with the
+  effects root removes for `api`, by the route
+  `("demo.recommended", "demo.ARC002")`, and then root adds for `web`, because
+  the exclude of `api` acts on the includes of its own rule preset only.
 
 ### **AC-6** The roots that reach a ruleset are returned
 
@@ -191,11 +218,12 @@ nothing; a preset's own exclude is recorded as an effect.
   `rules_exclude = ["third.ARC001"]`, a root `api` with
   `rule_presets = ["base"]`, a second root `web` with no rule presets, and a
   stage that includes `third.ARC`.
-- **When** `apply_layers` runs for `None` roots and that stage.
-- **Then** `reach` has `api` reaching `demo` and `other` although no rule of
-  `demo` is left, and not `third`, and has `web` reaching nothing, so every root
-  of the config is a key; and with the roots `("api",)` the rule `demo.ARC001`
-  has the effect root removes for `api` with the route
+- **When** `apply_layers` runs for `None` roots and that stage, and again for
+  the roots `("api",)` and that stage.
+- **Then** with `None` roots `reach` has `api` reaching `demo` and `other`
+  although no rule of `demo` is left, and not `third`, and has `web` reaching
+  nothing, so every root of the config is a key; and with the roots `("api",)`
+  the rule `demo.ARC001` has the effect root removes for `api` with the route
   `("base", "demo.recommended", "demo.ARC")`.
 
 ### **AC-7** An unknown name is refused, an unknown reference is a problem
@@ -226,10 +254,27 @@ argument, and `apply_layers` reads no file.
 - **Then** the results are equal, with the effects of the root layer in the
   order of the root names.
 
+### **AC-9** An exclude of a nested rule preset stays inside its entry
+
+An exclude inside the rule preset that an include entry names takes rules out of
+that entry's includes only, so it records an effect and unselects nothing that
+another layer added.
+
+#### A stage entry that excludes what the roots added
+
+- **Given** the repository of AC-1 with a rule preset `extra` of `demo` that
+  includes `PAY` and excludes `ARC001`, and a stage `u` whose `rules_include` is
+  `["demo.extra"]`.
+- **When** `apply_layers` runs for `("api",)` and the stage `u`.
+- **Then** `ARC001` is selected, with the effects root adds and stage removes,
+  the second by the route `("demo.extra", "demo.ARC001")`, and `PAY001` and
+  `PAY002` are selected with the effect stage adds, so what `selected` holds is
+  decided by the includes alone and the effects record the exclude.
+
 ## Additional context
 
 - The concepts' table of views names which layers each view applies, which `A-1`
   states for the function; the views themselves are `wio rules list`'s.
-- `LayerEffect` and `Routes` move to `wio.models.rules` with `5yb4tz`, which
-  completes `Decision` there, because a `Decision` holds them;
+- `LayerEffect` is defined in `wio.models.rules` here, with the `Routes` of
+  `cyeth5`, because the `Decision` that `5yb4tz` completes there holds them;
   `uv run tach check` verifies the direction of the imports.

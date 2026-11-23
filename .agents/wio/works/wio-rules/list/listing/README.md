@@ -48,7 +48,8 @@ included rules only, and a listing without layers holds every rule.
 
 ### A-2
 
-The names of the layers that applied are `roots`, `stage` and `always fields`.
+The header layer names, which are not the four layers of `cm25z9`, are `roots`,
+`stage` and `always fields`, the last for both always fields.
 
 ### A-3
 
@@ -62,16 +63,18 @@ The names of the types and the functions below are provisional, except that the
 field sets of `Header`, `Row` and `Listing` are required, because `9r1zpd` and
 `qxfpg9` read and fill them.
 
-- **`Listing`, `Header`, `Row` and `Explanation`** — in a new
-  `wio.models.listing`. A `Listing` is frozen, with `header: Header` and
-  `rows: tuple[Row, ...]`. A `Header` is frozen, with `view: str`,
-  `work: str | None`, `layers: tuple[str, ...]`,
+- **`Listing` and `Header`** — frozen, in a new `wio.models.listing`, a
+  `Listing` with `header: Header` and `rows: tuple[Row, ...]`, and a `Header`
+  with `view: str`, `work: str | None`, `layers: tuple[str, ...]`,
   `roots: tuple[str, ...] | None`, `stage: str | None`,
   `references: tuple[str, ...]` and `not_selected: bool`, the last two filled by
-  `9r1zpd`. A `Row` is frozen, with `rule: Rule`, `decision: Decision | None`,
-  `via: Routes` and `explanation: Explanation | None`. An `Explanation` is a
-  `Protocol` with `lines() -> tuple[str, ...]` and
-  `fields() -> Mapping[str, object]`, which `qxfpg9` implements.
+  `9r1zpd`.
+- **`Row`** — frozen, in `wio.models.listing`, with `rule: Rule`,
+  `decision: Decision | None`, `via: Routes` and
+  `explanation: Explanation | None`.
+- **`Explanation`** — a `Protocol` in `wio.models.listing` with
+  `lines() -> tuple[str, ...]` and `fields() -> Mapping[str, object]`, which
+  `qxfpg9` implements.
 - **`ListRequest`** — frozen, with `root: str | None`,
   `path: PurePosixPath | None`, `work: str | None`, `stage: str | None`,
   `references: tuple[str, ...]`, `not_selected: bool`, `explain: bool` and
@@ -83,10 +86,12 @@ field sets of `Header`, `Row` and `Listing` are required, because `9r1zpd` and
   does no input or output of its own.
 - **The arguments** — `--root`, `--path`, `--work`, `--stage`, `--not-selected`,
   `--explain` and `--json`, and the references as the positional arguments,
-  declared here as one entry of `SUBCOMMANDS` of `xs3dsj`; `--root`, `--path`
-  and `--work` are a mutually exclusive group, so a conflict is a usage error.
-  The behaviour of `--not-selected` is `9r1zpd`'s and that of `--explain` is
-  `qxfpg9`'s.
+  declared here as one entry of `SUBCOMMANDS` of `xs3dsj`, with `--json`
+  declared by the helper of that Work.
+- **The selector group** — `--root`, `--path` and `--work` are a mutually
+  exclusive group, so a conflict is a usage error.
+- **The flags of the other leaves** — the behaviour of `--not-selected` is
+  `9r1zpd`'s and that of `--explain` is `qxfpg9`'s.
 - **`Services`** — `xs3dsj` declares it, and this Work adds
   `work_roots: WorkRoots` to it and wires the `WorkLookup` of `wio.contracts` to
   it in `wio.cli`, the only place that does it for the command; AC-13 verifies
@@ -118,12 +123,21 @@ of C-2 of [wio rules](../../README.md), with no layers applied.
   without one whose body starts `Pay the invoice first.`, and a ruleset `web`
   with `WEB001` named `web-rule` and an empty body.
 - **When** `wio rules list` runs.
-- **Then** the header is the lines `view: every rule`, `layers: none` and
-  `roots: not applied`, a blank line follows, and the blocks are
-  `demo.ARC001  keep-it-small` with the description under it,
-  `demo.PAY001  pay-first` with the summary under it, and
-  `web.WEB001  web-rule`, in that order, with the codes padded to one width and
-  no `roots:` line.
+- **Then** the output is the header lines, a blank line and the three blocks, in
+  that order, with the codes padded to the widest, `demo.ARC001`, which is 11
+  characters, and each detail indented to the name, and no `roots:` line:
+
+  ```text
+  view: every rule
+  layers: none
+  roots: not applied
+
+  demo.ARC001  keep-it-small
+               A rule is one instruction.
+  demo.PAY001  pay-first
+               Pay the invoice first.
+  web.WEB001   web-rule
+  ```
 
 ### **AC-2** A root, a path or a Work gives the rules that apply to it
 
@@ -195,8 +209,9 @@ is marked `not selected`, and it carries its decision in the JSON.
 - **When** `wio rules list --root api --stage x` runs on the repository, and the
   renderer runs on the hand-built listings as text and as JSON.
 - **Then** the command lacks `demo.ARC002`, the renderer shows the out row of
-  each hand-built listing with `included` false in the JSON and hides it in a
-  listing with neither.
+  each hand-built listing with no `roots:` line in the text and with `included`
+  false and `roots` an empty array in the JSON, and hides it in a listing with
+  neither.
 
 ### **AC-6** A selector that cannot be used is refused
 
@@ -302,13 +317,14 @@ forms.
 
 - **Given** a repository with no rules, the repository of AC-2 with a file
   `docs/readme.md`, and the repository of AC-1.
-- **When** `wio rules list`, `wio rules list --path docs/readme.md` and
-  `wio rules list --json` run on each.
-- **Then** the first prints the header, a blank line and nothing else, with
-  `"rules": []` in the JSON; the second has `roots: none`, applies no root and
-  shows only `process.FIX001` with `roots: every root`; and the third has for
-  each rule `roots` and `root_independent` null and `included` true, because no
-  decision was made.
+- **When** `wio rules list` and `wio rules list --json` run on the first,
+  `wio rules list --path docs/readme.md` on the second, and
+  `wio rules list --json` on the third.
+- **Then** the first prints, as text, the header, a blank line and nothing else,
+  and `"rules": []` in the JSON; the second has `roots: none`, applies no root
+  and shows only `process.FIX001` with `roots: every root`; and the third has
+  for each rule `roots` and `root_independent` null and `included` true, because
+  no decision was made.
 
 ### **AC-13** The command is declared and wired
 
@@ -323,6 +339,20 @@ the repository.
 - **When** `wio rules list --help` and `wio rules list --work W` run.
 - **Then** the help names every flag and the references, and the second shows
   the rules of `api`, so `Services.work_roots` finds `W`.
+
+### **AC-14** A path and a stage together
+
+`--path` with `--stage` applies the roots that contain the file and the stage's
+layer, as `--root` with `--stage` does.
+
+#### A file and a stage
+
+- **Given** the repository of AC-2 and the stage `s` of AC-3.
+- **When** `wio rules list --path src/api/app.py --stage s` runs.
+- **Then** the header is `view: file src/api/app.py`,
+  `layers: roots, stage, always fields`, `roots: api` and `stage: s`, and it
+  shows `demo.ARC001`, `demo.ARC002`, `demo.PAY001` and `process.FIX001`, in
+  that order, and not `web.WEB001`.
 
 ## Additional context
 

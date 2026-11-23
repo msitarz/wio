@@ -69,12 +69,13 @@ The names of the types and the functions below are provisional.
 - **`Origin`** — frozen, in `wio.rules` beside `SelectedAnywhere`, with
   `layer: Literal["root", "stage", "always-include"]`, the layers of
   `LayerEffect` of `cm25z9` that include, `name: str | None`, the root or the
-  stage or none, and `routes: Routes`, the routes of `cyeth5` that led from the
-  entry to the rule; its field set is required, because `qxfpg9` reads it.
+  stage or none, and `routes: Routes` of `wio.models.rules`, the routes of
+  `cyeth5` that led from the entry to the rule; its field set is required,
+  because `qxfpg9` reads it.
 - **The entries** — the rule presets of each root, the `rules_include` of each
   stage and `rules_always_include`, each expanded with `expand` of `cyeth5`,
-  over the `Sources` of `build_sources` of `w3k7vd`, and no excludes of its own
-  layer.
+  over the `RuleCatalog` of `build_rule_catalog` of `w3k7vd`, and no excludes of
+  its own layer.
 
 ## Constraints
 

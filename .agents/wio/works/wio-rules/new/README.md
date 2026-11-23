@@ -56,8 +56,8 @@ top Work says.
 ### A-4
 
 The command resolves an alias to the canonical name of the ruleset with
-`resolve_ruleset` of `w3k7vd`, over `Sources` from `ruleset_map` and
-`build_sources`, before it plans the rule, so `plan_rule` knows
+`resolve_ruleset` of `w3k7vd`, over `RuleCatalog` from `ruleset_map` and
+`build_rule_catalog`, before it plans the rule, so `plan_rule` knows
 canonical names only.
 
 ### A-5
@@ -74,18 +74,20 @@ The names of the functions below are provisional.
   discovery: Discovery) -> NewRule`** — in `wio.rules`, which judges the request
   against the `Discovery` of `8zn10d` and refuses an unknown ruleset, a family
   that the manifest does not declare, a name or a description of the wrong form
-  and a name that the ruleset has; it does no input or output. A `NewRule` is
-  frozen, with `path: PurePosixPath`, `text: str` and `rule: Rule`.
+  and a name that the ruleset has, with no input or output.
+- **`NewRule`** — frozen, with `path: PurePosixPath`, `text: str` and
+  `rule: Rule`.
 - **The command** — `wio rules new`, with `--name`, `--description` and
-  `--json`, an entry of `SUBCOMMANDS` of `xs3dsj`. It resolves the alias, plans
-  the rule, checks that `FileSystem.exists` is false for the path, because
-  `write_text` overwrites, writes the file, runs the discovery again to read it
-  back, and asks `selected_anywhere` of `1gs341` whether anything selects the
-  rule.
+  `--json`, an entry of `SUBCOMMANDS` of `xs3dsj`.
+- **The steps of the command** — it runs the discovery and refuses on an error
+  of it with `refuse_on_errors` of `8zn10d`, resolves the alias, plans the rule,
+  checks that `FileSystem.exists` is false for the path, because `write_text`
+  overwrites, writes the file, runs the discovery again to read it back, and
+  asks `selected_anywhere` of `1gs341` whether anything selects the rule.
 - **The block** — written by `encode_comment_toml` of `wio.formats`, which
   escapes a quote, a backslash and the `-->` that would close the comment early.
-- **The refusal** — a `WioError` that names the cause, which `wio.cli` turns
-  into exit 2.
+- **The refusal** — a `WioError` that names the cause, or the `DiagnosticsError`
+  of `refuse_on_errors`, which `wio.cli` turns into exit 2.
 
 ## Acceptance criteria
 

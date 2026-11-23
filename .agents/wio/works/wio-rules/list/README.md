@@ -62,9 +62,10 @@ The names of the functions below are provisional.
 
 - **`wio rules list`** — the command, built by the integration of this Work from
   the pieces below: the arguments and the entry of `SUBCOMMANDS` are `fjvj3x`'s,
-  and the integration runs the discovery once, refuses on an error of it, and
-  passes the listing through the pipeline of C-2 to the output of `fjvj3x`,
-  which writes through `render_blocks` and `encode_json` of `wio.formats`.
+  and the integration runs the discovery once, refuses on an error of it with
+  `refuse_on_errors` of `8zn10d`, and passes the listing through the pipeline of
+  C-2 to the output of `fjvj3x`, which writes through `render_blocks` and
+  `encode_json` of `wio.formats`.
 - **The views and the output** — the selectors, their refusals, the header and
   the text and JSON of a listing, built by `fjvj3x` over `select` of `5yb4tz`
   and the roots of `ndwemw`.
@@ -88,7 +89,10 @@ verifies it.
 `selected_anywhere` of `1gs341` is called once by the command, and its result is
 given to `narrow` and to `explain`. The pipeline is in this order: `list_view`
 of `fjvj3x` builds the `Listing`, `narrow` of `9r1zpd` narrows it, `explain` of
-`qxfpg9` explains it, and the renderer of `fjvj3x` prints it. AC-1 verifies it.
+`qxfpg9` explains it, and the renderer of
+`fjvj3x` prints it, `explain` only when `--explain` is given. The criteria of
+the leaves run these functions one at a time, and AC-1 and AC-2 here run them
+through the command.
 
 ### C-3
 
@@ -167,9 +171,10 @@ description or summary, with its origin or the reason it is out.
 - **Then** the first shows `demo.ARC001` with the root `api` and the route
   `demo.recommended`, `demo.PAY001` with its description and the layer `stage`,
   and `demo.ARC002` and `demo.PAY002` out with their reasons, and a header that
-  names the layers applied; the second shows `demo.ARC001` only. This is the
-  system-level check that the pipeline composes; AC-2 of
-  [wio rules](../README.md) checks the same selection from `context`.
+  names the layers applied; the second shows `demo.ARC001` only, with no
+  `from:`, `out:` or `by:` line. This is the system-level check that the
+  pipeline composes; AC-2 of [wio rules](../README.md) checks the same selection
+  from `context`.
 
 ### **AC-2** `--not-selected` limits any view to the rules that nothing selects
 
@@ -196,12 +201,11 @@ each is refused before any output.
 
 #### One of each source
 
-- **Given** the repository of AC-1 and a second ruleset `bad` that holds two
-  rules of one code.
+- **Given** the repository of AC-1, and the same repository with a second
+  ruleset `bad` that holds two rules of one code.
 - **When** `wio rules list --root api --path src/x.py`, `wio rules list Docs`
-  and `wio rules list demo.all` run, and
-  `wio rules list --preset demo.recommended` runs on the repository without
-  `bad`.
+  and `wio rules list --preset demo.recommended` run on the repository without
+  `bad`, and `wio rules list demo.all` runs on the one with it.
 - **Then** each exits 2, the messages say which flags conflict, that `Docs` is
   not a reference, the duplicate code, and that `--preset` is not an option, and
   none prints anything on standard output.

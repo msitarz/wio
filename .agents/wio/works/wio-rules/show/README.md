@@ -51,8 +51,8 @@ the reader of the output as it is stored.
 ### A-4
 
 The command resolves the ruleset part of the reference, which may be an alias,
-with `resolve_ruleset` of `w3k7vd`, over `Sources` from `ruleset_map` and
-`build_sources`, and `show_rule` knows canonical names
+with `resolve_ruleset` of `w3k7vd`, over `RuleCatalog` from `ruleset_map` and
+`build_rule_catalog`, and `show_rule` knows canonical names
 only.
 
 ## Mechanisms
@@ -64,11 +64,12 @@ The names of the functions below are provisional.
   of `wio.formats`, finds the rule in the `Discovery` of `8zn10d` by its
   canonical ruleset and code, or refuses; it does no input or output.
 - **The command** — `wio rules show`, with `--json`, an entry of `SUBCOMMANDS`
-  of `xs3dsj`, which resolves the alias and renders the header with
+  of `xs3dsj`, which refuses on an error of the discovery with
+  `refuse_on_errors` of `8zn10d`, resolves the alias and renders the header with
   `render_blocks` of `wio.formats`, built with `fjvj3x`, followed by the body,
   or the JSON with `encode_json`.
-- **The refusal** — a `WioError` that names the cause, which `wio.cli` turns
-  into exit 2.
+- **The refusal** — a `WioError` that names the cause, or the `DiagnosticsError`
+  of `refuse_on_errors`, which `wio.cli` turns into exit 2.
 
 ## Acceptance criteria
 

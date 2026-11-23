@@ -20,8 +20,9 @@ and every cited rule is refused.
   ports that they already declare.
 - `wio trailers` receives with each selected rule the hash of its file, computed
   by one function that `wio context` will use as well.
-- A fault in the rules, an unknown name and a Work without roots are refused in
-  the form that each consumer expects.
+- A fault in the rules and an unknown name are refused in the form that each
+  consumer expects, and a Work without roots gets a selection with no included
+  rule.
 
 ## Non-Goals
 
@@ -29,8 +30,6 @@ and every cited rule is refused.
   which `ndwemw` does.
 - Writing the `context` and `review` events, which `wio context` and
   `wio trailers` do with what this gives them.
-- A second class for each port: the commands that list a Work at a stage may
-  call the same method.
 
 ## Assumptions
 
@@ -53,6 +52,12 @@ so the hash is that of the file on disk when `wio trailers` runs, which can
 differ from the staged or committed file; the reviewed commit is recorded
 separately by `wio trailers`.
 
+### A-4
+
+A Work with no roots gets no included rule from a stage that selects the Work's
+roots, because `wio trailers` calls `selected` for every gate record, with no
+cited rule too, and it received an empty mapping for every Work from `NoRules`.
+
 ## Mechanisms
 
 The names of the types and the functions below are provisional.
@@ -62,10 +67,14 @@ The names of the types and the functions below are provisional.
   root, `files: FileSystem` and `work_roots: WorkRoots`; it builds the
   `Mapping[str, LoadedRuleset]` with `ruleset_map` of `w3k7vd` and reads a
   rule's file at `root / rule.path`.
-- **`RuleSelector.selection(work_id: str, stage: str | None) -> Selection`** —
-  runs the discovery of `8zn10d`, takes the roots from `stage_roots` of
-  `ndwemw`, and calls `select` of `5yb4tz`; with no stage it selects the Work's
-  own roots and applies no stage layer, for the listing.
+- **`RuleSelector.selection(work_id: str, stage: str) -> Selection`** — runs the
+  discovery of `8zn10d`, refuses on an error of it with `refuse_on_errors`,
+  takes the roots from `stage_roots` of `ndwemw`, and calls `select` of
+  `5yb4tz`.
+- **The Work without roots** — `selection` catches the `ValueError` of
+  `stage_roots` for a Work that has no roots and returns a `Selection` in which
+  every rule is out with the reason `not-selected`, so that `select` gives it to
+  `wio context` and `selected` gives no rule to `wio trailers`.
 - **`RuleSelector.select(contract: ResolvedContract, stage: str) -> Selection`**
   — the method of the `RuleSelection` port of `wio.context`, which calls
   `selection` with the id of the contract's Work.
@@ -74,10 +83,10 @@ The names of the types and the functions below are provisional.
   the qualified code of each included rule to `rule_hash` of the bytes of its
   file.
 - **`rule_hash(data: bytes) -> str`** — in `wio.formats`, the hash of A-1.
-- **The refusal** — a `DiagnosticsError` of `wio.errors` that carries the error
-  diagnostics of the discovery, or a `WioError` that names a cause that
-  `wio trailers` cannot receive as an exception, which `wio.cli` turns into
-  exit 2.
+- **The refusal** — the `DiagnosticsError` of `refuse_on_errors` of `8zn10d`, or
+  a `WioError` that names a cause that `wio trailers` cannot receive as an
+  exception, such as an unknown name or a rule file that cannot be read, which
+  `wio.cli` turns into exit 2.
 
 ## Constraints
 
@@ -90,7 +99,8 @@ verifies it.
 
 ### C-2
 
-`wio.cli` wires one `RuleSelector` to the `RuleSelection` port of `wio.context`
+`wio.cli` wires one `RuleSelector`, whose `work_roots` is the `WorkLookup` of
+`wio.contracts`, to the `RuleSelection` port of `wio.context`
 and the `StageRules` port of `wio.trailers`, in place of the `NoRules` that it
 wires today, and removes the `NoRules` class of `wio.cli.null` that nothing then
 uses. AC-10 of [wio rules](../../README.md) verifies it.
@@ -105,18 +115,12 @@ roots that the stage selects for the Work.
 #### The same selection
 
 - **Given** the repository of AC-1 of [selection](../README.md) with its Work
-  whose roots list `api`, a stage with no `roots`, and a stage with
-  `roots = ["web"]`.
+  whose roots list `api`, a root `web` of the config, a stage with no `roots`,
+  and a stage with `roots = ["web"]`.
 - **When** `selection` runs for the Work and each stage, and `select` runs for
   the Work's resolved contract and each stage.
 - **Then** each equals `select` of `5yb4tz` for the roots `("api",)` and
   `("web",)`.
-
-#### No stage
-
-- **Given** the same Work.
-- **When** `selection` runs for the Work with no stage.
-- **Then** it equals `select` of `5yb4tz` for the roots `("api",)` and no stage.
 
 ### **AC-2** `selected` gives the hash of each selected rule
 
@@ -127,13 +131,15 @@ different hash when a file changes.
 #### Included rules only
 
 - **Given** a Work and a stage whose selection includes `demo.ARC001`, whose
-  file has CRLF line endings, excludes `demo.ARC002`, whose ruleset the roots
-  cut, and a file system that records every read of bytes.
+  file has CRLF line endings, excludes `demo.ARC002` by the stage and cuts
+  `web.WEB001` because the roots do not reach its ruleset, and a file system
+  that records every read of bytes.
 - **When** `selected` runs for the Work, two different actions and the stage,
   then the file of `ARC001` is edited and it runs again.
 - **Then** the mapping holds `demo.ARC001` with `rule_hash` of its bytes and no
-  other rule, it is the same for both actions, only the file of `ARC001` had its
-  bytes read, and the second run has a different hash.
+  other rule, it is the same for both actions, the bytes of the file of
+  `ARC001` were read and those of the files of `ARC002` and `WEB001` were not,
+  and the second run has a different hash.
 
 ### **AC-3** `rule_hash` is the SHA-256 of the bytes
 
@@ -159,7 +165,7 @@ selection or a mapping.
 - **Then** each raises the `DiagnosticsError` that carries the error naming both
   files, and none returns a selection or a mapping.
 
-### **AC-5** Unknown names and a Work without roots are refused
+### **AC-5** Unknown names are refused
 
 Each consumer receives a refusal in the form its port expects: the exceptions of
 `select` for `wio context`, and a `WioError` for `wio trailers`, whose port
@@ -167,14 +173,12 @@ declares none.
 
 #### Each cause
 
-- **Given** an unknown stage, an unknown Work id, and a Work with no roots with
-  a stage that selects the Work's roots.
+- **Given** an unknown stage and an unknown Work id.
 - **When** `selection`, `select` and `selected` run for each.
-- **Then** `selection` and `select` raise `KeyError`, `KeyError` and
-  `ValueError`, the first and the last as the `RuleSelection` port declares and
-  the `KeyError` for the unknown Work as an addition to it, and `selected`
-  raises a `WioError` that names the cause, so that `wio trailers` exits 2 and
-  not 70.
+- **Then** `selection` and `select` raise `KeyError` for each, as the
+  `RuleSelection` port declares for the stage and as an addition to it for the
+  Work, and `selected` raises a `WioError` that names the cause, so that
+  `wio trailers` exits 2 and not 70.
 
 ### **AC-6** The result does not depend on the order of the inputs
 
@@ -188,6 +192,40 @@ mapping, whatever the order of the inputs.
 - **When** `selection` and `selected` run on each.
 - **Then** the selections are equal and the mappings are equal.
 
+### **AC-7** A Work without roots gets a selection with no included rule
+
+For a Work with no roots and a stage that selects the Work's roots, none of the
+three methods raises, and no rule is included, so that a gate record of such a
+Work needs no rule.
+
+#### For `wio trailers`
+
+- **Given** the repository of AC-1 of [selection](../README.md) with a Work that
+  lists no roots and a stage with no `roots`.
+- **When** `selected` runs for the Work, an action and the stage.
+- **Then** it returns an empty mapping and raises nothing.
+
+#### For `wio context`
+
+- **Given** the same Work and stage.
+- **When** `selection` and `select` run.
+- **Then** each returns a selection with an entry for every rule, none included
+  and each out with the reason `not-selected`, and raises nothing.
+
+### **AC-8** A rule file that cannot be read for its hash is a refusal
+
+A rule file whose bytes cannot be read when `selected` hashes it is a `WioError`
+that names the file, and not an unhandled `OSError`.
+
+#### An unreadable file
+
+- **Given** a selection that includes `demo.ARC001`, and a file system whose
+  read of the bytes of that file raises `OSError` although the discovery read
+  its text.
+- **When** `selected` runs.
+- **Then** it raises a `WioError` that names the file of `ARC001`, so that
+  `wio trailers` exits 2 and not 70.
+
 ## Additional context
 
 - The `RuleSelection` and `StageRules` ports are declared by their consumers in
@@ -197,6 +235,9 @@ mapping, whatever the order of the inputs.
   `wio.trailers` today with this class, which C-2 states.
 - `wio rules list` does not call `selection`: it runs the discovery once itself
   and calls `select` of `5yb4tz` with the roots that `stage_roots` gives, as
-  `fjvj3x` states.
+  `fjvj3x` states, so it still refuses a Work with no roots.
+- `RuleSelection.select` in `src/wio/context/ports.pyi` documents a `ValueError`
+  for a Work without roots, which the delivery changes to say that such a Work
+  gets a selection with no included rule, as AC-7 states.
 - `wio.context` will write a hash for every rule in its `context` event and will
   use `rule_hash` for it, which is why the function lives in `wio.formats`.

@@ -48,6 +48,8 @@ The names of the types and the functions below are provisional.
 - **`read_rule(ruleset: str, path: PurePosixPath, text: str) -> RuleReading`** —
   in `wio.rules`; a `RuleReading` holds `rule: Rule | None` and
   `diagnostics: tuple[Diagnostic, ...]`.
+- **The code form** — the form of a code that `wio.formats` holds with the
+  grammar of `cyeth5`, which `read_rule` reuses for AC-3.
 - **The block reader and `closest_key`** — `read_metadata_block` and
   `closest_key` of `wio.formats`, which read either block form and suggest the
   known key that a mistyped one is close to.

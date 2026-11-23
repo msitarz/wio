@@ -50,7 +50,7 @@ The names of the types and the functions below are provisional.
 - **The four layers** — the rule presets of the roots, the stage's include and
   exclude, `rules_always_include` and `rules_always_exclude`, applied in that
   order to the expansions of `cyeth5`, built by `cm25z9`.
-- **The inputs** — the rulesets by name, the `Sources` of the expansion, the
+- **The inputs** — the rulesets by name, the `RuleCatalog` of the expansion, the
   resolution of an alias and the labels of a chain, built once by `w3k7vd` for
   every function below and for the commands.
 - **Applicability** — the decision for each rule from its layers, the roots and
@@ -192,8 +192,9 @@ roots, and the roots it selects decide the rules.
   and a Work with no roots.
 - **When** the selection is asked for each stage and Work.
 - **Then** the first includes `web.WEB001` and not `demo.ARC001` for either
-  Work, the second includes both for the Work in `api` and fails for the Work
-  with no roots, and the third includes only `process.FIX001` for both.
+  Work, the second includes both for the Work in `api` and no rule for the Work
+  with no roots, whose rules are all out as `not-selected`, and the third
+  includes only `process.FIX001` for both.
 
 ### **AC-3** `wio context` and `wio trailers` get the selection
 

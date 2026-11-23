@@ -142,9 +142,9 @@ may carry either metadata block form.
 
 - **`wio.rules` package** — the `wio rules` command and the selection, built by
   the children below.
-- **The inputs of the selection** — the rulesets by name, the `Sources` of the
-  expansion, the resolution of an alias and the labels of a chain, built once by
-  `w3k7vd` for every function and command that needs them.
+- **The inputs of the selection** — the rulesets by name, the `RuleCatalog` of
+  the expansion, the resolution of an alias and the labels of a chain, built
+  once by `w3k7vd` for every function and command that needs them.
 - **`Rule`, `Manifest` and `LoadedRuleset`** — in `wio.models.rule`, a new
   module: `ht39xt` builds `Rule` and `8zn10d` builds `Manifest` and
   `LoadedRuleset`, a ruleset's name, manifest and rules found by family and by
@@ -154,6 +154,9 @@ may carry either metadata block form.
   fields, with `Rule` which moves to `wio.models.rule`; `5yb4tz` completes them,
   where a `Decision` holds the roots of an included rule and the layers that
   selected it, or the reason a rule is out.
+- **`Route`, `Routes` and `LayerEffect`** — in `wio.models.rules`, defined by
+  `cyeth5` and `cm25z9` from the start, because the `Decision` that `5yb4tz`
+  completes holds them and a model may not import a component.
 - **The rule file** — a Markdown file with a `wio` metadata block that holds
   `code`, `name` and an optional `description`, read in either block form by the
   shared reader of `wio.formats` and built by `ht39xt`; the file's name carries
@@ -400,15 +403,16 @@ rules as C-2 says and `--json` carries what the text carries.
 
 #### Order does not matter
 
-- **Given** one repository with rules in two rulesets and two families, `demo`
-  with `ARC001`, `ARC002` and `PAY001` and `other` with `ARC001` and `ZZZ001`,
-  whose manifests declare the families they use, all in the `rules_include` of a
-  stage with no `roots`, a root `api` whose rule presets include `demo.all` and
-  `other.all`, a Work whose `roots` list `api`, the body of `other.ZZZ001`
-  holding a Markdown heading, and with a `rules_include` entry for `demo.XYZ`, a
-  family that `demo` does not declare; the rules are written in two different
-  file orders, and the config lists its tables and each root's `rule_presets` in
-  two different orders.
+- **Given** one repository with rules in two rulesets and three families, `demo`
+  with `ARC001` and `ARC002` of the family `ARC` and `PAY001` of `PAY`, and
+  `other` with `ARC001` of `ARC` and `ZZZ001` of `ZZZ`, whose manifests declare
+  the families they use, a stage with no `roots` whose `rules_include` is
+  `["demo.all", "other.all", "demo.XYZ"]`, where `XYZ` is a family that `demo`
+  does not declare, a root `api` whose rule presets include `demo.all` and
+  `other.all`, a Work whose `roots` list `api`, and the body of `other.ZZZ001`
+  holding a Markdown heading; the rules are written in two different file
+  orders, and the config lists its tables and each root's `rule_presets` in two
+  different orders.
 - **When** `wio rules list --work <id> --stage <name>`, `wio rules check` and
   `wio rules show demo.ARC001` run on each, in text and, for the first two, with
   `--json`.
@@ -560,6 +564,16 @@ records the hash of its file, and refuses one that the stage does not select.
   nothing on standard output, writes no event and exits 1 because the stage does
   not select `demo.ARC999`.
 
+#### A Work without roots
+
+- **Given** the repository of AC-1 with a Work that lists no roots, and a gate
+  stage in its pipeline with no `roots`, so that it selects the Work's roots.
+- **When** `wio trailers <id> <action> <stage> --result pass` runs, and then it
+  runs with `--cite demo.ARC001=pass`.
+- **Then** the first is accepted and cites no rule, as it was when `wio.cli`
+  wired `NoRules`, and the second prints nothing on standard output, writes no
+  event and exits 1 because the stage selects no rule for a Work without roots.
+
 ### **AC-11** `check`, `list` and `show` write nothing
 
 `wio rules check`, `list` and `show` leave the files of the repository as they
@@ -604,9 +618,10 @@ about them.
   `uv run tach check` then verifies C-1.
 - `wio.context` already declares a provisional port
   `RuleSelection.select(contract, stage) -> Selection` in
-  `src/wio/context/ports.pyi`, which takes the resolved contract, so `ndwemw`
-  may need to change that signature; `wio.context` is not built yet, so the
-  change costs nothing there.
+  `src/wio/context/ports.pyi`, which takes the resolved contract; its signature
+  does not change, because `RuleSelector` of `9pfyfe` reads the roots by the
+  Work's id through the roots port, as `ndwemw` says, and only its documented
+  `ValueError` for a Work without roots goes, as `9pfyfe` says.
 - `wio.trailers` declares `StageRules.selected(work_id, action, stage)` in
   `src/wio/trailers/ports.pyi`, and `wio.cli` wires a `NoRules` that selects
   nothing until `wio.rules` satisfies it, so that a cited rule is refused today.
@@ -618,7 +633,8 @@ about them.
   contract in what A-5 and A-8 say, and A-8 covers these additions:
   `wio rules show`, `--json` on every subcommand, the optional `description`
   that a listing shows before the summary, the discovery of rule files at any
-  depth of a ruleset, the form of a rule file's metadata block, names that are
+  depth of a ruleset, the form of a rule file's metadata block, a rule file with
+  any name, where the concepts still name it `<code>-<name>.md`, names that are
   unique within a ruleset, references in place of the flag `--preset`, `--work`
   that needs no `--stage`, and `--not-selected` with references that narrow a
   listing in place of the two warnings that the concepts and the scope document

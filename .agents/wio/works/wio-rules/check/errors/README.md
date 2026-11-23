@@ -50,13 +50,15 @@ preset's own key.
 The names of the functions below are provisional.
 
 - **`check_errors(config: Config, discovery: Discovery) -> tuple[Diagnostic, ...]`**
-  — in `wio.rules`, with the `Config` and the `Discovery` of `8zn10d`; it does
-  no input or output. It returns the errors of the discovery as they are, and
-  for the references it expands each entry on its own with `expand` of `cyeth5`
-  over the `Sources` that `build_sources` of `w3k7vd` gives from the
-  `ruleset_map` of the discovery: an entry of the config in the config scope,
-  and each entry of each rule preset of a manifest, include or exclude, in the
-  `RulesetScope` of its ruleset. A problem whose route is not empty belongs to a
+  — in `wio.rules`, with the `Config` and the `Discovery` of `8zn10d`, returning
+  the errors of the discovery as they are and the errors of the references, with
+  no input or output.
+- **The entries** — each entry is expanded on its own with `expand` of `cyeth5`
+  over the `RuleCatalog` that `build_rule_catalog` of `w3k7vd` gives from the
+  `ruleset_map` of the discovery, an entry of the config in the config scope and
+  each entry of each rule preset of a manifest, include or exclude, in the
+  `RulesetScope` of its ruleset.
+- **The problems that count** — a problem whose route is not empty belongs to a
   rule preset that the entry reached and is not the entry's, and a `cycle`
   problem is dropped, because cycles come from `find_cycles`.
 - **The key paths and the cycles** — `join_path` and `item_path`, moved from
