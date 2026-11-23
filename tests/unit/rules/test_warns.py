@@ -2,6 +2,7 @@
 """Tests of the warnings that the rule files and the config show together."""
 
 from dataclasses import replace
+from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
 import pytest
@@ -12,12 +13,13 @@ from wio.models.diagnostics import Diagnostic, sort_diagnostics
 from wio.models.frozen import freeze
 from wio.rules import check_warnings
 from wio.rules.discovery import Discovery
+lazy from wio.models.rule import Rule
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
 
-_NAMES = ("demo", "py", "process")
+_NAMES = ("demo", "py", "process", "broken")
 _PENDING = pytest.mark.xfail(raises=NotImplementedError, strict=True)
 type _Stages = Mapping[str, tuple[Sequence[str], Sequence[str], Sequence[str] | None]]
 
@@ -162,6 +164,9 @@ def test_the_work_roots_and_the_always_field_count_every_root() -> None:
 
     # Then only the entries of `py` are warned about
     assert places == ["rules_always_include[0]", "stages.v.rules_include[1]"]
+    for warning in check_warnings(config, _repo()):
+        assert "root_independent" in warning.message
+        assert "rule_presets" in warning.message
 
 
 @_PENDING
@@ -229,6 +234,8 @@ def test_a_rule_that_both_always_fields_name_is_a_warning_with_a_fix() -> None:
     )
     assert "demo.ARC001" in message
     assert "veto wins" in message
+    assert "third-rule" not in message
+    assert "ARC003" not in message
     assert "remove" in message
 
 
@@ -247,19 +254,19 @@ def _with_bodies(discovery: Discovery) -> Discovery:
         "ARC002": ("fenced", "```\n# not a heading\n```\n", 6),
         "ARC003": ("front-matter", "# Real\n", 7),
     }
-    rules = [
-        replace(
-            r,
-            name=bodies[r.code][0],
-            body=bodies[r.code][1],
-            body_line=bodies[r.code][2],
-        )
-        if r.code in bodies
-        else r
-        for r in discovery.rulesets[0].rules
-    ]
+
+    def given(rule: Rule) -> Rule:
+        if rule.code not in bodies:
+            return rule
+        name, body, line = bodies[rule.code]
+        path = PurePosixPath(f".agents/wio/rules/demo/{rule.code}-{name}.md")
+        return replace(rule, name=name, body=body, body_line=line, path=path)
+
     return Discovery(
-        (replace(discovery.rulesets[0], rules=tuple(rules)), *discovery.rulesets[1:]),
+        tuple(
+            replace(r, rules=tuple(map(given, r.rules))) if r.name == "demo" else r
+            for r in discovery.rulesets
+        ),
         (),
     )
 
@@ -275,9 +282,11 @@ def test_a_heading_in_a_rule_body_is_a_warning() -> None:
     found = check_warnings(settings.Config(), discovery)
 
     # Then two rules are warned about, each at its first heading
-    paths = {r.code: r.path for r in discovery.rulesets[0].rules}
     places = [d.where for d in found]
-    assert places == [f"{paths['ARC001']}:6", f"{paths['ARC003']}:7"]
+    assert places == [
+        ".agents/wio/rules/demo/ARC001-keep-it-small.md:6",
+        ".agents/wio/rules/demo/ARC003-front-matter.md:7",
+    ]
     assert "demo.ARC001 keep-it-small" in found[0].message
     assert "## Notes" in found[0].message
     assert "### More" not in found[0].message
