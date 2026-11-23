@@ -189,7 +189,7 @@ def test_rules_that_share_a_code_or_a_name_are_errors_and_left_out() -> None:
     by_place = {d.where: d.message for d in found.diagnostics}
     code_place = f"{_REL}/demo/ARC001-first.md, {_REL}/demo/ARC001-second.md"
     name_place = f"{_REL}/demo/ARC002-x.md, {_REL}/demo/ARC003-y.md"
-    assert sorted(by_place) == [code_place, name_place]
+    assert sorted(w for _, w in kinds(found.diagnostics)) == [code_place, name_place]
     assert "`ARC001`" in by_place[code_place]
     assert "`keep-it-small`" in by_place[name_place]
     assert [r.code for r in found.rulesets[0].rules] == ["ARC009"]

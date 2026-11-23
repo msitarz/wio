@@ -49,8 +49,11 @@ def discover(root: Path, files: FileSystem) -> Discovery:
       that cannot be read, decoded or parsed, a rule of a family that its
       manifest does not declare, a `ruleset.toml` that is a symbolic link, one
       below a ruleset's directory, and a marked rule file directly in
-      `.agents/wio/rules`;
-    - the manifest followed by `#` and the key path for a key of a manifest;
+      `.agents/wio/rules`, whose block that cannot be read is that fault, with
+      its line;
+    - the manifest followed by `#` and the key path for a key of a manifest,
+      by `:<line>` for a manifest that does not parse, and alone for one that
+      cannot be read or decoded;
     - the two files joined by `, `, written in order, for a code or a name that
       two rules of one ruleset share;
     - the directory for a fault of a directory: `.agents/wio/rules` that is a
