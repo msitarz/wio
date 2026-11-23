@@ -11,8 +11,6 @@ from wio.formats.grammar import Bare, Malformed, Qualified
 if TYPE_CHECKING:
     import re
 
-_STUB = pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="stub")
-
 
 @pytest.mark.parametrize(
     ("text", "kind"),
@@ -64,7 +62,6 @@ def test_a_reference_of_the_config_is_bare_qualified_or_malformed() -> None:
     assert isinstance(found[2], Malformed)
 
 
-@_STUB
 def test_an_entry_of_a_manifest_is_read_as_its_own_item() -> None:
     """AC-3: a family, a code and a rule preset name are bare, `Docs` is not."""
     # Given the texts `ARC`, `ARC001`, `local`, `demo.ARC` and `Docs`

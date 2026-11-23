@@ -118,9 +118,12 @@ def parse_own_item(text: str) -> Reference:
         only its own items; and `Malformed`, with its sentence, for any other
         text.
     """
-    del text
-    msg = "parse_own_item is declared by the architecture stage"
-    raise NotImplementedError(msg)
+    if "." in text:
+        return parse_reference(text)
+    if item_kind(text) is not None:
+        return Bare(text)
+    message = f"`{text}` is not a family (upper-case letters), a code (a family and "
+    return Malformed(f"{message}digits) or a rule preset name ({NAME_FORM}).")
 
 
 def item_kind(item: str) -> ItemKind | None:
