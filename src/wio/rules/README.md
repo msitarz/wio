@@ -428,7 +428,10 @@ root-independent ruleset that a root reaches. Its docstring says what it takes,
 returns and words, and its
 [tests](../../../tests/unit/rules/test_errors.py) say how each case reads. It
 returns the errors of the discovery as they are, so one function holds every
-error that `wio rules check` will report, and the warnings are another's.
+error that `wio rules check` will report, and the warnings are another's. It
+takes the config to be valid, as `wio config check` has judged it, so every
+reference in it is well-formed and the question left is whether the item after
+the dot exists.
 
 - **An entry is judged where it is written and by itself.** Each is expanded
   alone, so a fault in a rule preset that an entry reaches is the rule preset's
@@ -449,12 +452,18 @@ error that `wio rules check` will report, and the warnings are another's.
   an expansion drops the cycle it meets, so the cycles are found from the graph
   of both lists, with `find_cycles` that `wio.config` shares. The error is at
   the first member's `rules_include`, or at its `rules_exclude` when none of its
-  includes names a member. `all` is the whole ruleset and never a rule preset,
-  so it is no node of the graph, and a manifest that defines it is one error.
+  includes names a member. The config's own rule presets differ on purpose:
+  [`wio config check`](../config/README.md) counts only an include as an edge
+  there, because it judges the config as text, and an exclude that closes a
+  cycle through a manifest is found here, where the manifests are read. `all` is
+  the whole ruleset and never a rule preset, so it is no node of the graph, and
+  a manifest that defines it is one error.
 - **A root must not reach a root-independent ruleset, and a stage may include
   one.** A root-independent ruleset applies to every root, so a root that names
-  it adds nothing, and the error is at the root's entry and names the rule
-  preset of the config that the entry names, so the author knows which line to
-  change. A stage selects rules for a view and is no reach.
+  it adds nothing, and the error is at the root's entry, also when the root
+  reaches it through a rule preset of the config, and never at that preset's own
+  key, which other roots and stages may use. It names the rule preset of the
+  config that the entry names, so the author knows which line to change. A stage
+  selects rules for a view and is no reach.
 - **The result is in the shared order** whatever the order of the tables of the
   config and of the rulesets, and no file is read.
