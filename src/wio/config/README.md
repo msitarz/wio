@@ -172,7 +172,10 @@ docstrings say what each check reports and where.
 rulesets and rule presets, and the ruleset directories next to the `[rulesets]`
 table. Its docstrings say what each check reports and where, and
 [the rules](../../../docs/concepts.md#checking-rules) list the checks that
-belong to the rules Work.
+belong to the rules Work. The grammar of a reference and the wording of a key
+path or a list of names are in
+[`wio.formats`](../formats/README.md#the-grammar-of-a-reference-and-the-wording-of-messages),
+which the rules Work shares.
 
 - **A reference gets one error, the first problem it has:** its form, then what
   its field takes, then whether it resolves. A later problem would be noise or
