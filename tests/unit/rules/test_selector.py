@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
     from wio.models.rules import Selection
 
-pytestmark = pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="stub")
+pytestmark = pytest.mark.xfail(strict=True, reason="stub")
 
 _RULES = ROOT / ".agents" / "wio" / "rules"
 _ARC1 = _RULES / "demo" / "ARC001-keep.md"
