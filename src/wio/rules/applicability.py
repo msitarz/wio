@@ -9,12 +9,17 @@ a selection. It reads no file.
 
 from typing import TYPE_CHECKING
 
+from wio.models.frozen import freeze
+from wio.models.rules import Decision, Reason
+from wio.rules.layers import apply_layers
+
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Collection, Mapping
 
     from wio.models.config import Config
-    from wio.models.rule import LoadedRuleset
-    from wio.models.rules import Selection
+    from wio.models.rule import LoadedRuleset, Rule
+    from wio.models.rules import LayerEffect, Selection
+    from wio.rules.layers import RuleLayers
 
 
 def select(
@@ -61,6 +66,98 @@ def select(
         KeyError: A name of `roots` or `stage` is not in the config, as
             `apply_layers` raises it.
     """
-    del config
-    msg = f"select for {roots} and {stage} over {len(rulesets)} is declared"
-    raise NotImplementedError(msg)
+    layered = apply_layers(roots, stage, config, rulesets)
+    given = None if roots is None else frozenset(roots)
+    candidates = sorted(config.roots if given is None else given)
+    decisions = {
+        rule: _decide(rule, layers, config, layered.reach, candidates, applied=given)
+        for rule, layers in layered.rules.items()
+    }
+    return freeze(decisions)
+
+
+def _decide(
+    rule: Rule,
+    layers: RuleLayers,
+    config: Config,
+    reach: Mapping[str, frozenset[str]],
+    candidates: list[str],
+    *,
+    applied: Collection[str] | None,
+) -> Decision:
+    """Decide one rule.
+
+    Args:
+        rule: The rule.
+        layers: What the layers did to it.
+        config: The settings, whose ruleset table says what is root-independent.
+        reach: The rulesets that each root of the config reaches.
+        candidates: The roots to look among, in the order of their names: the
+            selected roots, or every root of the config when none are applied.
+        applied: The selected roots, or `None` when the roots are not applied.
+
+    Returns:
+        Included with its roots, or out with its reason.
+    """
+    table = config.rulesets.get(rule.ruleset)
+    independent = table is not None and table.root_independent
+    effects = layers.effects
+    if not layers.selected:
+        return Decision(
+            included=False,
+            roots=(),
+            root_independent=independent,
+            effects=effects,
+            reason=_removal(effects),
+        )
+    reaching = () if independent else _reaching(rule, reach, candidates)
+    cut = applied is not None and not independent and not reaching
+    return Decision(
+        included=not cut,
+        roots=reaching,
+        root_independent=independent,
+        effects=effects,
+        reason=Reason("cut-by-roots", None) if cut else None,
+    )
+
+
+def _reaching(
+    rule: Rule, reach: Mapping[str, frozenset[str]], candidates: list[str]
+) -> tuple[str, ...]:
+    """List the roots among the candidates that reach a rule's ruleset.
+
+    Args:
+        rule: The rule.
+        reach: The rulesets that each root of the config reaches.
+        candidates: The roots to look among, in the order of their names.
+
+    Returns:
+        The roots that reach the ruleset, in the order of the candidates.
+    """
+    return tuple(name for name in candidates if rule.ruleset in reach[name])
+
+
+def _removal(effects: tuple[LayerEffect, ...]) -> Reason:
+    """Give the reason that a rule the layers did not select is out.
+
+    Args:
+        effects: What the layers did to the rule, in the order they applied.
+
+    Returns:
+        The reason of the last layer that removed it: `vetoed` for an always
+        exclude, `excluded` with the layer for a root or the stage, and
+        `not-selected` when no layer removed it. The exclude of a rule preset
+        inside an always include is skipped, because it took nothing out of the
+        set.
+    """
+    for effect in reversed(effects):
+        if effect.action != "removes":
+            continue
+        match effect.layer:
+            case "always-exclude":
+                return Reason("vetoed", None)
+            case "root" | "stage" as layer:
+                return Reason("excluded", layer)
+            case "always-include":
+                continue
+    return Reason("not-selected", None)

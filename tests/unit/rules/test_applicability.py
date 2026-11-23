@@ -17,8 +17,6 @@ if TYPE_CHECKING:
     from wio.models.rule import LoadedRuleset
     from wio.models.rules import Decision, Selection
 
-_STUB = pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="stub")
-
 
 def _rulesets(*specs: tuple[str, str, Sequence[str]]) -> Mapping[str, LoadedRuleset]:
     """Build rulesets that declare one family each.
@@ -117,7 +115,6 @@ def _reason(decision: Decision) -> tuple[str, str | None] | None:
     return None if reason is None else (reason.kind, reason.layer)
 
 
-@_STUB
 def test_a_selected_rule_applies_where_its_ruleset_is_reached() -> None:
     """AC-1: reached, unreached and root-independent."""
     # Given `api` reaching `demo` only, `process` root-independent, and a stage
@@ -141,7 +138,6 @@ def test_a_selected_rule_applies_where_its_ruleset_is_reached() -> None:
     assert (fix.included, fix.roots, fix.root_independent) == (True, (), True)
 
 
-@_STUB
 def test_a_root_independent_ruleset_that_a_root_reaches_has_no_roots() -> None:
     """AC-1: it applies to every root whether or not one reaches it."""
     # Given the same repository with `process.all` in the presets of `api`
@@ -185,7 +181,6 @@ def _reasons_repository() -> tuple[Config, Mapping[str, LoadedRuleset]]:
     return config, freeze({"demo": demo, "web": web})
 
 
-@_STUB
 def test_the_reason_is_the_last_layer_that_removed_the_rule() -> None:
     """AC-2: not selected, excluded by a layer, vetoed, cut by the roots."""
     # Given a repository where each reason occurs once
@@ -206,7 +201,6 @@ def test_the_reason_is_the_last_layer_that_removed_the_rule() -> None:
     assert _of(found, "demo", "PAY003").effects == ()
 
 
-@_STUB
 def test_the_last_layer_that_removed_a_rule_decides_the_reason() -> None:
     """A-1: stage after root, veto after stage, and an always-include nested exclude."""
     # Given `ARC001` removed by the root's rule preset and then by the stage,
@@ -239,7 +233,6 @@ def test_the_last_layer_that_removed_a_rule_decides_the_reason() -> None:
     assert _of(found, "demo", "PAY002").roots == ("api",)
 
 
-@_STUB
 def test_without_roots_nothing_is_cut_and_a_rule_lists_the_roots_that_reach_it() -> (
     None
 ):
@@ -305,7 +298,6 @@ def _shared(*, reverse: bool = False) -> tuple[Config, Mapping[str, LoadedRulese
     return _config(roots, {}), _rulesets(*specs)
 
 
-@_STUB
 def test_a_rule_that_several_selected_roots_reach_applies_to_all_of_them() -> None:
     """AC-4: in the order of the root names."""
     # Given `api` reaching `demo` and `shared`, and `ui` reaching those and `only`
@@ -320,7 +312,6 @@ def test_a_rule_that_several_selected_roots_reach_applies_to_all_of_them() -> No
     assert _of(found, "only", "ONE001").roots == ("ui",)
 
 
-@_STUB
 def test_no_roots_at_all_leaves_only_the_root_independent_rules() -> None:
     """AC-5: an empty tuple applies the roots and none is given."""
     # Given the repository of AC-1
@@ -336,7 +327,6 @@ def test_no_roots_at_all_leaves_only_the_root_independent_rules() -> None:
     assert _reason(_of(found, "demo", "ARC001")) == ("not-selected", None)
 
 
-@_STUB
 def test_the_selection_holds_every_rule_once_and_is_a_value() -> None:
     """AC-6: C-2 order, equal for equal inputs, frozen."""
     # Given rules in two rulesets and two families
@@ -357,7 +347,6 @@ def test_the_selection_holds_every_rule_once_and_is_a_value() -> None:
         _of(first, "demo", "ARC001").included = True  # type: ignore[misc]
 
 
-@_STUB
 def test_an_unknown_stage_or_root_is_not_caught() -> None:
     """AC-7: the `KeyError` of the layers."""
     # Given the repository of AC-1
@@ -371,7 +360,6 @@ def test_an_unknown_stage_or_root_is_not_caught() -> None:
         select(("none",), "s", config, rulesets)
 
 
-@_STUB
 def test_the_selection_does_not_depend_on_the_order_of_the_inputs() -> None:
     """AC-8: the tables, the entries and the roots in two orders."""
     # Given the repository of AC-4 declared in two orders
