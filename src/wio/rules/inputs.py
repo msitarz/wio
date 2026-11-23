@@ -30,9 +30,9 @@ def ruleset_map(discovery: Discovery) -> Mapping[str, LoadedRuleset]:
         discovery: What `discover` returned.
 
     Returns:
-        One entry for each ruleset of the discovery, keyed by the name of its
-        directory, in the order of ruleset name that C-2 of `wio rules` gives,
-        whatever the order of the discovery.
+        A frozen mapping with one entry for each ruleset of the discovery, keyed
+        by the name of its directory, in the order of ruleset name that C-2 of
+        `wio rules` gives, whatever the order of the discovery.
     """
     raise NotImplementedError
 
@@ -51,9 +51,10 @@ def build_rule_catalog(
         rulesets: The rulesets by canonical name, as `ruleset_map` gives them.
 
     Returns:
-        A catalog with the rulesets as given, the alias of each ruleset of the
-        config that has one, mapped to that ruleset's name, even for a ruleset
-        whose files were not read, and the config's rule presets.
+        A frozen catalog with the rulesets as given and in their order, the
+        alias of each ruleset of the config that has one, mapped to that
+        ruleset's name, even for a ruleset whose files were not read, and the
+        config's rule presets.
     """
     del rulesets
     msg = f"build_rule_catalog of {len(config.rulesets)} rulesets is declared"
@@ -83,8 +84,8 @@ def layer_label(layer: Layer, name: str | None) -> str:
 
     Args:
         layer: Which layer.
-        name: The name of the root or of the stage; `None` for the two always
-            layers.
+        name: The name of the root or of the stage, which those two layers need;
+            the two always layers take no name and ignore one.
 
     Returns:
         `root <name>`, `stage <name>`, `rules_always_include` or

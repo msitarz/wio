@@ -51,18 +51,21 @@ def _discovery(*names: str) -> Discovery:
     return Discovery(tuple(_ruleset(name) for name in names), ())
 
 
-def _config(*tables: tuple[str, str | None], order: Sequence[str] = ()) -> Config:
-    """Build a config with rulesets and a rule preset `backend`.
+def _config(
+    *tables: tuple[str, str | None], order: Sequence[str] = ("backend",)
+) -> Config:
+    """Build a config with rulesets and rule presets.
 
     Args:
         *tables: A ruleset name and its alias, if it has one.
-        order: The order of the config's rule presets, `backend` and `extra`.
+        order: The names of the config's rule presets in the order to declare
+            them, from `backend` and `extra`; `backend` only by default.
 
     Returns:
         The config.
     """
     presets = {"backend": RulePreset(("demo.ARC",), ()), "extra": RulePreset()}
-    ordered = {name: presets[name] for name in (order or presets)}
+    ordered = {name: presets[name] for name in order}
     return Config(
         rulesets=freeze({name: Ruleset(alias=alias) for name, alias in tables}),
         rule_presets=freeze(ordered),
@@ -96,9 +99,10 @@ def test_the_catalog_carries_the_aliases_and_the_rule_presets_of_the_config() ->
     catalog = build_rule_catalog(config, rulesets)
 
     # Then it has the rulesets, the alias of `demo` only, and the config's presets
+    assert list(catalog.rulesets) == list(rulesets)
     assert dict(catalog.rulesets) == dict(rulesets)
     assert dict(catalog.aliases) == {"d": "demo"}
-    assert list(catalog.presets) == ["backend", "extra"]
+    assert list(catalog.presets) == ["backend"]
 
 
 @_STUB
@@ -114,6 +118,22 @@ def test_a_ruleset_that_the_discovery_lacks_is_not_in_the_catalog() -> None:
     # Then only `demo` is among the rulesets, and the alias `d` is still there
     assert list(catalog.rulesets) == ["demo"]
     assert dict(catalog.aliases) == {"d": "demo"}
+
+
+@_STUB
+def test_an_alias_of_a_ruleset_that_the_discovery_lacks_resolves_to_none() -> None:
+    """AC-3, AC-4: the alias is held, and names nothing without the ruleset."""
+    # Given a config whose ruleset `web` has the alias `w` and a discovery
+    # without `web`
+    config = _config(("demo", "d"), ("web", "w"))
+    catalog = build_rule_catalog(config, ruleset_map(_discovery("demo")))
+
+    # When the aliases are resolved
+    found = [resolve_ruleset(name, catalog) for name in ("d", "w", "web")]
+
+    # Then both aliases are held, `d` resolves, and `w` and `web` name nothing
+    assert dict(catalog.aliases) == {"d": "demo", "w": "web"}
+    assert found == ["demo", None, None]
 
 
 @_STUB
@@ -178,7 +198,7 @@ def test_the_inputs_do_not_depend_on_the_order_of_the_config_or_the_discovery() 
     """AC-7: the same results for the same inputs declared in two orders."""
     # Given the config and the discovery of AC-2 declared in two orders
     first = (
-        _config(("demo", "d"), ("web", None)),
+        _config(("demo", "d"), ("web", None), order=("backend", "extra")),
         _discovery("demo", "web"),
     )
     second = (
@@ -193,8 +213,11 @@ def test_the_inputs_do_not_depend_on_the_order_of_the_config_or_the_discovery() 
         for (config, _), found in zip((first, second), maps, strict=True)
     ]
 
-    # Then the keyed rulesets are in the same order and the catalogs are equal
+    # Then the keyed rulesets and the rulesets of the catalogs are in the same
+    # order, and the aliases, the presets and every resolution are equal
     assert [list(found) for found in maps] == [["demo", "web"], ["demo", "web"]]
-    assert catalogs[0].rulesets == catalogs[1].rulesets
+    assert [list(catalog.rulesets) for catalog in catalogs] == [["demo", "web"]] * 2
     assert catalogs[0].aliases == catalogs[1].aliases
     assert dict(catalogs[0].presets) == dict(catalogs[1].presets)
+    resolved = [[resolve_ruleset(n, c) for n in ("demo", "d", "web")] for c in catalogs]
+    assert resolved[0] == resolved[1] == ["demo", "demo", "web"]
