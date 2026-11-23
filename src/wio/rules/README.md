@@ -1,11 +1,13 @@
 # `wio.rules`
 
 The component behind `wio rules`. So far it holds the reader of one rule file,
-which the discovery of rulesets, `wio rules check`, `list` and `show` build on.
-[A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds
-and [Codes and families](../../../docs/concepts.md#codes-and-families) what its
-code and name mean. Its terms are in the
-[glossary](../../../GLOSSARY.md).
+the reader of a ruleset's manifest and the discovery of the rulesets, which
+`wio rules check`, `list` and `show` build on.
+[A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
+[Codes and families](../../../docs/concepts.md#codes-and-families) what its
+code and name mean and
+[Rulesets on disk](../../../docs/concepts.md#rulesets-on-disk) what a ruleset
+is. Its terms are in the [glossary](../../../GLOSSARY.md).
 
 ## Reading a rule file
 
@@ -47,3 +49,62 @@ Its [tests](../../../tests/unit/rules/test_reading.py) say how each case reads.
   [`wio.formats`](../formats/README.md#the-grammar-of-a-reference-and-the-wording-of-messages).
 - **A rule is a value.** It is frozen and hashable, so it can be the key of a
   selection, and two rules read from the same text, ruleset and path are equal.
+
+## Reading a manifest
+
+[`read_manifest`](manifest.py) turns the text of one `ruleset.toml` into a
+[`Manifest`](../models/rule.py), on the same terms as `read_rule`: text in, no
+input or output, every fault of the text at once, and no raising. Its
+[tests](../../../tests/unit/rules/test_manifest.py) say how each case reads.
+
+- **A fault has a key path.** A manifest has no lines to point at, except for
+  TOML that does not parse, so a fault is the file followed by `#` and the key
+  path, such as `#rule_presets.x.rules_include[0]`. A person finds the key in a
+  file of a few lines, and the same text names the key in a message.
+- **An empty manifest is a manifest.** A ruleset can be started before its first
+  rule, so nothing is required of it.
+- **The families and the rule presets keep the order written,** so a listing
+  shows them as the author arranged them.
+- **A rule preset has the shape of the config's.** One type serves both, so the
+  forms of a name and of a list are not decided twice. Whether the entries of a
+  preset name a family or a code that exists is not judged here, because that
+  needs the rule files.
+- **An unknown key is a warning that suggests the key it is close to,** as for a
+  rule file, and the manifest is still returned.
+
+## Discovering the rulesets
+
+[`discover`](discovery.py) walks `.agents/wio/rules` through the `FileSystem`
+port and returns the rulesets as [`LoadedRuleset`](../models/rule.py)s, each
+with its manifest and its rules, and every fault it met. Its docstring says
+where each diagnostic lies, and its
+[tests](../../../tests/unit/rules/test_discovery.py) say how each case reads.
+
+- **A fault is reported and the rest is still read.** A ruleset whose directory,
+  manifest or name is at fault is left out, a ruleset whose rules are at fault
+  loses those rules, and nothing is raised for a file, so `wio rules check` can
+  show every fault of a repository in one run.
+- **The result does not depend on the order of the listing.** The rulesets are
+  sorted by name, the rules by family, then the number of the code, then the
+  text of the code, and the diagnostics by `sort_diagnostics`, so the same files
+  give the same bytes on any file system.
+- **A ruleset is named by its directory.** A name of the wrong form, a symbolic
+  link and a hidden directory are not rulesets, and a link is an error because
+  the walk follows none, so a ruleset copied in by a link would otherwise be
+  silently empty. A directory that cannot be listed is one error at the
+  directory.
+- **A rule is judged against its own ruleset only.** A family its manifest does
+  not declare, a code or a name that two rules share, are errors that leave the
+  rules out, while the same code in two rulesets is no fault, because a
+  qualified code is unique. A name is unique as well as a code, as the scope of
+  v0.1 says.
+- **A rule file outside a ruleset and a manifest below one are errors.** They
+  would be skipped, and a skipped file is a rule that nobody gets. An unmarked
+  Markdown file in the rules directory, such as a README, is ignored, as in any
+  other directory of rules.
+- **One function refuses a discovery.** `refuse_on_errors` raises for the errors
+  of a discovery and not for its warnings, so every command that must not work
+  from a broken ruleset refuses alike and none decides for itself.
+- **The rules directory is judged before it is walked.** It is missing without
+  fault, and a symbolic link or a file there is one error and is not entered,
+  as for the templates and the Works.
