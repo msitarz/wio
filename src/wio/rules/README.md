@@ -3,8 +3,8 @@
 The component behind `wio rules`. So far it holds the reader of one rule file,
 the reader of a ruleset's manifest, the discovery of the rulesets, the
 expansion of rule presets, the inputs that the selection shares, the layers that
-select the rules of a stage, the decision of each rule and the rules that any
-include entry delivers, which
+select the rules of a stage, the decision of each rule, the rules that any
+include entry delivers and the roots of a stage and of a path, which
 `wio rules check`, `list` and `show` build on.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its
@@ -343,3 +343,36 @@ says what it takes and returns, and its
   the config or of the entries of a list: origins are in the order root, stage,
   always-include and then by name, and the rules in the order of the rulesets
   and their codes.
+
+## The roots of a stage and of a path
+
+[`stage_roots`](roots.py) finds the roots that count for a stage of a Work, and
+[`roots_of_path`](roots.py) the roots that contain a file. Both work on the
+config and on what the caller names, so every view of a listing and every bundle
+choose the same roots. The Work's own roots arrive through the
+[`WorkRoots`](ports.pyi) port, which
+[`WorkLookup`](../contracts/lookup.py) satisfies, so `wio.rules` reads no
+contract. Their docstrings say what each takes, returns and raises, and their
+[tests](../../../tests/unit/rules/test_roots.py) say how each case reads.
+[Which roots a stage selects](../../../docs/concepts.md#which-roots-a-stage-selects)
+says what the forms of a stage's `roots` mean.
+
+- **A Work without roots fails loudly where the stage needs them.** A stage that
+  selects the Work's roots, without `roots` or through `@work`, raises
+  `ValueError` for a Work that has none, whatever other roots it lists, because
+  an empty `@work` would hide the mistake behind the other roots' rules.
+- **A stage's own roots never look at the Work.** A stage with only its own
+  roots, or `[]`, never fails for the Work and never looks it up, because the
+  Work is not what the stage selects. The stage is checked first, then its own
+  roots, and the Work last, so the name that a `KeyError` carries is the first
+  thing that was wrong in that order.
+- **A name that does not exist is refused,** not skipped: an unknown stage or
+  Work, and a root of a stage or of a Work that the config lacks. `wio contracts
+  check` already enforces the roots of a Work, so one that is not a root is a
+  mistake and not a root to ignore.
+- **A path is in a root by whole components.** `src/api2/x.py` is not in a root
+  `src/api`, and a root `.` holds every path. The path is relative to the
+  repository root, normalized and written with `/`, and need not exist, because
+  the command that has the argument makes it so.
+- **The results are sorted and each name is once,** whatever the order of the
+  config's roots, of a root's paths or of a stage's `roots`.
