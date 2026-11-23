@@ -520,3 +520,19 @@ def test_asking_for_roots_writes_nothing(
     # Then they are found and nothing was written
     assert found == ("api", "e2e", "web")
     assert files.writes == []
+
+
+@pytest.mark.slow
+def test_the_roots_of_a_work_that_only_head_has_are_found_by_both_adapters(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-1: a Work that the commit being made deletes still has its roots."""
+    # Given a Work `cccccc` in `HEAD` and in neither the working tree nor the index
+    project = _project(sandbox, monkeypatch, _TREE)
+    git(sandbox, "rm", "-q", "-r", str(WORKS / "p/b/c"), check=True)
+
+    # When its roots are asked for on each adapter
+    found = [lookup.roots_of("cccccc") for lookup in (project.working, project.index)]
+
+    # Then each returns them
+    assert found == [("web",), ("web",)]

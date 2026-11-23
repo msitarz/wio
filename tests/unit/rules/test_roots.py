@@ -13,8 +13,6 @@ from wio.rules import roots_of_path, stage_roots
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-_PENDING = pytest.mark.xfail(raises=NotImplementedError, strict=True)
-
 
 class _Works:
     """A `WorkRoots` over a table of Works and their roots."""
@@ -88,7 +86,6 @@ def _each(config: Config, roots: tuple[str, ...]) -> list[tuple[str, ...] | str]
     return found
 
 
-@_PENDING
 def test_the_stage_decides_which_roots_count() -> None:
     """AC-4: no `roots` is the Work's, `@work` adds them, `[]` selects none."""
     # Given a Work with the root `api` and stages of the four forms
@@ -101,7 +98,6 @@ def test_the_stage_decides_which_roots_count() -> None:
     assert found == [("api",), ("contract",), ("api", "contract"), ()]
 
 
-@_PENDING
 def test_a_work_without_roots_fails_where_a_stage_needs_them() -> None:
     """AC-4: the stage that selects the Work's roots raises `ValueError`."""
     # Given a Work with no roots and stages of the four forms
@@ -117,7 +113,6 @@ def test_a_work_without_roots_fails_where_a_stage_needs_them() -> None:
     assert found[3] == ()
 
 
-@_PENDING
 def test_no_stage_selects_the_roots_of_the_work() -> None:
     """AC-4: with no stage the roots are the Work's, and none is an error."""
     # Given a Work with roots and a Work without
@@ -133,7 +128,6 @@ def test_no_stage_selects_the_roots_of_the_work() -> None:
     assert found == ("api",)
 
 
-@_PENDING
 def test_a_name_that_does_not_exist_is_refused() -> None:
     """AC-5: each unknown name raises `KeyError` that names it."""
     # Given a Work whose root is not in the config, a stage with no `roots` and a
@@ -171,7 +165,6 @@ def _paths() -> Config:
     )
 
 
-@_PENDING
 def test_every_root_that_contains_a_file_is_found_by_whole_components() -> None:
     """AC-6: a root holds its path and what lies under it, and not a prefix."""
     # Given overlapping roots, one of which is the repository
@@ -185,7 +178,6 @@ def test_every_root_that_contains_a_file_is_found_by_whole_components() -> None:
     assert found == [("api", "repo"), ("api2", "repo"), ("repo",), ("api", "repo")]
 
 
-@_PENDING
 def test_a_file_in_no_root_has_no_roots() -> None:
     """AC-6: a path outside every root gives an empty tuple."""
     # Given roots that do not hold the path
@@ -200,7 +192,6 @@ def test_a_file_in_no_root_has_no_roots() -> None:
     assert found == ()
 
 
-@_PENDING
 def test_the_roots_do_not_depend_on_the_order_of_the_inputs() -> None:
     """AC-7: two orders of the config give equal results."""
     # Given the stages of AC-4 and the roots of AC-6 in two orders

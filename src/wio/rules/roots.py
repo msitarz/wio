@@ -6,11 +6,11 @@ listing and a bundle choose the same roots. A Work's own roots come through the
 `WorkRoots` port, which `wio.rules` never reads a file for.
 """
 
+from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from pathlib import PurePosixPath
 
     from wio.models.config import Config
     from wio.rules.ports import WorkRoots
@@ -87,8 +87,10 @@ def _checked(config: Config, names: Sequence[str]) -> tuple[str, ...]:
     Raises:
         KeyError: A name is not a root of the config; the first is named.
     """
-    del config, names
-    raise NotImplementedError
+    for name in names:
+        if name not in config.roots:
+            raise KeyError(name)
+    return tuple(sorted(set(names)))
 
 
 def _work_roots(config: Config, work_id: str, work_roots: WorkRoots) -> tuple[str, ...]:
@@ -107,8 +109,13 @@ def _work_roots(config: Config, work_id: str, work_roots: WorkRoots) -> tuple[st
             config.
         ValueError: The Work has no roots.
     """
-    msg = "the roots of a Work"
-    raise NotImplementedError(msg)
+    found = work_roots.roots_of(work_id)
+    if found is None:
+        raise KeyError(work_id)
+    if not found:
+        msg = f"The Work `{work_id}` has no roots"
+        raise ValueError(msg)
+    return _checked(config, found)
 
 
 def _merged(own: tuple[str, ...], work: tuple[str, ...]) -> tuple[str, ...]:
@@ -158,5 +165,5 @@ def _within(path: PurePosixPath, root: str) -> bool:
     Returns:
         Whether the path is the root's or below it, by whole components.
     """
-    del path, root
-    raise NotImplementedError
+    base = PurePosixPath(root)
+    return path == base or base in path.parents
