@@ -80,8 +80,11 @@ header states.
 
 ### A-3
 
-The reviewed-commit finder `reviewed_commit` of `wio.trailers` can be shared by
-changing only who may call it.
+The reviewed-commit finder `reviewed_commit` of `wio.trailers` is reached by
+`wio.context` through a port that `wio.cli` wires to it, closing over the
+history and the reader, because `wio.context` may not import `wio.trailers`, and
+the finder itself is not changed, except as Record where a gate review starts
+says for a repository with no commit.
 
 ### A-4
 

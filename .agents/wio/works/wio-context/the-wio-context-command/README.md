@@ -43,7 +43,8 @@ that provides `describe()` and a command, and an entry of the table in
 The compiler is a collaborator that the other Works provide, so the criteria
 here run the command with a fake of it, and its result carries what the Works
 that deliver the bundle need: the text, the bundle id, the size of the body in
-UTF-8 bytes as an integer, and the warnings.
+UTF-8 bytes as an integer, the qualified code and the `rule_hash` of each
+included rule in the order of the bundle, and the warnings.
 
 ## Mechanisms
 
@@ -56,8 +57,11 @@ The names below are provisional, except the command and its three arguments.
   results through, which the Works that add ports extend.
 - **The compiler port** — one call that takes the Work's id, the action and the
   stage, and returns a result that holds the text of the bundle, its id, the
-  size of its body in UTF-8 bytes as an integer and the warnings found on the
-  way; the Works that deliver the bundle read the id and the size from it.
+  size of its body in UTF-8 bytes as an integer, the qualified code and the
+  `rule_hash` of each included rule in the order of the bundle, which the rules
+  section gives and a port wired to the selector hashes, and the warnings found
+  on the way; the Works that deliver the bundle and record the entry read the
+  id, the size and the rules from it.
 - **A warning** — one line on standard error that begins `warning: `, which the
   command writes through `Stdio` for the compiler's warnings and for those of
   the Works that deliver the bundle, in the order of the compiler's, then the
@@ -87,8 +91,8 @@ each warning is reported as `wio` reports a warning, and the exit code is 0.
 
 #### A bundle with two warnings
 
-- **Given** a fake compiler that returns a text, an id, a body size and two
-  warnings.
+- **Given** a fake compiler that returns a text, an id, a body size, two rules
+  and two warnings.
 - **When** `wio context k3m9xq deliver architecture` runs.
 - **Then** standard output holds exactly the text, each of the two warnings is
   a line `warning: <text>` on standard error, and the exit code is 0.

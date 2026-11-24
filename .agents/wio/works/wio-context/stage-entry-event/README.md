@@ -10,8 +10,8 @@ depends_on = []
 ## Purpose
 
 What a session was given, and where a gate's review started, cannot be rebuilt
-later, so cost and quality cannot be analyzed and `wio trailers --result` has
-nothing to compare the reviewed commit with.
+later, so cost and quality cannot be analyzed and a later form of
+`wio trailers --result` has nothing to compare the reviewed commit with.
 
 ## Goals
 
@@ -23,30 +23,35 @@ nothing to compare the reviewed commit with.
 
 - Reading the log back, which `wio log show` does.
 - Recording the result of a gate, which `wio trailers --result` does.
+- Comparing the recorded start with the reviewed commit and warning about a
+  dirty start, which `wio trailers --result` does in a later form.
 
 ## Assumptions
 
-None.
+### A-1
+
+The comparison and the dirty warning are a later form of
+`wio trailers --result`, as `src/wio/trailers/README.md` says, so this group
+records what that form will read and states nothing of its behaviour.
 
 ## Visuals
 
 Before, `wio context` writes no event, so a gate's review start is unknown.
-After, each run writes a `context` event to the event log, and a gate's event
-carries the start commit that `wio trailers --result` compares with the commit
-it reviewed.
+After, each run that delivers its bundle writes one `context` event to the event
+log, and a gate's event also carries the start commit and whether the tree was
+dirty, for the later form of `wio trailers --result` to read.
 
 ## Acceptance criteria
 
-### **AC-1** The recorded start is the one `wio trailers --result` compares
+### **AC-1** A gate's run writes one event
 
-For a gate, the start commit in the `context` event is the one that
-`wio trailers --result` compares with the reviewed commit, and a difference is
-warned about there.
+A gate stage's run writes one `context` event that holds the fields of a stage
+entry and the start commit and the dirty flag, not two events.
 
-#### Unchanged and moved
+#### A gate
 
-- **Given** a gate whose session entered the stage and a review recorded on the
-  same commit, and another review recorded after a new commit.
-- **When** `wio trailers --result` runs for each.
-- **Then** the first gives no warning about the start, and the second warns that
-  the reviewed commit differs from the one the session started from.
+- **Given** a repository with a commit and a stage with `gate = true`.
+- **When** `wio context` runs for it.
+- **Then** the log holds exactly one new `context` event, and it holds the Work,
+  the action, the stage, the bundle id, the size, the rules, the start commit
+  and the dirty flag.
