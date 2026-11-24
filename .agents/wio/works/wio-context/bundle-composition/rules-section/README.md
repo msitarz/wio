@@ -33,14 +33,10 @@ None.
 
 ## Mechanisms
 
-The names below are provisional.
+The name below is provisional.
 
 - **The rules section builder** — in `wio.context`, which turns a `Selection`
   into the text of the section by the three children below.
-- **`Selection` and `Decision`** — in `wio.models.rules`, which hold every rule
-  considered, with the roots of an included rule or the reason a rule is out.
-- **The topics of the families** — in the manifest of each ruleset, which the
-  ordering reads.
 
 ## Visuals
 
@@ -52,13 +48,41 @@ the ordering sorts each group, and the rendering prints each rule.
 
 ### **AC-1** A selection becomes one section
 
-Each included rule of a selection appears once in the section, grouped by the
-roots that reach it, ordered and rendered as the children specify.
+The section built from a selection is the groups, the family lines and the
+rendered rules that the children specify, in one text, with a rule that two
+roots reach printed in one group only.
 
-#### Rules of every kind of reach
+#### Three rules of different reach
 
-- **Given** a selection that includes a root-independent rule, a rule that one
-  root reaches and a rule that two roots reach.
+- **Given** a selection that includes `mattpocock.ERR002`, which no root is
+  needed for, `mattpocock.ARC001`, which `api` reaches, and `python.API001`,
+  which `api` and `web` reach, named `errors-carry-context`, `keep-it-small` and
+  `adapters-return-typed-results` with the bodies shown below, with the roots
+  `api` at `services/api` and `web`
+  at `apps/web`, the topics `Error handling` for `ERR`, `Architecture` for `ARC`
+  and `Python API` for `API`, and the default separator.
 - **When** the section is built.
-- **Then** each of the three rules appears exactly once, and the section equals
-  the one that the grouping, the ordering and the rendering give for them.
+- **Then** it equals this text, in the provisional wording of the group lines:
+
+  ```text
+  Rules for every root:
+
+  mattpocock: Error handling (ERR)
+
+  mattpocock.ERR002 errors-carry-context
+  Add context to every error.
+
+  Rules for root api (services/api):
+
+  mattpocock: Architecture (ARC)
+
+  mattpocock.ARC001 keep-it-small
+  Keep each module small.
+
+  Rules for roots api, web (services/api, apps/web):
+
+  python: Python API (API)
+
+  python.API001 adapters-return-typed-results
+  Adapters return typed results.
+  ```

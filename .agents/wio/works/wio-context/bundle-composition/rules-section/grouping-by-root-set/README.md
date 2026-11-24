@@ -44,7 +44,8 @@ The paths of a root come from the config.
 
 The concepts fix `Rules for every root:` and the form of
 `Rules for root api (services/api):`; the group line for several roots is
-provisional, but a group line names the roots and their paths.
+provisional, and the criteria below quote it in that provisional form. What is
+binding is that a group line names the roots and their paths.
 
 - **The group line for no root** — `Rules for every root:`.
 - **The group line for roots** — `Rules for root <name> (<paths>):` for one root
@@ -77,9 +78,9 @@ roots reach is in the group of both.
 
 - **Given** rules of `api`, rules of `web`, and rules that both reach.
 - **When** the groups are built.
-- **Then** there are three groups, `Rules for root api (services/api):`,
-  `Rules for roots api, web (services/api, apps/web):` and
-  `Rules for root web (apps/web):`, and each rule is in exactly one.
+- **Then** there are three groups, one for `api` at `services/api`, one for
+  `api` and `web` at `services/api, apps/web`, and one for `web` at `apps/web`,
+  in the provisional wording of their lines, and each rule is in exactly one.
 
 ### **AC-3** The order does not depend on the config
 
@@ -87,13 +88,17 @@ The groups are sorted by the sorted names of their roots, and the paths of a
 group are in the order of the roots' names and then of the config, whatever the
 order of the config's tables and of the Work's `roots`.
 
-#### Two orders
+#### Two orders, and a root with two paths
 
-- **Given** the same selection with the roots declared in two orders, and a root
-  `web` whose paths are `apps/web` and `apps/admin` in that order.
+- **Given** the same selection with the roots declared in two orders, a root
+  `web` whose paths are `apps/web` and `apps/admin` in that order, and a root
+  `api` at `services/api`, with `web` declared before `api` in one of the
+  configs.
 - **When** the groups are built from each.
 - **Then** both give the same groups in the same order, and the line of the
-  group of `web` lists `apps/web, apps/admin` in that order.
+  group of both roots is
+  `Rules for roots api, web (services/api, apps/web, apps/admin):` in the
+  provisional wording.
 
 ### **AC-4** Only the rules that apply are grouped
 

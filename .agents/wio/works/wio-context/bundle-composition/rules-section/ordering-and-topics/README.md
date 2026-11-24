@@ -32,13 +32,19 @@ The manifest of a ruleset gives a topic for every family that one of its rules
 uses, which the discovery of the rules in `wio.rules` guarantees by rejecting a
 rule whose family the manifest does not declare.
 
+### A-2
+
+The topic of each family reaches `wio.context` through a port that `wio.rules`
+satisfies from its manifests, because a `Selection` holds rules and decisions
+and no topic.
+
 ## Mechanisms
 
-The wording of the family line is provisional.
+The concepts give `mattpocock: Error handling (ERR)` as the form of a family
+line, which is binding; any other wording is provisional.
 
-- **The family line** — `<ruleset>: <topic> (<FAMILY>)`, such as
-  `mattpocock: Error handling (ERR)`, with the canonical name of the ruleset and
-  the topic from its manifest.
+- **The family line** — `<ruleset>: <topic> (<FAMILY>)`, with the canonical name
+  of the ruleset and the topic from its manifest.
 - **The order of codes** — by the number of the code and then by its text, so
   `ARC999` comes before `ARC1000` and `ARC001` before `ARC01`, as `wio rules`
   orders them.
@@ -48,13 +54,15 @@ The wording of the family line is provisional.
 ### **AC-1** The order depends only on names
 
 Within a group the rules are ordered by the name of their ruleset, then by
-family, then by the number of the code and then its text.
+family, then by the number of the code and then its text, whatever the order in
+which the group is given.
 
-#### Two rulesets, and codes that a text sort misorders
+#### Two rulesets, codes that a text sort misorders, and an unsorted group
 
-- **Given** in one group the rules `python.API002`, `mattpocock.ERR010`,
-  `mattpocock.ERR002`, `python.API001`, `mattpocock.ARC1000`,
-  `mattpocock.ARC01`, `mattpocock.ARC999` and `mattpocock.ARC001`.
+- **Given** in one group, in this order, the rules `python.API002`,
+  `mattpocock.ERR010`, `mattpocock.ERR002`, `python.API001`,
+  `mattpocock.ARC1000`, `mattpocock.ARC01`, `mattpocock.ARC999` and
+  `mattpocock.ARC001`.
 - **When** the group is ordered.
 - **Then** the order is `mattpocock.ARC001`, `mattpocock.ARC01`,
   `mattpocock.ARC999`, `mattpocock.ARC1000`, `mattpocock.ERR002`,
