@@ -297,8 +297,11 @@ command is for.
 
 `wio contracts list` shows every Work with its hierarchy, and a script reads the
 same facts as JSON. [`listing.py`](listing.py) renders them from a `Hierarchy`,
-and its docstrings say the exact layout of a block and of an object. The format
-mirrors `wio templates list`, and the scenarios of the
+and its docstrings say the exact layout of an object, while the layout of the
+blocks is `render_blocks` of
+[`wio.formats`](../formats/README.md#the-layout-of-blocks), which
+`wio rules list` shares. The format mirrors `wio templates list`, and the
+scenarios of the
 [acceptance tests](../../../tests/acceptance/contracts/test_list.py) show it
 byte for byte on both channels.
 

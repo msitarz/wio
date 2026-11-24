@@ -476,7 +476,9 @@ the listing fill the fields that this one leaves empty.
   `list_view` calls [`select`](applicability.py) once, so the rules of a view
   are those that `wio trailers` is given. A view without roots applies none, and
   a view with no selector applies no layer and lists every rule with no
-  decision, so a listing of the whole repository is not a selection.
+  decision, so a listing of the whole repository is not a selection. The same
+  config, rulesets and arguments give the same listing, in the order of ruleset,
+  family and code, whatever the order of the tables and the entries.
 - **The roots and the stage are applied as `select` takes them.** A root is that
   root, a path gives the roots that contain it, and a Work gives the roots that
   the stage selects for it, which are its own when no stage is given. A stage
