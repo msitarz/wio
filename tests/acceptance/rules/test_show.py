@@ -20,7 +20,6 @@ FILE = f"{RULES}/demo/ARC001-keep-it-small.md"
 BODY = (
     "State one instruction in each rule.\n\nWhy: a long rule hides several decisions."
 )
-_STUB = pytest.mark.xfail(strict=True, reason="show is a stub")
 _BOTH = pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 
 
@@ -44,7 +43,6 @@ def _repo(wio: Wio) -> None:
     )
 
 
-@_STUB
 @_BOTH
 def test_a_rule_is_shown_with_its_header_and_its_body(wio: Wio) -> None:
     """AC-1: the name, the description, the file, a blank line and the body."""
@@ -64,7 +62,6 @@ def test_a_rule_is_shown_with_its_header_and_its_body(wio: Wio) -> None:
     )
 
 
-@_STUB
 @_BOTH
 def test_a_rule_without_a_description_or_a_body_prints_only_its_header(
     wio: Wio,
@@ -84,7 +81,6 @@ def test_a_rule_without_a_description_or_a_body_prints_only_its_header(
     )
 
 
-@_STUB
 @_BOTH
 def test_the_body_keeps_its_indentation(wio: Wio) -> None:
     """AC-3: two leading spaces."""
@@ -101,7 +97,6 @@ def test_the_body_keeps_its_indentation(wio: Wio) -> None:
 
 # The CLI channel decodes the output as text, which folds CRLF into LF, so only
 # the channel that reads the streams as they are can see the endings.
-@_STUB
 @pytest.mark.channels(Channel.IN_PROCESS)
 def test_the_body_keeps_its_line_endings(wio: Wio) -> None:
     """AC-3: CRLF between the lines of the body."""
@@ -117,7 +112,6 @@ def test_the_body_keeps_its_line_endings(wio: Wio) -> None:
     assert output.stdout.endswith("\n\none\r\ntwo\n")
 
 
-@_STUB
 @_BOTH
 def test_an_alias_is_accepted_and_the_canonical_name_is_shown(wio: Wio) -> None:
     """AC-4: `d.ARC001` shows `demo.ARC001`."""
@@ -132,7 +126,6 @@ def test_an_alias_is_accepted_and_the_canonical_name_is_shown(wio: Wio) -> None:
     assert "d.ARC001" not in output.stdout.replace("demo.ARC001", "")
 
 
-@_STUB
 @_BOTH
 @pytest.mark.parametrize(
     ("reference", "message"),
@@ -142,7 +135,7 @@ def test_an_alias_is_accepted_and_the_canonical_name_is_shown(wio: Wio) -> None:
         ("demo.all", "`demo.all` is a rule preset"),
         ("ARC001", "`ARC001` has no ruleset"),
         ("Docs", "`Docs` is not a reference"),
-        ("nope.ARC001", "no ruleset is `nope`"),
+        ("nope.ARC001", "No ruleset is `nope`"),
         ("demo.ARC999", "`ARC001` and `ARC002`"),
         ("demo.arc001", "form of a rule preset name"),
     ],
@@ -163,7 +156,6 @@ def test_a_reference_that_is_not_one_rules_code_is_refused(
     assert not output.stdout
 
 
-@_STUB
 @_BOTH
 def test_a_warning_refuses_nothing_and_an_error_anywhere_does(wio: Wio) -> None:
     """AC-6: an unknown key is shown past, a block that does not close refuses."""
@@ -185,7 +177,6 @@ def test_a_warning_refuses_nothing_and_an_error_anywhere_does(wio: Wio) -> None:
     assert "ARC001-open.md" in unjudged.stderr
 
 
-@_STUB
 @_BOTH
 def test_the_json_is_one_line_with_a_fixed_order(wio: Wio) -> None:
     """AC-7: the fields in order, `null` for no description."""
@@ -214,7 +205,6 @@ def test_the_json_is_one_line_with_a_fixed_order(wio: Wio) -> None:
     assert (bare["description"], bare["body"]) == (None, "")
 
 
-@_STUB
 @_BOTH
 def test_the_output_is_deterministic_and_nothing_is_written(wio: Wio) -> None:
     """AC-8: two runs give equal bytes and leave the repository as it was."""

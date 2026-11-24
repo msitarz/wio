@@ -19,9 +19,6 @@ _PRESETS = {"recommended": (["ARC"], [])}
 _DEMO = make_ruleset("demo", ["ARC"], ["ARC001", "ARC002"], _PRESETS)
 _DISCOVERY = Discovery((_DEMO, make_ruleset("other", ["PAY"], ["PAY001"])), ())
 _FILE = ".agents/wio/rules/demo/ARC001-arc001.md"
-_STRICT = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="show is a stub"
-)
 
 
 def _rule(
@@ -42,7 +39,6 @@ def _rule(
     )
 
 
-@_STRICT
 def test_it_finds_the_rule_by_its_ruleset_and_code() -> None:
     """AC-1: `demo.ARC002` is the rule of that ruleset and code."""
     # Given a discovery of two rulesets
@@ -53,7 +49,6 @@ def test_it_finds_the_rule_by_its_ruleset_and_code() -> None:
     assert found == _DEMO.get("ARC002")
 
 
-@_STRICT
 @pytest.mark.parametrize(
     ("reference", "message"),
     [
@@ -92,7 +87,6 @@ def test_it_refuses_what_is_not_one_rules_code(reference: str, message: str) -> 
     assert message in str(caught.value)
 
 
-@_STRICT
 def test_the_ruleset_that_is_missing_is_listed_with_the_rulesets_that_exist() -> None:
     """AC-5: the unknown ruleset names those that were read."""
     # Given a discovery of `demo` and `other`
@@ -104,7 +98,6 @@ def test_the_ruleset_that_is_missing_is_listed_with_the_rulesets_that_exist() ->
     assert "`demo`, `other`" in str(caught.value)
 
 
-@_STRICT
 def test_the_text_is_the_header_a_blank_line_and_the_body() -> None:
     """AC-1: the block, the description, the file and the body."""
     # Given a rule with a description and a body of two paragraphs
@@ -123,7 +116,6 @@ def test_the_text_is_the_header_a_blank_line_and_the_body() -> None:
     )
 
 
-@_STRICT
 def test_a_rule_without_a_description_or_a_body_prints_only_its_header() -> None:
     """AC-2: no description line, no blank line, one line feed."""
     # Given a rule with neither a description nor a body
@@ -136,7 +128,6 @@ def test_a_rule_without_a_description_or_a_body_prints_only_its_header() -> None
     assert text == f"demo.ARC001  arc001\n             file: {_FILE}\n"
 
 
-@_STRICT
 def test_the_body_keeps_its_spaces_and_its_line_endings() -> None:
     """AC-3: nothing is trimmed or translated, and one line feed ends it."""
     # Given a body that starts with two spaces and has CRLF line endings
@@ -149,7 +140,6 @@ def test_the_body_keeps_its_spaces_and_its_line_endings() -> None:
     assert text.endswith("\n\n  indented\r\nnext\n")
 
 
-@_STRICT
 def test_the_json_is_one_line_with_the_fields_in_order() -> None:
     """AC-7: code, name, description, summary, body and path."""
     # Given a rule with a description and a body
@@ -172,7 +162,6 @@ def test_the_json_is_one_line_with_the_fields_in_order() -> None:
     }
 
 
-@_STRICT
 def test_the_json_description_is_null_when_there_is_none() -> None:
     """AC-7: `null` and an empty body for the bare rule."""
     # Given a rule with no description and no body
