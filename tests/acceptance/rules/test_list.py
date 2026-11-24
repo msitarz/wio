@@ -2,63 +2,25 @@
 """Scenarios of `wio rules list`, which shows the rules a view is given."""
 
 import json
-import re
 from typing import TYPE_CHECKING
 
 import pytest
 
 from tests.acceptance.channels import Channel
+from tests.acceptance.rules.support import (
+    BARE,
+    BASE,
+    RULES,
+    WORK,
+    header,
+    rule,
+    ruleset,
+    shown,
+    work,
+)
 
 if TYPE_CHECKING:
-    from tests.acceptance.dsl.results import Output
     from tests.acceptance.dsl.wio import Wio
-
-BASE = "rules/base"
-RULES = ".agents/wio/rules"
-WORK = "k3m9xq"
-BARE = "n5p7qr"
-
-
-def _rule(code: str, name: str, body: str = "Body.\n", extra: str = "") -> bytes:
-    """Build a rule file.
-
-    Args:
-        code: The rule's code.
-        name: The rule's name.
-        body: What follows the block and a blank line.
-        extra: Lines for the block after the name.
-
-    Returns:
-        The bytes of the file.
-    """
-    block = f'<!-- wio\ncode = "{code}"\nname = "{name}"\n{extra}-->\n\n'
-    return (block + body).encode()
-
-
-def _ruleset(wio: Wio, name: str, manifest: str, rules: dict[str, str]) -> None:
-    """Write a ruleset.
-
-    Args:
-        wio: The facade.
-        name: The ruleset's name.
-        manifest: The text of its `ruleset.toml`.
-        rules: Each rule's code and name.
-    """
-    wio.put(f"{RULES}/{name}/ruleset.toml", manifest.encode())
-    for code, rule_name in rules.items():
-        wio.put(f"{RULES}/{name}/{code}-{rule_name}.md", _rule(code, rule_name))
-
-
-def _work(wio: Wio, work_id: str, roots: str) -> None:
-    """Write a Work with the given roots.
-
-    Args:
-        wio: The facade.
-        work_id: The Work's id.
-        roots: The `roots` line of its metadata, or an empty string.
-    """
-    block = f'<!-- wio\nid = "{work_id}"\n{roots}-->\n\n# A Work\n'
-    wio.put(f".agents/wio/works/{work_id}/README.md", block.encode())
 
 
 def _repo(wio: Wio, *, ui: bool = False) -> None:
@@ -84,42 +46,11 @@ def _repo(wio: Wio, *, ui: bool = False) -> None:
     demo = '[families]\nARC = "A"\nPAY = "P"\n'
     demo += '[rule_presets.arc]\nrules_include = ["ARC"]\n'
     web = '[families]\nWEB = "W"\n[rule_presets.core]\nrules_include = ["WEB001"]\n'
-    _ruleset(wio, "demo", demo, {"ARC001": "keep", "ARC002": "name", "PAY001": "pay"})
-    _ruleset(wio, "web", web, {"WEB001": "page"})
-    _ruleset(wio, "process", '[families]\nFIX = "F"\n', {"FIX001": "fix"})
-    _work(wio, WORK, 'roots = ["api"]\n')
-    _work(wio, BARE, "")
-
-
-def _shown(output: Output) -> dict[str, str | None]:
-    """Read the rules of the text and their `roots:` lines.
-
-    Args:
-        output: The result of `wio rules list`.
-
-    Returns:
-        Each qualified code with the value of its `roots:` line, or `None`.
-    """
-    found: dict[str, str | None] = {}
-    for line in output.stdout.splitlines():
-        if re.match(r"\w+\.[A-Z]+\d+ ", line):
-            code = line.split()[0]
-            found[code] = None
-        elif (match := re.match(r"\s+roots: (.*)", line)) and found:
-            found[list(found)[-1]] = match[1]
-    return found
-
-
-def _header(output: Output) -> list[str]:
-    """Read the header lines of the text.
-
-    Args:
-        output: The result of `wio rules list`.
-
-    Returns:
-        The lines before the first blank line.
-    """
-    return output.stdout.split("\n\n")[0].splitlines()
+    ruleset(wio, "demo", demo, {"ARC001": "keep", "ARC002": "name", "PAY001": "pay"})
+    ruleset(wio, "web", web, {"WEB001": "page"})
+    ruleset(wio, "process", '[families]\nFIX = "F"\n', {"FIX001": "fix"})
+    work(wio, WORK, 'roots = ["api"]\n')
+    work(wio, BARE, "")
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -130,7 +61,7 @@ def test_without_a_selector_every_rule_is_listed_with_no_layers(wio: Wio) -> Non
     wio.put(f"{RULES}/demo/ruleset.toml", b'[families]\nARC = "A"\nPAY = "P"\n')
     wio.put(
         f"{RULES}/demo/ARC001-keep-it-small.md",
-        _rule(
+        rule(
             "ARC001",
             "keep-it-small",
             "Long body.\n",
@@ -139,10 +70,10 @@ def test_without_a_selector_every_rule_is_listed_with_no_layers(wio: Wio) -> Non
     )
     wio.put(
         f"{RULES}/demo/PAY001-pay-first.md",
-        _rule("PAY001", "pay-first", "Pay the invoice first.\n"),
+        rule("PAY001", "pay-first", "Pay the invoice first.\n"),
     )
     wio.put(f"{RULES}/web/ruleset.toml", b'[families]\nWEB = "W"\n')
-    wio.put(f"{RULES}/web/WEB001-web-rule.md", _rule("WEB001", "web-rule", ""))
+    wio.put(f"{RULES}/web/WEB001-web-rule.md", rule("WEB001", "web-rule", ""))
 
     # When `wio rules list` runs
     output = wio.run(["rules", "list"])
@@ -184,12 +115,12 @@ def test_a_root_a_path_or_a_work_gives_the_rules_that_apply(
 
     # Then the rules of `api` and `process.FIX001` are shown, and the header says
     # which layers and roots applied
-    assert _shown(output) == {
+    assert shown(output) == {
         "demo.ARC001": "api",
         "demo.ARC002": "api",
         "process.FIX001": "every root",
     }
-    assert _header(output) == [
+    assert header(output) == [
         f"view: {view}",
         "layers: roots, always fields",
         "roots: api",
@@ -208,23 +139,23 @@ def test_a_stage_adds_its_layer_and_without_roots_nothing_is_cut(wio: Wio) -> No
 
     # Then the first lists the roots that reach each rule, and the second adds
     # `PAY001` to the rules of `api` and cuts `WEB001`
-    assert _shown(alone) == {
+    assert shown(alone) == {
         "demo.PAY001": "api",
         "process.FIX001": "every root",
         "web.WEB001": "none",
     }
-    assert _header(alone) == [
+    assert header(alone) == [
         "view: stage s",
         "layers: stage, always fields",
         "roots: not applied",
     ]
-    assert list(_shown(both)) == [
+    assert list(shown(both)) == [
         "demo.ARC001",
         "demo.ARC002",
         "demo.PAY001",
         "process.FIX001",
     ]
-    assert "stage: s" in _header(both)
+    assert "stage: s" in header(both)
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -241,10 +172,10 @@ def test_a_work_alone_gives_its_roots_and_the_stage_decides_which_count(
     chosen = wio.run(["rules", "list", "--work", WORK, "--stage", "t"])
 
     # Then the first two list the rules of `api`, and the third those of `ui`
-    assert list(_shown(plain)) == ["demo.ARC001", "demo.ARC002", "process.FIX001"]
-    assert list(_shown(own)) == list(_shown(plain))
-    assert list(_shown(chosen)) == ["process.FIX001", "web.WEB001"]
-    assert "roots: ui" in _header(chosen)
+    assert list(shown(plain)) == ["demo.ARC001", "demo.ARC002", "process.FIX001"]
+    assert list(shown(own)) == list(shown(plain))
+    assert list(shown(chosen)) == ["process.FIX001", "web.WEB001"]
+    assert "roots: ui" in header(chosen)
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -257,8 +188,8 @@ def test_a_rule_that_is_out_is_not_listed(wio: Wio) -> None:
     output = wio.run(["rules", "list", "--root", "api", "--stage", "x"])
 
     # Then `demo.ARC002` is not in the output
-    assert "demo.ARC002" not in _shown(output)
-    assert "demo.ARC001" in _shown(output)
+    assert "demo.ARC002" not in shown(output)
+    assert "demo.ARC001" in shown(output)
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -333,7 +264,7 @@ def test_the_json_is_one_line_with_the_header_and_the_rules(wio: Wio) -> None:
     assert (found["work"], found["roots"], found["stage"]) == (WORK, ["api"], "s")
     assert (found["references"], found["not_selected"]) == ([], False)
     assert list(found)[-1] == "rules"
-    assert [rule["code"] for rule in found["rules"]] == list(_shown(text))
+    assert [rule["code"] for rule in found["rules"]] == list(shown(text))
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -362,8 +293,8 @@ def test_a_path_in_no_root_applies_no_root(wio: Wio) -> None:
     output = wio.run(["rules", "list", "--path", "docs/readme.md"])
 
     # Then the roots are none and only `process.FIX001` is shown
-    assert "roots: none" in _header(output)
-    assert _shown(output) == {"process.FIX001": "every root"}
+    assert "roots: none" in header(output)
+    assert shown(output) == {"process.FIX001": "every root"}
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -377,8 +308,8 @@ def test_a_listing_without_layers_has_no_decision_in_json(wio: Wio) -> None:
 
     # Then every rule has null roots and root independence, and is included
     assert found["rules"]
-    for rule in found["rules"]:
-        assert (rule["roots"], rule["root_independent"], rule["included"]) == (
+    for entry in found["rules"]:
+        assert (entry["roots"], entry["root_independent"], entry["included"]) == (
             None,
             None,
             True,
@@ -400,7 +331,7 @@ def test_the_command_is_declared_and_finds_the_works(wio: Wio) -> None:
         assert flag in helped.stdout
     assert "--explain" in helped.stdout
     assert "--json" in helped.stdout
-    assert "demo.ARC001" in _shown(listed)
+    assert "demo.ARC001" in shown(listed)
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -413,13 +344,13 @@ def test_a_path_with_a_stage_applies_the_roots_that_contain_it(wio: Wio) -> None
     output = wio.run(["rules", "list", "--path", "src/api/app.py", "--stage", "s"])
 
     # Then the layers are the three and the rules are those of the root and stage
-    assert _header(output) == [
+    assert header(output) == [
         "view: file src/api/app.py",
         "layers: roots, stage, always fields",
         "roots: api",
         "stage: s",
     ]
-    assert list(_shown(output)) == [
+    assert list(shown(output)) == [
         "demo.ARC001",
         "demo.ARC002",
         "demo.PAY001",
