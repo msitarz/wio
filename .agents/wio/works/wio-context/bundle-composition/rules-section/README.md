@@ -41,36 +41,41 @@ The name below is provisional.
 ## Visuals
 
 Before, a selection is a map of rules to decisions. After, the rules that apply
-become one section: the grouping places each rule under the roots that reach it,
-the ordering sorts each group, and the rendering prints each rule.
+become one section.
+
+```mermaid
+flowchart LR
+    sel["Selection: rules and decisions"] --> grp["grouping: included rules by root set"]
+    grp --> ord["ordering: each group by ruleset, family, code"]
+    ord --> ren["rendering: each rule, items joined by the separator"]
+    ren --> sec["the section's text"]
+```
 
 ## Acceptance criteria
 
 ### **AC-1** A selection becomes one section
 
 The section built from a selection is the groups, the family lines and the
-rendered rules that the children specify, in one text, with a rule that two
-roots reach printed in one group only.
+rendered rules that the children specify, in one text.
 
-#### Three rules of different reach
+#### Rules of different reach
 
-- **Given** a selection that includes `mattpocock.ERR002`, which no root is
-  needed for, `mattpocock.ARC001`, which `api` reaches, and `python.API001`,
-  which `api` and `web` reach, named `errors-carry-context`, `keep-it-small` and
-  `adapters-return-typed-results` with the bodies shown below, with the roots
-  `api` at `services/api` and `web`
-  at `apps/web`, the topics `Error handling` for `ERR`, `Architecture` for `ARC`
-  and `Python API` for `API`, and the default separator.
+- **Given** a selection that includes `process.FIX001`, from a root-independent
+  ruleset, `mattpocock.ARC002` and `mattpocock.ARC001`, in that order, from a
+  ruleset that `api` reaches, and `python.API001`, from a ruleset that `api` and
+  `web` reach, with the roots `api` at `services/api` and `web` at `apps/web`,
+  the topics `Process` for `FIX`, `Architecture` for `ARC` and `Python API` for
+  `API`, the names and bodies shown below, and the default separator.
 - **When** the section is built.
 - **Then** it equals this text, in the provisional wording of the group lines:
 
   ```text
   Rules for every root:
 
-  mattpocock: Error handling (ERR)
+  process: Process (FIX)
 
-  mattpocock.ERR002 errors-carry-context
-  Add context to every error.
+  process.FIX001 fix-the-cause
+  Fix the underlying problem.
 
   Rules for root api (services/api):
 
@@ -78,6 +83,9 @@ roots reach printed in one group only.
 
   mattpocock.ARC001 keep-it-small
   Keep each module small.
+
+  mattpocock.ARC002 depend-inward
+  Depend on abstractions.
 
   Rules for roots api, web (services/api, apps/web):
 

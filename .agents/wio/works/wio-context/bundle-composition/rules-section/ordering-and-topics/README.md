@@ -83,26 +83,15 @@ other rule of that family in the group is.
   `mattpocock: Error handling (ERR)` precedes `mattpocock.ERR002` and appears
   once.
 
-### **AC-3** A family is introduced in every group it appears in
-
-Each group is introduced on its own, so a family whose rules are in two groups
-has its line in both.
-
-#### One family in two groups
-
-- **Given** the rules `mattpocock.ERR002` in the group of `api` and
-  `mattpocock.ERR010` in the group of `web`.
-- **When** each group is ordered.
-- **Then** each begins with `mattpocock: Error handling (ERR)`.
-
-### **AC-4** Moving a rule between rule presets moves nothing
+### **AC-3** The route of a rule moves nothing
 
 The order and the family lines do not change when a rule reaches the selection
-through another rule preset.
+through another rule preset or with other layer effects.
 
-#### Two presets, one rule
+#### Two selections that differ only in how the rules were selected
 
-- **Given** two configs that select the same rules, one through a rule preset
-  `recommended` and one through a rule preset `strict`.
+- **Given** two selections that include the same rules, one through a rule
+  preset `recommended` and one through a rule preset `strict`, so that the
+  routes and the layer effects of their decisions differ.
 - **When** the group is ordered for each.
 - **Then** the two orders and the family lines are equal.

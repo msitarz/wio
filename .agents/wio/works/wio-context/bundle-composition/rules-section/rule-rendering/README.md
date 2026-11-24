@@ -18,7 +18,7 @@ and rules in one way that a project can configure.
 - Each rule is a line with its qualified canonical name and its name, followed
   by its body as the rules reader returns it.
 - The items of the rules section, its group lines, family lines and rules, are
-  joined by the configured separator, a blank line by default.
+  joined by the configured separator, inserted as written, `"\n\n"` by default.
 - A rule is named by its ruleset's canonical name and never by a bare code.
 - The text of a rule does not say why it was selected.
 
@@ -66,8 +66,9 @@ the docs stage corrects both documents and the description of
 ### **AC-1** A rule is its qualified line and its body
 
 The rule's text is the line with its canonical ruleset name, its code and its
-name, one line ending, and then its body as the reader returns it, and the line
-alone when the body is empty.
+name, one line ending, and then its body as the reader returns it, and nothing
+else, so it says nothing of why the rule was selected; a rule with an empty body
+is the line alone.
 
 #### A rule with two paragraphs, and an empty body
 
@@ -78,32 +79,18 @@ alone when the body is empty.
   ending and the body unchanged, and the second is its line with no line ending
   after it.
 
-### **AC-2** Every item is joined by the separator
+### **AC-2** Every item is joined by the separator as written
 
 The group lines, the family lines and the rules of a section are joined by the
-configured separator between every two adjacent items, and by a blank line when
-none is set.
+configured separator, inserted as written between every two adjacent items and
+not before the first or after the last, and by `"\n\n"` when none is set.
 
 #### Default and configured
 
 - **Given** the items `Rules for root api (services/api):`,
   `mattpocock: Error handling (ERR)` and two rules, with one config that sets no
-  separator and one that sets `---`.
+  separator and one that sets `"\n---\n"`.
 - **When** they are joined.
-- **Then** the first puts a blank line between every two items and the second
-  puts `---` between every two, so the group line is separated from the family
-  line by `---` too.
-
-### **AC-3** The text does not depend on why a rule was selected
-
-The text of a rule depends on the rule alone, so a selection that differs only
-in a rule's route and layer effects gives the same text for it.
-
-#### Two routes
-
-- **Given** two selections that include the same rule, one through the rule
-  preset `recommended` and one through `strict`, whose effects differ, and a
-  rule whose body names neither.
-- **When** the section is built from each.
-- **Then** the text of that rule is equal in the two, and neither contains
-  `recommended` or `strict`.
+- **Then** the first has `"\n\n"` between every two items and the second has
+  `"\n---\n"` between every two, so the group line is separated from the family
+  line by `"\n---\n"` too, and neither begins or ends with the separator.

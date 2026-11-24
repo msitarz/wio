@@ -95,9 +95,7 @@ The hash of each rule's file that the event records is the `rule_hash` of
 ### A-8
 
 A `Selection` carries what the grouping of rules needs: whether each rule is
-included, its roots and whether its ruleset is root-independent, while the paths
-of the roots come from the config, and the topic of each family reaches
-`wio.context` through a port that `wio.rules` satisfies from its manifests.
+included, its roots and whether its ruleset is root-independent.
 
 ### A-9
 
@@ -118,13 +116,6 @@ For a Work with no roots at a stage that selects the Work's roots, a bundle with
 a warning is right where the concepts say the stage "fails loudly", as the
 `RuleSelection` port already says by giving such a Work a selection with no
 included rule, and the docs stage corrects the concepts.
-
-### A-12
-
-Where the concepts and the scope document put the configured separator between
-rules, it is right to read it as between every item of the rules section, its
-group lines, family lines and rules, and the docs stage corrects both documents
-and the description of `Bundle.separator`.
 
 ## Mechanisms
 
