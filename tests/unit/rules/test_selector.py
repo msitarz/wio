@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, override
 import pytest
 
 from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
+from tests.unit.rules.support import Roots, Settings
 from wio.errors import DiagnosticsError, WioError
 from wio.formats import rule_hash
 from wio.models.config import Config, Root, Stage
@@ -17,7 +18,7 @@ from wio.models.works import Work
 from wio.rules import RuleSelector, discover, ruleset_map, select
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Sequence
 
     from wio.models.rules import Selection
 
@@ -92,39 +93,6 @@ def _config(*, reverse: bool = False) -> Config:
 
 
 @dataclass
-class _Settings:
-    """Settings that give one config."""
-
-    config: Config
-
-    def load(self) -> Config:
-        """Give the config.
-
-        Returns:
-            The config.
-        """
-        return self.config
-
-
-@dataclass
-class _Roots:
-    """The roots of the Works, by id."""
-
-    roots: Mapping[str, tuple[str, ...]]
-
-    def roots_of(self, work_id: str) -> tuple[str, ...] | None:
-        """Find the roots of a Work.
-
-        Args:
-            work_id: The Work's id.
-
-        Returns:
-            Its roots, or `None` for an id that no Work has.
-        """
-        return self.roots.get(work_id)
-
-
-@dataclass
 class _Disk(MemoryFileSystem):
     """A file system that records the reads of bytes and can refuse some."""
 
@@ -178,10 +146,10 @@ def _selector(
         none.
     """
     return RuleSelector(
-        _Settings(config or _config()),
+        Settings(config or _config()),
         FakeRepository(),
         disk or MemoryFileSystem(_files()),
-        _Roots({"w1": ("api",), "bare": ()}),
+        Roots({"w1": ("api",), "bare": ()}),
     )
 
 
