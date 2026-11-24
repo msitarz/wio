@@ -444,8 +444,8 @@ flowchart LR
 - **Every view is one function over different roots.** A listing of the whole
   repository, of a root, of a path and of a Work at a stage differ only in the
   layers they apply and the roots they give: `--root`, `--path` and `--work`
-  will give the roots, `--stage` will give the stage, and a view without roots
-  applies none. So `select` serves them all and no view computes the rules a
+  give the roots, `--stage` gives the stage, and a view without roots applies
+  none. So `select` serves them all and no view computes the rules a
   second time.
 - **The selection holds every rule once.** Each rule of every ruleset has one
   decision, so a listing, an explanation and the hashes are views of the same
@@ -471,6 +471,20 @@ the [tests](../../../tests/unit/rules/test_list_view.py) say how each case
 reads. The types of a listing, `Listing`, `Header`, `Row` and `Explanation`, are
 in [`wio.models`](../models/listing.py), and the leaves that narrow and explain
 the listing fill the fields that this one leaves empty.
+
+`run_list` passes the listing through the steps in this order. `narrow` runs
+with references or `--not-selected`, `explain` with `--explain`, and the rules
+selected anywhere are computed only when one of them runs:
+
+```mermaid
+flowchart LR
+    flags["selectors, references and flags"] --> view["list_view"]
+    view --> narrow["narrow"]
+    narrow --> explain["explain, with --explain"]
+    explain --> render["render_listing"]
+    anywhere["selected_anywhere, once"] --> narrow
+    anywhere --> explain
+```
 
 - **A view differs from another only in the layers and the roots it applies.**
   `--root`, `--path` and `--work` give the roots, `--stage` gives the stage, and
@@ -500,16 +514,23 @@ the listing fill the fields that this one leaves empty.
   line and one [block](../formats/README.md#the-layout-of-blocks) for each rule,
   and `--json` is one object on one line with the header keys and then the
   rules, for a program.
-- **The discovery runs once, and a selector that cannot be used is refused
-  before anything is printed.** `run_list` gives `list_view` the rulesets of its
-  own discovery, so it does not call `RuleSelector.selection`, which would
-  discover again. An unknown stage, root or Work, a Work with no roots and a
-  path outside the repository are a `WioError`, so they exit 2 and not 70, and a
-  fault in the rules is refused as it is for the selector.
-- **`--not-selected` and `--explain` are declared and not acted on.** The leaves
-  that narrow the listing by references and explain where a rule came from give
-  them their behavior on this listing, and the command does not call
-  [`narrow`](narrowing.py) or [`explain`](explaining.py) yet.
+- **The discovery runs once, and anything that cannot be used is refused before
+  anything is printed.** `run_list` gives `list_view` the rulesets of its own
+  discovery, so it does not call `RuleSelector.selection`, which would discover
+  again. A conflict of selectors, an unknown stage, root or Work, a Work with no
+  roots, a path outside the repository, a reference that names nothing and a
+  fault in the rules each exit 2 with the message on standard error and nothing
+  on standard output, and a fault in the rules is refused as it is for the
+  selector.
+- **The rules selected anywhere are computed once.** `run_list` gives the one
+  [`SelectedAnywhere`](anywhere.py) to [`narrow`](narrowing.py) and to
+  [`explain`](explaining.py), which the
+  [tests](../../../tests/unit/rules/test_list_run.py) check.
+- **References narrow every view, `--not-selected` limits it to the rules that
+  nothing selects and `--explain` says where each rule came from.** The three
+  are in the sections below, and the
+  [scenarios](../../../tests/acceptance/rules/test_list_command.py) run them
+  together through the command, as text and as JSON.
 
 ## Narrowing a listing
 

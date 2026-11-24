@@ -9,9 +9,12 @@ from typing import TYPE_CHECKING
 from wio.errors import WioError
 lazy from wio.formats import Block, encode_json, render_blocks
 lazy from wio.models.listing import Header, Listing, Row
+lazy from wio.rules.anywhere import selected_anywhere
 lazy from wio.rules.applicability import select
 lazy from wio.rules.discovery import discover, refuse_on_errors
+lazy from wio.rules.explaining import explain
 lazy from wio.rules.inputs import ruleset_map
+lazy from wio.rules.narrowing import narrow
 lazy from wio.rules.roots import roots_of_path, stage_roots
 
 if TYPE_CHECKING:
@@ -343,8 +346,10 @@ def _rule_object(row: Row) -> dict[str, object]:
 def run_list(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Run `wio rules list`.
 
-    It runs the discovery once, refuses a fault in the rules and a selector that
-    cannot be used before anything is printed, and writes the listing.
+    It runs the discovery once, refuses a fault in the rules, a selector that
+    cannot be used and a reference that cannot be used before anything is
+    printed, builds the listing of the view, narrows and explains it as asked and
+    writes it.
 
     Args:
         services: What the command reads the project through.
@@ -355,9 +360,10 @@ def run_list(services: Services, args: Namespace, stdio: Stdio) -> int:
         0 after the listing.
 
     Raises:
-        WioError: A selector cannot be used: an unknown stage, root or Work, a
-            Work with no roots, or a path outside the repository. It names the
-            cause, so the command exits 2.
+        WioError: A selector or a reference cannot be used: an unknown stage,
+            root or Work, a Work with no roots, a path outside the repository, or
+            a reference that names nothing. It names the cause, so the command
+            exits 2.
         DiagnosticsError: The discovery reported an error.
         ConfigurationError: The config has an error.
     """
@@ -373,8 +379,47 @@ def run_list(services: Services, args: Namespace, stdio: Stdio) -> int:
         raise WioError(_unknown(error.args[0], request)) from error
     except ValueError as error:
         raise WioError(str(error)) from error
+    listing = _refined(listing, request, config, rulesets)
     stdio.stdout.write(render_listing(listing, as_json=request.as_json))
     return 0
+
+
+def _refined(
+    listing: Listing,
+    request: ListRequest,
+    config: Config,
+    rulesets: Mapping[str, LoadedRuleset],
+) -> Listing:
+    """Narrow and explain a listing as the request asks.
+
+    Args:
+        listing: The listing of the view.
+        request: The references, `--not-selected` and `--explain` asked for.
+        config: The settings.
+        rulesets: The rulesets by name.
+
+    Returns:
+        The listing narrowed by the references and `--not-selected`, and then
+        explained when `--explain` is given; the listing itself when none is
+        asked for. The rules selected anywhere are computed once and given to
+        both steps.
+
+    Raises:
+        WioError: A reference cannot be used.
+    """
+    if not (request.references or request.not_selected or request.explain):
+        return listing
+    anywhere = selected_anywhere(config, rulesets)
+    if request.references or request.not_selected:
+        listing = narrow(
+            listing,
+            request.references,
+            not_selected=request.not_selected,
+            config=config,
+            rulesets=rulesets,
+            anywhere=anywhere,
+        )
+    return explain(listing, anywhere) if request.explain else listing
 
 
 def _request(args: Namespace, root: Path, cwd: Path) -> ListRequest:
