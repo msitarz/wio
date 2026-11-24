@@ -5,8 +5,6 @@ import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import pytest
-
 from tests.unit.rules.support import Roots, make_ruleset
 from wio.models.config import Config, Root, Ruleset, Stage
 from wio.models.frozen import freeze
@@ -15,14 +13,10 @@ from wio.rules.explaining import explain
 from wio.rules.listing import ListRequest, list_view, render_listing
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
 
     from wio.models.listing import Listing
     from wio.models.rule import LoadedRuleset
-
-STUB = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="explain is a stub"
-)
 
 _RECOMMENDED = "root api ← demo.recommended ← demo.ARC"
 
@@ -139,7 +133,25 @@ def _lines(listing: Listing, code: str) -> tuple[str, ...]:
     return row.explanation.lines()
 
 
-@STUB
+def _agree(listing: Listing, code: str, rule: Mapping[str, Sequence[object]]) -> bool:
+    """Tell whether the text and the JSON of a rule state the same chains.
+
+    Args:
+        listing: The explained listing.
+        code: The rule's qualified code.
+        rule: Its JSON object.
+
+    Returns:
+        Whether it has as many `from:` and `by:` lines as `origins` and
+        `removed_by` have chains.
+    """
+    lines = _lines(listing, code)
+    origins, removed = rule["origins"], rule["removed_by"]
+    origin_lines = [line for line in lines if line.startswith("from:")]
+    removal_lines = [line for line in lines if line.startswith("by:")]
+    return (len(origin_lines), len(removal_lines)) == (len(origins), len(removed))
+
+
 def test_an_included_rule_shows_where_it_came_from() -> None:
     """AC-1: one `from:` line for each route of each origin."""
     # Given the repository, a Work in `api` and the stage `s`
@@ -156,7 +168,6 @@ def test_an_included_rule_shows_where_it_came_from() -> None:
     )
 
 
-@STUB
 def test_a_rule_with_several_origins_shows_them_in_order() -> None:
     """AC-2: the root first and the stage second."""
     # Given a stage that also includes `demo.ARC001`
@@ -172,7 +183,6 @@ def test_a_rule_with_several_origins_shows_them_in_order() -> None:
     ]
 
 
-@STUB
 def test_a_rule_that_is_out_shows_the_reason_and_what_removed_it() -> None:
     """AC-3: an `out:` line for each reason and a `by:` line for each removal."""
     # Given a stage that excludes `ARC002` and includes `WEB001`, a veto of
@@ -192,6 +202,8 @@ def test_a_rule_that_is_out_shows_the_reason_and_what_removed_it() -> None:
     assert "out: excluded by the stage" in arc2
     assert "by: demo.ARC002 ← stage s ← demo.ARC002" in arc2
     pay1 = _lines(listing, "demo.PAY001")
+    assert "from: demo.PAY001 ← root api ← demo.extra ← demo.PAY" in pay1
+    assert "from: demo.PAY001 ← stage s ← demo.PAY001" in pay1
     assert "out: vetoed by rules_always_exclude" in pay1
     assert "by: demo.PAY001 ← rules_always_exclude ← demo.PAY001" in pay1
     pay2 = _lines(listing, "demo.PAY002")
@@ -199,10 +211,9 @@ def test_a_rule_that_is_out_shows_the_reason_and_what_removed_it() -> None:
     assert "by: demo.PAY002 ← root api ← demo.extra ← demo.PAY002" in pay2
     web = _lines(listing, "web.WEB001")
     assert "out: cut by the roots" in web
-    assert any(line.startswith("from: web.WEB001") for line in web)
+    assert "from: web.WEB001 ← stage s ← web.WEB001" in web
 
 
-@STUB
 def test_a_listing_of_references_shows_the_routes_of_the_references() -> None:
     """AC-4: each route, sorted, with no layer."""
     # Given the repository and the listing of every rule
@@ -218,7 +229,6 @@ def test_a_listing_of_references_shows_the_routes_of_the_references() -> None:
     )
 
 
-@STUB
 def test_an_unselected_rule_shows_what_removed_it() -> None:
     """AC-5: `out: not selected`, and the exclude of a rule preset where it applies."""
     # Given a rule preset `recommended` that excludes `ARC002`
@@ -247,17 +257,23 @@ def test_an_unselected_rule_shows_what_removed_it() -> None:
     assert _lines(root, "demo.PAY002") == ("out: not selected",)
 
 
-@STUB
 def test_the_json_carries_the_same_explanation() -> None:
     """AC-6: `origins`, `reason` and `removed_by`, as arrays and a kind and layer."""
     # Given the repository of AC-3
-    repo = _Repo(exclude=("demo.ARC002",), veto=("demo.PAY001",))
+    repo = _Repo(
+        api=("demo.recommended", "demo.extra"),
+        include=("demo.PAY001", "web.WEB001"),
+        exclude=("demo.ARC002",),
+        veto=("demo.PAY001",),
+    )
 
-    # When the listing is rendered as JSON
-    rules = json.loads(render_listing(_listing(repo), as_json=True))["rules"]
+    # When the listing is rendered as JSON, and its rows' lines are read
+    listing = _listing(repo)
+    rules = json.loads(render_listing(listing, as_json=True))["rules"]
     found = {rule["code"]: rule for rule in rules}
 
-    # Then each rule has the three fields in the form of the contract
+    # Then each rule has the three fields in the form of the contract, which
+    # state what the text states
     assert found["demo.ARC001"]["origins"] == [
         ["root api", "demo.recommended", "demo.ARC"]
     ]
@@ -265,6 +281,8 @@ def test_the_json_carries_the_same_explanation() -> None:
     assert found["demo.ARC002"]["reason"] == {"kind": "excluded", "layer": "stage"}
     assert found["demo.ARC002"]["removed_by"] == [["stage s", "demo.ARC002"]]
     assert found["demo.PAY001"]["reason"] == {"kind": "vetoed", "layer": None}
+    assert found["demo.PAY002"]["reason"] == {"kind": "excluded", "layer": "root"}
+    assert all(_agree(listing, code, rule) for code, rule in found.items())
 
 
 def test_without_an_explanation_nothing_is_added() -> None:
@@ -282,15 +300,18 @@ def test_without_an_explanation_nothing_is_added() -> None:
 
     # Then there is no line and no field
     assert not any(tag in text for tag in ("from:", "out:", "by:"))
-    assert all("origins" not in rule for rule in rules)
+    fields = ("origins", "reason", "removed_by")
+    assert all(name not in rule for rule in rules for name in fields)
 
 
-@STUB
 def test_the_explanation_does_not_depend_on_the_order_of_the_inputs() -> None:
     """AC-8: equal explanations for two orders of the tables and entries."""
     # Given the repository in two orders
-    forward = _Repo(include=("demo.PAY001", "demo.ARC001"))
-    backward = _Repo(include=("demo.PAY001", "demo.ARC001"), reverse=True)
+    api = ("demo.recommended", "demo.extra")
+    forward = _Repo(api=api, include=("demo.PAY001", "demo.ARC001"))
+    backward = _Repo(
+        api=api[::-1], include=("demo.ARC001", "demo.PAY001"), reverse=True
+    )
 
     # When the listing of the Work at the stage is explained on each
     one, two = _listing(forward), _listing(backward)
@@ -299,7 +320,6 @@ def test_the_explanation_does_not_depend_on_the_order_of_the_inputs() -> None:
     assert [r.explanation for r in one.rows] == [r.explanation for r in two.rows]
 
 
-@STUB
 def test_there_is_nothing_to_explain_without_layers_or_references() -> None:
     """AC-9: no line for every rule with no layers."""
     # Given the repository and the listing of every rule
@@ -312,7 +332,6 @@ def test_there_is_nothing_to_explain_without_layers_or_references() -> None:
     assert all(row.explanation and not row.explanation.lines() for row in listing.rows)
 
 
-@STUB
 def test_layers_explain_a_row_even_when_references_narrowed_it() -> None:
     """AC-9: the layers' chain, and not the route of the reference."""
     # Given the listing of the root `api`, narrowed by `demo.ARC`
