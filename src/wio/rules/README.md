@@ -444,8 +444,8 @@ flowchart LR
 - **Every view is one function over different roots.** A listing of the whole
   repository, of a root, of a path and of a Work at a stage differ only in the
   layers they apply and the roots they give: `--root`, `--path` and `--work`
-  will give the roots, `--stage` will give the stage, and a view without roots
-  applies none. So `select` serves them all and no view computes the rules a
+  give the roots, `--stage` gives the stage, and a view without roots applies
+  none. So `select` serves them all and no view computes the rules a
   second time.
 - **The selection holds every rule once.** Each rule of every ruleset has one
   decision, so a listing, an explanation and the hashes are views of the same
@@ -472,8 +472,9 @@ reads. The types of a listing, `Listing`, `Header`, `Row` and `Explanation`, are
 in [`wio.models`](../models/listing.py), and the leaves that narrow and explain
 the listing fill the fields that this one leaves empty.
 
-`run_list` passes the listing through the steps in this order, and each of the
-other two is skipped when its flag is not given:
+`run_list` passes the listing through the steps in this order. `narrow` runs
+with references or `--not-selected`, `explain` with `--explain`, and the rules
+selected anywhere are computed only when one of them runs:
 
 ```mermaid
 flowchart LR
