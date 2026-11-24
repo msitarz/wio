@@ -287,7 +287,8 @@ case reads.
 [`select`](applicability.py) applies the layers and decides every rule of every
 ruleset: included, with the roots it applies to, or out, with the reason. One
 function serves every view of a listing and every consumer of a selection, so
-`wio context` and `wio rules list` cannot give a rule different decisions. Its
+`wio rules list` and, once it exists, `wio context` cannot give a rule
+different decisions. Its
 docstring says what it takes and returns, and its
 [tests](../../../tests/unit/rules/test_applicability.py) say how each case
 reads. `Decision` and `Reason` are in [`wio.models`](../models/rules.py).
@@ -317,7 +318,8 @@ reads. `Decision` and `Reason` are in [`wio.models`](../models/rules.py).
   set, so it gives no reason, and a rule that only it removed is not selected.
 - **Each decision carries the effects of the layers,** so a listing can explain
   a rule without applying the layers again, and the order of the selection is
-  that of the layers: every rule once, in the order of ruleset, family and code.
+  that of the layers: every rule once, in the order of ruleset, family, number
+  and code text.
 - **The same inputs give the same selection** whatever the order of the tables
   of the config, of the entries of its lists or of the roots, and `select`
   raises the `KeyError` of the layers for a root or a stage that the config does
@@ -400,9 +402,8 @@ says what the forms of a stage's `roots` mean.
 ## The selection as a whole
 
 The parts above decide which rules apply to a stage, and they are built so that
-every consumer reads one answer, so `wio trailers` and the commands that come
-(`wio rules list` and `wio context`) cannot disagree on what a session was
-given. Its
+every consumer reads one answer, so `wio trailers`, `wio rules list` and,
+once it exists, `wio context` cannot disagree on what a session was given. Its
 [tests](../../../tests/unit/rules/test_selection.py) are the criteria of the
 selection.
 
@@ -699,6 +700,55 @@ reads. `show_rule` and `render_rule` do no input or output.
   `path` in that order, with no final line feed in the body.
 - **The same repository and reference give the same bytes.** Nothing is
   written.
+
+## The command as a whole
+
+`wio rules` has four subcommands, `check`, `list`, `new` and `show`, that share
+the selection, the discovery of the rule files and the forms of their output.
+The [tests](../../../tests/acceptance/rules/test_tree.py) run them together,
+and the
+[citation of a rule](../../../tests/acceptance/rules/test_tree_trailers.py) and
+the [selector](../../../tests/unit/rules/test_tree.py) are tested through the
+ports of `wio.trailers` and `wio.context`. These hold for all of them:
+
+- **`wio.rules` imports no other component.** `tach check` verifies it. It
+  reads files, the config and the roots of a Work only through the `wio.io`
+  ports, the shared `Settings` port and the roots port, and the unit tests of
+  its parts run it on fakes of them.
+- **The output is deterministic.** The same files, config and arguments give the
+  same bytes, in text and in JSON. Rules are ordered by ruleset name, then
+  family, then the number of the code, then the text of the code, so `ARC999`
+  comes before `ARC1000` and `ARC001` before `ARC01`, and diagnostics are in the
+  order of `sort_diagnostics` of `wio.models.diagnostics`, which compares the
+  place as text, then the severity, then the message.
+- **Only `wio rules new` writes a file.** `check`, `list` and `show` read only.
+  `new` writes nothing for a ruleset with a fault.
+- **A rule is named by its canonical ruleset and code with its name.** It is
+  written such as `py.API001 adapters-return-typed-results` wherever `wio rules`
+  shows or cites it, never by a bare code or an alias.
+- **Every subcommand takes `--json`.** It prints the information of the text
+  form as one JSON document.
+- **A diagnostic names its place the same way.** It is the path of the file
+  relative to the repository root, written with `/` and followed by `:<line>`
+  when the fault has a line; the path of the directory for a fault of a
+  directory; the manifest's path followed by `#` and the key path for a fault in
+  a key of a manifest, such as
+  `.agents/wio/rules/demo/ruleset.toml#rule_presets.local.rules_include[0]`; and
+  the key path of the config for a fault in the config, as `wio config check`
+  writes it. A fault of two files names both, joined by `, `, as `wio.templates`
+  writes it.
+- **A fault reaches `check` and stops the other commands.** `wio rules check`
+  reports it, and `new`, `list` and `show` refuse instead of working from a
+  ruleset that has left a rule out.
+- **A rule made by `new` needs no edit.** `check` accepts it, `list` shows it
+  and the selection for a Work at a stage includes it.
+- **A reference that names nothing is judged where it is written.** One of the
+  config selects no rule and is reported by `check`, so `list` and the selection
+  go on past it, while a reference given to `wio rules list` on the command line
+  that names nothing is refused.
+- **A rule that nothing selects is listed and not warned about.**
+  `wio rules list --not-selected` shows the rules that no root, stage or always
+  field includes, and `check` reports nothing about them.
 
 ## The group of subcommands
 
