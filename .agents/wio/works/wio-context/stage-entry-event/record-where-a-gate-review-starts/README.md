@@ -44,16 +44,18 @@ not import `wio.trailers`, as A-3 of [wio context](../../README.md) says.
 `GitHistory.first_parents` raises a `ValueError` for every revision that git
 rejects, so for a repository with no commit `reviewed_commit` does not return
 `None` as its docstring says. This Work changes `first_parents` so that for the
-revision `HEAD`, when `git log` has failed and `HEAD` is a symbolic reference to
-a branch that does not exist, which is the case when `git symbolic-ref -q HEAD`
-names a branch and `git show-ref --verify --quiet` of that branch exits 1, it
-gives an empty sequence; the check runs only after `git log` fails, so the
-success path makes no extra call. Every other revision that git rejects, an
-option-like one and a `HEAD` that is corrupt included, whether it is detached at
-a missing object or names a branch that points at one, so that `show-ref` exits
-128, still raises `ValueError`. The docstrings of `src/wio/io/ports.pyi` and
-`src/wio/io/adapters.py` and the `wio.io` README state the new case, and C-5 of
-the top Work names it as its one exception.
+revision `HEAD`, when `git log` has failed, `git symbolic-ref -q HEAD` exits 0
+and prints a full reference, and `git show-ref --verify --quiet` run on that
+printed reference exits 1, because the branch is absent, it gives an empty
+sequence; the check runs only after `git log` fails, so the success path makes
+no extra call. Every other revision that git rejects still raises `ValueError`:
+an option-like one, a `HEAD` detached at a missing object, a branch that points
+at a missing object, so that `show-ref` exits 128, and a branch file that is
+corrupt, so that `symbolic-ref` exits 128. A `.git/HEAD` that git cannot read
+makes git say that the directory is not a repository, which raises
+`RuntimeError` as for any other use outside a repository. The docstrings of
+`src/wio/io/ports.pyi` and `src/wio/io/adapters.py` and the `wio.io` README
+state the new case, and C-5 of the top Work names it as its one exception.
 
 ### A-3
 
@@ -78,9 +80,16 @@ later form of `wio trailers --result` must read an absent start as unknown.
 
 ### A-6
 
-The reads of the history and of the repository raise `RuntimeError`,
-`ValueError` or `OSError` when they fail, and those are the failures that become
-warnings; anything else is a bug in wio and ends the run with exit 70.
+The reads of the history raise `ValueError` or `RuntimeError`, and the read of
+the repository raises `RuntimeError`, as the ports declare;
+`Repository.is_dirty` also raises `ValueError` when `git status` fails, which
+this Work declares in the port. Those are the failures that become warnings, and
+anything else is a bug in wio and ends the run with exit 70.
+
+### A-7
+
+A gate loads the first-parent history with its messages to find the start, which
+a stage that is not a gate never does, and this cost is accepted.
 
 ## Mechanisms
 
@@ -89,8 +98,9 @@ warnings; anything else is a bug in wio and ends the run with exit 70.
 - **The reviewed-commit port** — in `src/wio/context/ports.pyi`, provisional,
   which `wio.cli` wires to that finder.
 - **`GitHistory.first_parents`** — in `wio.io`, changed as A-2 says.
-- **The `Repository` and `History` ports** — in `wio.io`, read before the bundle
-  is delivered, so that a bundle written inside the worktree is not counted.
+- **The reviewed-commit port and the `Repository` port** — read before the
+  bundle is delivered, so that a bundle written inside the worktree is not
+  counted.
 
 ## Acceptance criteria
 
@@ -143,19 +153,21 @@ start and the run goes on.
 ### **AC-4** An unborn `HEAD` gives an empty history, and nothing else changes
 
 `first_parents("HEAD")` in a repository whose `HEAD` is a reference to a branch
-that does not exist gives an empty sequence, and every other revision that git
+that is absent gives an empty sequence, and every other revision that git
 rejects still raises `ValueError`.
 
 #### The adapter
 
-- **Given** a repository with no commit, one with commits, one whose `HEAD` is
-  detached at a missing object, and one whose branch points at a missing object.
+- **Given** a repository with no commit, one with commits, and three whose
+  references are made bad by writing text into the files of the repository: a
+  40-digit hexadecimal id that no object has into `.git/HEAD`, the same id into
+  `.git/refs/heads/main`, and the text `garbage` into `.git/refs/heads/main`.
 - **When** `first_parents` is called with `HEAD` in the first, then with
   `nosuch` and with `--all`, then with `HEAD` in the second, and with `HEAD` in
-  the last two.
+  the other three.
 - **Then** the first call gives an empty sequence, the next two raise
   `ValueError`, the fourth gives the commits newest first as before, and the
-  last two raise `ValueError`.
+  other three raise `ValueError`.
 
 ### **AC-5** A review with no reviewed commit is refused by both commands
 
@@ -178,9 +190,10 @@ bundle and exits 0.
 
 #### Each port failing on its own
 
-- **Given** a gate, with a `History` whose reads raise `ValueError` and a
-  `Repository` that reads, and the reverse.
+- **Given** a gate, with a `History` whose reads raise `ValueError`, a
+  `Repository` whose reads raise `RuntimeError`, and one whose reads raise
+  `ValueError`, each failing while the other port reads.
 - **When** `wio context` runs for each.
-- **Then** the first event has no `start` and has `dirty`, the second has
-  `start` and no `dirty`, each run reports a warning that names what could not
-  be read, prints the bundle and exits 0.
+- **Then** the first event has no `start` and has `dirty`, the other two have
+  `start` and no `dirty`, each run reports a warning that names `start` or
+  `dirty`, prints the bundle and exits 0.
