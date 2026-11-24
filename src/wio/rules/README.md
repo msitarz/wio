@@ -642,7 +642,8 @@ anything is written.
   unknown ruleset, a family that the manifest does not declare, a name or a
   description of the wrong form and a name that the ruleset already has are a
   `WioError` that lists what would do. A file in the way, a rule or not and a
-  symbolic link included, is refused too, because `write_text` overwrites.
+  symbolic link included, is refused too, because `write_text` overwrites or
+  writes through a link.
 - **An error of the discovery anywhere refuses the command, and a warning does
   not.** The ruleset asked for need not be the one with the error.
 - **An alias is resolved to the canonical name before the plan.** `plan_rule`
