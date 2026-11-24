@@ -19,7 +19,7 @@ to run again, and a wrong stage must be caught by reading the header.
 - The header says whether the stage is a gate and, for a gate, whether a person
   must judge.
 - The header gives the session advice.
-- The header states the number of rules, the size of the body and the bundle id.
+- The header states the number of rules and the size of the body.
 - The header states the canonical command.
 - For a stage with a skill, the header names the directory the skill was found
   in and a hash of its files.
@@ -49,11 +49,11 @@ are required.
   `, judged by a person` after `gate: yes` for `judge = "human"`,
   `session: fresh` or `session: any`, with `, do not continue it` for a stage
   that is not continuable, `rules: <n>`, `size: <bytes> bytes, <lines> lines
-  (body)`, `bundle: <id>`, `command: <canonical command>`, and for a skill
+  (body)`, `command: <canonical command>`, and for a skill
   `skill: <name> (<directory>, files <hash>)`.
 - **The builder** — `header(work_id: str, title: str | None, action: str,
   stage_name: str, stage: Stage, rules: int, size_bytes: int, size_lines: int,
-  bundle_id: str, skill: tuple[str, str, str] | None) -> str`, where `skill` is
+  skill: tuple[str, str, str] | None) -> str`, where `skill` is
   the name, the directory and the files hash, which gives the lines joined by
   `"\n"` and builds the command line from `work_id`, `action` and `stage_name`.
 - **The canonical command** — the one that the Glossary of `j85eh5` defines.
@@ -93,17 +93,17 @@ wording of the lines.
 
 ### **AC-2** The header states what the session received
 
-The header gives the number of rules, the size of the body in bytes and lines,
-and the bundle id, in the provisional wording, and says that no rule was
-selected when none was.
+The header gives the number of rules and the size of the body in bytes and
+lines, in the provisional wording, and says that no rule was selected when none
+was.
 
 #### Three rules, and none
 
 - **Given** the counts 1234 bytes and 56 lines with three rules, and the same
   counts with no rule.
 - **When** the header is built for each.
-- **Then** the first has `rules: 3` and `size: 1234 bytes, 56 lines (body)`, the
-  second has `rules: 0`, and each gives the id that it was given.
+- **Then** the first has `rules: 3` and `size: 1234 bytes, 56 lines (body)`, and
+  the second has `rules: 0`.
 
 ### **AC-3** The header states the canonical command
 

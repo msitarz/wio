@@ -16,7 +16,8 @@ it is large.
 ## Goals
 
 - A session can read the bundle from a file when it asks for one.
-- A driver is warned when the bundle is larger than the configured threshold.
+- A driver is warned when the body of the bundle is larger than the configured
+  threshold.
 
 ## Non-Goals
 
@@ -48,17 +49,13 @@ flowchart LR
 
 ### **AC-1** The size warning is the same whichever way the bundle is delivered
 
-A body over the threshold gives the same warning with and without `--output`,
-and with `--output` standard output holds the path alone and the file holds the
-whole bundle.
+A body over the threshold gives the same warning with and without `--output`.
 
 #### Both destinations
 
 - **Given** a size threshold below the size of the body of a bundle.
 - **When** `wio context <work> <action> <stage>` runs, and then with `--output`.
-- **Then** both runs report the same warning on standard error and exit 0, the
-  first prints the bundle on standard output, and the second prints the path of
-  the file and a newline and nothing else, and the file holds the whole bundle.
+- **Then** both runs report the same warning on standard error and exit 0.
 
 ### **AC-2** A failed write still reports the size warning
 
@@ -71,3 +68,16 @@ When the file cannot be written, the size warning is reported before the error.
 - **When** `wio context` runs.
 - **Then** the size warning is reported, the error follows, and the exit code is
   2.
+
+### **AC-3** Several warnings come in one order
+
+The compiler's warnings come first, then the size warning, then the warning
+about a path inside the worktree.
+
+#### All three kinds
+
+- **Given** a compiler result with one warning, a size threshold below the size
+  of the body, and `--output` given a path under the repository root.
+- **When** `wio context` runs.
+- **Then** the three warnings are lines on standard error in that order, and the
+  exit code is 0.

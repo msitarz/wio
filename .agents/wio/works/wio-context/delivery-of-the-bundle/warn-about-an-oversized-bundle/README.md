@@ -2,7 +2,7 @@
 id = "jcax3k"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["b53rss", "fadef4"]
+depends_on = ["b53rss"]
 -->
 
 # Warn about an oversized bundle
@@ -24,14 +24,14 @@ driver must be told when a bundle is larger than the project allows.
 
 - Shortening or splitting the bundle.
 - Writing the file, and the warning's independence of where the bundle goes,
-  which the sibling and the parent state.
+  which the parent states.
 
 ## Assumptions
 
 ### A-1
 
 The size threshold of the config's bundle settings is in bytes, the unit of the
-size the header states.
+size the header states, and no config check rejects zero or a negative number.
 
 ### A-2
 
@@ -51,19 +51,21 @@ says.
 - **`size_threshold`** — in the config's bundle settings, none by default, read
   through the shared `Settings` port.
 - **The warning** — a line on standard error, in the form that the command Work
-  gives.
+  gives, which the command reports before it delivers the bundle, so that a
+  failed delivery still shows it.
 
 ## Acceptance criteria
 
 ### **AC-1** A body above the threshold is warned about
 
 A body larger than the threshold gives a warning that names the size from the
-compiler result and the threshold, and the bundle is still delivered.
+compiler result and the threshold, and the bundle is still delivered; the size
+comes from the result and not from the length of the text.
 
 #### Above and within
 
 - **Given** a threshold of 1000 and compiler results whose bodies are 1001 and
-  1000 bytes, whose texts are 5000 bytes long.
+  1000 bytes, whose texts are 1400 bytes long.
 - **When** `wio context` runs for each.
 - **Then** the first reports a warning that names 1001 and 1000, and the second
   reports none, and both deliver their bundle and exit 0.
@@ -74,7 +76,8 @@ A config with no threshold never gives this warning.
 
 #### No threshold
 
-- **Given** a config with no `size_threshold` and a very large body.
+- **Given** a config with no `size_threshold` and a compiler result whose body
+  is 1000000 bytes.
 - **When** `wio context` runs.
 - **Then** no warning about the size is reported.
 
@@ -85,6 +88,7 @@ zero or a negative one warns for every body with bytes.
 
 #### Zero and negative
 
-- **Given** thresholds of 0 and -1 and a body of 1 byte.
+- **Given** thresholds of 0 and -1 and a compiler result whose body is 1 byte,
+  which a fake compiler gives.
 - **When** `wio context` runs for each.
 - **Then** each reports a warning that names 1 and the threshold.

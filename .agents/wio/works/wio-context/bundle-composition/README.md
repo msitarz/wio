@@ -15,8 +15,9 @@ that can be compared with another.
 
 ## Goals
 
-- The id and the size that the header states are those of the body, so a reader
-  can check them against the text.
+- The id that the metadata states is that of the header and the body, and the
+  size that the header states is that of the body, so a reader can check both
+  against the text.
 - A skill that a stage names is found, pointed to and counted in the id.
 
 ## Non-Goals
@@ -41,9 +42,11 @@ concepts do not name, and the docs stage records them.
 
 The bundle id is 12 hexadecimal digits for every stage, where the skill's files
 count through the input of the hash and not through a longer id, which keeps the
-id short as the concepts say, and it hashes the whole body, labels and closing
-line included, where the concepts say the goal, the contract and the rules, so a
-change of a label changes the id too.
+id short as the concepts say, and it hashes the header and the whole body,
+labels and closing line included, where the concepts say the goal, the contract
+and the rules, so a change of the request, of a label or of the closing sentence
+changes the id too; the id itself stands in a metadata section that is not
+hashed, which the concepts do not have, and the docs stage records it.
 
 ### A-4
 
@@ -74,44 +77,48 @@ The names below are provisional.
 
 The diagram is drawn from commit `8edc675` of the branch `main`. Before, no part
 of a bundle is built. After, each part is built by one Work, and the assembly
-builds the body first and then gives the header the id and the size of the body.
+builds the body first, then the header from its size, then the id from the
+header and the body, and last the metadata that holds the id.
 
 ```mermaid
 flowchart LR
     skill["skill lookup: directory and files hash"] --> guide["stage guidance"]
-    skill --> ident["bundle identity"]
     skill --> head["header"]
     guide --> asm["assembly"]
     contract["contract section"] --> asm
     rules["rules section"] --> asm
-    asm -->|"body"| ident
-    ident -->|"id"| head
     asm -->|"body size"| head
-    head --> asm
-    asm --> bundle["the bundle: header, blank line, body"]
+    head -->|"header"| asm
+    asm -->|"header and body"| ident["bundle identity"]
+    skill -->|"files hash"| ident
+    ident -->|"id"| meta["metadata"]
+    meta --> bundle["the bundle: metadata, header, body"]
+    asm --> bundle
 ```
 
 ## Acceptance criteria
 
-### **AC-1** The header states the id and the size of the body
+### **AC-1** The metadata and the header state what the text gives
 
-The id in the header is the id that the identity gives for the body, with the
-skill's files for a stage that has a skill, and the size is the body's bytes and
-lines, so both can be recomputed from the text.
+The id in the metadata is the id that the identity gives for the text after the
+first blank line, with the skill's files for a stage that has a skill, and the
+size in the header is the body's bytes and lines, so both can be recomputed from
+the text.
 
 #### A stage with a goal
 
 - **Given** a bundle printed for a stage with a goal.
-- **When** its body, the text after the first blank line, is counted, and its id
-  is computed by the identity.
-- **Then** the id and the counts equal the ones in the header.
+- **When** the text after its first blank line is given to the identity, and the
+  text after its second blank line is counted.
+- **Then** the id equals the one in the metadata, and the counts equal the size
+  in the header.
 
 #### A stage with a skill
 
 - **Given** a bundle printed for a stage with a skill.
-- **When** its body is counted, and its id is computed by the identity from the
-  body and the files hash in the header.
-- **Then** the id and the counts equal the ones in the header.
+- **When** the text after its first blank line is given to the identity with the
+  files hash from the header, and the body is counted.
+- **Then** the id and the counts equal the ones in the metadata and the header.
 
 ### **AC-2** The skill's directory and hash agree everywhere
 

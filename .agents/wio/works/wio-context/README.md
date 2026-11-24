@@ -34,11 +34,18 @@ can tell what two sessions were given or compare their results.
 
 ### Body
 
-The text of a [bundle](../../../../GLOSSARY.md) after its header and the blank
-line that follows the header, up to the end: the labelled parts and the closing
-line, as [Assemble the bundle](bundle-composition/assemble-the-bundle/README.md)
-defines them. The bundle id and the size that the header states are those of the
-body, so that neither depends on the header that contains it.
+The text of a [bundle](../../../../GLOSSARY.md) after its metadata, its header
+and the blank lines that follow them, up to the end: the labelled parts and the
+closing line, as
+[Assemble the bundle](bundle-composition/assemble-the-bundle/README.md) defines
+them. The size that the header states is that of the body.
+
+### Metadata
+
+The first line of a bundle, `bundle: <id>`, which holds the values derived from
+the header and the body and is never hashed, so that the bundle id, which hashes
+the text after the metadata, does not depend on itself. Today it holds the id
+alone.
 
 ### Canonical command
 
@@ -257,17 +264,17 @@ flowchart LR
 
 ### **AC-1** One command gives a stage its context
 
-`wio context <work> <action> <stage>` prints, in this order, the header, the
-stage's goal or the pointer to its skill, the Work's resolved contract, the
-rules that apply to the stage and the closing line, and exits 0.
+`wio context <work> <action> <stage>` prints, in this order, the metadata, the
+header, the stage's goal or the pointer to its skill, the Work's resolved
+contract, the rules that apply to the stage and the closing line, and exits 0.
 
 #### A stage with a goal
 
 - **Given** a defined Work with a root, an action with a stage whose goal is
   set, and a rule that the stage selects.
 - **When** `wio context` runs for that Work, action and stage.
-- **Then** the output holds the header, the goal, the resolved contract, the
-  rule and the closing line in that order, and the exit code is 0.
+- **Then** the output holds the metadata, the header, the goal, the resolved
+  contract, the rule and the closing line in that order, and the exit code is 0.
 
 #### A stage with a skill
 
@@ -347,9 +354,9 @@ same inputs, and the command prints where it wrote them.
 
 ### **AC-7** A stage entry is recorded
 
-A run records one `context` event whose bundle id is the header's, and for a
-gate stage the event also holds the commit the review starts from and whether
-the tree was dirty.
+A run records one `context` event whose bundle id is the one in the metadata,
+and for a gate stage the event also holds the commit the review starts from and
+whether the tree was dirty.
 
 #### A stage and a gate
 
@@ -357,7 +364,7 @@ the tree was dirty.
   a Work.
 - **When** `wio context` runs for each.
 - **Then** the log holds one event for each whose bundle id equals the id in
-  that run's header, the gate's event holds the commit and the dirty flag, and
+  that run's metadata, the gate's event holds the commit and the dirty flag, and
   the other event holds neither.
 
 ## Additional context

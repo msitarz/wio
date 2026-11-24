@@ -33,7 +33,8 @@ it gave and which rules it contained.
 
 `ContextEvent`, `EventSink` and the identification of the harness session in
 `wio.log` carry everything that a stage entry records, so `wio.log` needs no
-change.
+change but the move of the function that names a clone's key, which Write the
+bundle to a file declares.
 
 ### A-2
 
@@ -58,16 +59,16 @@ The hash of a rule's file is the `rule_hash` of `wio.formats`, the one that
 ### **AC-1** A run records one event with what it gave
 
 One run writes one event with the Work, the action, the stage, the bundle id of
-the header, the size of the body and the hash of each rule's file, keyed by
+the metadata, the size of the body and the hash of each rule's file, keyed by
 qualified code in the order of the bundle.
 
 #### A stage with two rules
 
 - **Given** a stage whose bundle holds `mp.ARC001` and `mp.ERR002`.
 - **When** `wio context` runs.
-- **Then** the log holds one event whose `bundle` and `size` are those of the
-  header and whose `rules` map `mp.ARC001` and `mp.ERR002`, in that order, to
-  the `rule_hash` of their files.
+- **Then** the log holds one event whose `bundle` is the id in the metadata,
+  whose `size` is the size in the header, and whose `rules` map `mp.ARC001` and
+  `mp.ERR002`, in that order, to the `rule_hash` of their files.
 
 ### **AC-2** A stage that is not a gate records no start and no dirty flag
 
@@ -99,5 +100,12 @@ was not given its bundle.
 #### A file that cannot be written
 
 - **Given** `--output` with a path that cannot be written.
+- **When** `wio context` runs.
+- **Then** the command exits 2, and the log holds no new `context` event.
+
+#### No temporary directory
+
+- **Given** `--output` without a path, `$TMPDIR` unset and a system directory
+  that cannot be written.
 - **When** `wio context` runs.
 - **Then** the command exits 2, and the log holds no new `context` event.

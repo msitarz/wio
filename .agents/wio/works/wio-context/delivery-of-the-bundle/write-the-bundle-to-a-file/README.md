@@ -2,7 +2,7 @@
 id = "q6mf05"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["b53rss", "fadef4"]
+depends_on = ["b53rss"]
 -->
 
 # Write the bundle to a file
@@ -35,24 +35,19 @@ a file that holds it and be told where the file is.
 ### A-1
 
 The compiler result carries the bundle id that names the default file, as the
-command Work's compiler port says.
+command Work's compiler port says, and the id names the header and the body, so
+two runs that give the same id give the same file apart from its metadata line.
 
 ### A-2
 
 The key `<repo>` of the default path is the `<name>-<digest>` that names the
 clone's log directory, which comes from `Repository.identity()`; `wio.context`
-may not import `wio.log`, so the function that makes the key moves to a place
-that both may import, left to the architecture stage, and this Work changes
-`wio.log` by that move only, with its tests unchanged, which amends A-1 of the
-top Work.
+may not import `wio.log`, so a function that gives that key is extracted from
+`log_directory` of `wio.log`, reused unchanged, and moved to a place that both
+may import, left to the architecture stage, and this Work changes `wio.log` by
+that move only, with its tests unchanged.
 
 ### A-3
-
-The bundle id is that of the body while the file holds the whole bundle, so two
-runs whose bodies are equal and whose headers differ share one file, and the
-later run's bundle is the one that stays.
-
-### A-4
 
 The concepts' `--output <path>` is read as `--output <path>` or
 `--output=<path>`, with the three arguments before it or the form with `=`
@@ -60,35 +55,41 @@ anywhere, because a bare `--output` takes the next word as its path.
 
 ## Mechanisms
 
-The names and the places below are provisional, except the paths and the rules
-for the temporary directory, which are required.
+The names and the places below are provisional. The option and its forms, the
+default path, the rules for the temporary directory and the errors' naming are
+required.
 
 - **`--output [path]`** — an option of the command that this Work adds. A bare
   `--output` before the three arguments takes the first of them as its path, so
   `wio context --output <work> <action> <stage>` fails as a usage error for want
   of the stage. An empty path, `--output=`, is a usage error, a repeated option
-  keeps the last, a leading `~` is not expanded, and a relative path is relative
-  to the working directory.
+  keeps the last, so `--output=x --output` is a bare one, a leading `~` is not
+  expanded, and a relative path is relative to the working directory.
 - **The default path** — `<tmp>/wio/<repo>/<bundle-id>.md`, as
   [the concepts](../../../../../../docs/concepts.md#11-the-context-compiler)
   give it, where `<tmp>` is the temporary directory and `<repo>` is the clone's
   key of A-2, such as `wio-c4555ef0c89d`.
 - **`Directories.temp_dir`** — implemented by this Work in `wio.env`, by the
   rule of the concepts: `$TMPDIR` when it is set to a non-empty value, used as
-  it is, also when it is relative, without a test, and otherwise `/private/tmp`
-  on macOS or `/tmp` elsewhere, chosen by the platform, which is an input of the
-  adapter's wiring; the system directory is usable when a small test file can be
+  it is, also when it is relative and also when it does not exist, without a
+  test, and otherwise the system directory of the platform, `/private/tmp` on
+  macOS or `/tmp` elsewhere, which is usable when a small test file can be
   created in it and removed, and any `OSError` means that it is not, and then
-  the call raises an `OSError`.
-- **The errors** — the delivery turns that `OSError`, and any `OSError` of
-  writing the file, into a `WioError`: for no usable temporary directory it
-  names `$TMPDIR` and `--output <path>`, for a failure to write the default file
-  it names the file, `$TMPDIR` and `--output <path>`, and for a failure to write
-  a given path it names the path alone.
-- **The key of the clone** — the function that `wio.log` uses for the last
-  component of a clone's log directory, which gives the slug of the clone's
-  directory name and the first 12 hexadecimal digits of the SHA-256 of the
-  identity path.
+  the call raises an `OSError`. The adapter takes the platform's name and the
+  two system directories as inputs of its wiring, which is the platform
+  parameter that the `wio.env` README anticipates, so that a test points them at
+  a scratch directory.
+- **The real path** — `resolve(path) -> Path` added to the `FileSystem` port of
+  `wio.io` by this Work: the absolute path with its symbolic links followed, for
+  a path that need not exist.
+- **The errors** — the delivery turns the `OSError` of `temp_dir`, and any
+  `OSError` of writing the file, into a `WioError`: for no usable temporary
+  directory it names `$TMPDIR` and `--output <path>`, for a failure to write the
+  default file it names the file, `$TMPDIR` and `--output <path>`, and for a
+  failure to write a given path it names the path alone.
+- **The writes** — the test file of `temp_dir` and the directories created under
+  `<tmp>` are the writes that this Work adds to the bundle's own, and they are
+  outside the worktree unless `$TMPDIR` is inside it.
 
 ## Acceptance criteria
 
@@ -123,13 +124,14 @@ directories.
 ### **AC-3** A path inside the worktree is warned about
 
 A path under the repository root, once it is resolved to a real path, which need
-not exist, gets a warning, the root itself and the default path included.
+not exist, gets a warning, the default path included.
 
 #### Inside and outside
 
 - **Given** a repository whose root is the real path `/r`, the paths
-  `/r/out.md`, `out.md` run from `/r`, `/r/sub/../out.md`, a symbolic link to
-  `/r/out.md`, and `/elsewhere/out.md`, and `$TMPDIR` set to `/r/tmp`.
+  `/r/out.md`, `out.md` run from `/r`, `/r/sub/../out.md`, a link
+  `/elsewhere/link.md` to `/r/out.md`, and `/elsewhere/out.md`, and `$TMPDIR`
+  set to `/r/tmp`.
 - **When** the command runs with each path, and with no path.
 - **Then** the first four and the default path each report a warning that an
   uncommitted bundle can be committed by mistake, the last path reports none,
@@ -143,18 +145,18 @@ there.
 
 #### Set, empty and unset, on two platforms
 
-- **Given** `$TMPDIR` set to `/tmp/t`, set to the empty text, and unset, and a
-  platform fake of macOS and one of Linux, whose system directories can be
-  written.
+- **Given** `$TMPDIR` set to `/tmp/t`, set to the empty text, and unset, and the
+  platform names `darwin` and `linux` with scratch directories standing for
+  `/private/tmp` and `/tmp`.
 - **When** `wio.env` gives the temporary directory.
-- **Then** it is `/tmp/t` for the first, and for the other two it is
-  `/private/tmp` on macOS and `/tmp` on Linux, and the test file is gone.
+- **Then** it is `/tmp/t` for the first, and for the other two it is the scratch
+  directory of the platform, and the test file is gone.
 
 ### **AC-5** An unusable directory or file is an error
 
 When no temporary directory can be used, or the file cannot be written, the
-command exits 2, says what to do, writes no bundle on standard output and leaves
-no file at the path.
+command exits 2, says what to do, and writes no bundle on standard output and no
+file.
 
 #### Four failures
 
@@ -165,7 +167,7 @@ no file at the path.
 - **Then** the first exits 2 and names `$TMPDIR` and `--output <path>`, the
   second exits 2 and names the file, `$TMPDIR` and `--output <path>`, the third
   exits 2 and names the path alone, and the fourth is a usage error, and none
-  leaves a file at the path or a bundle on standard output.
+  writes a file or a bundle on standard output.
 
 ### **AC-6** A bare `--output` before the arguments is a usage error
 
@@ -181,3 +183,18 @@ its path and so fails as a usage error, while a path after it, or the form with
   `wio context --output=b.md work deliver architecture`.
 - **Then** the first exits 2 with a usage error and writes nothing, and the
   other two write `b.md`.
+
+### **AC-7** The details of the option and the directory
+
+A repeated option keeps the last, a leading `~` is not expanded, and a relative
+or a missing `$TMPDIR` is used as it is.
+
+#### Four details
+
+- **Given** the three arguments.
+- **When** `wio context ... --output=x.md --output` runs, then
+  `... --output ~/b.md`, then with `$TMPDIR` set to `rel/tmp`, and then with
+  `$TMPDIR` set to a directory that does not exist.
+- **Then** the first writes the default path, the second writes `~/b.md` under
+  the working directory, the third writes under `rel/tmp` relative to the
+  working directory, and the fourth creates the missing directory under it.
