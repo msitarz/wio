@@ -78,7 +78,8 @@ def test_without_a_selector_every_rule_is_listed_with_no_layers(wio: Wio) -> Non
     # When `wio rules list` runs
     output = wio.run(["rules", "list"])
 
-    # Then the output is the header, a blank line and the three blocks
+    # Then the output is the header, a blank line and the three blocks, with a
+    # blank line between one block and the next
     assert output.stdout == (
         "view: every rule\n"
         "layers: none\n"
@@ -86,8 +87,10 @@ def test_without_a_selector_every_rule_is_listed_with_no_layers(wio: Wio) -> Non
         "\n"
         "demo.ARC001  keep-it-small\n"
         "             A rule is one instruction.\n"
+        "\n"
         "demo.PAY001  pay-first\n"
         "             Pay the invoice first.\n"
+        "\n"
         "web.WEB001   web-rule\n"
     )
     assert output.exit_code == 0

@@ -39,3 +39,23 @@ def test_no_block_renders_nothing() -> None:
 
     # Then the text is empty
     assert not text
+
+
+def test_spaced_blocks_have_a_blank_line_between_them_and_none_after() -> None:
+    """A blank line separates the blocks, and the last one is followed by none."""
+    # Given three blocks, the second without details
+    blocks = [
+        Block(0, "a", "First", None, ("one",)),
+        Block(0, "bb", "Second", None, ()),
+        Block(0, "c", "Third", None, ("three",)),
+    ]
+
+    # When they are rendered spaced and not spaced
+    spaced = render_blocks(blocks, spaced=True)
+    plain = render_blocks(blocks)
+
+    # Then the spaced text has a blank line between blocks and ends at the last
+    # line, and the plain text is the same without those blank lines
+    assert spaced == ("a   First\n    one\n\nbb  Second\n\nc   Third\n    three\n")
+    assert spaced.replace("\n\n", "\n") == plain
+    assert not render_blocks([], spaced=True)

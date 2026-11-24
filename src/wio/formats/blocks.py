@@ -27,26 +27,44 @@ class Block:
     details: tuple[str, ...]
 
 
-def render_blocks(blocks: Sequence[Block]) -> str:
+def render_blocks(blocks: Sequence[Block], *, spaced: bool = False) -> str:
     """Lay out blocks as the text of a listing.
 
     Each first line is two spaces for each depth, the key padded to the widest key
     of all the blocks, two spaces and the title, then two more spaces and the
     suffix when there is one. Each detail is on its own line, indented to the
-    title. Nothing is cut or wrapped. It reads and writes nothing.
+    title. Nothing is cut or wrapped. With `spaced`, a blank line separates one
+    block from the next, and none follows the last. It reads and writes nothing.
 
     Args:
         blocks: The blocks, in the order to print them.
+        spaced: Whether to put a blank line between the blocks, so that blocks
+            with long details can be told apart.
 
     Returns:
         The lines, each ended by a newline, and an empty string for no block.
     """
     width = max((len(block.key) for block in blocks), default=0)
     lines: list[str] = []
-    for block in blocks:
-        indent = "  " * block.depth
-        suffix = f"  {block.suffix}" if block.suffix else ""
-        lines.append(f"{indent}{block.key.ljust(width)}  {block.title}{suffix}")
-        pad = indent + " " * (width + 2)
-        lines.extend(pad + detail for detail in block.details)
+    for number, block in enumerate(blocks):
+        if spaced and number:
+            lines.append("")
+        lines.extend(_lines(block, width))
     return "".join(f"{line}\n" for line in lines)
+
+
+def _lines(block: Block, width: int) -> list[str]:
+    """Lay out one block.
+
+    Args:
+        block: The block.
+        width: The width that its key is padded to.
+
+    Returns:
+        Its first line and then one line for each detail, without newlines.
+    """
+    indent = "  " * block.depth
+    suffix = f"  {block.suffix}" if block.suffix else ""
+    first = f"{indent}{block.key.ljust(width)}  {block.title}{suffix}"
+    pad = indent + " " * (width + 2)
+    return [first, *(pad + detail for detail in block.details)]
