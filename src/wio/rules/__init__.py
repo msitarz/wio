@@ -21,6 +21,7 @@ lazy from wio.rules.expansion import (
     Scope,
     expand,
 )
+lazy from wio.rules.explaining import RuleExplanation, explain
 lazy from wio.rules.inputs import (
     Layer,
     build_rule_catalog,
@@ -248,6 +249,7 @@ __all__ = [
     "Origin",
     "Problem",
     "RuleCatalog",
+    "RuleExplanation",
     "RuleLayers",
     "RuleReading",
     "RuleSelector",
@@ -268,6 +270,7 @@ __all__ = [
     "describe",
     "discover",
     "expand",
+    "explain",
     "json_option",
     "layer_label",
     "narrow",
