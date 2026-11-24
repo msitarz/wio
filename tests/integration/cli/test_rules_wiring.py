@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tests of the rules that `wio.cli` gives `wio trailers`."""
+"""Tests of the rules and the Works that `wio.cli` gives its commands."""
 
 import shutil
 from pathlib import Path
