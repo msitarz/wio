@@ -264,6 +264,23 @@ def test_unknown_names_are_refused_in_the_form_of_each_port() -> None:
         assert "nope" in str(raised.value)
 
 
+def test_a_work_that_has_the_name_of_the_stage_is_still_a_work() -> None:
+    """An unknown stage and an unknown Work are told apart by what they are."""
+    # Given a Work id that is also the name of a stage of the config
+    selector = _selector()
+
+    # When an unknown Work is asked for at the stage `s`, and an unknown stage is
+    # asked for with the Work `s`
+    with pytest.raises(WioError) as work:
+        selector.selected("s", "deliver", "s")
+    with pytest.raises(WioError) as stage:
+        selector.selected("s", "deliver", "nope")
+
+    # Then the first says that no Work is known and the second that no stage is
+    assert str(work.value) == "No Work or root `s` is known."
+    assert str(stage.value) == "The config has no stage `nope`."
+
+
 def test_the_result_does_not_depend_on_the_order_of_the_inputs() -> None:
     """AC-6: the same selections and mappings for two orders of the inputs."""
     # Given the repository in two orders of its files, of their listing and of

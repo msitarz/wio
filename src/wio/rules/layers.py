@@ -89,7 +89,8 @@ def apply_layers(
     problem of the result that selects nothing.
 
     It does no input or output, and the result does not depend on the order of
-    the tables of the config, of the entries of a list or of `roots`.
+    the tables of the config, of the entries of a list or of `roots`. A root that
+    `roots` names more than once is applied once.
 
     Args:
         roots: The names of the roots that the stage selects, or `None` for none.
@@ -115,7 +116,7 @@ def apply_layers(
         for name, root in sorted(config.roots.items())
     }
     state = _State()
-    for name in sorted(roots or ()):
+    for name in sorted(set(roots or ())):
         state.include("root", name, expansions[name])
     if stage is not None:
         named = config.stages[stage]

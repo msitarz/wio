@@ -2,12 +2,15 @@
 """Tests of the explanation that `--explain` adds to a listing."""
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
+
+import pytest
 
 from tests.unit.rules.support import Roots, make_ruleset
 from wio.models.config import Config, Root, Ruleset, Stage
 from wio.models.frozen import freeze
+from wio.models.rules import Reason
 from wio.rules import narrow, selected_anywhere
 from wio.rules.explaining import explain
 from wio.rules.listing import ListRequest, list_view, render_listing
@@ -343,3 +346,29 @@ def test_layers_explain_a_row_even_when_references_narrowed_it() -> None:
     # Then the chain is that of the layers
     assert f"from: demo.ARC001 ← {_RECOMMENDED}" in lines
     assert "from: demo.ARC001 ← demo.ARC" not in lines
+
+
+def test_a_reason_that_is_not_known_is_refused_and_not_explained_as_cut() -> None:
+    """A reason of a layer that nothing gives is an error and not `cut by the roots`."""
+    # Given the listing of the Work at the stage, in which a rule that the stage
+    # excludes has a reason with no layer
+    repo = _Repo(exclude=("demo.ARC002",))
+    config, rulesets = repo.config(), repo.rulesets()
+    request = ListRequest(
+        None, None, "W", "s", (), not_selected=False, explain=True, as_json=False
+    )
+    found = list_view(request, config, rulesets, Roots({"W": ("api",)}))
+    odd = Reason("excluded", None)
+    rows = tuple(
+        replace(row, decision=replace(row.decision, reason=odd))
+        if row.rule.code == "ARC002" and row.decision is not None
+        else row
+        for row in found.rows
+    )
+
+    # When the listing is explained and written
+    explained = explain(replace(found, rows=rows), selected_anywhere(config, rulesets))
+    with pytest.raises(ValueError, match="is not one that a decision gives"):
+        render_listing(explained, as_json=False)
+
+    # Then writing it was refused

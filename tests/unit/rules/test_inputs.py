@@ -22,6 +22,8 @@ from wio.rules import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from wio.models.rules import Layer
+
 _ROUTE = ("demo.recommended", "demo.ARC")
 
 
@@ -147,6 +149,18 @@ def test_a_name_or_an_alias_is_resolved_to_the_canonical_name(
 
     # Then a name and an alias give `demo`, and any other text gives none
     assert found == canonical
+
+
+@pytest.mark.parametrize("layer", ["root", "stage"])
+def test_a_label_of_a_root_or_a_stage_needs_its_name(layer: Layer) -> None:
+    """A missing name is refused and not written as `root None`."""
+    # Given a layer that is named by a root or a stage, and no name
+    # When its label is written
+    with pytest.raises(ValueError, match=f"`{layer}` needs the name"):
+        layer_label(layer, None)
+
+    # Then it was refused, and the two always layers still take no name
+    assert layer_label("always-include", None) == "rules_always_include"
 
 
 def test_the_labels_and_the_chain_are_the_text_that_the_outputs_print() -> None:

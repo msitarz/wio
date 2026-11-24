@@ -96,18 +96,25 @@ def _reason_text(reason: Reason) -> str:
         `not selected`, `excluded by the root's rule preset`,
         `excluded by the stage`, `vetoed by rules_always_exclude` or
         `cut by the roots`.
+
+    Raises:
+        ValueError: The reason is of a kind or of a layer that is not known, so
+            that a new one is not explained as something else.
     """
     match reason.kind, reason.layer:
         case "not-selected", _:
             return "not selected"
         case "excluded", "root":
             return "excluded by the root's rule preset"
-        case "excluded", _:
+        case "excluded", "stage":
             return "excluded by the stage"
         case "vetoed", _:
             return "vetoed by rules_always_exclude"
-        case _:
+        case "cut-by-roots", _:
             return "cut by the roots"
+        case _:
+            message = f"The reason {reason} is not one that a decision gives"
+            raise ValueError(message)
 
 
 def explain(listing: Listing, anywhere: SelectedAnywhere) -> Listing:

@@ -204,8 +204,9 @@ otherwise build for itself: the rulesets of a discovery by canonical name
 (`ruleset_map`), the [`RuleCatalog`](expansion.py) that `expand` resolves its
 references in (`build_rule_catalog`), the resolution of a ruleset's name or
 alias (`resolve_ruleset`), and the labels and the text of the chain that says
-where a rule came from (`layer_label`, `chain_labels`, `chain_text`). Their
-docstrings say what each takes and returns, and their
+where a rule came from (`layer_label`, `chain_labels`, `chain_text`). A label
+of a root or a stage that is given no name is refused, and not written as
+`root None`. Their docstrings say what each takes and returns, and their
 [tests](../../../tests/unit/rules/test_inputs.py) say how each case reads.
 
 - **Each shape is built in one place.** The layers, the rules selected anywhere,
@@ -250,6 +251,8 @@ case reads.
   is out, so a rule keeps a `LayerEffect` for each layer that added it or that
   an exclude named it in, with the routes of the expansion. `selected` is the
   set after the last layer, and the effects are the reason.
+- **A root named twice is applied once.** The roots add together by name, so a
+  repeated name would otherwise double the effects of its rule presets.
 - **A layer works on what the layers before it built.** The stage's excludes
   take out what the roots and the stage's includes added, the always includes
   add over any earlier exclude, and the always excludes are the final veto,

@@ -97,8 +97,15 @@ def layer_label(layer: Layer, name: str | None) -> str:
     Returns:
         `root <name>`, `stage <name>`, `rules_always_include` or
         `rules_always_exclude`.
+
+    Raises:
+        ValueError: The layer is `root` or `stage` and no name is given, which
+            would otherwise write the label `root None`.
     """
     match layer:
+        case "root" | "stage" if name is None:
+            message = f"The layer `{layer}` needs the name of a {layer}"
+            raise ValueError(message)
         case "root" | "stage":
             return f"{layer} {name}"
         case "always-include":
