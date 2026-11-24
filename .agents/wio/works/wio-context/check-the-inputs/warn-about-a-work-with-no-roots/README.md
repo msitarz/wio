@@ -31,8 +31,8 @@ looks complete hides that, so the driver must be told.
 
 ### A-1
 
-The roots port and the reading of when a stage selects the Work's roots, which
-the parent states, hold.
+A missing `roots` key and `roots = []` both give a Work no roots, as the
+concepts say.
 
 ## Mechanisms
 
@@ -71,8 +71,9 @@ none, give no warning about the roots.
 
 #### Roots, and stages with their own roots
 
-- **Given** the same config, a Work whose `roots` list `api` at a stage that
-  sets no `roots`, and a Work with no roots at a stage whose `roots` are
-  `["contract"]` and at a stage whose `roots` are `[]`.
-- **When** `wio context` runs for each.
+- **Given** the same config, a stage with no `roots`, a stage whose `roots` are
+  `["contract"]`, a stage whose `roots` are `[]`, a Work whose `roots` list
+  `api` and a Work with no roots.
+- **When** `wio context` runs for the Work with roots at the stage with no
+  `roots`, and for the Work with no roots at each of the other two stages.
 - **Then** no run reports a warning about the roots.

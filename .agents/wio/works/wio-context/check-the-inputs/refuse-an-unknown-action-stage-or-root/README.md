@@ -18,8 +18,8 @@ config does not declare must be refused and never answered with a bundle.
 - A stage that the config does not declare is refused.
 - A root that a Work lists and the config does not declare is refused when the
   stage selects the Work's roots.
-- Each refusal names the unknown name, and for an action or a stage the names
-  that exist.
+- Each refusal names the unknown name, for an action or a stage the names that
+  exist, and for a root the Work that was run.
 
 ## Non-Goals
 
@@ -37,11 +37,6 @@ config does not declare must be refused and never answered with a bundle.
 The only unknown root that a run can meet is one that a Work lists, because the
 roots of a stage are judged by the config, and a config with an error is
 refused.
-
-### A-2
-
-A root that a Work lists and the config does not declare is already an error of
-`wio contracts check`, so refusing it here, where it matters, repeats no check.
 
 ## Mechanisms
 
@@ -91,6 +86,14 @@ run.
   `implementation` that sets no `roots`, and a Work whose `roots` list `api` and
   `ghost`.
 - **When** `wio context` runs for it at `implementation`.
+- **Then** it exits 2, the message names `ghost` and the Work, and standard
+  output is empty.
+
+#### A stage that lists `@work`
+
+- **Given** the same Work and config and a stage whose `roots` are
+  `["contract", "@work"]`.
+- **When** `wio context` runs for it at that stage.
 - **Then** it exits 2, the message names `ghost` and the Work, and standard
   output is empty.
 

@@ -5,12 +5,12 @@ roots = ["wio"]
 depends_on = ["b53rss"]
 -->
 
-# Refuse an unreadable tree, config or rules
+# Refuse an unreadable config, tree, Work or rules
 
 ## Purpose
 
 A session needs its guidance even while the tree has faults of its own, but a
-config that cannot be read, a tree that may not hold every Work, a Work that
+config with an error, a tree that may not hold every Work, a Work that
 does not exist and a rule that a fault leaves out must not produce a bundle that
 looks complete.
 
@@ -51,7 +51,8 @@ through the `Contracts` port, whose provider raises `ContractsError`; the
 
 The rule selection refuses with the diagnostics when a rule file or a manifest
 has a fault, as `wio rules list` does, and `wio context` lets that refusal stand
-as exit 2.
+as exit 2; the stub of the port documents only `KeyError`, which is provisional
+on this point.
 
 ## Mechanisms
 
@@ -61,9 +62,10 @@ The ports below are provisional.
   raises for a Work that cannot be found; its refusals follow `refusal.py` of
   `wio.contracts`.
 - **The `RuleSelection` port** — in `src/wio/context/ports.pyi`, satisfied by
-  `wio.rules`, whose refusal of a fault in the rules this Work lets stand.
-- **The loader of the config** — refuses a config with an error for every
-  command, which this command inherits.
+  `wio.rules`, whose `DiagnosticsError` for a fault in the rules this Work lets
+  stand.
+- **The loader of the config** — `Settings.load` of the shared `Settings` port,
+  which refuses a config with an error for every command, as this command does.
 
 ## Acceptance criteria
 
@@ -98,7 +100,7 @@ A tree that may not hold every Work exits 2 and names the files that cause it.
 ### **AC-3** An unknown Work is refused
 
 An id that no Work has exits 2 and says that no Work has it, also when it looks
-like a path, and the criterion does not depend on the rest of the message.
+like a path.
 
 #### An id and a path
 

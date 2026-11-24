@@ -16,8 +16,8 @@ complete.
 
 ## Goals
 
-- A config, a Work tree or a Work that cannot be read is refused, and so is a
-  Work that does not exist.
+- A config with an error, a Work tree that may not hold every Work and a Work
+  that does not exist are refused.
 - An unknown action, stage or root is refused.
 - A fault in a rule file or a ruleset is refused.
 - A driver is warned when the stage is outside the action's pipeline for the
@@ -29,6 +29,8 @@ complete.
 
 - The warning about an oversized bundle, which the delivery does.
 - Checking the tree beyond what a run needs, which `wio contracts check` does.
+- A Work file that cannot be read once the tree is found, which ends the command
+  as any other failure of wio does.
 
 ## Assumptions
 
@@ -45,7 +47,10 @@ The name below is provisional.
 - **The roots port** — in `src/wio/context/ports.pyi`, satisfied by
   `wio.contracts`, which gives the roots of a Work with `@descendants` expanded
   and each name once; the refusal of an unknown root and the warning about a
-  Work with no roots read the roots through it.
+  Work with no roots read the roots through it, and no child delivers it, so the
+  architecture stage owns it.
+- **The checks and the composition** — provisional: the checks run before the
+  bundle is composed, so a fake of the composition leaves them real.
 
 ## Visuals
 
@@ -69,8 +74,10 @@ the tree, the Work, the action, the stage, the root, the rules.
   its ruleset does not declare.
 - **When** `wio context` runs, and then runs again after each reported fault is
   removed, in the order they were reported.
-- **Then** the seven runs report the config, the tree, the Work, the action, the
-  stage, the root and the rules, in that order, and each exits 2.
+- **Then** the seven runs report, in that order, the diagnostic of the key, the
+  names of both marked files, that no Work has the id, the name of the action,
+  the name of the stage, the name of the root and the file of the rule, and each
+  exits 2.
 
 ### **AC-2** Every warning of a run is reported once
 
@@ -79,7 +86,8 @@ roots reports both, each once, and exits 0.
 
 #### Two warnings together
 
-- **Given** a compiler that returns a fixed bundle, a Work with no roots, an
+- **Given** a composition of the bundle that is faked to return a fixed bundle
+  behind the real checks, a Work with no roots, an
   action whose pipeline does not hold the stage, and a stage with no `roots`.
 - **When** `wio context` runs for that Work, action and stage.
 - **Then** the fixed bundle is printed, each of the two warnings is reported
