@@ -61,7 +61,8 @@ bundle to standard output.
 
 `ContextEvent`, `EventSink` and the identification of the harness session in
 `wio.log` carry everything that a stage entry records, so `wio.log` needs no
-change.
+change but the move of the function that names a clone's key, which Write the
+bundle to a file declares.
 
 ### A-2
 

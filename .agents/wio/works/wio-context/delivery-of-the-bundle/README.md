@@ -38,7 +38,7 @@ configured threshold, whichever way the bundle is delivered.
 flowchart LR
     compiled["compiler result: text, id, body size, warnings"] --> check["size check"]
     compiled --> dest{"--output?"}
-    check -->|"above the threshold"| warn["warning"]
+    check -->|"above the threshold"| warn["warning on standard error"]
     dest -->|"no"| out["standard output: the bundle"]
     dest -->|"yes"| file["file: the bundle"]
     file --> path["standard output: the path"]
@@ -46,16 +46,28 @@ flowchart LR
 
 ## Acceptance criteria
 
-### **AC-1** A large bundle is warned about and read from a file
+### **AC-1** The size warning is the same whichever way the bundle is delivered
 
-With `--output` and a body over the threshold, standard output holds the path
-alone, the warning is reported, the file holds the whole bundle, and the exit
-code is 0.
+A body over the threshold gives the same warning with and without `--output`,
+and with `--output` standard output holds the path alone and the file holds the
+whole bundle.
 
-#### An oversized bundle through a file
+#### Both destinations
 
 - **Given** a size threshold below the size of the body of a bundle.
-- **When** `wio context <work> <action> <stage> --output` runs for it.
-- **Then** standard output is the path of the file and a newline and nothing
-  else, a warning about the size is reported, the file holds the whole bundle,
-  and the exit code is 0.
+- **When** `wio context <work> <action> <stage>` runs, and then with `--output`.
+- **Then** both runs report the same warning on standard error and exit 0, the
+  first prints the bundle on standard output, and the second prints the path of
+  the file and a newline and nothing else, and the file holds the whole bundle.
+
+### **AC-2** A failed write still reports the size warning
+
+When the file cannot be written, the size warning is reported before the error.
+
+#### An unwritable path over the threshold
+
+- **Given** a size threshold below the size of the body and an `--output` path
+  that cannot be written.
+- **When** `wio context` runs.
+- **Then** the size warning is reported, the error follows, and the exit code is
+  2.

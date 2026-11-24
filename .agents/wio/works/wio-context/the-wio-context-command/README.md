@@ -42,8 +42,8 @@ that provides `describe()` and a command, and an entry of the table in
 
 The compiler is a collaborator that the other Works provide, so the criteria
 here run the command with a fake of it, and its result carries what the Works
-that deliver the bundle need: the text, the bundle id, the UTF-8 bytes of the
-body and the warnings.
+that deliver the bundle need: the text, the bundle id, the size of the body in
+UTF-8 bytes as an integer, and the warnings.
 
 ## Mechanisms
 
@@ -56,8 +56,12 @@ The names below are provisional, except the command and its three arguments.
   results through, which the Works that add ports extend.
 - **The compiler port** — one call that takes the Work's id, the action and the
   stage, and returns a result that holds the text of the bundle, its id, the
-  UTF-8 bytes of its body and the warnings found on the way; the Works that
-  deliver the bundle read the id and the bytes from it.
+  size of its body in UTF-8 bytes as an integer and the warnings found on the
+  way; the Works that deliver the bundle read the id and the size from it.
+- **A warning** — one line on standard error that begins `warning: `, which the
+  command writes through `Stdio` for the compiler's warnings and for those of
+  the Works that deliver the bundle, in the order of the compiler's, then the
+  size, then the worktree path.
 - **The entry** — `component_entry("context", wire)` in `wio.cli.table`, whose
   `wire` builds `Services` with the adapters of `wio.io` and `wio.env`.
 
@@ -87,7 +91,7 @@ each warning is reported as `wio` reports a warning, and the exit code is 0.
   warnings.
 - **When** `wio context k3m9xq deliver architecture` runs.
 - **Then** standard output holds exactly the text, each of the two warnings is
-  reported, and the exit code is 0.
+  a line `warning: <text>` on standard error, and the exit code is 0.
 
 ### **AC-3** Failures map to exit codes
 

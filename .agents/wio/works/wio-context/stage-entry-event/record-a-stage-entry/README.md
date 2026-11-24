@@ -2,7 +2,7 @@
 id = "fy51ae"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["b53rss", "4h73tb", "ghq8mz", "bg0g78"]
+depends_on = ["b53rss", "4h73tb", "ghq8mz", "bg0g78", "q6mf05"]
 -->
 
 # Record a stage entry
@@ -18,6 +18,7 @@ it gave and which rules it contained.
 - Each run writes one `context` event with the Work, the action, the stage, the
   bundle id and the size of the body.
 - The event holds the hash of the file of each rule that the bundle contains.
+- The event is written only after the bundle has been delivered.
 - A failure to write the event is a warning and never blocks the run.
 
 ## Non-Goals
@@ -89,3 +90,14 @@ When the event cannot be written, the command warns, prints the bundle and exits
 - **When** `wio context` runs.
 - **Then** a warning names the path, the bundle is printed, and the exit code is
   0.
+
+### **AC-4** A failed delivery records no event
+
+When the bundle cannot be delivered, no event is written, because the session
+was not given its bundle.
+
+#### A file that cannot be written
+
+- **Given** `--output` with a path that cannot be written.
+- **When** `wio context` runs.
+- **Then** the command exits 2, and the log holds no new `context` event.
