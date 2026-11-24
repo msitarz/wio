@@ -107,7 +107,7 @@ def test_a_work_without_roots_fails_where_a_stage_needs_them() -> None:
     found = _each(config, ())
 
     # Then the stages that select the Work's roots say it has none
-    assert "no roots" in str(found[0])
+    assert str(found[0]).endswith("has no roots.")
     assert found[1] == ("contract",)
     assert "no roots" in str(found[2])
     assert found[3] == ()

@@ -35,6 +35,7 @@ class _Repo:
     cut: tuple[str, ...] = ()
     recommended: tuple[str, ...] = ()
     reverse: bool = False
+    always: tuple[str, ...] = ()
 
     def rulesets(self) -> Mapping[str, LoadedRuleset]:
         """Build the rulesets.
@@ -69,7 +70,7 @@ class _Repo:
             roots=freeze({k: v for k, v in order if isinstance(v, Root)}),
             stages=freeze({k: v for k, v in order if isinstance(v, Stage)}),
             rulesets=freeze({"process": Ruleset(root_independent=True)}),
-            rules_always_include=("process.all",),
+            rules_always_include=("process.all", *self.always),
             rules_always_exclude=self.veto,
         )
 
@@ -372,3 +373,20 @@ def test_a_reason_that_is_not_known_is_refused_and_not_explained_as_cut() -> Non
         render_listing(explained, as_json=False)
 
     # Then writing it was refused
+
+
+def test_a_rule_that_a_later_layer_added_back_shows_the_removal_too() -> None:
+    """An included row has a `by:` line for what removed it before it came back."""
+    # Given a rule that the root includes, the stage excludes and the always
+    # includes add back
+    repo = _Repo(exclude=("demo.ARC001",), always=("demo.ARC001",))
+
+    # When the listing of the Work at the stage is explained
+    lines = _lines(_listing(repo), "demo.ARC001")
+
+    # Then the rule is included, and its lines show the origin and the removal
+    assert not any(line.startswith("out:") for line in lines)
+    assert "by: demo.ARC001 ← stage s ← demo.ARC001" in lines
+    assert any(
+        line.startswith("from: demo.ARC001 ← rules_always_include") for line in lines
+    )

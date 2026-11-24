@@ -48,8 +48,8 @@ def test_rules_find_the_roots_of_a_work_in_the_working_tree(
 
     # When `wio.cli` wires `wio rules` and the roots of the Work and of an unknown
     # id are asked for; `tests.integration` may not import `wio.rules`, so the
-    # services are reached by name
-    services = getattr(_rules(), "_services")  # noqa: B009
+    # services are reached by their public name
+    services = getattr(_rules(), "services")  # noqa: B009
     known = services.work_roots.roots_of("k3m9xq")
     unknown = services.work_roots.roots_of("zzzzzz")
 

@@ -113,7 +113,7 @@ def _work_roots(config: Config, work_id: str, work_roots: WorkRoots) -> tuple[st
     if found is None:
         raise KeyError(work_id)
     if not found:
-        msg = f"The Work `{work_id}` has no roots"
+        msg = f"The Work `{work_id}` has no roots."
         raise ValueError(msg)
     return _checked(config, found)
 

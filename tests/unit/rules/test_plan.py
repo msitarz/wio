@@ -114,12 +114,13 @@ def test_the_file_is_a_valid_comment_block_with_an_empty_body() -> None:
     [
         (("nope", "ARC", "x", None), "demo"),
         (("demo", "ZZZ", "x", None), "ARC"),
+        (("demo", "arc", "x", None), "did you mean `ARC`?"),
         (("demo", "ARC", "Bad_Name", None), "lower-case words"),
         (("demo", "ARC", "x", ""), "one line"),
         (("demo", "ARC", "x", "a\nb"), "one line"),
         (("demo", "ARC", "arc001", None), "ARC001"),
     ],
-    ids=["ruleset", "family", "name", "blank", "lines", "taken"],
+    ids=["ruleset", "family", "lower-case", "name", "blank", "lines", "taken"],
 )
 def test_a_request_that_cannot_be_met_is_refused(
     args: tuple[str, str, str, str | None], message: str

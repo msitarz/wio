@@ -29,6 +29,11 @@ class RulesCommand:
         self._table = tuple(table)
         self._services = services
 
+    @property
+    def services(self) -> Services:
+        """What the handler of a subcommand reads the project through."""
+        return self._services
+
     def run(self, args: Namespace, stdio: Stdio) -> int:
         """Hand over to the chosen subcommand, or print the usage.
 

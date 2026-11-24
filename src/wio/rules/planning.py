@@ -169,4 +169,8 @@ def _check_family(ruleset: LoadedRuleset, family: str) -> None:
     message = (
         f"The ruleset `{ruleset.name}` does not declare the family `{family}`. {names}"
     )
+    if family.upper() in ruleset.manifest.families:
+        message += (
+            f" A family is written in upper case; did you mean `{family.upper()}`?"
+        )
     raise WioError(message)
