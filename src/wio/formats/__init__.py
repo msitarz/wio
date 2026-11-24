@@ -12,6 +12,7 @@ lazy from wio.formats.diagnostics import (
     render_json,
     render_text,
 )
+lazy from wio.formats.digest import rule_hash
 lazy from wio.formats.directives import (
     COMBINING,
     DIRECTIVES,
@@ -105,5 +106,6 @@ __all__ = [
     "render_check",
     "render_json",
     "render_text",
+    "rule_hash",
     "set_block_keys",
 ]

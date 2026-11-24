@@ -338,3 +338,14 @@ takes, returns and raises, and its
 - **The list of keys is shared.** `KEYS` is the one list that the renderer lays
   out and the reader takes as known, so a key cannot be one that a record prints
   and the shape check calls unknown.
+
+## The hash of a rule file
+
+[`rule_hash`](digest.py) is the SHA-256 of the bytes of a rule file as stored,
+written as 64 lower-case hexadecimal digits. The event models carry a rule's
+hash as an opaque string, the log already hashes with SHA-256, and a hash of the
+bytes changes when any part of the file does, a line ending included, which a
+hash of decoded text would not. One function gives it to every producer, so that
+the hash that `wio trailers` receives is the one that a `context` event will
+record. Its docstring says what it takes and returns, and its
+[test](../../../tests/unit/formats/test_hashing.py) pins two known digests.

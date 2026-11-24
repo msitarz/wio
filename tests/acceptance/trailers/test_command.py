@@ -155,7 +155,7 @@ def test_a_gate_result_with_logging_off_leaves_the_wio_home_empty(
 
 
 @pytest.mark.channels(Channel.CLI)
-def test_a_cited_rule_code_is_refused_by_the_null_rules_port(wio: Wio) -> None:
+def test_a_cited_rule_code_is_refused_when_no_stage_selects_it(wio: Wio) -> None:
     """AC-3: `docs.DOC001` is not selected by any stage, so it is refused."""
     # Given the repository, with no injected adapter
     _project(wio)

@@ -33,6 +33,9 @@ class RuleSelection(Protocol):
     def select(self, contract: ResolvedContract, stage: str) -> Selection:
         """Select the rules for a stage of a Work.
 
+        A Work with no roots, for a stage that selects the Work's roots, gets a
+        selection in which no rule is included.
+
         Args:
             contract: The Work's resolved contract, which gives its roots.
             stage: The name of a stage in the config.
@@ -43,8 +46,6 @@ class RuleSelection(Protocol):
             or why a rule was left out.
 
         Raises:
-            KeyError: If the stage is not in the config.
-            ValueError: If the stage selects the Work's roots and the Work has
-                none.
+            KeyError: If the stage or the Work is not known.
         """
         ...
