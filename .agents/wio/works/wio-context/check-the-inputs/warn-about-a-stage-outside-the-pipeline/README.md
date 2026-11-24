@@ -104,9 +104,10 @@ action, or that has no such action at all, is judged by its own.
 
 - **Given** a config that declares the actions `deliver` and `define` and the
   stages `architecture` and `implementation`, whose `[works.defaults.actions]`
-  give `define` only, a template whose `deliver` holds `architecture`, a Work
-  that follows it and replaces `deliver` with `implementation`, a Work that
-  follows it and removes `deliver`, and a Work that follows no template.
+  give `define` the list `architecture` and no `deliver`, a template whose
+  `deliver` holds `architecture`, a Work that follows it and replaces `deliver`
+  with `implementation`, a Work that follows it and removes `deliver`, and a
+  Work that follows no template.
 - **When** `wio context` runs for each Work with `deliver` and `architecture`.
 - **Then** the first reports a warning, because `architecture` is outside its
   pipeline, and the second and the third each report a warning that says the
