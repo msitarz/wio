@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from wio.contracts.discovery import discover_works
 from wio.contracts.hierarchy import build_hierarchy
 from wio.contracts.refusal import refuse_tree
-lazy from wio.formats import encode_json
+lazy from wio.formats import Block, encode_json, render_blocks
 
 _NO_TITLE = "(no title)"
 
@@ -59,13 +59,9 @@ def render_list(found: Hierarchy, *, as_json: bool) -> str:
     """
     if as_json:
         return encode_json([_as_object(work, found) for work in found.works]) + "\n"
-    order = _text_order(found)
-    width = max((len(work.id) for work, _ in order), default=0)
     titles = {work.id: work.title for work in found.works}
-    return "".join(
-        f"{line}\n"
-        for work, depth in order
-        for line in _block(work, depth, width, titles)
+    return render_blocks(
+        [_block(work, depth, titles) for work, depth in _text_order(found)]
     )
 
 
@@ -91,24 +87,19 @@ def _text_order(found: Hierarchy) -> list[tuple[Work, int]]:
     return order
 
 
-def _block(
-    work: Work, depth: int, width: int, titles: Mapping[str, str | None]
-) -> list[str]:
-    """Lay out the lines of one Work.
+def _block(work: Work, depth: int, titles: Mapping[str, str | None]) -> Block:
+    """Describe one Work as a block of the listing.
 
     Args:
         work: The Work.
         depth: How many ancestors it has, each of which indents by two spaces.
-        width: The widest id of the output, which the id is padded to.
         titles: The title of each Work by id, `None` for a Work with no title,
             and no key for an id that no Work has.
 
     Returns:
-        The first line and the detail lines, none of them ended by a newline.
+        The block, whose key is the id, whose suffix is the template in brackets
+        and whose details are the lines the Work has something to say about.
     """
-    indent = "  " * depth
-    template = f"  [{work.template}]" if work.template else ""
-    first = f"{indent}{work.id.ljust(width)}  {work.title or _NO_TITLE}{template}"
     details = [work.path.as_posix()]
     if work.roots:
         details.append("roots: " + ", ".join(work.roots))
@@ -116,8 +107,8 @@ def _block(
     if work.actions:
         entries = (f"{name} = {_value(value)}" for name, value in work.actions.items())
         details.append("actions: " + ", ".join(entries))
-    pad = indent + " " * (width + 2)
-    return [first, *(pad + line for line in details)]
+    suffix = f"[{work.template}]" if work.template else None
+    return Block(depth, work.id, work.title or _NO_TITLE, suffix, tuple(details))
 
 
 def _dependency(work_id: str, titles: Mapping[str, str | None]) -> str:

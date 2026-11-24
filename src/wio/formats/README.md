@@ -349,3 +349,18 @@ hash of decoded text would not. One function gives it to every producer, so that
 the hash that `wio trailers` receives is the one that a `context` event will
 record. Its docstring says what it takes and returns, and its
 [test](../../../tests/unit/formats/test_hashing.py) pins two known digests.
+
+## The layout of blocks
+
+[`render_blocks`](blocks.py) lays out the indented blocks of a listing, which
+`wio contracts list` and `wio rules list` both print, so the two cannot drift
+apart. Its docstring says what it takes and returns, and its
+[tests](../../../tests/unit/formats/test_blocks.py) say how each case reads.
+
+- **The first line pads every key to the widest of all the blocks,** so the
+  titles line up across the whole listing, whatever the depth of a block.
+- **A block is indented by two spaces for each depth, and its details are
+  indented to the title.** The caller gives each block its depth, so the
+  hierarchy of a listing is its own and this layout knows none.
+- **Nothing is cut or wrapped.** A detail is written as given, so a long line
+  stays one line.

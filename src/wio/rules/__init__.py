@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from wio.env.ports import Environment
     from wio.io.ports import FileSystem, Repository, Stdio
     from wio.ports import Settings
+    from wio.rules.ports import WorkRoots
 
 
 @dataclass(frozen=True)
@@ -57,12 +58,14 @@ class Services:
         files: Lists and reads files.
         environment: Gives the working directory that a path argument is
             resolved against.
+        work_roots: Gives the roots of a Work, for `--work`.
     """
 
     settings: Settings
     repository: Repository
     files: FileSystem
     environment: Environment
+    work_roots: WorkRoots
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,8 +126,57 @@ def _check(services: Services, args: Namespace, stdio: Stdio) -> int:
     return run_check(services, args, stdio)
 
 
+_LIST_HELP = "List the rules that a root, a path, a Work or a stage is given."
+_LIST_JSON = "Write one JSON object with the header and the rules."
+
+
+def _configure_list(parser: ArgumentParser) -> None:
+    """Declare the arguments of `wio rules list`.
+
+    Args:
+        parser: The subparser.
+    """
+    views = parser.add_mutually_exclusive_group()
+    views.add_argument("--root", help="The root whose rules to list.")
+    views.add_argument("--path", help="A file whose roots to apply.")
+    views.add_argument("--work", help="The id of a Work whose roots to apply.")
+    parser.add_argument("--stage", help="The stage whose layer to apply.")
+    parser.add_argument(
+        "--not-selected",
+        dest="not_selected",
+        action="store_true",
+        help="List the rules that nothing selects.",
+    )
+    parser.add_argument(
+        "--explain",
+        action="store_true",
+        help="Say where each rule came from.",
+    )
+    json_option(parser, help=_LIST_JSON)
+    parser.add_argument(
+        "references", nargs="*", help="Rules, families or rulesets to narrow to."
+    )
+
+
+def _list(services: Services, args: Namespace, stdio: Stdio) -> int:
+    """Run `wio rules list` through its own module.
+
+    Args:
+        services: What the subcommand reads the project through.
+        args: The parsed arguments.
+        stdio: Where the listing goes.
+
+    Returns:
+        0 after the listing.
+    """
+    from wio.rules.listing import run_list
+
+    return run_list(services, args, stdio)
+
+
 SUBCOMMANDS: Final[Sequence[Subcommand]] = (
     Subcommand("check", _CHECK_HELP, partial(json_option, help=_CHECK_JSON), _check),
+    Subcommand("list", _LIST_HELP, _configure_list, _list),
 )
 """The subcommands of `wio rules`, to which each subcommand Work adds an entry.
 

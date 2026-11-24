@@ -2,6 +2,7 @@
 """Pure codecs between text and the shared types."""
 
 lazy from wio.formats.block import read_metadata_block
+lazy from wio.formats.blocks import Block, render_blocks
 lazy from wio.formats.closest import closest_key
 lazy from wio.formats.cycles import (
     find_cycles,
@@ -66,6 +67,7 @@ __all__ = [
     "NAME",
     "NAME_FORM",
     "Bare",
+    "Block",
     "Decoding",
     "DirectiveSyntaxError",
     "Entry",
@@ -103,6 +105,7 @@ __all__ = [
     "read_outline",
     "remove_directive_list",
     "render",
+    "render_blocks",
     "render_check",
     "render_json",
     "render_text",

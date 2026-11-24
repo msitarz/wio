@@ -130,15 +130,16 @@ def _rules() -> Command:
     """Wire `wio rules` to the project's ports.
 
     Returns:
-        The command, whose subcommands read the project through the adapters.
+        The command, whose subcommands read the project through the adapters and
+        find the roots of a Work in the working tree.
     """
     environment = env.ProcessEnvironment()
     repository = io.GitRepository(environment)
     files = io.LocalFileSystem()
-    services = RulesServices(
-        ConfigSettings(repository, files), repository, files, environment
-    )
-    return RulesCommand(services)
+    settings = ConfigSettings(repository, files)
+    catalog = TemplatesCatalog(settings, repository, files)
+    works = WorkLookup(settings, repository, catalog, files, [files])
+    return RulesCommand(RulesServices(settings, repository, files, environment, works))
 
 
 def trailers_command(events: EventSink | None = None) -> Command:
