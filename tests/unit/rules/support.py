@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """Helpers that the tests of the rule readers share."""
 
+from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
-from wio.models.config import RulePreset
+from wio.models.config import Config, RulePreset
 from wio.models.frozen import freeze
 from wio.models.rule import LoadedRuleset, Manifest, Rule
 
@@ -78,3 +79,36 @@ def make_ruleset(
     )
     path = PurePosixPath(f".agents/wio/rules/{name}")
     return LoadedRuleset(name, path, manifest, tuple(rules))
+
+
+@dataclass
+class Settings:
+    """Settings that give one config."""
+
+    config: Config
+
+    def load(self) -> Config:
+        """Give the config.
+
+        Returns:
+            The config.
+        """
+        return self.config
+
+
+@dataclass
+class Roots:
+    """The roots of the Works, by id."""
+
+    roots: Mapping[str, tuple[str, ...]]
+
+    def roots_of(self, work_id: str) -> tuple[str, ...] | None:
+        """Find the roots of a Work.
+
+        Args:
+            work_id: The Work's id.
+
+        Returns:
+            Its roots, or `None` for an id that no Work has.
+        """
+        return self.roots.get(work_id)

@@ -8,12 +8,12 @@ of a stage, the decision of each rule, the rules that any include entry
 delivers, the roots of a stage and of a path, the errors of the references, the
 warnings of the selections and the bodies, the report of `wio rules check`,
 which joins them, and the selector that gives the rules of a stage to
-`wio trailers`. `list`, `new` and `show` build on the rest.
+`wio context` and `wio trailers`, and how these parts make one selection.
+`list`, `new` and `show` build on the rest.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
-[Codes and families](../../../docs/concepts.md#codes-and-families) what its
-code and name mean and
-[Rulesets on disk](../../../docs/concepts.md#rulesets-on-disk) what a ruleset
-is. Its terms are in the [glossary](../../../GLOSSARY.md).
+[Codes and families](../../../docs/concepts.md#codes-and-families) what its code
+and name mean and [Rulesets on disk](../../../docs/concepts.md#rulesets-on-disk)
+what a ruleset is. Its terms are in the [glossary](../../../GLOSSARY.md).
 
 ## Reading a rule file
 
@@ -394,6 +394,72 @@ says what the forms of a stage's `roots` mean.
   differs from the index only for a change that is not staged yet.
 - **The results are sorted and each name is once,** whatever the order of the
   config's roots, of a root's paths or of a stage's `roots`.
+
+## The selection as a whole
+
+The parts above decide which rules apply to a stage, and they are built so that
+every consumer reads one answer, so `wio trailers` and the commands that come
+(`wio rules list` and `wio context`) cannot disagree on what a session was
+given. Its
+[tests](../../../tests/unit/rules/test_selection.py) are the criteria of the
+selection.
+
+```mermaid
+flowchart LR
+    cfg["Config: roots, stages, rule presets, always fields"]
+    rules["LoadedRulesets"]
+    contracts["wio.contracts: roots of a Work"]
+    files["FileSystem port"]
+    subgraph sel["wio.rules"]
+        inputs["inputs: rule catalog, aliases, labels"]
+        roots["roots of a Work, a stage or a file"]
+        layers["four layers, over expand"]
+        applic["select"]
+        anywhere["selected_anywhere"]
+        selector["RuleSelector"]
+        hash["rule_hash (wio.formats)"]
+    end
+    ctxport["RuleSelection (wio.context)"]
+    stageport["StageRules (wio.trailers)"]
+    listing["rules list and rules new"]
+    cfg --> inputs
+    rules --> inputs
+    inputs --> layers
+    inputs --> anywhere
+    cfg --> roots
+    contracts -.-> roots
+    layers --> applic
+    roots --> applic
+    applic --> listing
+    anywhere --> listing
+    applic --> selector
+    roots --> selector
+    selector --> hash
+    selector --> files
+    selector -.-> ctxport
+    selector -.-> stageport
+```
+
+- **Every view is one function over different roots.** A listing of the whole
+  repository, of a root, of a path and of a Work at a stage differ only in the
+  layers they apply and the roots they give: `--root`, `--path` and `--work`
+  will give the roots, `--stage` will give the stage, and a view without roots
+  applies none. So `select` serves them all and no view computes the rules a
+  second time.
+- **The selection holds every rule once.** Each rule of every ruleset has one
+  decision, so a listing, an explanation and the hashes are views of the same
+  value, and the order of everything in it is that of the rules of the
+  repository, ruleset, family and code.
+- **Only the selector reads a rule file for its bytes.** `select` does no
+  input or output, and the selector reads the file of a rule through the
+  `FileSystem` port, so the hash of a rule is computed in one place.
+- **A rule that nothing selects is never included.**
+  [`selected_anywhere`](anywhere.py) says which rules some include entry of the
+  config delivers, whatever the roots and the stage, and every rule that
+  `select` includes in any view is among them. A rule that a stage excludes or
+  the always excludes veto is still delivered by its entry, so it is selected
+  and out; a rule that no entry names is out in every view, which is why a
+  listing can name the rules that nothing selects.
 
 ## The group of subcommands
 
