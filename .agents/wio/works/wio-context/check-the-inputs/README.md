@@ -15,8 +15,8 @@ the first two or tells the driver about the last.
 
 ## Goals
 
-- A config or a Work tree that cannot be read is refused, while a fault
-  elsewhere in the tree does not stop a session.
+- A config, a Work tree or a Work that cannot be read is refused, and so is a
+  Work that does not exist.
 - An unknown action, stage or root is refused.
 - A driver is warned when the stage is outside the action's pipeline for the
   Work.
@@ -34,25 +34,28 @@ None.
 
 ## Visuals
 
-Before, `wio context` has no check of its inputs. After, it judges the config,
-the tree and the names before it composes anything, refuses with exit 2 when one
+Before, `wio context` has no check of its inputs. After, it judges its inputs in
+a fixed order before it composes anything, refuses with exit 2 at the first that
 is wrong, and collects the warnings of a choice that looks wrong and reports
 them with the bundle.
 
 ## Acceptance criteria
 
-### **AC-1** A refusal stops the run before anything is composed or recorded
+### **AC-1** The refusals are judged in one order
 
-Each refusal of the children exits 2, prints no bundle and records no event.
+The first problem that applies is the one reported, in this order: the config,
+the tree, the Work, the action, the stage, the root.
 
-#### One refusal of each kind
+#### A repository with every fault
 
-- **Given** a config with an error, a tree with two marked files in one
-  directory, the id of no Work, the name of no action, the name of no stage and
-  a Work that lists the name of no root.
-- **When** `wio context` runs for each.
-- **Then** each exits 2, standard output is empty, and no `context` event is
-  written.
+- **Given** under `nesting` a config with a key the schema does not know, a
+  directory with two marked files, the id of no Work, an action that the config
+  does not declare, a stage that it does not declare, and a Work that lists the
+  name of no root at a stage that selects the Work's roots.
+- **When** `wio context` runs, and then runs again after each reported fault is
+  removed, in the order they were reported.
+- **Then** the six runs report the config, the tree, the Work, the action, the
+  stage and the root, in that order, and each exits 2.
 
 ### **AC-2** Every warning of a run is reported once
 
@@ -62,7 +65,7 @@ roots reports both, each once, with the bundle, and exits 0.
 #### Two warnings together
 
 - **Given** a Work with no roots, an action whose pipeline does not hold the
-  stage, and a stage that selects the Work's roots.
+  stage, and a stage with no `roots`.
 - **When** `wio context` runs for that Work, action and stage.
 - **Then** the bundle is printed, each of the two warnings is reported once, and
   the exit code is 0.

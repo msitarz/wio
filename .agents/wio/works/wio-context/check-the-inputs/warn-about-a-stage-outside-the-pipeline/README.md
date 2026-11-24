@@ -17,6 +17,8 @@ Work must not block a session, but a mistaken pair, such as `deliver` with
 
 - A driver is warned when the stage is not in the pipeline of the given action
   for the Work.
+- A driver is warned when the Work has no pipeline for the action, because it
+  removed the action or never had it.
 - A driver is not warned when the stage is in that pipeline, whether the
   pipeline is a stage preset or a list of stages.
 - The pipeline judged is the Work's effective one, from its own `[actions]`, its
@@ -31,18 +33,16 @@ Work must not block a session, but a mistaken pair, such as `deliver` with
 
 ### A-1
 
-The effective pipeline of an action for a Work can be had from the actions that
-`wio.contracts` already resolves, so the pipeline is not computed a second time
-and `wio context` cannot disagree with `wio contracts show` about where it comes
-from.
+The effective pipeline of an action for a Work, with a stage preset already
+expanded into its stages, can be had from `shown_actions` and `ShownAction` of
+`wio.contracts`, which `wio contracts show` uses, so that `wio context` cannot
+disagree with it about where a pipeline comes from.
 
 ## Mechanisms
 
 - **The pipeline port** — in `src/wio/context/ports.pyi`, provisional, satisfied
-  by `wio.contracts` from `resolve_actions`, which gives the pipeline of an
-  action as a stage preset id or a list of stage names.
-- **The stage presets** — read through the shared `Settings` port, to expand a
-  preset to its stages.
+  by `wio.contracts` from `shown_actions`, which gives each action of a Work
+  with its stages.
 
 ## Acceptance criteria
 
@@ -62,7 +62,7 @@ that names the stage, the action and the Work, and the run goes on.
 ### **AC-2** A stage inside the pipeline is not warned about
 
 A stage in the pipeline, written as a list or reached through a stage preset,
-gives no warning.
+gives no warning about the pipeline.
 
 #### A list and a preset
 
@@ -70,7 +70,7 @@ gives no warning.
   another whose `deliver` is the preset `typed-boundary` that holds
   `architecture`.
 - **When** `wio context` runs for each with `deliver` and `architecture`.
-- **Then** neither run reports a warning.
+- **Then** neither run reports a warning about the pipeline.
 
 ### **AC-3** The Work's own pipeline decides
 
@@ -85,3 +85,17 @@ action, is judged by its own.
 - **Then** the first reports a warning, because `architecture` is outside its
   pipeline, and the second reports a warning that says the Work has no pipeline
   for `deliver`.
+
+### **AC-4** The config's defaults decide for a Work with no template
+
+A Work that follows no template is judged by the pipeline of
+`[works.defaults.actions]`.
+
+#### A Work with no template
+
+- **Given** a config whose `[works.defaults.actions]` give `deliver` the list
+  `implementation`, and a Work with no template and no `[actions]`.
+- **When** `wio context` runs for it with `deliver` and `implementation`, and
+  then with `deliver` and `architecture`.
+- **Then** the first reports no warning about the pipeline and the second
+  reports one.

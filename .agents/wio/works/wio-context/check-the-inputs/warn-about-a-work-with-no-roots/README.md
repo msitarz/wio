@@ -55,8 +55,9 @@ is still printed.
 
 #### Three Works with no roots
 
-- **Given** a Work whose `roots` are empty, a Work whose `roots` list
-  `@descendants` and that has no children, and a stage with no `roots`.
+- **Given** a Work whose `roots` are empty, a Work with no `roots` key, a Work
+  whose `roots` list `@descendants` and that has no children, and a stage with
+  no `roots`.
 - **When** `wio context` runs for each.
 - **Then** each reports a warning that names the Work, prints its bundle and
   exits 0.
@@ -71,12 +72,11 @@ is still printed.
 ### **AC-2** No warning when the Work's roots play no part
 
 A Work with roots, and a stage that names its roots without `@work`, give no
-warning.
+warning about the roots.
 
 #### Roots, and a stage with its own roots
 
-- **Given** a Work whose `roots` list `api`, and a Work with no roots at a stage
-  whose `roots` are `["contract"]`.
-- **When** `wio context` runs for each at a stage with no `roots` for the first
-  and at that stage for the second.
-- **Then** neither run reports a warning.
+- **Given** a Work whose `roots` list `api` at a stage that sets no `roots`, and
+  a Work with no roots at a stage whose `roots` are `["contract"]`.
+- **When** `wio context` runs for each.
+- **Then** neither run reports a warning about the roots.

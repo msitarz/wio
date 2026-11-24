@@ -19,25 +19,28 @@ does not exist must not produce a bundle that looks complete.
 - A Work tree that may not hold every Work is refused.
 - An unknown Work is refused, and a shared id refuses only the lookup of that
   id.
-- A fault of the metadata, the graph or a template does not stop the command.
+- A fault of the metadata, the graph or the template does not stop the command.
 
 ## Non-Goals
 
 - Refusing an unknown action, stage or root, which the sibling does.
 - Reporting the faults of the tree, which `wio contracts check` does.
+- The order in which the refusals are judged, which the parent states.
 
 ## Assumptions
 
 ### A-1
 
-The Work is named by its id and never by a path, because the driver names the
-Work and `wio contracts show` is where a path is accepted.
+The Work is named by its id and never by a path, so an argument that looks like
+a path is an id that no Work has, because `wio contracts show` is where a path
+is accepted.
 
 ### A-2
 
 The judgement that `wio contracts show` makes of the tree, which refuses an
 incomplete tree and a shared id and goes on past other faults, can be reached
-through the `Contracts` port.
+through the `Contracts` port, whose provider raises `ContractsError`; the
+`KeyError` that the stub of the port documents is provisional.
 
 ## Mechanisms
 
@@ -61,21 +64,27 @@ every command prints for it.
 - **Then** it exits 2, prints the diagnostic of that key on standard error and
   nothing on standard output.
 
-### **AC-2** An incomplete tree and an unknown Work are refused
+### **AC-2** An incomplete tree is refused
 
-A tree that may not hold every Work, and an id that no Work has, exit 2 and name
-the cause.
+A tree that may not hold every Work exits 2 and names the files that cause it.
 
-#### Two marked files, and no such Work
+#### Two marked files in one directory
 
-- **Given** under `nesting` a directory that holds two marked files, and an id
-  that no Work has.
-- **When** `wio context` runs for a Work of the tree, and then for the unknown
-  id.
-- **Then** the first exits 2 and names both files, and the second exits 2 and
-  says that no Work has that id.
+- **Given** under `nesting` a directory that holds two marked files.
+- **When** `wio context` runs for a Work of the tree.
+- **Then** it exits 2 and names both files.
 
-### **AC-3** A shared id refuses only its own lookup
+### **AC-3** An unknown Work is refused
+
+An id that no Work has exits 2 and says so, also when it looks like a path.
+
+#### An id and a path
+
+- **Given** a complete tree and an id `nope11` that no Work has.
+- **When** `wio context` runs for `nope11`, and for `works/a/README.md`.
+- **Then** each exits 2 and says that no Work has that id.
+
+### **AC-4** A shared id refuses only its own lookup
 
 Two Works that share an id refuse a run for that id and no other.
 
@@ -86,14 +95,15 @@ Two Works that share an id refuse a run for that id and no other.
 - **Then** the first exits 2 and names both paths, and the second prints its
   bundle and exits 0.
 
-### **AC-4** A fault elsewhere does not stop a run
+### **AC-5** A fault elsewhere does not stop a run
 
 A metadata, graph or template fault of another Work, or of the Work itself, does
 not stop the bundle.
 
 #### Faults that `check` reports
 
-- **Given** a Work with a `depends_on` id that no Work has, a key that its
-  template does not know, and another Work with a repeated heading.
+- **Given** a Work with a `depends_on` id that no Work has, a key that wio does
+  not know, and a `template` that names no template, and another Work with a
+  repeated heading.
 - **When** `wio context` runs for the first Work.
 - **Then** the bundle is printed and the exit code is 0.

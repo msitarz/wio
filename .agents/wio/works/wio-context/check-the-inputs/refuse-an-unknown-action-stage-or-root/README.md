@@ -16,7 +16,8 @@ config does not declare must be refused and never answered with a bundle.
 
 - An action that the config does not declare is refused.
 - A stage that the config does not declare is refused.
-- A root that the Work lists and the config does not declare is refused.
+- A root that a Work lists and the config does not declare is refused when the
+  stage selects the Work's roots.
 - Each refusal names the unknown name, and for an action or a stage the names
   that exist.
 
@@ -25,21 +26,34 @@ config does not declare must be refused and never answered with a bundle.
 - A stage that is declared but outside the action's pipeline, which is a warning
   that a sibling gives.
 - Refusing an unknown Work, which the sibling does.
+- The order in which the refusals are judged, which the parent states.
 
 ## Assumptions
 
 ### A-1
 
-The only unknown root that a run can meet is one that the Work lists, because
-the roots of a stage are judged by the config, and a config with an error is
+The only unknown root that a run can meet is one that a Work lists, because the
+roots of a stage are judged by the config, and a config with an error is
 refused.
+
+### A-2
+
+A stage selects the Work's roots when its `roots` are not set or list `@work`,
+and a Work's roots that the stage does not select play no part, as in
+`wio rules`.
+
+### A-3
+
+A root that a Work lists and the config does not declare is already an error of
+`wio contracts check`, so refusing it here, where it matters, repeats no check.
 
 ## Mechanisms
 
 - **The declared names** — the actions, stages and roots of the config, read
   through the shared `Settings` port.
 - **The roots of a Work** — read from the resolved contract, with
-  `@descendants` expanded.
+  `@descendants` expanded, so the Work that lists an unknown root may be a
+  descendant of the one named.
 
 ## Acceptance criteria
 
@@ -67,15 +81,28 @@ declared ones.
 - **Then** it exits 2, the message names `no-such-stage` and lists the declared
   stages, and standard output is empty.
 
-### **AC-3** An unknown root of a Work is refused
+### **AC-3** An unknown root of a Work is refused where the stage selects it
 
-A Work that lists a root the config does not declare exits 2 and names the root
-and the Work.
+A Work that lists a root the config does not declare exits 2 at a stage that
+selects the Work's roots, and the message names the root and the Work that lists
+it.
 
 #### A root that is not declared
 
-- **Given** a Work whose `roots` list `api` and `ghost`, and a config that
-  declares `api` only.
+- **Given** a Work whose `roots` list `api` and `ghost`, a config that declares
+  `api` only, and the stage `implementation`, which sets no `roots`.
 - **When** `wio context` runs for it.
 - **Then** it exits 2, the message names `ghost` and the Work, and standard
   output is empty.
+
+### **AC-4** A root that the stage does not select is not refused
+
+The same Work at a stage that names its own roots and not `@work` gets its
+bundle.
+
+#### A stage with its own roots
+
+- **Given** the Work and config of AC-3 and a stage whose `roots` are
+  `["contract"]`.
+- **When** `wio context` runs for it.
+- **Then** the bundle is printed and the exit code is 0.
