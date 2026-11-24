@@ -45,17 +45,18 @@ concepts say.
 ### **AC-1** A Work with no roots is warned about at a stage that needs them
 
 A Work with no roots at a stage that selects the Work's roots gives a warning
-that names the Work and says that it has no roots, and the bundle is still
+that names the Work's id and says that it has no roots, and the bundle is still
 printed.
 
 #### Three Works with no roots
 
-- **Given** a config that declares the roots `api` and `contract`, a Work whose
-  `roots` are empty, a Work with no `roots` key, a Work whose `roots` list
+- **Given** a composition of the bundle that is faked to return a fixed bundle,
+  a config that declares the roots `api` and `contract`, a Work whose `roots`
+  are empty, a Work with no `roots` key, a Work whose `roots` list
   `@descendants` and that has no children, and a stage with no `roots`.
 - **When** `wio context` runs for each.
-- **Then** each reports a warning that names the Work and says that it has no
-  roots, prints its bundle and exits 0.
+- **Then** each reports a warning that names the Work's id and says that it has
+  no roots, prints its bundle and exits 0.
 
 #### A stage that lists `@work`
 

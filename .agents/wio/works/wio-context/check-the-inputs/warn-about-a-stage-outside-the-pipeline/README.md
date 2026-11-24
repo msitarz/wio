@@ -37,13 +37,15 @@ Work must not block a session, but a mistaken pair, such as `deliver` with
 The effective pipeline of an action for a Work, with a stage preset already
 expanded into its stages, can be had from `shown_actions` and `ShownAction` of
 `wio.contracts`, which `wio contracts show` uses, so that `wio context` cannot
-disagree with it about where a pipeline comes from.
+disagree with it about where a pipeline comes from, and the warning that a Work
+has no pipeline for the action is the one that `wio trailers` already gives.
 
 ### A-2
 
 A Work whose pipeline names a stage preset that the config does not declare has
-no stage in its pipeline, so a run for it gets the warning about a stage outside
-the pipeline, and `wio contracts check` reports the preset.
+no stages, so a run for it gets the warning that the Work has no pipeline for
+the action, as `wio trailers` gives it, and `wio contracts check` reports the
+preset.
 
 ## Mechanisms
 
@@ -56,7 +58,7 @@ the pipeline, and `wio contracts check` reports the preset.
 Every config in the criteria below declares the action `deliver` and the stages
 that its Works and its runs name, so that no run is refused as an unknown stage
 or action, and a stage preset that a Work names is declared unless the criterion
-says otherwise.
+says otherwise; the composition of the bundle is faked to return a fixed bundle.
 
 ### **AC-1** A stage outside the pipeline is warned about
 
@@ -78,7 +80,7 @@ that names the stage, the action and the Work, and the run goes on.
   `architecture`, and a Work whose `deliver` is the preset `ghost-preset`, which
   the config does not declare.
 - **When** `wio context` runs for that Work, `deliver` and `architecture`.
-- **Then** a warning says that `architecture` is outside the pipeline, and the
+- **Then** a warning says that the Work has no pipeline for `deliver`, and the
   bundle is printed.
 
 ### **AC-2** A stage inside the pipeline is not warned about

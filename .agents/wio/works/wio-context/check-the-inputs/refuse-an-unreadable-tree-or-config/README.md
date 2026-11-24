@@ -51,8 +51,8 @@ through the `Contracts` port, whose provider raises `ContractsError`; the
 
 The rule selection refuses with the diagnostics when a rule file or a manifest
 has a fault, as `wio rules list` does, and `wio context` lets that refusal stand
-as exit 2; the stub of the port documents only `KeyError`, which is provisional
-on this point.
+as exit 2, judged after the action, the stage and the root; the stub of the port
+documents only `KeyError`, which is provisional on this point.
 
 ## Mechanisms
 
@@ -62,8 +62,8 @@ The ports below are provisional.
   raises for a Work that cannot be found; its refusals follow `refusal.py` of
   `wio.contracts`.
 - **The `RuleSelection` port** — in `src/wio/context/ports.pyi`, satisfied by
-  `wio.rules`, whose `DiagnosticsError` for a fault in the rules this Work lets
-  stand.
+  `wio.rules`, whose `select` raises `DiagnosticsError` for a fault in the
+  rules, which this Work lets stand.
 - **The loader of the config** — `Settings.load` of the shared `Settings` port,
   which refuses a config with an error for every command, as this command does.
 
@@ -114,7 +114,8 @@ Two Works that share an id refuse a run for that id and no other.
 
 #### One shared id
 
-- **Given** two Works with the id `s1s1s1` and a third Work with its own id.
+- **Given** a composition of the bundle that is faked to return a fixed bundle,
+  two Works with the id `s1s1s1` and a third Work with its own id.
 - **When** `wio context` runs for `s1s1s1` and then for the third.
 - **Then** the first exits 2 and names both paths, and the second prints its
   bundle and exits 0.
@@ -127,9 +128,10 @@ may appear.
 
 #### Faults that `check` reports
 
-- **Given** a Work with a `depends_on` id that no Work has, a key that wio does
-  not know, and a `template` that names no template, and another Work with a
-  repeated heading.
+- **Given** a composition of the bundle that is faked to return a fixed bundle,
+  a Work with a `depends_on` id that no Work has, a key that wio does not know,
+  and a `template` that names no template, and another Work with a repeated
+  heading.
 - **When** `wio context` runs for the first Work.
 - **Then** the bundle is printed and the exit code is 0.
 
@@ -143,3 +145,10 @@ A rule file or a manifest with a fault exits 2 with the diagnostics of
 - **Given** a rule whose family its ruleset's manifest does not declare.
 - **When** `wio context` runs for a Work and a stage.
 - **Then** it exits 2, names the rule's file, and standard output is empty.
+
+#### A ruleset with no manifest
+
+- **Given** a ruleset directory under `.agents/wio/rules/` with no
+  `ruleset.toml`.
+- **When** `wio context` runs for a Work and a stage.
+- **Then** it exits 2, names the directory, and standard output is empty.

@@ -19,7 +19,7 @@ config does not declare must be refused and never answered with a bundle.
 - A root that a Work lists and the config does not declare is refused when the
   stage selects the Work's roots.
 - Each refusal names the unknown name, for an action or a stage the names that
-  exist, and for a root the Work that was run.
+  exist, and for a root the id of the Work that was run.
 
 ## Non-Goals
 
@@ -86,8 +86,8 @@ run.
   `implementation` that sets no `roots`, and a Work whose `roots` list `api` and
   `ghost`.
 - **When** `wio context` runs for it at `implementation`.
-- **Then** it exits 2, the message names `ghost` and the Work, and standard
-  output is empty.
+- **Then** it exits 2, the message names `ghost` and the Work's id, and
+  standard output is empty.
 
 #### A stage that lists `@work`
 
@@ -104,7 +104,7 @@ bundle.
 
 #### A stage with its own roots
 
-- **Given** the Work and config of AC-3 and a stage whose `roots` are
-  `["contract"]`.
+- **Given** a composition of the bundle that is faked to return a fixed bundle,
+  the Work and config of AC-3 and a stage whose `roots` are `["contract"]`.
 - **When** `wio context` runs for it at that stage.
 - **Then** the bundle is printed and the exit code is 0.

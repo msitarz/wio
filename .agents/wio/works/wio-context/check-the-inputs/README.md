@@ -29,8 +29,8 @@ complete.
 
 - The warning about an oversized bundle, which the delivery does.
 - Checking the tree beyond what a run needs, which `wio contracts check` does.
-- A Work file that cannot be read once the tree is found, which ends the command
-  as any other failure of wio does.
+- A Work file that cannot be read once the tree is found, which exits 70, as any
+  other failure of wio does.
 
 ## Assumptions
 
@@ -50,7 +50,10 @@ The name below is provisional.
   Work with no roots read the roots through it, and no child delivers it, so the
   architecture stage owns it.
 - **The checks and the composition** — provisional: the checks run before the
-  bundle is composed, so a fake of the composition leaves them real.
+  bundle is composed, so a fake of the composition leaves them real, and the
+  criteria of this group and its children run with the composition faked; the
+  action, the stage and the root are checked before the rule selection is asked,
+  because `RuleSelector` judges the rules first and here they are judged last.
 
 ## Visuals
 
