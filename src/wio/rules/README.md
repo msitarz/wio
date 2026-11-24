@@ -684,17 +684,17 @@ reads. `show_rule` and `render_rule` do no input or output.
   leaves any other text as it is, so `show_rule` words every refusal. The
   output names the rule by its canonical ruleset.
 - **An error of the discovery anywhere refuses the command before the
-  reference is looked at, and a warning does not.**
+  reference is looked at, and exits 2, and a warning does not.**
 - **The text is the header, a blank line and the body.** The header is the
   qualified code and the name with the description, when the rule has one, and
   `file: <path>` indented to the name, as the listings write them, and the path
   is relative to the repository root and written with `/`. A rule without a body
   prints only its header.
-- **The body is printed as the reader returns it.** It has no leading or
+- **The body is printed as `read_rule` returns it.** It has no leading or
   trailing blank lines, keeps its leading spaces and its line endings, and is
   followed by one line feed. Standard output does not translate line ends, so a
   CRLF reaches the reader of the output as it is stored.
-- **The JSON is one line.** It has `code`, which is qualified, `name`,
+- **`--json` writes one line.** It has `code`, which is qualified, `name`,
   `description`, which is `null` when there is none, `summary`, `body` and
   `path` in that order, with no final line feed in the body.
 - **The same repository and reference give the same bytes.** Nothing is
