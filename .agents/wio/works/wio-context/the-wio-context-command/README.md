@@ -41,7 +41,9 @@ that provides `describe()` and a command, and an entry of the table in
 ### A-2
 
 The compiler is a collaborator that the other Works provide, so the criteria
-here run the command with a fake of it.
+here run the command with a fake of it, and its result carries what the Works
+that deliver the bundle need: the text, the bundle id, the UTF-8 bytes of the
+body and the warnings.
 
 ## Mechanisms
 
@@ -53,7 +55,9 @@ The names below are provisional, except the command and its three arguments.
 - **`Services`** — frozen, what the command reads the project and writes its
   results through, which the Works that add ports extend.
 - **The compiler port** — one call that takes the Work's id, the action and the
-  stage, and returns the text of the bundle and the warnings found on the way.
+  stage, and returns a result that holds the text of the bundle, its id, the
+  UTF-8 bytes of its body and the warnings found on the way; the Works that
+  deliver the bundle read the id and the bytes from it.
 - **The entry** — `component_entry("context", wire)` in `wio.cli.table`, whose
   `wire` builds `Services` with the adapters of `wio.io` and `wio.env`.
 
@@ -69,8 +73,8 @@ The names below are provisional, except the command and its three arguments.
 - **Given** the entry of `context` in the table.
 - **When** `wio --help` and `wio context` with no argument run.
 - **Then** the first lists `context` with its description, and the second
-  prints `usage: wio context [-h] <work> <action> <stage>` on standard error
-  and exits 2.
+  prints a usage line that names the Work, the action and the stage on standard
+  error and exits 2.
 
 ### **AC-2** The bundle goes to standard output and the warnings are reported
 
@@ -79,7 +83,8 @@ each warning is reported as `wio` reports a warning, and the exit code is 0.
 
 #### A bundle with two warnings
 
-- **Given** a fake compiler that returns a text and two warnings.
+- **Given** a fake compiler that returns a text, an id, a body size and two
+  warnings.
 - **When** `wio context k3m9xq deliver architecture` runs.
 - **Then** standard output holds exactly the text, each of the two warnings is
   reported, and the exit code is 0.

@@ -29,20 +29,33 @@ None.
 
 ## Visuals
 
-Before, the command prints only to standard output. After, it can also write the
-bundle to a file and print the file's path, and it warns when the body is larger
-than the configured threshold.
+The diagram is drawn from commit `8edc675` of the branch `main`. Before, the
+command prints only to standard output. After, it can also write the bundle to a
+file and print the file's path, and it warns when the body is larger than the
+configured threshold, whichever way the bundle is delivered.
+
+```mermaid
+flowchart LR
+    compiled["compiler result: text, id, body size, warnings"] --> check["size check"]
+    compiled --> dest{"--output?"}
+    check -->|"above the threshold"| warn["warning"]
+    dest -->|"no"| out["standard output: the bundle"]
+    dest -->|"yes"| file["file: the bundle"]
+    file --> path["standard output: the path"]
+```
 
 ## Acceptance criteria
 
-### **AC-1** A large bundle is warned about and can be read from a file
+### **AC-1** A large bundle is warned about and read from a file
 
-For a bundle over the threshold, the command warns, and `--output` gives a file
-that holds the bundle.
+With `--output` and a body over the threshold, standard output holds the path
+alone, the warning is reported, the file holds the whole bundle, and the exit
+code is 0.
 
 #### An oversized bundle through a file
 
 - **Given** a size threshold below the size of the body of a bundle.
-- **When** `wio context --output` runs for it.
-- **Then** a warning is reported, the path of a file is printed, and the file
-  holds the bundle.
+- **When** `wio context <work> <action> <stage> --output` runs for it.
+- **Then** standard output is the path of the file and a newline and nothing
+  else, a warning about the size is reported, the file holds the whole bundle,
+  and the exit code is 0.
