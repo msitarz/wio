@@ -32,6 +32,7 @@ lazy from wio.rules.inputs import (
 )
 lazy from wio.rules.layers import Layered, RuleLayers, apply_layers
 lazy from wio.rules.manifest import ManifestReading, read_manifest
+lazy from wio.rules.narrowing import narrow
 lazy from wio.rules.reading import RULE_NAME, RULE_NAME_FORM, RuleReading, read_rule
 lazy from wio.rules.roots import roots_of_path, stage_roots
 lazy from wio.rules.warns import check_warnings
@@ -269,6 +270,7 @@ __all__ = [
     "expand",
     "json_option",
     "layer_label",
+    "narrow",
     "read_manifest",
     "read_rule",
     "refuse_on_errors",

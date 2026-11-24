@@ -224,7 +224,8 @@ def test_a_reference_narrows_a_listing_that_applied_layers() -> None:
 
 def test_not_selected_keeps_the_rules_that_no_entry_delivers() -> None:
     """AC-4: the unselected rules are held, and the header is marked."""
-    # Given the listing of every rule with no layers
+    # Given the listing of every rule with no layers, in a repository whose
+    # root-independent `process` also has `FIX002`, which nothing delivers
     listing = _view()
 
     # When it is narrowed with `--not-selected` and no references
