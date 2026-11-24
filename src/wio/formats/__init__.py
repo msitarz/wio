@@ -5,7 +5,10 @@ lazy from wio.formats.block import read_metadata_block
 lazy from wio.formats.blocks import Block, render_blocks
 lazy from wio.formats.closest import closest_key
 lazy from wio.formats.cycles import (
+    cycle_key,
+    cycle_message,
     find_cycles,
+    rule_preset_cycles,
 )
 lazy from wio.formats.diagnostics import (
     encode_json,
@@ -82,6 +85,8 @@ __all__ = [
     "and_list",
     "check_shape",
     "closest_key",
+    "cycle_key",
+    "cycle_message",
     "declared",
     "decode_lines",
     "decode_toml",
@@ -111,5 +116,6 @@ __all__ = [
     "render_json",
     "render_text",
     "rule_hash",
+    "rule_preset_cycles",
     "set_block_keys",
 ]

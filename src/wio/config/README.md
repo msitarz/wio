@@ -190,11 +190,14 @@ which the rules Work shares.
   directory with a name of the wrong form is left out of what the messages
   list. The alias of a table without a directory is not known, because the
   ruleset is not.
-- **Only a bare `rules_include` of a config rule preset makes a cycle,** because
-  an exclude only removes rules, so a preset that excludes another resolves
-  whatever that one holds.
-- **A cycle is one error for the group of rule presets that include one
-  another,** as for actions, so an agent breaks the loop once.
+- **A bare name in `rules_include` or in `rules_exclude` that is a config rule
+  preset makes a cycle edge,** as in a manifest, because the expansion reads an
+  exclude as a list to know what it removes, and cannot expand one that closes a
+  cycle: it would drop the exclude and say nothing. A qualified name is no edge.
+- **A cycle is one error for the group of rule presets that reach one another,**
+  as for actions, so an agent breaks the loop once. It is at the first member's
+  `rules_include`, or at its `rules_exclude` when none of its includes names a
+  member.
 - **An alias equal to its own ruleset's name is not a clash,** since it names
   the same ruleset and harms nothing.
 

@@ -831,10 +831,9 @@ the dot exists.
   an expansion drops the cycle it meets, so the cycles are found from the graph
   of both lists, with `find_cycles` that `wio.config` shares. The error is at
   the first member's `rules_include`, or at its `rules_exclude` when none of its
-  includes names a member. The config's own rule presets differ on purpose:
-  [`wio config check`](../config/README.md) counts only an include as an edge
-  there, because it judges the config as text, and an exclude that closes a
-  cycle through a manifest is found here, where the manifests are read. `all` is
+  includes names a member. [`wio config check`](../config/README.md) counts
+  the same edges for the config's own rule presets, and both use
+  `rule_preset_cycles` of `wio.formats`. `all` is
   the whole ruleset and never a rule preset, so it is no node of the graph, and
   a manifest that defines it is one error.
 - **A root must not reach a root-independent ruleset, and a stage may include

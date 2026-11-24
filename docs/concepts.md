@@ -1787,7 +1787,9 @@ rules_exclude = ["mp.DOC004"]
   never reaches outside it.
 - A rule preset may include other rule presets. A cycle between rule presets is
   an error that names the rule presets on the cycle, such as `api` and
-  `backend`, because a cycle has no resolved set.
+  `backend`, because a cycle has no resolved set. A rule preset that excludes
+  another is on a cycle too when that one includes it, because an exclude is
+  expanded to know what it removes.
 - Every ruleset has a rule preset `all`, which holds all its rules, so a root or
   an always field can take a whole ruleset while taking rule presets only. A
   ruleset cannot define a rule preset of that name.

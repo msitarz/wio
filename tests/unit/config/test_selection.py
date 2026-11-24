@@ -296,32 +296,43 @@ def test_rule_presets_that_include_one_another_are_one_error() -> None:
     # names `s` at `rule_presets.s.rules_include`
     assert found == [
         (
-            "error: rule_presets.a.rules_include: `a` and `b` include one another; "
-            "a cycle has no resolved set."
+            "error: rule_presets.a.rules_include: `a` and `b` name one another; "
+            "a rule preset cannot reach itself."
         ),
         (
-            "error: rule_presets.s.rules_include: `s` includes itself; a cycle has no "
-            "resolved set."
+            "error: rule_presets.s.rules_include: `s` names itself; a rule preset "
+            "cannot reach itself."
         ),
     ]
 
 
-def test_only_a_bare_include_of_a_config_preset_is_an_edge() -> None:
-    """AC-3: excludes and qualified references do not make a cycle."""
+def test_a_bare_include_or_exclude_of_a_config_preset_is_an_edge() -> None:
+    """AC-3: an exclude that closes a cycle is one, and a qualified name is not."""
     # Given a preset `a` that excludes `b` and includes `docs.all`, and `b` that
-    # includes `a`
+    # includes `a`; and presets `c` and `d` that include `docs.all` and `docs.DOC`
+    # beside each other's qualified names
     config = make_config(
         rule_presets={
             "a": RulePreset(rules_include=("docs.all",), rules_exclude=("b",)),
             "b": RulePreset(rules_include=("a",)),
+            "c": RulePreset(
+                rules_include=("docs.all", "docs.d"), rules_exclude=("docs.d",)
+            ),
+            "d": RulePreset(rules_include=("docs.c",)),
         }
     )
 
     # When the rule presets are checked for cycles
-    found = list(selection.check_rule_preset_cycles(config, _inputs()))
+    found = diagnostic_lines(selection.check_rule_preset_cycles(config, _inputs()))
 
-    # Then no error is returned
-    assert found == []
+    # Then one error names `a` and `b` at the exclude, because none of the includes
+    # of `a` names a member, and `c` and `d` make none
+    assert found == [
+        (
+            "error: rule_presets.a.rules_exclude: `a` and `b` name one another; "
+            "a rule preset cannot reach itself."
+        )
+    ]
 
 
 def test_a_root_takes_rule_presets_only_and_a_veto_takes_codes_and_families() -> None:

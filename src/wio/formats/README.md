@@ -196,6 +196,11 @@ each case reads.
   the cycles of `after` and of its rule presets, and `wio.rules` those of a
   manifest's, and neither may import the other, so a second copy could disagree
   about what a cycle is. `tach` and `jscpd` hold this.
+- **What the two share about rule presets is here too.** `rule_preset_cycles`
+  takes the bare names in `rules_include` and in `rules_exclude` that are rule
+  presets as edges, `cycle_key` says which list the error is at, and
+  `cycle_message` words it, so the config and a manifest report the same cycle
+  alike.
 - **A cycle is reported once, by its members.** A strongly connected group of
   names is one tuple of sorted names however many names lead into it, and a name
   that only reaches a cycle is not part of it, so a caller reports one error at

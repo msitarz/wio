@@ -55,8 +55,8 @@ def test_every_reference_resolves_to_a_ruleset_or_a_preset(wio: Wio) -> None:
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_rule_presets_do_not_form_a_cycle(wio: Wio) -> None:
     """AC-3: a cycle is one error that names the presets on it."""
-    # Given the config `rules-cycles` with rule presets that include one another
-    # and one that includes itself
+    # Given the config `rules-cycles` with rule presets that include one another,
+    # one that includes itself, and one that excludes another that includes it
     # When `wio config check` runs
     output = wio.check_config("rules-cycles")
 
@@ -64,8 +64,10 @@ def test_rule_presets_do_not_form_a_cycle(wio: Wio) -> None:
     assert [line.split(": ")[1] for line in output.lines] == [
         "rule_presets.a.rules_include",
         "rule_presets.s.rules_include",
+        "rule_presets.x.rules_exclude",
     ]
     assert "`a` and `b`" in output.lines[0]
+    assert "`x` and `y`" in output.lines[2]
     assert output.exit_code == 1
 
 
