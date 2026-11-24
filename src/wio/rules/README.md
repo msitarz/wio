@@ -8,9 +8,9 @@ of a stage, the decision of each rule, the rules that any include entry
 delivers, the roots of a stage and of a path, the errors of the references, the
 warnings of the selections and the bodies, the report of `wio rules check`,
 which joins them, and the selector that gives the rules of a stage to
-`wio trailers`, and how these parts make one selection. `list`, `new` and `show`
-build on the rest. [A rule file](../../../docs/concepts.md#a-rule-file) says
-what the file holds,
+`wio context` and `wio trailers`, and how these parts make one selection.
+`list`, `new` and `show` build on the rest.
+[A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its code
 and name mean and [Rulesets on disk](../../../docs/concepts.md#rulesets-on-disk)
 what a ruleset is. Its terms are in the [glossary](../../../GLOSSARY.md).
@@ -400,9 +400,9 @@ says what the forms of a stage's `roots` mean.
 The parts above decide which rules apply to a stage, and they are built so that
 every consumer reads one answer, so `wio trailers` and the commands that come
 (`wio rules list` and `wio context`) cannot disagree on what a session was
-given. The
-[tests](../../../tests/unit/rules/test_selection.py) run the parts together over
-one repository.
+given. Its
+[tests](../../../tests/unit/rules/test_selection.py) are the criteria of the
+selection.
 
 ```mermaid
 flowchart LR
@@ -417,6 +417,7 @@ flowchart LR
         applic["select"]
         anywhere["selected_anywhere"]
         selector["RuleSelector"]
+        hash["rule_hash (wio.formats)"]
     end
     ctxport["RuleSelection (wio.context)"]
     stageport["StageRules (wio.trailers)"]
@@ -432,6 +433,8 @@ flowchart LR
     applic --> listing
     anywhere --> listing
     applic --> selector
+    roots --> selector
+    selector --> hash
     selector --> files
     selector -.-> ctxport
     selector -.-> stageport
@@ -440,16 +443,16 @@ flowchart LR
 - **Every view is one function over different roots.** A listing of the whole
   repository, of a root, of a path and of a Work at a stage differ only in the
   layers they apply and the roots they give: `--root`, `--path` and `--work`
-  give the roots, `--stage` gives the stage, and a view without roots applies
-  none. So `select` serves them all and no view computes the rules a second
-  time.
+  will give the roots, `--stage` will give the stage, and a view without roots
+  applies none. So `select` serves them all and no view computes the rules a
+  second time.
 - **The selection holds every rule once.** Each rule of every ruleset has one
   decision, so a listing, an explanation and the hashes are views of the same
   value, and the order of everything in it is that of the rules of the
   repository, ruleset, family and code.
-- **Only the selector reads a rule file for its bytes.** `select` and the
-  functions under it do no input or output, so they can be run on any case,
-  and the hash of a rule is computed in one place.
+- **Only the selector reads a rule file for its bytes.** `select` does no
+  input or output, and the selector reads the file of a rule through the
+  `FileSystem` port, so the hash of a rule is computed in one place.
 - **A rule that nothing selects is never included.**
   [`selected_anywhere`](anywhere.py) says which rules some include entry of the
   config delivers, whatever the roots and the stage, and every rule that
