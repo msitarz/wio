@@ -1,21 +1,23 @@
 # `wio.rules`
 
-The component behind `wio rules`. So far it holds the group of subcommands that
-the subcommands will join, the reader of one rule file, the reader of a
-ruleset's manifest, the discovery of the rulesets, the expansion of rule
-presets, the inputs that the selection shares, the layers that select the rules
-of a stage, the decision of each rule, the rules that any include entry
-delivers, the roots of a stage and of a path, the errors of the references, the
-warnings of the selections and the bodies, the report of `wio rules check`,
-which joins them, and the selector that gives the rules of a stage to
-`wio context` and `wio trailers`, and how these parts make one selection, and
-the listing of `wio rules list` and its narrowing and explanation, and the
-planning and the creation of a rule for `wio rules new`, and the finding and
-printing of one rule for `wio rules show`.
+The component behind `wio rules`. It holds the group of subcommands, the reader
+of one rule file, the reader of a ruleset's manifest, the discovery of the
+rulesets, the expansion of rule presets, the inputs that the selection shares,
+the layers that select the rules of a stage, the decision of each rule, the
+rules that any include entry delivers, the roots of a stage and of a path, the
+errors of the references, the warnings of the selections and the bodies, the
+report of `wio rules check`, which joins them, and the selector that gives the
+rules of a stage to `wio trailers` and, once it exists, to `wio context`, and
+how these parts make one selection, the listing of `wio rules list` and its
+narrowing and explanation, the planning and the creation of a rule for
+`wio rules new`, the finding and printing of one rule for `wio rules show`, and
+what holds for the four subcommands as a whole.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its code
 and name mean and [Rulesets on disk](../../../docs/concepts.md#rulesets-on-disk)
-what a ruleset is. Its terms are in the [glossary](../../../GLOSSARY.md).
+what a ruleset is. Its terms are in the
+[glossary of this directory](GLOSSARY.md) and the
+[repository glossary](../../../GLOSSARY.md).
 
 ## Reading a rule file
 
@@ -287,8 +289,8 @@ case reads.
 [`select`](applicability.py) applies the layers and decides every rule of every
 ruleset: included, with the roots it applies to, or out, with the reason. One
 function serves every view of a listing and every consumer of a selection, so
-`wio context` and `wio rules list` cannot give a rule different decisions. Its
-docstring says what it takes and returns, and its
+`wio rules list` and, once it exists, `wio context` cannot give a rule
+different decisions. Its docstring says what it takes and returns, and its
 [tests](../../../tests/unit/rules/test_applicability.py) say how each case
 reads. `Decision` and `Reason` are in [`wio.models`](../models/rules.py).
 
@@ -317,7 +319,8 @@ reads. `Decision` and `Reason` are in [`wio.models`](../models/rules.py).
   set, so it gives no reason, and a rule that only it removed is not selected.
 - **Each decision carries the effects of the layers,** so a listing can explain
   a rule without applying the layers again, and the order of the selection is
-  that of the layers: every rule once, in the order of ruleset, family and code.
+  that of the layers: every rule once, in the order of ruleset, family, number
+  and code text.
 - **The same inputs give the same selection** whatever the order of the tables
   of the config, of the entries of its lists or of the roots, and `select`
   raises the `KeyError` of the layers for a root or a stage that the config does
@@ -373,10 +376,12 @@ contract. Their docstrings say what each takes, returns and raises, and their
 [Which roots a stage selects](../../../docs/concepts.md#which-roots-a-stage-selects)
 says what the forms of a stage's `roots` mean.
 
-- **A Work without roots fails loudly where the stage needs them.** A stage that
+- **A Work without roots raises where the stage needs them.** A stage that
   selects the Work's roots, without `roots` or through `@work`, raises
   `ValueError` for a Work that has none, whatever other roots it lists, because
-  an empty `@work` would hide the mistake behind the other roots' rules.
+  an empty `@work` would hide the mistake behind the other roots' rules. The
+  selector turns the error into a selection with no included rule, as
+  [the selector](#the-rule-selector) says.
 - **A stage's own roots never look at the Work.** A stage with only its own
   roots, or `[]`, never fails for the Work and never looks it up, because the
   Work is not what the stage selects. The stage is checked first, then its own
@@ -400,10 +405,9 @@ says what the forms of a stage's `roots` mean.
 ## The selection as a whole
 
 The parts above decide which rules apply to a stage, and they are built so that
-every consumer reads one answer, so `wio trailers` and the commands that come
-(`wio rules list` and `wio context`) cannot disagree on what a session was
-given. Its
-[tests](../../../tests/unit/rules/test_selection.py) are the criteria of the
+every consumer reads one answer, so `wio trailers`, `wio rules list` and,
+once it exists, `wio context` cannot disagree on what a session was given.
+Its [tests](../../../tests/unit/rules/test_selection.py) are the criteria of the
 selection.
 
 ```mermaid
@@ -699,6 +703,55 @@ reads. `show_rule` and `render_rule` do no input or output.
   `path` in that order, with no final line feed in the body.
 - **The same repository and reference give the same bytes.** Nothing is
   written.
+
+## The command as a whole
+
+`wio rules` has four subcommands, `check`, `list`, `new` and `show`, that share
+the selection, the discovery of the rule files and the forms of their output.
+The [tests](../../../tests/acceptance/rules/test_tree.py) run them together,
+and the
+[citation of a rule](../../../tests/acceptance/rules/test_tree_trailers.py) and
+the [selector](../../../tests/unit/rules/test_tree.py) are tested through the
+ports of `wio.trailers` and `wio.context`. These hold for all of them:
+
+- **`wio.rules` imports no other component.** `tach check` verifies it. It
+  reads files, the config and the roots of a Work only through the `wio.io`
+  ports, the shared `Settings` port and the roots port, and the unit tests of
+  its parts run it on fakes of them.
+- **The output is deterministic.** The same files, config and arguments give the
+  same bytes, in text and in JSON. Rules are ordered by ruleset name, then
+  family, then the number of the code, then the text of the code, so `ARC999`
+  comes before `ARC1000` and `ARC001` before `ARC01`, and diagnostics are in the
+  order of `sort_diagnostics` of `wio.models.diagnostics`, which compares the
+  place as text, then the severity, then the message.
+- **Only `wio rules new` writes a file.** `check`, `list` and `show` read only.
+  `new` writes nothing for a ruleset with a fault.
+- **A rule is named by its canonical ruleset and code with its name.** It is
+  written such as `py.API001 adapters-return-typed-results` wherever `wio rules`
+  shows or cites it, never by a bare code or an alias.
+- **Every subcommand takes `--json`.** It prints the information of the text
+  form as one JSON document.
+- **A diagnostic names its place the same way.** It is the path of the file
+  relative to the repository root, written with `/` and followed by `:<line>`
+  when the fault has a line; the path of the directory for a fault of a
+  directory; the manifest's path followed by `#` and the key path for a fault in
+  a key of a manifest, such as
+  `.agents/wio/rules/demo/ruleset.toml#rule_presets.local.rules_include[0]`; and
+  the key path of the config for a fault in the config, as `wio config check`
+  writes it. A fault of two files names both, joined by `, `, as `wio.templates`
+  writes it.
+- **A fault reaches `check` and stops the other commands.** `wio rules check`
+  reports it, and `new`, `list` and `show` refuse instead of working from a
+  ruleset that has left a rule out.
+- **A rule made by `new` needs no edit.** `check` accepts it, `list` shows it
+  and the selection for a Work at a stage includes it.
+- **A reference that names nothing is judged where it is written.** One of the
+  config selects no rule and is reported by `check`, so `list` and the selection
+  go on past it, while a reference given to `wio rules list` on the command line
+  that names nothing is refused.
+- **A rule that nothing selects is listed and not warned about.**
+  `wio rules list --not-selected` shows the rules that no root, stage or always
+  field includes, and `check` reports nothing about them.
 
 ## The group of subcommands
 

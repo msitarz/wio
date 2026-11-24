@@ -127,10 +127,14 @@ not say yet; elsewhere, too, *open* marks a form that is not settled
 
 ### A rule file
 
+A rule file is a Markdown file whose metadata block, in either form, the
+comment `<!-- wio ... -->` or `+++` front matter, holds these keys. Its file
+name carries no meaning, and the rule may be at any depth of its ruleset.
+
 | Symbol | Presence | Purpose | See |
 | --- | --- | --- | --- |
 | `code` | *required* | The rule's identifier, whose letters are its family. | [Codes and families](#codes-and-families) |
-| `name` | *required* | The rule's readable name, shown with its code. | [Codes and families](#codes-and-families) |
+| `name` | *required* | The rule's name, lower-case words joined by hyphens, shown with its code. | [Codes and families](#codes-and-families) |
 | `description` | *optional* | One line that says what the rule is for, shown with it by `wio rules list` and `wio rules show`; it is not the summary, which is cut from the body. | [What a rule is](#what-a-rule-is) |
 | Body | — | The text a bundle shows as written: instruction, `Why:` and `Example:`. | [What a rule is](#what-a-rule-is) |
 
@@ -1547,13 +1551,14 @@ rules: it picks the roots that count, and each of them brings its
   can use `roots = ["contract", "@work"]`. Root and action names cannot
   contain `@`, so the `@` values never clash with them.
 - If the stage selects the Work's roots, without `roots` or through `@work`, and
-  the Work has none, `wio context` fails loudly, whatever other roots the list
-  names. A Work whose roots were never set fails at the first stage that needs
-  them. A stage that runs while roots are still being decided, such as a review
-  of a parent whose children have no roots yet, should not select `@work`, or it
-  fails too. An empty `@work` that adds nothing would hide exactly that mistake
-  behind the other roots' rules. A form for "the Work's roots, if any" can come
-  later if a stage needs one.
+  the Work has none, the selection that `wio rules` gives `wio context` includes
+  no rule, whatever other roots the list names, and `wio trailers` cites no
+  rule. A Work whose roots were never set gets no rules at the first stage that
+  needs them. A stage that runs while roots are still being decided, such as a
+  review of a parent whose children have no roots yet, should not select
+  `@work`, or it gets none too. An empty `@work` that adds nothing would hide
+  exactly that mistake behind the other roots' rules. A form for "the Work's
+  roots, if any" can come later if a stage needs one.
 
 ### Paths
 
@@ -1661,7 +1666,10 @@ Rules are identified the way linter rules are. A rule has a **code**, such as
   cite rules record each rule's qualified code together with a hash of its
   file, and evidence never confuses two rules that shared a code, nor a rule
   with an edited version of itself.
-- A rule file is named `<code>-<name>.md`, so listings sort by family.
+- A rule file is conventionally named `<code>-<name>.md`, so listings of the
+  directory sort by family, and `wio rules new` names it so. No command reads
+  the file's name, so the code and the name are those of its metadata.
+- Names are unique within a ruleset, as codes are.
 - Wherever a rule is shown to a person or an agent, the code and the name appear
   together, so the code is never opaque.
 
@@ -1859,7 +1867,8 @@ contents do. A `rules_exclude` entry reaches nothing.
 - A stage with `roots = []` selects no root and gets only root-independent
   rules, because a stage about something other than code needs only the rules
   about how to work. A stage that selects `@work` for a Work with no roots still
-  fails, because an empty `@work` would hide a Work whose roots were never set
+  gets no rule, because an empty `@work` would hide a Work whose roots were
+  never set
   ([Which roots a stage selects](#which-roots-a-stage-selects)).
 
 ```mermaid
@@ -1915,20 +1924,25 @@ does:
 
 | Flags | Layers applied | Roots |
 | --- | --- | --- |
-| `--preset <name>` | the rule preset, expanded, without the always fields | not applied |
+| none | no layer, every rule | not applied |
 | `--root <name>` | that root's rule presets, always fields | that root |
 | `--stage <name>` | the stage, always fields | not applied |
 | `--root` and `--stage` | the root's rule presets, the stage, always fields | that root |
+| `--work <id>` | the rule presets of the Work's roots, always fields | the Work's roots |
 | `--work <id> --stage <name>` | what `wio context` selects | the roots the stage selects for that Work |
 | `--path <file>` | the rule presets of the roots containing the file, always fields | those roots |
 | `--path` and `--stage` | as for `--path`, and the stage | those roots |
 
-- `--preset` is outside the four layers, so it takes no flag but `--explain`: a
-  rule preset is inspected on its own.
+- References narrow every view. A reference names a ruleset, a family, a code or
+  a rule preset, such as `demo.ARC`, and keeps the rules it delivers. A rule
+  preset is inspected on its own with `wio rules list <ruleset>.<name>`, which
+  applies no layer. A reference that names nothing is refused.
+- `--not-selected` limits any view to the rules that no root, stage or always
+  field includes. `wio rules check` does not warn about them.
 - At most one of `--root`, `--path` and `--work` is given, because each decides
   the roots and two would conflict.
-- `--work` needs `--stage`, because the stage's `roots` decide which of the
-  Work's roots count.
+- `--work` needs no `--stage`: without one, the Work's own roots count, and the
+  stage's `roots` decide which of them count when it is given.
 - `--action` and `--template` are not flags, because neither owns a layer.
 - The header names the layers applied, so a partial view never looks like a
   complete one. When roots are not applied, each rule that is not
@@ -1937,6 +1951,13 @@ does:
   `py.API002 ← root api ← backend ← py.API`, and why a rule is out: excluded by
   a layer, vetoed by `rules_always_exclude`, or cut by roots. Nested rule
   presets are otherwise hard to trace, and the bundle leaves the source out.
+- `--json` prints the listing as one JSON object on one line with what the text
+  holds. Every `wio rules` subcommand takes it.
+
+`wio rules show <ruleset>.<code>` prints one rule: its qualified code and name,
+its description when it has one, its file, and its body as the reader returns
+it. The ruleset may be its alias, and a family, a rule preset, `all`, a bare
+code or a code that does not exist is refused.
 
 ### Checking rules
 
@@ -1980,9 +2001,6 @@ Errors:
 
 Warnings:
 
-- a rule that nothing selects;
-- a ruleset that is neither reached nor, when root-independent, selected: it is
-  data on disk that may be waiting to be used, so it is not an error;
 - a selection, in a stage or in `rules_always_include`, from a ruleset that is
   not root-independent and that no root the stage can select reaches: for a
   stage with `roots`, those roots; for a stage that selects the Work's roots, or
@@ -1991,6 +2009,10 @@ Warnings:
 - a rule in both always fields: the veto wins, but one of the two entries is
   usually stale;
 - a Markdown heading in a rule body.
+
+A rule that nothing selects is not a warning, and a ruleset that nothing reaches
+or selects is not one either: `wio rules list --not-selected` lists the rules
+that nothing selects.
 
 An exclude of a rule its layer never included is not reported: excluding ahead
 of a ruleset update is common, and a warning would be noise.
@@ -2067,13 +2089,12 @@ Properties that matter:
   `context` event be written from inside the session, with the session's id. A
   wrong stage is caught by reading the header, which shows the Work, action,
   stage and goal first.
-- **Loud failures**: an unknown Work, action, stage or root is an error, and so
-  is a stage that selects the Work's roots when the Work has none. An empty
-  bundle looks like success, so it is never produced by mistake. Zero matching
-  rules is valid, and the header says so. A stage that is not in the pipeline
-  of the given action for this Work is only a warning, because the driver
-  decides. wio checks the pair: `deliver` with the stage `define` warns even
-  though `define` is one of the Work's stages.
+- **Loud failures**: an unknown Work, action, stage or root is an error. An
+  empty bundle looks like success, so it is never produced by mistake. Zero
+  matching rules is valid, and the header says so. A stage that is not in the
+  pipeline of the given action for this Work is only a warning, because the
+  driver decides. wio checks the pair: `deliver` with the stage `define` warns
+  even though `define` is one of the Work's stages.
 - **Explainable**: `wio rules list --explain` lists why each rule was included
   or excluded, without changing the bundle.
 - **Sized**: harnesses truncate long command output, and a truncated bundle

@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of the steps of `wio rules new` over an in-memory repository."""
 
-import io
 import json
 from argparse import Namespace
 from typing import TYPE_CHECKING
@@ -10,7 +9,7 @@ import pytest
 
 from tests.fakes import FakeEnvironment
 from tests.unit.fakes import ROOT, FakeRepository, FakeStdio, MemoryFileSystem
-from tests.unit.rules.support import Roots, Settings
+from tests.unit.rules.support import Roots, Settings, said
 from wio.errors import DiagnosticsError, WioError
 from wio.models.config import Config, Root, Ruleset, Stage
 from wio.models.frozen import freeze
@@ -105,19 +104,6 @@ def _run(
     return streams
 
 
-def _said(streams: FakeStdio) -> str:
-    """Read what a run wrote to standard output.
-
-    Args:
-        streams: The streams of the run.
-
-    Returns:
-        The text.
-    """
-    assert isinstance(streams.stdout, io.StringIO)
-    return streams.stdout.getvalue()
-
-
 def test_it_creates_one_rule_and_says_what_selects_it() -> None:
     """AC-9: the lines of the result, and one new file."""
     # Given the repository, where the rule preset and the stage select `ARC`
@@ -131,7 +117,7 @@ def test_it_creates_one_rule_and_says_what_selects_it() -> None:
     # two origins
     path = ".agents/wio/rules/demo/ARC004-keep-it-small.md"
     assert set(disk.files) - before == {ROOT / path}
-    assert _said(streams).splitlines() == [
+    assert said(streams).splitlines() == [
         "created demo.ARC004 keep-it-small",
         f"file: {path}",
         "selected: demo.ARC004 ← root api ← demo.recommended ← demo.ARC",
@@ -146,8 +132,8 @@ def test_a_family_that_nothing_includes_is_not_selected_yet() -> None:
     as_json = _run(MemoryFileSystem(_files()), "demo", "PAY", "pay-later", as_json=True)
 
     # Then the text says so, and the JSON has the fields in order and no origin
-    assert _said(text).splitlines()[2] == ("selected: no, nothing selects it yet")
-    found = json.loads(_said(as_json))
+    assert said(text).splitlines()[2] == ("selected: no, nothing selects it yet")
+    found = json.loads(said(as_json))
     assert list(found) == ["code", "name", "path", "selected", "origins"]
     assert (found["code"], found["selected"], found["origins"]) == (
         "demo.PAY001",
@@ -163,7 +149,7 @@ def test_the_json_gives_the_origins_as_arrays_of_labels() -> None:
     streams = _run(MemoryFileSystem(_files()), "demo", "ARC", "x", as_json=True)
 
     # Then the document is one line with the chains of labels
-    output = _said(streams)
+    output = said(streams)
     assert output.count("\n") == 1
     found = json.loads(output)
     assert found["selected"] is True
@@ -182,7 +168,7 @@ def test_an_alias_is_accepted_and_the_canonical_name_is_shown() -> None:
     streams = _run(disk, "d", "ARC", "keep-it-small")
 
     # Then the result says `demo.ARC004` and the file is in the directory of `demo`
-    assert _said(streams).startswith("created demo.ARC004 ")
+    assert said(streams).startswith("created demo.ARC004 ")
     assert _DEMO / "ARC004-keep-it-small.md" in disk.files
 
 
@@ -226,7 +212,7 @@ def test_a_warning_refuses_nothing() -> None:
     streams = _run(disk, "demo", "ARC", "keep-it-small")
 
     # Then it is created
-    assert _said(streams).startswith("created demo.ARC004 ")
+    assert said(streams).startswith("created demo.ARC004 ")
 
 
 def test_the_same_request_writes_the_same_bytes() -> None:
