@@ -604,7 +604,9 @@ does no input or output.
 - **A `from:` line is an origin and a `by:` line is a removal, and a row shows
   its `from:` lines whether it is included or out.** There is one for each route
   of each effect of the layers. The stage's name comes from the header of the
-  listing, because a layer effect holds only the name of a root.
+  listing, because a layer effect holds only the name of a root. An included row
+  can have a `by:` line, when a layer removed the rule and a later one added it
+  back, because the effects show every step in order.
 - **The `out:` line gives the reason that the decision gave.** `not selected`,
   `excluded by the root's rule preset`, `excluded by the stage`,
   `vetoed by rules_always_exclude` and `cut by the roots` are the five reasons,
