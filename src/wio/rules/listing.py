@@ -216,9 +216,10 @@ def render_listing(listing: Listing, *, as_json: bool) -> str:
     A row is shown when its rule is included or has no decision, when it has an
     explanation, or when the header is marked `not selected`. The text is the
     header lines, a blank line and one block for each shown row through
-    `render_blocks`; the JSON is one object on one line through `encode_json`,
-    with the header keys and then the rules, whose fields are followed by those
-    of the explanation. It reads and writes nothing.
+    `render_blocks`, with a blank line between one block and the next; the JSON
+    is one object on one line through `encode_json`, with the header keys and
+    then the rules, whose fields are followed by those of the explanation. It
+    reads and writes nothing.
 
     Args:
         listing: The listing.
@@ -232,7 +233,7 @@ def render_listing(listing: Listing, *, as_json: bool) -> str:
     if as_json:
         return encode_json(_as_object(listing.header, shown)) + "\n"
     lines = "".join(f"{line}\n" for line in _header_lines(listing.header))
-    return lines + "\n" + render_blocks([_block(row) for row in shown])
+    return lines + "\n" + render_blocks([_block(row) for row in shown], spaced=True)
 
 
 def _header_lines(header: Header) -> list[str]:

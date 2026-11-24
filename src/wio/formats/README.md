@@ -362,5 +362,8 @@ apart. Its docstring says what it takes and returns, and its
 - **A block is indented by two spaces for each depth, and its details are
   indented to the title.** The caller gives each block its depth, so the
   hierarchy of a listing is its own and this layout knows none.
+- **A listing can put a blank line between its blocks,** with `spaced`, so that
+  blocks with long details, which `wio rules list` has, can be told apart.
+  `wio contracts list` does not, and no blank line follows the last block.
 - **Nothing is cut or wrapped.** A detail is written as given, so a long line
   stays one line.

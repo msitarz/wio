@@ -523,8 +523,9 @@ flowchart LR
   later leaf adds an explanation without changing the renderer.
 - **The text and the JSON hold the same rules.** The text is the header, a blank
   line and one [block](../formats/README.md#the-layout-of-blocks) for each rule,
-  and `--json` is one object on one line with the header keys and then the
-  rules, for a program.
+  with a blank line between one block and the next, because a rule's description
+  or summary is a long line that runs into the next rule's, and `--json` is one
+  object on one line with the header keys and then the rules, for a program.
 - **The discovery runs once, and anything that cannot be used is refused before
   anything is printed.** `run_list` gives `list_view` the rulesets of its own
   discovery, so it does not call `RuleSelector.selection`, which would discover

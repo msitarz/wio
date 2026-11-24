@@ -97,7 +97,7 @@ def _blocks(listing: Listing) -> list[str]:
 
 
 def test_the_text_is_the_header_a_blank_line_and_a_block_for_each_rule() -> None:
-    """AC-7: header keys, blank line, padded first lines and detail lines."""
+    """AC-7: header keys, blank lines, padded first lines and detail lines."""
     # Given a listing of a rule with a summary and one without any
     bare = replace(make_rule("demo", "ARC002"), summary="")
     rows = (_row("ARC001"), replace(_row("ARC002"), rule=bare))
@@ -106,8 +106,9 @@ def test_the_text_is_the_header_a_blank_line_and_a_block_for_each_rule() -> None
     # When it is rendered as text
     text = render_listing(listing, as_json=False)
 
-    # Then the header lines come first, then a blank line, then the blocks with
-    # the roots under the name, and no description line for the bare rule
+    # Then the header lines come first, then a blank line, then the blocks, a
+    # blank line apart, with the roots under the name, and no description line for
+    # the bare rule
     assert text.splitlines() == [
         "view: root api",
         "layers: roots, always fields",
@@ -116,6 +117,7 @@ def test_the_text_is_the_header_a_blank_line_and_a_block_for_each_rule() -> None
         "demo.ARC001  arc001",
         "             Summary.",
         "             roots: api",
+        "",
         "demo.ARC002  arc002",
         "             roots: api",
     ]
