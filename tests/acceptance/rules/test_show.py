@@ -86,21 +86,35 @@ def test_a_rule_without_a_description_or_a_body_prints_only_its_header(
 
 @_STUB
 @_BOTH
-def test_the_body_keeps_its_indentation_and_its_line_endings(wio: Wio) -> None:
-    """AC-3: two leading spaces, and CRLF between the lines."""
-    # Given a body that starts with two spaces and a file with CRLF endings
+def test_the_body_keeps_its_indentation(wio: Wio) -> None:
+    """AC-3: two leading spaces."""
+    # Given a body that starts with two spaces
     _repo(wio)
     wio.put(f"{RULES}/demo/ARC002-other-rule.md", rule("ARC002", "other-rule", "  a\n"))
+
+    # When it is shown
+    output = wio.run(["rules", "show", "demo.ARC002"])
+
+    # Then the body keeps its spaces and one line feed ends it
+    assert output.stdout.endswith("\n\n  a\n")
+
+
+# The CLI channel decodes the output as text, which folds CRLF into LF, so only
+# the channel that reads the streams as they are can see the endings.
+@_STUB
+@pytest.mark.channels(Channel.IN_PROCESS)
+def test_the_body_keeps_its_line_endings(wio: Wio) -> None:
+    """AC-3: CRLF between the lines of the body."""
+    # Given a file with CRLF line endings
+    _repo(wio)
     crlf = rule("ARC003", "crlf", "one\ntwo\n").replace(b"\n", b"\r\n")
     wio.put(f"{RULES}/demo/ARC003-crlf.md", crlf)
 
-    # When each is shown
-    indented = wio.run(["rules", "show", "demo.ARC002"])
-    folded = wio.run(["rules", "show", "demo.ARC003"])
+    # When it is shown
+    output = wio.run(["rules", "show", "demo.ARC003"])
 
-    # Then the first body keeps its spaces and the second its CRLF
-    assert indented.stdout.endswith("\n\n  a\n")
-    assert folded.stdout.endswith("\n\none\r\ntwo\n")
+    # Then the body keeps its CRLF and one line feed ends it
+    assert output.stdout.endswith("\n\none\r\ntwo\n")
 
 
 @_STUB
@@ -123,7 +137,7 @@ def test_an_alias_is_accepted_and_the_canonical_name_is_shown(wio: Wio) -> None:
 @pytest.mark.parametrize(
     ("reference", "message"),
     [
-        ("demo.ARC", "`demo.ARC` is a family"),
+        ("demo.ARC", "`demo.ARC` is a family and `show` takes a rule's code"),
         ("demo.recommended", "`demo.recommended` is a rule preset"),
         ("demo.all", "`demo.all` is a rule preset"),
         ("ARC001", "`ARC001` has no ruleset"),
@@ -162,11 +176,13 @@ def test_a_warning_refuses_nothing_and_an_error_anywhere_does(wio: Wio) -> None:
     ruleset(wio, "bad", '[families]\nARC = "A"\n', {})
     wio.put(f"{RULES}/bad/ARC001-open.md", b"<!-- wio\n")
     refused = wio.run(["rules", "show", "demo.ARC001"])
+    unjudged = wio.run(["rules", "show", "Docs"])
 
     # Then the first shows the rule and the second refuses
     assert (allowed.exit_code, allowed.stdout.startswith("demo.ARC001")) == (0, True)
     assert (refused.exit_code, refused.stdout) == (2, "")
     assert "ARC001-open.md" in refused.stderr
+    assert "ARC001-open.md" in unjudged.stderr
 
 
 @_STUB
@@ -186,11 +202,14 @@ def test_the_json_is_one_line_with_a_fixed_order(wio: Wio) -> None:
     assert first.stdout.count("\n") == second.stdout.count("\n") == 1
     found = json.loads(first.stdout)
     assert list(found) == ["code", "name", "description", "summary", "body", "path"]
-    assert (found["code"], found["body"], found["path"]) == (
-        "demo.ARC001",
-        BODY,
-        FILE,
-    )
+    assert found == {
+        "code": "demo.ARC001",
+        "name": "keep-it-small",
+        "description": "A rule is one instruction.",
+        "summary": "State one instruction in each rule.",
+        "body": BODY,
+        "path": FILE,
+    }
     bare = json.loads(second.stdout)
     assert (bare["description"], bare["body"]) == (None, "")
 

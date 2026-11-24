@@ -16,9 +16,12 @@ def show_rule(reference: str, discovery: Discovery) -> Rule:
     """Find the one rule that a reference names.
 
     The reference must be `<ruleset>.<code>` with the canonical name of a ruleset
-    that the discovery read; resolving an alias is the caller's. It is judged
-    from its text with `parse_reference` and `item_kind`, and a bare code is told
-    from other malformed text with `parse_own_item`. It does no input or output.
+    that the discovery read; resolving an alias is the caller's, so an alias is
+    an unknown ruleset here. It is judged from its text with `parse_reference`
+    and `item_kind`, and a bare code is told from other malformed text with
+    `parse_own_item`. It does no input or output. The refusal of an unknown
+    ruleset is its own: it says that no ruleset is the name and lists the
+    rulesets that were read.
 
     Args:
         reference: The reference as the command resolved it.
@@ -62,10 +65,12 @@ def run_show(services: Services, args: Namespace, stdio: Stdio) -> int:
 
     It runs the discovery and refuses an error of it anywhere in the repository
     before it looks at the reference, resolves the ruleset part of the reference,
-    which may be an alias, to the canonical name, finds the rule with
-    `show_rule` and writes it with `render_rule`. A warning of the discovery
-    refuses nothing. It writes nothing to the repository, and nothing to standard
-    output for a request that is refused.
+    which may be an alias, to the canonical name where the reference has one that
+    names a ruleset, and leaves the text as it is otherwise, so that `show_rule`
+    judges every malformed or unknown reference and words its refusal. It then
+    finds the rule with `show_rule` and writes it with `render_rule`. A warning
+    of the discovery refuses nothing. It writes nothing to the repository, and
+    nothing to standard output for a request that is refused.
 
     Args:
         services: What the command reads the project through.

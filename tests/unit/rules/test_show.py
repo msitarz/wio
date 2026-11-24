@@ -57,7 +57,7 @@ def test_it_finds_the_rule_by_its_ruleset_and_code() -> None:
 @pytest.mark.parametrize(
     ("reference", "message"),
     [
-        ("demo.ARC", "`demo.ARC` is a family"),
+        ("demo.ARC", "`demo.ARC` is a family and `show` takes a rule's code"),
         ("demo.recommended", "`demo.recommended` is a rule preset"),
         ("demo.all", "`demo.all` is a rule preset"),
         ("ARC001", "`ARC001` has no ruleset"),
@@ -65,6 +65,8 @@ def test_it_finds_the_rule_by_its_ruleset_and_code() -> None:
         ("nope.ARC001", "`nope`"),
         ("demo.ARC999", "`ARC001` and `ARC002`"),
         ("demo.arc001", "form of a rule preset name"),
+        ("d.ARC001", "`d`"),
+        ("a.b.c", "more than one dot"),
     ],
     ids=[
         "family",
@@ -75,6 +77,8 @@ def test_it_finds_the_rule_by_its_ruleset_and_code() -> None:
         "ruleset",
         "rule",
         "lower",
+        "alias",
+        "dots",
     ],
 )
 def test_it_refuses_what_is_not_one_rules_code(reference: str, message: str) -> None:
