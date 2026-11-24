@@ -1,17 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 """Helpers that the tests of the rule readers share."""
 
+import io
 from dataclasses import dataclass
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
 from wio.models.config import Config, RulePreset
 from wio.models.frozen import freeze
+from wio.models.resolved import ResolvedContract
 from wio.models.rule import LoadedRuleset, Manifest, Rule
+from wio.models.works import Work
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, Sequence
 
+    from tests.unit.fakes import FakeStdio
     from wio.models.diagnostics import Diagnostic
 
 
@@ -112,3 +116,29 @@ class Roots:
             Its roots, or `None` for an id that no Work has.
         """
         return self.roots.get(work_id)
+
+
+def said(streams: FakeStdio) -> str:
+    """Read what a run wrote to standard output.
+
+    Args:
+        streams: The streams of the run.
+
+    Returns:
+        The text.
+    """
+    assert isinstance(streams.stdout, io.StringIO)
+    return streams.stdout.getvalue()
+
+
+def contract(work_id: str) -> ResolvedContract:
+    """Build the resolved contract that a bundle is made from.
+
+    Args:
+        work_id: The Work's id.
+
+    Returns:
+        A contract with no text.
+    """
+    work = Work(work_id, None, Path("w.md"), None, (), (), freeze({}))
+    return ResolvedContract(work, "", ())

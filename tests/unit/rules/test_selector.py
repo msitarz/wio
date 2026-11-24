@@ -2,23 +2,21 @@
 """Tests of the selector that gives `wio context` and `wio trailers` their rules."""
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING, override
 
 import pytest
 
 from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
-from tests.unit.rules.support import Roots, Settings
+from tests.unit.rules.support import Roots, Settings, contract
 from wio.errors import DiagnosticsError, WioError
 from wio.formats import rule_hash
 from wio.models.config import Config, Root, Stage
 from wio.models.frozen import freeze
-from wio.models.resolved import ResolvedContract
-from wio.models.works import Work
 from wio.rules import RuleSelector, discover, ruleset_map, select
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from pathlib import Path
 
     from wio.models.rules import Selection
 
@@ -153,19 +151,6 @@ def _selector(
     )
 
 
-def _contract(work_id: str) -> ResolvedContract:
-    """Build the resolved contract of a Work.
-
-    Args:
-        work_id: The Work's id.
-
-    Returns:
-        A contract with no text.
-    """
-    work = Work(work_id, None, Path("w.md"), None, (), (), freeze({}))
-    return ResolvedContract(work, "", ())
-
-
 def _outs(selection: Selection) -> set[str]:
     """Collect the reasons that the rules of a selection are out.
 
@@ -207,7 +192,7 @@ def test_the_selector_gives_the_selection_of_the_roots_of_the_stage() -> None:
     found = {
         stage: (
             selector.selection("w1", stage),
-            selector.select(_contract("w1"), stage),
+            selector.select(contract("w1"), stage),
         )
         for stage in ("s", "w")
     }
@@ -248,7 +233,7 @@ def test_a_fault_in_the_rules_is_a_refusal_for_every_method() -> None:
     # When `selection`, `select` and `selected` run
     calls = (
         lambda: selector.selection("w1", "s"),
-        lambda: selector.select(_contract("w1"), "s"),
+        lambda: selector.select(contract("w1"), "s"),
         lambda: selector.selected("w1", "deliver", "s"),
     )
 
@@ -272,7 +257,7 @@ def test_unknown_names_are_refused_in_the_form_of_each_port() -> None:
         with pytest.raises(KeyError):
             selector.selection(work, stage)
         with pytest.raises(KeyError):
-            selector.select(_contract(work), stage)
+            selector.select(contract(work), stage)
         with pytest.raises(WioError) as raised:
             selector.selected(work, "deliver", stage)
         assert not isinstance(raised.value, KeyError)
@@ -303,7 +288,7 @@ def test_a_work_without_roots_gets_no_included_rule() -> None:
 
     # When `selected`, `selection` and `select` run
     mapping = selector.selected("bare", "deliver", "s")
-    chosen = (selector.selection("bare", "s"), selector.select(_contract("bare"), "s"))
+    chosen = (selector.selection("bare", "s"), selector.select(contract("bare"), "s"))
 
     # Then the mapping is empty, and each selection has every rule out for the
     # reason `not-selected`, and nothing is raised
