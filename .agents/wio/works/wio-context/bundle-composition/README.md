@@ -15,8 +15,6 @@ that can be compared with another.
 
 ## Goals
 
-- A bundle holds the header, the stage's goal or skill pointer, the resolved
-  contract, the rules and the closing line, in that order.
 - The id and the size that the header states are those of the body, so a reader
   can check them against the text.
 - A skill that a stage names is found, pointed to and counted in the id.
@@ -28,38 +26,91 @@ that can be compared with another.
 
 ## Assumptions
 
-None.
+### A-1
+
+Where the concepts and the scope document give the header "the size of the
+bundle", it is right for it to state the size of the body, and the docs stage
+corrects both documents.
+
+### A-2
+
+The parts of the body carry the labels that the assembly gives them, which the
+concepts do not name, and the docs stage records them.
+
+### A-3
+
+The bundle id is 12 hexadecimal digits for every stage, where the skill's files
+count through the input of the hash and not through a longer id, which keeps the
+id short as the concepts say.
+
+### A-4
+
+The parts of a bundle are joined by a fixed blank line, and `[bundle] separator`
+is read only for the items of the rules section, as Rule rendering says, so the
+docs stage corrects the description of that setting.
+
+## Mechanisms
+
+The names below are provisional.
+
+- **The lookup, the guidance, the contract section, the rules section, the
+  identity, the header and the assembly** — the seven Works below, each building
+  one part of the bundle or one fact that the header states.
+- **`wio.context`** — the package that holds them, which imports no other
+  component.
 
 ## Visuals
 
-Before, nothing builds a bundle. After, the lookup of a skill, the stage's
-guidance, the contract section, the rules section, the identity and the header
-each build one part, and the assembly joins them in order and gives the header
-the id and the size of the body.
+The diagram is drawn from commit `8edc675` of the branch `main`. Before, no part
+of a bundle is built. After, each part is built by one Work, and the assembly
+builds the body first and then gives the header the id and the size of the body.
+
+```mermaid
+flowchart LR
+    skill["skill lookup: directory and files hash"] --> guide["stage guidance"]
+    skill --> ident["bundle identity"]
+    skill --> head["header"]
+    guide --> asm["assembly"]
+    contract["contract section"] --> asm
+    rules["rules section"] --> asm
+    asm -->|"body"| ident
+    ident -->|"id"| head
+    asm -->|"body size"| head
+    head --> asm
+    asm --> bundle["the bundle: header, blank line, body"]
+```
 
 ## Acceptance criteria
 
 ### **AC-1** The header states the id and the size of the body
 
-The bundle id in the header is the hash of the body and the skill's files, and
-the size is the body's bytes and lines, so both are recomputable from the text.
+The id in the header is the id that the identity gives for the body, with the
+skill's files for a stage that has a skill, and the size is the body's bytes and
+lines, so both can be recomputed from the text.
 
-#### Recomputing from the text
+#### A stage with a goal
 
 - **Given** a bundle printed for a stage with a goal.
-- **When** its body, everything after the header, is hashed and counted.
-- **Then** the hash gives the bundle id in the header, and the counts give the
-  size in the header.
+- **When** its body, the text after the first blank line, is counted, and its id
+  is computed by the identity.
+- **Then** the id and the counts equal the ones in the header.
 
-### **AC-2** A skill stage is pointed to and counted
+#### A stage with a skill
 
-For a stage with a skill, the body holds the pointer and not the skill's text,
-and the id changes when a file of the skill changes.
+- **Given** a bundle printed for a stage with a skill.
+- **When** its body is counted, and its id is computed by the identity from the
+  body and the files hash in the header.
+- **Then** the id and the counts equal the ones in the header.
+
+### **AC-2** A skill is found once and agreed on everywhere
+
+The path in the pointer, the directory in the header and the files hash in the
+header and in the id come from one lookup of the skill.
 
 #### A skill with two files
 
 - **Given** a stage whose skill has `SKILL.md` and a reference file.
-- **When** the bundle is printed, the reference file is changed, and the bundle
-  is printed again.
-- **Then** the body of each holds the pointer to `SKILL.md` and none of the
-  skill's text, and the two ids differ.
+- **When** the bundle is printed.
+- **Then** the pointer's path is the header's directory and `/SKILL.md`, the
+  body holds none of the skill's text, and the hash in the header is the hash of
+  those two files.

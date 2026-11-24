@@ -15,8 +15,8 @@ commands cannot show different contracts.
 
 ## Goals
 
-- The bundle shows the Work's resolved contract as `wio contracts show` prints
-  it.
+- The bundle shows the Work's resolved contract as the view that
+  `wio contracts show` prints.
 - A Work whose contract holds nothing after its metadata block gives an empty
   section and does not fail.
 
@@ -29,8 +29,9 @@ commands cannot show different contracts.
 
 ### A-1
 
-The resolved view already starts after the metadata block, so the section needs
-no stripping of its own.
+The resolved view that `render_resolved` writes already starts after the
+metadata block and has the readable directive lists taken off, so the section
+needs no stripping of its own.
 
 ## Mechanisms
 
@@ -38,29 +39,19 @@ no stripping of its own.
   resolved view, which this section calls and does not copy.
 - **The `Contracts` port** — gives the resolved contract of a Work.
 
-## Constraints
-
-### C-1
-
-The section is the text of `render_resolved` for the Work's resolved contract,
-byte for byte.
-
 ## Acceptance criteria
 
-### **AC-1** The section is what `wio contracts show` prints
+### **AC-1** The section is the view that `wio contracts show` prints
 
-The section holds the Work's own contract and, for each ancestor that passes a
-section, that ancestor's sections under a `## Inherited from:` heading, with no
-metadata block.
+The section equals the resolved view that `wio contracts show` prints for the
+Work, with no metadata block.
 
 #### A child with an inherited section
 
 - **Given** a parent whose template marks `Glossary` as inheritable and a child
   of it.
 - **When** the section is built for the child.
-- **Then** it equals the text that `wio contracts show` prints for the child
-  after its metadata block, and the parent's glossary stands under
-  `## Inherited from: <title> (<id>)`.
+- **Then** it equals the view that `wio contracts show` prints for the child.
 
 ### **AC-2** A contract with no body gives an empty section
 

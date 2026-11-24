@@ -20,6 +20,7 @@ files, because `wio.config` only checks that the skill exists.
 - A skill is never looked for in the user's home.
 - The files of a skill have one hash that changes when any of them changes.
 - The directory is given relative to the repository.
+- The lookup finds a skill exactly when `wio config check` accepts it.
 
 ## Non-Goals
 
@@ -30,17 +31,33 @@ files, because `wio.config` only checks that the skill exists.
 
 ### A-1
 
-The search that `wio.config` uses to check that a stage's skill exists can be
-shared by changing only who may call it, so that the check and the lookup cannot
-disagree.
+The search that `wio.config` uses to check that a stage's skill exists, which is
+private to `wio.config.paths` today and answers only whether a skill is found,
+can be refactored to return the directory of the first match without changing
+what `wio config check` reports, and a port of `wio.context` lists the files of
+a directory and reads their bytes, which the check does not need.
+
+### A-2
+
+The lookup leaves out a path with a fault and rejects a name that is empty, `.`,
+`..` or holds `/`, as the check does, so a directory it returns is normalized.
 
 ## Mechanisms
 
+The names and the shapes below are provisional.
+
 - **The skill search** — in `wio.config`, which looks in `[skills] paths` and
-  then in `.agents/skills` and `.claude/skills`, and which this Work exposes
-  through a port of `wio.context`.
-- **The skill hash** — a hash of the relative path and the bytes of every file
-  of the skill, in the order of the paths.
+  then in `.agents/skills` and `.claude/skills`, and which this Work refactors
+  and exposes through a port of `wio.context`.
+- **The lookup** — `find_skill(name: str) -> FoundSkill | None`, where
+  `FoundSkill` holds the directory, relative to the repository and with `/`
+  separators, and the files hash; `None` means that no directory holds the
+  skill.
+- **The files hash** — the SHA-256, as 64 lower-case hexadecimal digits, of the
+  concatenation, for every regular file below the skill's directory at any depth
+  in the order of their relative paths as `/`-separated text, of the path, a NUL
+  byte, the file's bytes and a NUL byte; dotfiles count and a symbolic link does
+  not.
 
 ## Constraints
 
@@ -64,30 +81,40 @@ holds `<name>/SKILL.md` is the skill's.
 - **When** the skill is looked up.
 - **Then** the directory is `.agents/wio/skills/wio-define`.
 
-### **AC-2** A directory without `SKILL.md` and the home are not searched
+### **AC-2** What is not a skill is not found
 
-A directory that has no `SKILL.md` is not a skill, and the user's home is never
-looked in.
+A directory that has no `SKILL.md`, a skill that is only in the user's home, and
+a name that is empty, `.`, `..` or holds `/` give `None`.
 
-#### No `SKILL.md`, and a skill only in the home
+#### Four ways not to find one
 
-- **Given** `.agents/skills/wio-define` with no `SKILL.md`, and `wio-define` in
-  the user's home directory.
-- **When** the skill is looked up.
-- **Then** nothing is found.
+- **Given** `.agents/skills/wio-define` with no `SKILL.md`, `wio-define` in the
+  user's home directory, and a repository with a skill `wio-define`.
+- **When** `wio-define` is looked up, then `..`, then `a/b`, then the empty
+  name.
+- **Then** each lookup gives `None`.
 
 ### **AC-3** The hash covers every file and only the files
 
 The hash of a skill changes when a file's bytes change, when a file is added or
-renamed, and not when only a modification time or a mode changes.
+renamed, and not when only a modification time or a mode changes, and a symbolic
+link adds nothing.
 
-#### Four changes
+#### The bytes of the hash
 
-- **Given** a skill with `SKILL.md` and `reference.md`.
-- **When** a byte of `reference.md` changes, then a file is added, then a file
-  is renamed, and then only the modification time of `SKILL.md` changes.
+- **Given** a skill with `SKILL.md` and `references/a.md`.
+- **When** its hash is computed.
+- **Then** it is the SHA-256 of `SKILL.md`, a NUL, the bytes of `SKILL.md`, a
+  NUL, `references/a.md`, a NUL, the bytes of `references/a.md` and a NUL.
+
+#### Five changes
+
+- **Given** the same skill.
+- **When** a byte of `references/a.md` changes, then a file is added, then a
+  file is renamed, then a symbolic link to a file is added, and then only the
+  modification time of `SKILL.md` changes.
 - **Then** the first three give a hash that differs from the one before, and the
-  last gives the same hash.
+  last two give the same hash as before.
 
 ### **AC-4** The directory is relative to the repository
 
@@ -99,3 +126,16 @@ The directory of the skill is returned relative to the repository root and with
 - **Given** a skill in `.agents/skills/wio-define` of a repository.
 - **When** it is looked up from another working directory of the repository.
 - **Then** the directory is `.agents/skills/wio-define`.
+
+### **AC-5** The lookup and the check agree
+
+A skill that `wio config check` accepts for a stage is found, and a skill that
+it rejects is not.
+
+#### A stage with a skill and one without
+
+- **Given** a repository where one stage names a skill that exists and another
+  names one that exists nowhere.
+- **When** `wio config check` runs and each skill is looked up.
+- **Then** the check reports an error only for the second, and the lookup finds
+  only the first.

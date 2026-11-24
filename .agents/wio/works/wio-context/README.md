@@ -34,10 +34,11 @@ can tell what two sessions were given or compare their results.
 
 ### Body
 
-The parts of a [bundle](../../../../GLOSSARY.md) below its header: the stage's
-goal or the pointer to its skill, the resolved contract, the rules and the
-closing line. The bundle id and the size that the header states are those of
-the body, so that neither depends on the header that contains it.
+The text of a [bundle](../../../../GLOSSARY.md) after its header and the blank
+line that follows the header, up to the end: the labelled parts and the closing
+line, as [Assemble the bundle](bundle-composition/assemble-the-bundle/README.md)
+defines them. The bundle id and the size that the header states are those of the
+body, so that neither depends on the header that contains it.
 
 ### Canonical command
 

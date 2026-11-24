@@ -2,7 +2,7 @@
 id = "ghq8mz"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["bgc8q9", "30gfec", "ay92nt", "4h73tb"]
+depends_on = ["bgc8q9"]
 -->
 
 # Bundle identity
@@ -11,18 +11,19 @@ depends_on = ["bgc8q9", "30gfec", "ay92nt", "4h73tb"]
 
 Two sessions can be said to have seen the same context only if one value names
 it, and that value must change when the goal, the contract, the rules or the
-skill change and must not change with how the command was run.
+skill change.
 
 ## Goals
 
 - A bundle has an id that is the same for the same body and skill files.
+- The id is 12 lower-case hexadecimal digits for every stage.
 - The id changes when any part of the body, or any file of the skill, changes.
-- The id does not depend on the header, on how wio was invoked or on `--output`.
 
 ## Non-Goals
 
 - Printing the id in the header, which the header does.
 - Finding the skill and hashing its files, which the lookup does.
+- Defining the body, which the assembly does.
 
 ## Assumptions
 
@@ -30,46 +31,33 @@ None.
 
 ## Mechanisms
 
-The length of the id and the way the skill's hash joins the body are
-provisional.
+The signature and the way the skill's hash joins the input are provisional.
 
-- **The bundle id** — the first twelve lower-case hexadecimal digits of the
-  SHA-256 of the bytes of the body, followed, for a stage with a skill, by the
-  hash of the skill's files.
-- **The body** — the goal or the pointer, the resolved contract, the rules and
-  the closing line, as the assembly joins them.
+- **`bundle_id(body: str, skill_hash: str | None) -> str`** — the first twelve
+  lower-case hexadecimal digits of the SHA-256 of the UTF-8 bytes of `body`,
+  followed, for a stage with a skill, by a NUL byte and the ASCII of
+  `skill_hash` in the input of the hash and not in the id.
 
 ## Acceptance criteria
 
-### **AC-1** The same body gives the same id
+### **AC-1** The id is short and repeatable
 
-The same body and skill files always give the same id.
+The id is 12 lower-case hexadecimal digits, and the same inputs always give it.
 
-#### Two computations
+#### Two computations, with and without a skill
 
-- **Given** one body and one skill hash.
-- **When** the id is computed twice.
-- **Then** both ids are equal.
+- **Given** one body, and one body with a skill hash.
+- **When** each id is computed twice.
+- **Then** each pair is equal, and each id is 12 lower-case hexadecimal digits.
 
 ### **AC-2** Any change to the body or the skill changes the id
 
-A change to the goal, the contract, the rules, or a file of the skill gives a
-different id.
+A change to the body, a different skill hash, and a skill hash against none,
+each give a different id.
 
-#### Four changes
+#### Three changes
 
 - **Given** a body and a skill hash and their id.
-- **When** the goal, the contract text, the rules text and the skill hash are
-  changed one at a time.
+- **When** one character of the body changes, then the skill hash changes, and
+  then the skill hash is `None`.
 - **Then** each gives an id that differs from the first.
-
-### **AC-3** The id does not depend on the header or the invocation
-
-The id is the same whatever the header says and however the command was run.
-
-#### A changed header
-
-- **Given** a body and its id.
-- **When** the id is computed with another header, and with the command run
-  through `--output`.
-- **Then** every id is the first.
