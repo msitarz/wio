@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import TYPE_CHECKING
 
-from wio.formats.cycles import find_cycles
+from wio.formats.cycles import cycle_key, cycle_message, rule_preset_cycles
 from wio.formats.grammar import (
     NAME,
     NAME_FORM,
@@ -207,21 +207,21 @@ def check_rule_preset_cycles(
         inputs: Unused; the check reads no file.
 
     Returns:
-        One error for each group of rule presets that include one another,
-        directly or through others, a self loop included, at
-        `rule_presets.<first>.rules_include` where `<first>` is the least name,
-        naming every preset of the group in sorted order, not as a path. Only a
-        bare name in `rules_include` that is a rule preset of the config is an
-        edge.
+        One error for each group of rule presets that reach one another, directly
+        or through others, a self loop included, at
+        `rule_presets.<first>.rules_include` where `<first>` is the least name, or
+        at its `rules_exclude` when none of its includes names a member, naming
+        every preset of the group in sorted order, not as a path. A bare name in
+        `rules_include` or in `rules_exclude` that is a rule preset of the config
+        is an edge, as `wio rules check` counts one in a manifest, because the
+        expansion reads an exclude as a list and cannot expand one that closes a
+        cycle.
     """
     del inputs
-    graph = {
-        name: [ref for ref in preset.rules_include if ref in config.rule_presets]
-        for name, preset in config.rule_presets.items()
-    }
-    for group in find_cycles(graph):
-        where = join_path(join_path("rule_presets", group[0]), "rules_include")
-        yield Diagnostic("error", where, _cycle_message(group))
+    for cycle in rule_preset_cycles(config.rule_presets):
+        key = cycle_key(config.rule_presets[cycle[0]], cycle)
+        where = join_path(join_path("rule_presets", cycle[0]), key)
+        yield Diagnostic("error", where, cycle_message(cycle))
 
 
 def check_rulesets(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
@@ -294,20 +294,6 @@ def _known_names(config: Config, rulesets: Rulesets) -> list[str]:
         if name in rulesets.names and table.alias and NAME.fullmatch(table.alias)
     ]
     return sorted({*names, *aliases})
-
-
-def _cycle_message(group: Sequence[str]) -> str:
-    """Word the error of a group of rule presets that include one another.
-
-    Args:
-        group: The names of the presets, sorted.
-
-    Returns:
-        The sentence, in the singular for a preset that includes itself.
-    """
-    names = and_list([f"`{name}`" for name in group])
-    verb = "include one another" if len(group) > 1 else "includes itself"
-    return f"{names} {verb}; a cycle has no resolved set."
 
 
 def _judge_bare(name: str, takes: Takes, presets: Sequence[str]) -> str | None:

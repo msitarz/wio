@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from wio.formats.cycles import find_cycles
+from wio.formats.cycles import cycle_key, cycle_message, rule_preset_cycles
 from wio.formats.grammar import Qualified, item_kind, parse_reference
 from wio.formats.wording import and_list, declared, item_path, join_path
 from wio.models.diagnostics import Diagnostic, sort_diagnostics
@@ -22,7 +22,7 @@ from wio.rules.expansion import ConfigScope, RulesetScope, expand
 from wio.rules.inputs import build_rule_catalog, resolve_ruleset, ruleset_map
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Mapping, Sequence
+    from collections.abc import Iterator, Sequence
 
     from wio.models.config import Config, RulePreset
     from wio.models.rule import LoadedRuleset
@@ -42,7 +42,7 @@ def check_errors(config: Config, discovery: Discovery) -> tuple[Diagnostic, ...]
     its ruleset. A problem that belongs to a rule preset that the entry reached
     is not the entry's, so it is reported at that rule preset's own key and once,
     however many entries reach it, and a `cycle` problem is dropped because the
-    cycles of a manifest are found by `find_cycles`. A reference is judged
+    cycles of a manifest are found by `rule_preset_cycles`. A reference is judged
     against what the discovery returned, so a rule or a ruleset that it left out
     is a reference to nothing. A family that the manifest declares and that holds
     no rule is valid.
@@ -298,24 +298,8 @@ def _cycle_errors(rulesets: Sequence[LoadedRuleset]) -> Iterator[Diagnostic]:
     """
     for ruleset in rulesets:
         presets = {n: p for n, p in ruleset.manifest.rule_presets.items() if n != "all"}
-        for cycle in find_cycles(_edges(presets)):
+        for cycle in rule_preset_cycles(presets):
             yield _cycle_error(ruleset, presets[cycle[0]], cycle)
-
-
-def _edges(presets: Mapping[str, RulePreset]) -> dict[str, list[str]]:
-    """Find which rule presets of a manifest name which.
-
-    Args:
-        presets: The rule presets of a manifest, without `all`.
-
-    Returns:
-        For each rule preset, the entries of its includes and excludes that name
-        a rule preset of the manifest.
-    """
-    return {
-        name: [e for e in (*p.rules_include, *p.rules_exclude) if e in presets]
-        for name, p in presets.items()
-    }
 
 
 def _cycle_error(
@@ -329,16 +313,12 @@ def _cycle_error(
         cycle: The members, sorted.
 
     Returns:
-        The error, at the `rules_include` of the first member when one of its
-        includes names a member, and at its `rules_exclude` otherwise.
+        The error, at the key that `cycle_key` gives.
     """
-    named = any(entry in cycle for entry in first.rules_include)
-    key = "rules_include" if named else "rules_exclude"
     where = f"{ruleset.path}/ruleset.toml#{join_path('rule_presets', cycle[0])}"
-    names = and_list([f"`{name}`" for name in cycle])
-    phrase = "name one another" if len(cycle) > 1 else "names itself"
-    message = f"{names} {phrase}; a rule preset cannot reach itself."
-    return Diagnostic("error", join_path(where, key), message)
+    return Diagnostic(
+        "error", join_path(where, cycle_key(first, cycle)), cycle_message(cycle)
+    )
 
 
 _RESERVED = "`all` is reserved for the whole ruleset; name the rule preset otherwise."

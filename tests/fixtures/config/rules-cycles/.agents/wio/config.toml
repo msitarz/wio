@@ -1,4 +1,5 @@
-# Rule presets that include one another, and one that includes itself.
+# Rule presets that include one another, one that includes itself, and one that
+# excludes another that includes it.
 
 [rule_presets.a]
 rules_include = ["b"]
@@ -8,3 +9,9 @@ rules_include = ["a"]
 
 [rule_presets.s]
 rules_include = ["s"]
+
+[rule_presets.x]
+rules_exclude = ["y"]
+
+[rule_presets.y]
+rules_include = ["x"]
