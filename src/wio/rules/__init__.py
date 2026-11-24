@@ -160,6 +160,39 @@ def _configure_list(parser: ArgumentParser) -> None:
     )
 
 
+_NEW_HELP = "Create the next rule of a family in a ruleset."
+_NEW_JSON = "Write one JSON object with the new rule and what selects it."
+
+
+def _configure_new(parser: ArgumentParser) -> None:
+    """Declare the arguments of `wio rules new`.
+
+    Args:
+        parser: The subparser.
+    """
+    parser.add_argument("ruleset", help="The ruleset, by its name or its alias.")
+    parser.add_argument("family", help="The family, such as ARC, to add a rule to.")
+    parser.add_argument("--name", required=True, help="The name of the new rule.")
+    parser.add_argument("--description", help="A one-line description of the new rule.")
+    json_option(parser, help=_NEW_JSON)
+
+
+def _new(services: Services, args: Namespace, stdio: Stdio) -> int:
+    """Run `wio rules new` through its own module.
+
+    Args:
+        services: What the subcommand reads and writes the project through.
+        args: The parsed arguments.
+        stdio: Where the result goes.
+
+    Returns:
+        0 after the rule was created.
+    """
+    from wio.rules.creating import run_new
+
+    return run_new(services, args, stdio)
+
+
 def _list(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Run `wio rules list` through its own module.
 
@@ -179,6 +212,7 @@ def _list(services: Services, args: Namespace, stdio: Stdio) -> int:
 SUBCOMMANDS: Final[Sequence[Subcommand]] = (
     Subcommand("check", _CHECK_HELP, partial(json_option, help=_CHECK_JSON), _check),
     Subcommand("list", _LIST_HELP, _configure_list, _list),
+    Subcommand("new", _NEW_HELP, _configure_new, _new),
 )
 """The subcommands of `wio rules`, to which each subcommand Work adds an entry.
 

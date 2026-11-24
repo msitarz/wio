@@ -11,10 +11,6 @@ if TYPE_CHECKING:
     from wio.rules.anywhere import Origin
     from wio.rules.planning import NewRule
 
-type Chain = tuple[str, ...]
-"""The labels of one origin of the new rule, in the order that `chain_labels`
-gives."""
-
 
 def render_created(new: NewRule, origins: tuple[Origin, ...], *, as_json: bool) -> str:
     """Write what `wio rules new` says about the rule it created.
