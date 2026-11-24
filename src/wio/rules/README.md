@@ -9,7 +9,8 @@ delivers, the roots of a stage and of a path, the errors of the references, the
 warnings of the selections and the bodies, the report of `wio rules check`,
 which joins them, and the selector that gives the rules of a stage to
 `wio context` and `wio trailers`, and how these parts make one selection, and
-the listing of `wio rules list`. `new` and `show` build on the rest.
+the listing of `wio rules list` and its narrowing. `new` and `show` build on
+the rest.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its code
 and name mean and [Rulesets on disk](../../../docs/concepts.md#rulesets-on-disk)
@@ -507,7 +508,49 @@ the listing fill the fields that this one leaves empty.
   fault in the rules is refused as it is for the selector.
 - **`--not-selected` and `--explain` are declared and not acted on.** The leaves
   that narrow the listing by references and explain where a rule came from give
-  them their behavior on this listing.
+  them their behavior on this listing, and the command does not call
+  [`narrow`](narrowing.py) yet.
+
+## Narrowing a listing
+
+[`narrow`](narrowing.py) takes a `Listing` and keeps the rows that references
+name, or that nothing selects. Its docstring says what it takes, returns and
+raises, and its [tests](../../../tests/unit/rules/test_narrow.py) say how each
+case reads. It does no input or output: the caller gives it the rules that any
+include entry delivers, so the repository is asked once and not once for each
+use.
+
+- **A reference delivers what `expand` returns for it.** It is read in the
+  config's scope, so a rule preset delivers its includes minus its own excludes,
+  and a family, a code and `all` deliver the rules they name. A listing narrowed
+  by a rule preset, a family or a code is a listing like any other, in the
+  layers and the roots of its view.
+- **Several references keep the rules that any of them delivers,** each once and
+  in the order of the listing, because the person asked about each. Each kept
+  row holds in `via` the routes by which the references delivered it, merged and
+  sorted.
+- **`--not-selected` keeps the rules that no include entry delivers.** With
+  roots applied, the candidates are the rules of the rulesets that those roots
+  reach and the root-independent ones, and without roots every rule is a
+  candidate. With references it keeps, of the rules they deliver, those that
+  nothing selects, which says whether a rule preset or a family is in use.
+- **The reach is asked of the layers once more, for no roots and no stage.** It
+  does not depend on either, and the selection's rule against computing a
+  decision twice is about decisions, which this does not repeat.
+- **Rows that are out are kept, and the header says so.** The renderer hides an
+  out row unless the header is marked `not selected`, so that mark, which the
+  JSON writes as `not_selected`, is what shows the rules that nothing selects.
+  The header's references and mark are set from the arguments and replace what
+  the listing held, so a listing narrowed twice cannot disagree with the second
+  call.
+- **A reference that cannot be used is refused, at any depth.** A name that
+  names nothing, a malformed one, a cycle and a bad entry inside a rule preset
+  that the reference reaches are each a `WioError` that names the reference. The
+  person asked about it, and a partial listing would hide that part of it was
+  not read. The wording is that of
+  [`wio rules check`](#the-report-of-wio-rules-check), so a name that names
+  nothing in a ruleset says so, and a bare name that is no rule preset of the
+  config says that.
 
 ## The group of subcommands
 
