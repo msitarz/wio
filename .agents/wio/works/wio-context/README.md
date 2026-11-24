@@ -198,7 +198,9 @@ tables. AC-2 verifies it with golden files.
 The contract section is the text of `render_resolved`, the selection is the one
 that `wio rules list` shows for the same Work and stage, and the three reuses of
 A-3, A-4 and A-5 leave the output of their owners unchanged: the existing tests
-of `wio.config`, `wio.trailers` and `wio.contracts` pass without a change.
+of `wio.config`, `wio.trailers` and `wio.contracts` pass without a change,
+except that a repository with no commit gives an empty history, as Record where
+a gate review starts says.
 
 ### C-6
 

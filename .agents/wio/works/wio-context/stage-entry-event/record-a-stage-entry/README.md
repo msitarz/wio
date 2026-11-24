@@ -26,8 +26,7 @@ it gave and which rules it contained.
 - The start commit and the dirty flag of a gate, which the sibling records.
 - Reading the event log, or the identification of the harness session, which
   `wio.log` does.
-- A failed delivery of a bundle to standard output, because printing it is the
-  delivery and it is not refused.
+- A failed write to standard output, which is not recorded or handled here.
 
 ## Assumptions
 
@@ -50,6 +49,11 @@ reads no rule file.
 A reader of the log takes the first `context` event of a session, as the
 concepts say, so a run that is repeated writes another event without confusing
 it.
+
+### A-4
+
+The concepts' "the rules it received" means the included rules, so an excluded
+rule is deliberately not recorded.
 
 ## Mechanisms
 
@@ -107,8 +111,8 @@ When the event cannot be written, the command warns, prints the bundle and exits
 
 #### An unwritable log, and a log that cannot be located
 
-- **Given** an event log whose append fails, and a relative `$WIO_HOME`, which
-  `wio.log` cannot locate.
+- **Given** the real `LogSink`, an event log whose append fails, and a relative
+  `$WIO_HOME`, which `wio.log` cannot locate.
 - **When** `wio context` runs for each.
 - **Then** the first warns that the event log could not be written and names the
   path, the second warns that the log could not be located, and each prints the
@@ -125,7 +129,8 @@ was not given its bundle.
   without a path with `$TMPDIR` unset and a system directory that cannot be
   written.
 - **When** `wio context` runs for each.
-- **Then** each exits 2, and the log holds no new `context` event.
+- **Then** each fails as `q6mf05` says, and the log holds no new `context`
+  event.
 
 ### **AC-6** Each run that delivers writes its own event
 
@@ -134,8 +139,8 @@ one.
 
 #### A repeated run, and a warned run
 
-- **Given** a stage run twice in one session, and a stage whose body is over the
-  size threshold.
+- **Given** a stage run twice in one session, and a stage whose compiler result
+  carries a warning.
 - **When** `wio context` runs for each.
 - **Then** the first leaves two events, and the second writes one.
 
@@ -145,7 +150,7 @@ When the log is switched off, no event is written and no warning is given.
 
 #### Logging off
 
-- **Given** the log switched off as `wio.log` allows.
+- **Given** `WIO_LOG=off`, the exact value that `wio.log` accepts.
 - **When** `wio context` runs.
 - **Then** the bundle is printed, no event is written, and no warning about the
   log is reported.
