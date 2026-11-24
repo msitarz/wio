@@ -2,7 +2,7 @@
 id = "yahzr6"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["v2vecy"]
+depends_on = []
 -->
 
 # Ordering and topics
@@ -15,8 +15,8 @@ and a reader needs to see which topic a family of rules is about.
 ## Goals
 
 - The rules of a group are ordered by ruleset, then family, then code.
-- Each family is introduced once by a line with its ruleset, its topic and its
-  letters.
+- Each family is introduced in a group once by a line with its ruleset, its
+  topic and its letters.
 - A rule is placed by its family, never by the rule preset that brought it.
 
 ## Non-Goals
@@ -28,15 +28,17 @@ and a reader needs to see which topic a family of rules is about.
 
 ### A-1
 
-The manifest of a ruleset gives a topic for every family it declares, which the
-`families` of its manifest holds.
+The manifest of a ruleset gives a topic for every family that one of its rules
+uses, which the discovery of the rules in `wio.rules` guarantees by rejecting a
+rule whose family the manifest does not declare.
 
 ## Mechanisms
 
 The wording of the family line is provisional.
 
 - **The family line** — `<ruleset>: <topic> (<FAMILY>)`, such as
-  `mattpocock: Error handling (ERR)`.
+  `mattpocock: Error handling (ERR)`, with the canonical name of the ruleset and
+  the topic from its manifest.
 - **The order of codes** — by the number of the code and then by its text, so
   `ARC999` comes before `ARC1000` and `ARC001` before `ARC01`, as `wio rules`
   orders them.
@@ -48,34 +50,51 @@ The wording of the family line is provisional.
 Within a group the rules are ordered by the name of their ruleset, then by
 family, then by the number of the code and then its text.
 
-#### Two rulesets
+#### Two rulesets, and codes that a text sort misorders
 
-- **Given** the rules `py.API002`, `mp.ERR010`, `mp.ERR002`, `py.API001` and
-  `mp.ARC001` in one group.
+- **Given** in one group the rules `python.API002`, `mattpocock.ERR010`,
+  `mattpocock.ERR002`, `python.API001`, `mattpocock.ARC1000`,
+  `mattpocock.ARC01`, `mattpocock.ARC999` and `mattpocock.ARC001`.
 - **When** the group is ordered.
-- **Then** the order is `mp.ARC001`, `mp.ERR002`, `mp.ERR010`, `py.API001`,
-  `py.API002`.
+- **Then** the order is `mattpocock.ARC001`, `mattpocock.ARC01`,
+  `mattpocock.ARC999`, `mattpocock.ARC1000`, `mattpocock.ERR002`,
+  `mattpocock.ERR010`, `python.API001`, `python.API002`.
 
-### **AC-2** A family has one topic line
+### **AC-2** A family has one topic line in a group
 
-The first rule of a family is preceded by the family line, and no other rule is.
+The first rule of a family in a group is preceded by the family line, and no
+other rule of that family in the group is.
 
 #### Two families
 
-- **Given** the rules `mp.ERR002`, `mp.ERR010` and `mp.ARC001` of a ruleset
-  whose topics are `Error handling` for `ERR` and `Architecture` for `ARC`.
+- **Given** the rules `mattpocock.ERR002`, `mattpocock.ERR010` and
+  `mattpocock.ARC001` in one group, and a manifest whose topics are
+  `Error handling` for `ERR` and `Architecture` for `ARC`.
 - **When** the group is ordered.
-- **Then** `mp: Architecture (ARC)` precedes `mp.ARC001`, and
-  `mp: Error handling (ERR)` precedes `mp.ERR002` and appears once.
+- **Then** `mattpocock: Architecture (ARC)` precedes `mattpocock.ARC001`, and
+  `mattpocock: Error handling (ERR)` precedes `mattpocock.ERR002` and appears
+  once.
 
-### **AC-3** Moving a rule between rule presets moves nothing
+### **AC-3** A family is introduced in every group it appears in
+
+Each group is introduced on its own, so a family whose rules are in two groups
+has its line in both.
+
+#### One family in two groups
+
+- **Given** the rules `mattpocock.ERR002` in the group of `api` and
+  `mattpocock.ERR010` in the group of `web`.
+- **When** each group is ordered.
+- **Then** each begins with `mattpocock: Error handling (ERR)`.
+
+### **AC-4** Moving a rule between rule presets moves nothing
 
 The order and the family lines do not change when a rule reaches the selection
 through another rule preset.
 
 #### Two presets, one rule
 
-- **Given** two configs that select the same rules, one through the rule preset
-  `recommended` and one through `strict`.
+- **Given** two configs that select the same rules, one through a rule preset
+  `recommended` and one through a rule preset `strict`.
 - **When** the group is ordered for each.
 - **Then** the two orders and the family lines are equal.

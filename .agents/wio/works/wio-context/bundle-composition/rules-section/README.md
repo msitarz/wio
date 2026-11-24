@@ -24,10 +24,23 @@ as written.
 
 - Selecting the rules, which `wio rules` does.
 - Saying why a rule was selected, which `wio rules list --explain` does.
+- Labelling the section and joining it to the other parts of the bundle, which
+  the assembly does.
 
 ## Assumptions
 
 None.
+
+## Mechanisms
+
+The names below are provisional.
+
+- **The rules section builder** — in `wio.context`, which turns a `Selection`
+  into the text of the section by the three children below.
+- **`Selection` and `Decision`** — in `wio.models.rules`, which hold every rule
+  considered, with the roots of an included rule or the reason a rule is out.
+- **The topics of the families** — in the manifest of each ruleset, which the
+  ordering reads.
 
 ## Visuals
 
@@ -39,28 +52,13 @@ the ordering sorts each group, and the rendering prints each rule.
 
 ### **AC-1** A selection becomes one section
 
-The included rules of a selection are printed under the groups of their roots,
-the rules for every root first, in the order of their names, each with its
-family's topic, its qualified name and its body.
+Each included rule of a selection appears once in the section, grouped by the
+roots that reach it, ordered and rendered as the children specify.
 
-#### Four rules in two rulesets
+#### Rules of every kind of reach
 
-- **Given** a selection that includes a root-independent rule, a rule of the
-  root `api`, a rule of the root `web` and a rule that both `api` and `web`
-  reach.
+- **Given** a selection that includes a root-independent rule, a rule that one
+  root reaches and a rule that two roots reach.
 - **When** the section is built.
-- **Then** the groups are `Rules for every root:`, then the group of `api`, then
-  that of `api` and `web`, then that of `web`, as the grouping orders them, and
-  each rule is once in its group, in the order and the form of the ordering and
-  the rendering.
-
-### **AC-2** A rule that is out never appears
-
-A rule that the selection excludes, vetoes, cuts by the roots or did not select
-is not in the section, and no rule means an empty section.
-
-#### Excluded rules, and no included rule
-
-- **Given** a selection with one rule of each kind of out and none included.
-- **When** the section is built.
-- **Then** the section is empty and prints no label and no group.
+- **Then** each of the three rules appears exactly once, and the section equals
+  the one that the grouping, the ordering and the rendering give for them.

@@ -20,24 +20,31 @@ about.
   group under one line that names the roots and their paths.
 - The groups are in an order that depends only on the names of their roots.
 - A rule is in one group, however many roots reach its ruleset.
+- Only the rules that apply are grouped.
 
 ## Non-Goals
 
 - The order of the rules inside a group, which the ordering does.
 - The text of a rule, which the rendering does.
+- The label of the section, which the assembly does.
 
 ## Assumptions
 
 ### A-1
 
-A `Decision` of an included rule holds the selected roots that reach its
-ruleset, sorted by name, and is empty for a root-independent rule, and the paths
-of a root come from the config.
+A `Decision` of an included rule holds the roots that were applied and reach its
+ruleset, sorted by name, and is empty for a root-independent rule, so that a
+Work with no roots, whose selection includes no rule, gives no group.
+
+### A-2
+
+The paths of a root come from the config.
 
 ## Mechanisms
 
-The wording of the group lines is provisional, but a group line names the roots
-and their paths.
+The concepts fix `Rules for every root:` and the form of
+`Rules for root api (services/api):`; the group line for several roots is
+provisional, but a group line names the roots and their paths.
 
 - **The group line for no root** — `Rules for every root:`.
 - **The group line for roots** — `Rules for root <name> (<paths>):` for one root
@@ -74,13 +81,29 @@ roots reach is in the group of both.
   `Rules for roots api, web (services/api, apps/web):` and
   `Rules for root web (apps/web):`, and each rule is in exactly one.
 
-### **AC-3** The order of the groups does not depend on the config
+### **AC-3** The order does not depend on the config
 
-The groups are sorted by the sorted names of their roots, whatever the order of
-the config's tables and of the Work's `roots`.
+The groups are sorted by the sorted names of their roots, and the paths of a
+group are in the order of the roots' names and then of the config, whatever the
+order of the config's tables and of the Work's `roots`.
 
 #### Two orders
 
-- **Given** the same selection with the roots declared in two orders.
+- **Given** the same selection with the roots declared in two orders, and a root
+  `web` whose paths are `apps/web` and `apps/admin` in that order.
 - **When** the groups are built from each.
-- **Then** both give the same groups in the same order.
+- **Then** both give the same groups in the same order, and the line of the
+  group of `web` lists `apps/web, apps/admin` in that order.
+
+### **AC-4** Only the rules that apply are grouped
+
+A rule that the selection excludes, vetoes, cuts by the roots or did not select
+is in no group, and a selection that includes no rule gives no group.
+
+#### Four ways out, and none included
+
+- **Given** a selection with one rule of each way out and no included rule, and
+  another that adds one included rule.
+- **When** the groups are built.
+- **Then** the first gives no group, and the second gives one group that holds
+  only the included rule.
