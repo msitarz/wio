@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from tests.fakes import FakeEnvironment
 from tests.unit.cli.fakes import run_main
 from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
+from tests.unit.rules.support import Roots
 from wio.cli.table import COMMANDS, Entry
 from wio.errors import DiagnosticsError, WioError
 from wio.models.diagnostics import Diagnostic
@@ -52,7 +53,11 @@ def _services() -> Services:
         The services.
     """
     return Services(
-        _NoConfig(), FakeRepository(), MemoryFileSystem(), FakeEnvironment(ROOT)
+        _NoConfig(),
+        FakeRepository(),
+        MemoryFileSystem(),
+        FakeEnvironment(ROOT),
+        Roots({}),
     )
 
 

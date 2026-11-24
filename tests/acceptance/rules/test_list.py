@@ -17,7 +17,7 @@ BASE = "rules/base"
 RULES = ".agents/wio/rules"
 WORK = "k3m9xq"
 BARE = "n5p7qr"
-pytestmark = pytest.mark.xfail(strict=True, reason="wio rules list is not wired")
+NOT_DONE = pytest.mark.xfail(strict=True, reason="wio rules list is a stub")
 
 
 def _rule(code: str, name: str, body: str = "Body.\n", extra: str = "") -> bytes:
@@ -122,6 +122,7 @@ def _header(output: Output) -> list[str]:
     return output.stdout.split("\n\n")[0].splitlines()
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_without_a_selector_every_rule_is_listed_with_no_layers(wio: Wio) -> None:
     """AC-1: the header, a blank line and a block for each rule."""
@@ -162,6 +163,7 @@ def test_without_a_selector_every_rule_is_listed_with_no_layers(wio: Wio) -> Non
     assert output.exit_code == 0
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 @pytest.mark.parametrize(
     ("args", "view"),
@@ -196,6 +198,7 @@ def test_a_root_a_path_or_a_work_gives_the_rules_that_apply(
     ]
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_a_stage_adds_its_layer_and_without_roots_nothing_is_cut(wio: Wio) -> None:
     """AC-3: roots not applied, then with a root the stage's rules join."""
@@ -227,6 +230,7 @@ def test_a_stage_adds_its_layer_and_without_roots_nothing_is_cut(wio: Wio) -> No
     assert "stage: s" in _header(both)
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_a_work_alone_gives_its_roots_and_the_stage_decides_which_count(
     wio: Wio,
@@ -247,6 +251,7 @@ def test_a_work_alone_gives_its_roots_and_the_stage_decides_which_count(
     assert "roots: ui" in _header(chosen)
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_a_rule_that_is_out_is_not_listed(wio: Wio) -> None:
     """AC-5: the rule that the stage excludes is left out of the listing."""
@@ -266,11 +271,11 @@ def test_a_rule_that_is_out_is_not_listed(wio: Wio) -> None:
     ("args", "message"),
     [
         (["--root", "api", "--path", "src/x.py"], "--path"),
-        (["--stage", "none"], "none"),
-        (["--root", "none"], "none"),
-        (["--work", "none"], "none"),
-        (["--work", BARE], BARE),
-        (["--path", "../x.py"], "outside"),
+        pytest.param(["--stage", "none"], "none", marks=NOT_DONE),
+        pytest.param(["--root", "none"], "none", marks=NOT_DONE),
+        pytest.param(["--work", "none"], "none", marks=NOT_DONE),
+        pytest.param(["--work", BARE], BARE, marks=NOT_DONE),
+        pytest.param(["--path", "../x.py"], "outside", marks=NOT_DONE),
     ],
     ids=["conflict", "stage", "root", "work", "no roots", "outside"],
 )
@@ -290,6 +295,7 @@ def test_a_selector_that_cannot_be_used_is_refused(
     assert not output.stdout
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_the_text_is_a_header_and_indented_blocks(wio: Wio) -> None:
     """AC-7: padded first lines, details under the name, a final newline."""
@@ -308,6 +314,7 @@ def test_the_text_is_a_header_and_indented_blocks(wio: Wio) -> None:
     assert output.stdout.endswith("\n")
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_the_json_is_one_line_with_the_header_and_the_rules(wio: Wio) -> None:
     """AC-8: the same rules as the text, with the header keys in order."""
@@ -334,6 +341,7 @@ def test_the_json_is_one_line_with_the_header_and_the_rules(wio: Wio) -> None:
     assert [rule["code"] for rule in found["rules"]] == list(_shown(text))
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_the_boundaries_of_a_listing(wio: Wio) -> None:
     """AC-12: no rules, a path in no root, and a listing without layers."""
@@ -349,6 +357,7 @@ def test_the_boundaries_of_a_listing(wio: Wio) -> None:
     assert json.loads(as_json.stdout)["rules"] == []
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_a_path_in_no_root_applies_no_root(wio: Wio) -> None:
     """AC-12: `roots: none` and only the rule that is independent of roots."""
@@ -364,6 +373,7 @@ def test_a_path_in_no_root_applies_no_root(wio: Wio) -> None:
     assert _shown(output) == {"process.FIX001": "every root"}
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_a_listing_without_layers_has_no_decision_in_json(wio: Wio) -> None:
     """AC-12: `roots` and `root_independent` are `null` and `included` is true."""
@@ -383,6 +393,7 @@ def test_a_listing_without_layers_has_no_decision_in_json(wio: Wio) -> None:
         )
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_the_command_is_declared_and_finds_the_works(wio: Wio) -> None:
     """AC-13: the help names the flags, and `--work` finds a Work of the repository."""
@@ -401,6 +412,7 @@ def test_the_command_is_declared_and_finds_the_works(wio: Wio) -> None:
     assert "demo.ARC001" in _shown(listed)
 
 
+@NOT_DONE
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 def test_a_path_with_a_stage_applies_the_roots_that_contain_it(wio: Wio) -> None:
     """AC-14: the same rules as `--root api --stage s`, with the file's header."""
