@@ -9,8 +9,8 @@ delivers, the roots of a stage and of a path, the errors of the references, the
 warnings of the selections and the bodies, the report of `wio rules check`,
 which joins them, and the selector that gives the rules of a stage to
 `wio context` and `wio trailers`, and how these parts make one selection, and
-the listing of `wio rules list` and its narrowing. `new` and `show` build on
-the rest.
+the listing of `wio rules list` and its narrowing and explanation. `new` and
+`show` build on the rest.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its code
 and name mean and [Rulesets on disk](../../../docs/concepts.md#rulesets-on-disk)
@@ -509,7 +509,7 @@ the listing fill the fields that this one leaves empty.
 - **`--not-selected` and `--explain` are declared and not acted on.** The leaves
   that narrow the listing by references and explain where a rule came from give
   them their behavior on this listing, and the command does not call
-  [`narrow`](narrowing.py) yet.
+  [`narrow`](narrowing.py) or [`explain`](explaining.py) yet.
 
 ## Narrowing a listing
 
@@ -550,6 +550,47 @@ use.
   [`wio rules check`](#the-report-of-wio-rules-check), so a name that names
   nothing in a ruleset says so, and a bare name that is no rule preset of the
   config says that.
+
+## Explaining a listing
+
+[`explain`](explaining.py) gives each row of a `Listing` a
+[`RuleExplanation`](explaining.py), which says where the rule came from and why
+it is out. The renderer prints it through the `Explanation` protocol of
+[`wio.models`](../models/listing.py) without knowing how it was made. The
+docstrings say what each takes and returns, and the
+[tests](../../../tests/unit/rules/test_explain.py) say how each case reads. It
+does no input or output.
+
+- **A chain says where a rule came from, and the rule came from what is on its
+  right.** It starts with the rule's qualified code, then the layer, then the
+  route from the outermost rule preset to the entry that named the rule, joined
+  by `←`, as [the concepts](../../../docs/concepts.md) write the origin of a
+  rule. The labels and the chains are written by the functions of
+  [the inputs](#the-inputs-of-the-selection), so every consumer writes them
+  alike: `root <name>`, `stage <name>`, `rules_always_include` and
+  `rules_always_exclude`.
+- **A `from:` line is an origin and a `by:` line is a removal, and a row shows
+  its `from:` lines whether it is included or out.** There is one for each route
+  of each effect of the layers, sorted by layer, then name, then route. The
+  stage's name comes from the header of the listing, because a layer effect
+  holds only the name of a root.
+- **The `out:` line gives the reason that the decision gave.** `not selected`,
+  `excluded by the root's rule preset`, `excluded by the stage`,
+  `vetoed by rules_always_exclude` and `cut by the roots` are the five reasons,
+  so the line and the JSON `reason` say the same thing.
+- **Layers explain a layered listing, and references explain one with no
+  layers.** In a layered listing the routes of any references are ignored. With
+  no layers the routes that the references delivered a rule by are its origins,
+  a row that `--not-selected` shows has the reason `not selected`, and what an
+  exclude of a rule preset removed from an include entry, which the rules
+  selected anywhere record, is its removal. A row with no decision and no routes
+  has nothing to explain and gets no line.
+- **Every row gets an explanation, so every row is shown.** The renderer shows a
+  row that has one, so a listing that was explained shows its out rows with
+  their reasons, and one that was not shows nothing added.
+- **The text and the JSON state the same.** The JSON gives `origins`, `reason`
+  and `removed_by` after the fields of the rule, the chains as arrays of labels
+  without the code and the reason as a kind and a layer.
 
 ## The group of subcommands
 
