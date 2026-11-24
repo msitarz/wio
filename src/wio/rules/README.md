@@ -9,8 +9,9 @@ delivers, the roots of a stage and of a path, the errors of the references, the
 warnings of the selections and the bodies, the report of `wio rules check`,
 which joins them, and the selector that gives the rules of a stage to
 `wio context` and `wio trailers`, and how these parts make one selection, and
-the listing of `wio rules list` and its narrowing and explanation. `new` and
-`show` build on the rest.
+the listing of `wio rules list` and its narrowing and explanation, and the
+planning and the creation of a rule for `wio rules new`. `show` builds on the
+rest.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its code
 and name mean and [Rulesets on disk](../../../docs/concepts.md#rulesets-on-disk)
@@ -612,6 +613,49 @@ does no input or output.
   and `removed_by` after the fields of the rule, the chains as arrays of labels
   without the code and the reason as a kind and a layer.
 
+## Creating a rule
+
+[`plan_rule`](planning.py) decides the code, the place and the file of the next
+rule of a family, and [`run_new`](creating.py) writes it and says whether
+anything selects it, for `wio rules new`. Their docstrings say what each takes,
+returns and raises, and the [tests](../../../tests/unit/rules/test_plan.py) and
+[scenarios](../../../tests/acceptance/rules/test_new.py) say how each case
+reads. `plan_rule` does no input or output, so a request is judged before
+anything is written.
+
+- **The code is the next number of its family and never fills a gap.** A number
+  that is free below the highest is not reused. The number has at least
+  three digits and at least as many as the highest code of the family, so
+  `ARC999` is followed by `ARC1000` and `ARC0007` by `ARC0008`.
+- **The file is named `<code>-<name>.md` and goes next to the family's last
+  rule.** It is in the directory of the rule with the highest code of the
+  family, or in the ruleset's directory when the family has none. The name of
+  the file is a convention that no command reads.
+- **The file is a comment block with an empty body, whatever form the other
+  rules have.** The block holds the code, the name and the description when one
+  is given, written by `encode_comment_toml`, which escapes a quote, a backslash
+  and the `-->` that would close the comment early. The body is empty because a
+  placeholder would reach a bundle if it were never edited. `plan_rule` reads
+  the text back with `read_rule`, so the plan is a valid rule, and `run_new`
+  reads the written file back with the discovery.
+- **A request that cannot be met is refused before anything is written.** An
+  unknown ruleset, a family that the manifest does not declare, a name or a
+  description of the wrong form and a name that the ruleset already has are a
+  `WioError` that lists what would do. A file in the way, a rule or not and a
+  symbolic link included, is refused too, because `write_text` overwrites.
+- **An error of the discovery anywhere refuses the command, and a warning does
+  not.** The ruleset asked for need not be the one with the error.
+- **An alias is resolved to the canonical name before the plan.** `plan_rule`
+  knows canonical names only, and the result names the ruleset by it.
+- **The result says whether any entry of the config delivers the new rule.** It
+  asks the rules selected anywhere, which is whatever the roots, so a rule can
+  be selected and still be received by no session, when its ruleset is not
+  reached. Each origin is written as a chain, as `wio rules list --explain`
+  writes it, in the text and in the JSON, which has `code`, `name`, `path`,
+  `selected` and `origins` in that order.
+- **The same repository and request give the same file.** Exactly one file is
+  created.
+
 ## The group of subcommands
 
 [`__init__.py`](__init__.py) holds `RulesSpec`, `Services`, `Subcommand`, the
@@ -619,7 +663,8 @@ table `SUBCOMMANDS` and `json_option`, and [`command.py`](command.py) holds
 `RulesCommand`, which runs the subcommand that the arguments chose. It follows
 the pattern of [`wio.contracts`](../contracts/README.md#the-group), and its
 docstrings and [tests](../../../tests/unit/rules/test_command.py) say what each
-takes and returns. So far `check` and `list` are the subcommands in the table.
+takes and returns. So far `check`, `list` and `new` are the subcommands in the
+table.
 
 - **A subcommand is one entry of the table.** The group knows nothing else of
   a subcommand, so adding one edits no other and builds no second shell.
