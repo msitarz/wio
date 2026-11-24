@@ -1,0 +1,99 @@
+<!-- wio
+id = "k8z4gf"
+template = "feature.leaf"
+roots = ["wio"]
+depends_on = ["b53rss"]
+-->
+
+# Refuse an unreadable tree or config
+
+## Purpose
+
+A session needs its guidance even while the tree has faults of its own, but a
+config that cannot be read, a tree that may not hold every Work and a Work that
+does not exist must not produce a bundle that looks complete.
+
+## Goals
+
+- A config with an error is refused, as every command refuses it.
+- A Work tree that may not hold every Work is refused.
+- An unknown Work is refused, and a shared id refuses only the lookup of that
+  id.
+- A fault of the metadata, the graph or a template does not stop the command.
+
+## Non-Goals
+
+- Refusing an unknown action, stage or root, which the sibling does.
+- Reporting the faults of the tree, which `wio contracts check` does.
+
+## Assumptions
+
+### A-1
+
+The Work is named by its id and never by a path, because the driver names the
+Work and `wio contracts show` is where a path is accepted.
+
+### A-2
+
+The judgement that `wio contracts show` makes of the tree, which refuses an
+incomplete tree and a shared id and goes on past other faults, can be reached
+through the `Contracts` port.
+
+## Mechanisms
+
+- **The `Contracts` port** — in `src/wio/context/ports.pyi`, whose `resolved`
+  raises for a Work that cannot be found; its refusals follow `refusal.py` of
+  `wio.contracts`.
+- **The loader of the config** — refuses a config with an error for every
+  command, which this command inherits.
+
+## Acceptance criteria
+
+### **AC-1** A config with an error is refused
+
+A config with an error makes `wio context` exit 2 with the diagnostics that
+every command prints for it.
+
+#### A mistyped key
+
+- **Given** a config with a key that the schema does not know.
+- **When** `wio context` runs.
+- **Then** it exits 2, prints the diagnostic of that key on standard error and
+  nothing on standard output.
+
+### **AC-2** An incomplete tree and an unknown Work are refused
+
+A tree that may not hold every Work, and an id that no Work has, exit 2 and name
+the cause.
+
+#### Two marked files, and no such Work
+
+- **Given** under `nesting` a directory that holds two marked files, and an id
+  that no Work has.
+- **When** `wio context` runs for a Work of the tree, and then for the unknown
+  id.
+- **Then** the first exits 2 and names both files, and the second exits 2 and
+  says that no Work has that id.
+
+### **AC-3** A shared id refuses only its own lookup
+
+Two Works that share an id refuse a run for that id and no other.
+
+#### One shared id
+
+- **Given** two Works with the id `s1s1s1` and a third Work with its own id.
+- **When** `wio context` runs for `s1s1s1` and then for the third.
+- **Then** the first exits 2 and names both paths, and the second prints its
+  bundle and exits 0.
+
+### **AC-4** A fault elsewhere does not stop a run
+
+A metadata, graph or template fault of another Work, or of the Work itself, does
+not stop the bundle.
+
+#### Faults that `check` reports
+
+- **Given** a Work with a `depends_on` id that no Work has, a key that its
+  template does not know, and another Work with a repeated heading.
+- **When** `wio context` runs for the first Work.
+- **Then** the bundle is printed and the exit code is 0.
