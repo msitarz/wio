@@ -27,7 +27,8 @@ Work must not block a session, but a mistaken pair, such as `deliver` with
 ## Non-Goals
 
 - Refusing the pair, because the driver decides.
-- Checking that a pipeline is well formed, which `wio contracts check` does.
+- Checking that a pipeline is well formed or that a stage preset is declared,
+  which `wio contracts check` does.
 
 ## Assumptions
 
@@ -53,8 +54,8 @@ that names the stage, the action and the Work, and the run goes on.
 
 #### The pair `deliver` and `define`
 
-- **Given** a Work whose `deliver` pipeline is the stages `architecture` and
-  `wiring`, and a config that declares the stage `define`.
+- **Given** a config that declares the stages `architecture`, `wiring` and
+  `define`, and a Work whose `deliver` pipeline is `architecture` and `wiring`.
 - **When** `wio context` runs for that Work, `deliver` and `define`.
 - **Then** a warning names `define`, `deliver` and the Work, the bundle is
   printed, and the exit code is 0.
@@ -75,18 +76,33 @@ gives no warning about the pipeline.
 ### **AC-3** The Work's own pipeline decides
 
 A Work whose own `[actions]` replace the template's pipeline, or remove the
-action, is judged by its own.
+action, or that has no such action at all, is judged by its own.
 
-#### An override and a removal
+#### An override, a removal and an absence
 
 - **Given** a template whose `deliver` holds `architecture`, a Work that
-  replaces it with `implementation`, and a Work that removes `deliver`.
+  replaces it with `implementation`, a Work that removes `deliver`, and a Work
+  that follows no template and whose config defaults have no `deliver`.
 - **When** `wio context` runs for each Work with `deliver` and `architecture`.
 - **Then** the first reports a warning, because `architecture` is outside its
-  pipeline, and the second reports a warning that says the Work has no pipeline
-  for `deliver`.
+  pipeline, and the second and the third each report a warning that says the
+  Work has no pipeline for `deliver`.
 
-### **AC-4** The config's defaults decide for a Work with no template
+### **AC-4** The template's pipeline decides when the Work gives none
+
+A Work that follows a template and has no `[actions]` of its own is judged by
+the template's pipeline.
+
+#### A template's pipeline
+
+- **Given** a template whose `deliver` holds `architecture`, and a Work that
+  follows it and has no `[actions]`.
+- **When** `wio context` runs for it with `deliver` and `architecture`, and then
+  with `deliver` and `wiring`.
+- **Then** the first reports no warning about the pipeline and the second
+  reports one.
+
+### **AC-5** The config's defaults decide for a Work with no template
 
 A Work that follows no template is judged by the pipeline of
 `[works.defaults.actions]`.

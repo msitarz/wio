@@ -79,8 +79,8 @@ exists can be shared by changing only who may call it.
 
 ### A-5
 
-The effective pipeline of an action for a Work can be had from the actions that
-`wio.contracts` already resolves, without computing it again.
+The effective pipeline of an action for a Work, with a stage preset expanded,
+can be had from `shown_actions` of `wio.contracts`, without computing it again.
 
 ### A-6
 
@@ -113,7 +113,7 @@ stage corrects it.
 ### A-11
 
 For a Work with no roots at a stage that selects the Work's roots, a bundle with
-a warning is right where the concepts say the stage "fails loudly", as the
+a warning is right where the concepts have the stage fail, as the
 `RuleSelection` port already says by giving such a Work a selection with no
 included rule, and the docs stage corrects the concepts.
 
@@ -140,7 +140,7 @@ and the `context` event. The ports that `wio.context` declares are in
   starts` reuses through a port.
 - **The skill search** — in `wio.config`, which `Skill lookup` reuses through a
   port.
-- **`resolve_actions`** — in `wio.contracts`, whose result the pipeline warning
+- **`shown_actions`** — in `wio.contracts`, whose result the pipeline warning
   reuses through a port.
 - **`rule_hash`** — in `wio.formats`, which hashes a rule's file.
 - **`Directories`** — in `wio.env`, which gives the temporary directory that

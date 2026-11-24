@@ -31,18 +31,13 @@ looks complete hides that, so the driver must be told.
 
 ### A-1
 
-The roots of a Work, with `@descendants` expanded and each name once, can be had
-through a port that `wio.contracts` satisfies, as the `WorkRoots` port of
-`wio.rules` does.
-
-### A-2
-
-A stage selects the Work's roots when its `roots` are not set or list `@work`.
+The roots port and the reading of when a stage selects the Work's roots, which
+the parent states, hold.
 
 ## Mechanisms
 
-- **The roots port** — in `src/wio/context/ports.pyi`, provisional, satisfied by
-  `wio.contracts`, which gives the expanded roots of a Work.
+- **The roots port** — the one that the parent names, which gives the expanded
+  roots of a Work.
 - **The stage's `roots`** — read through the shared `Settings` port.
 
 ## Acceptance criteria
@@ -50,33 +45,34 @@ A stage selects the Work's roots when its `roots` are not set or list `@work`.
 ### **AC-1** A Work with no roots is warned about at a stage that needs them
 
 A Work with no roots at a stage that selects the Work's roots gives a warning
-that names the Work and says why no rule from its roots applies, and the bundle
-is still printed.
+that names the Work and says that it has no roots, and the bundle is still
+printed.
 
 #### Three Works with no roots
 
-- **Given** a Work whose `roots` are empty, a Work with no `roots` key, a Work
-  whose `roots` list `@descendants` and that has no children, and a stage with
-  no `roots`.
+- **Given** a config that declares the roots `api` and `contract`, a Work whose
+  `roots` are empty, a Work with no `roots` key, a Work whose `roots` list
+  `@descendants` and that has no children, and a stage with no `roots`.
 - **When** `wio context` runs for each.
-- **Then** each reports a warning that names the Work, prints its bundle and
-  exits 0.
+- **Then** each reports a warning that names the Work and says that it has no
+  roots, prints its bundle and exits 0.
 
 #### A stage that lists `@work`
 
-- **Given** a Work with no roots and a stage whose `roots` are
+- **Given** the same config, a Work with no roots and a stage whose `roots` are
   `["contract", "@work"]`.
 - **When** `wio context` runs.
 - **Then** a warning is reported and the bundle is printed.
 
 ### **AC-2** No warning when the Work's roots play no part
 
-A Work with roots, and a stage that names its roots without `@work`, give no
-warning about the roots.
+A Work with roots, and a stage that names its roots without `@work` or names
+none, give no warning about the roots.
 
-#### Roots, and a stage with its own roots
+#### Roots, and stages with their own roots
 
-- **Given** a Work whose `roots` list `api` at a stage that sets no `roots`, and
-  a Work with no roots at a stage whose `roots` are `["contract"]`.
+- **Given** the same config, a Work whose `roots` list `api` at a stage that
+  sets no `roots`, and a Work with no roots at a stage whose `roots` are
+  `["contract"]` and at a stage whose `roots` are `[]`.
 - **When** `wio context` runs for each.
-- **Then** neither run reports a warning about the roots.
+- **Then** no run reports a warning about the roots.
