@@ -1,18 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 """Scenarios of `wio templates directives`, which prints the directive grammar."""
 
-from contextlib import contextmanager, nullcontext
+from contextlib import nullcontext
 from json import loads
 from typing import TYPE_CHECKING
 
 import pytest
 
 from tests.acceptance.channels import Channel
+from tests.sandbox import unreadable
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
-    from pathlib import Path
-
     from tests.acceptance.dsl.wio import Wio
     from tests.sandbox import Sandbox
 
@@ -139,23 +137,6 @@ def test_directives_json_prints_the_same_as_one_object(wio: Wio) -> None:
     assert (output.stderr, output.exit_code) == ("", 0)
 
 
-@contextmanager
-def _unreadable(directory: Path) -> Generator[None]:
-    """Make a directory unreadable for the length of a block.
-
-    Args:
-        directory: The directory to close.
-
-    Yields:
-        Nothing, while the directory cannot be read.
-    """
-    directory.chmod(0o000)
-    try:
-        yield
-    finally:
-        directory.chmod(0o755)
-
-
 @pytest.mark.channels(Channel.CLI)
 @pytest.mark.parametrize(
     "fixture",
@@ -175,7 +156,7 @@ def test_directives_works_outside_a_repository_and_with_a_broken_project(
 
     # When `wio templates directives` runs in it, with and without `--json`
     with (
-        _unreadable(sandbox.root / ".agents/wio/templates") if closed else nullcontext()
+        unreadable(sandbox.root / ".agents/wio/templates") if closed else nullcontext()
     ):
         text = wio.run(["templates", "directives"])
         machine = wio.run(["templates", "directives", "--json"])

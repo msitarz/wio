@@ -2,10 +2,12 @@
 """The sandbox that keeps a scenario away from the developer's own state."""
 
 import os
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
     from pathlib import Path
 
 # Git hook variables can redirect repository reads and writes. Ambient log
@@ -98,3 +100,20 @@ class Sandbox:
         for role in ("AUTHOR", "COMMITTER"):
             env |= {f"GIT_{role}_{key}": value for key, value in _IDENTITY.items()}
         return cls(root=root, env=env)
+
+
+@contextmanager
+def unreadable(directory: Path) -> Generator[None]:
+    """Make a directory unreadable for the length of a block.
+
+    Args:
+        directory: The directory to close.
+
+    Yields:
+        Nothing, while the directory cannot be read.
+    """
+    directory.chmod(0o000)
+    try:
+        yield
+    finally:
+        directory.chmod(0o755)

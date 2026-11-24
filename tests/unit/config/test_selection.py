@@ -464,3 +464,43 @@ def test_always_included_rules_are_listed_in_a_note() -> None:
         )
     ]
     assert none == []
+
+
+def test_a_directory_that_cannot_be_listed_is_an_error_and_is_not_raised() -> None:
+    """The rules directory, or a ruleset's, is one error at it and no other."""
+    # Given a rules directory that cannot be listed, and one whose ruleset
+    # directory `locked` cannot be listed beside a good one and a bare one
+    whole = _fs(f"{_RULES}/docs/ruleset.toml")
+    whole.closed = {ROOT / _RULES}
+    some = _fs(
+        f"{_RULES}/docs/ruleset.toml",
+        f"{_RULES}/locked/ruleset.toml",
+        f"{_RULES}/bare/x",
+    )
+    some.closed = {ROOT / _RULES / "locked"}
+
+    # When the rulesets are read and checked
+    inputs = [CheckInputs(ROOT, disk) for disk in (whole, some)]
+    found = [selection.read_rulesets(item) for item in inputs]
+    lines = [
+        diagnostic_lines(selection.check_rulesets(make_config(), i)) for i in inputs
+    ]
+
+    # Then the first holds no name and the place of the rules directory, the second
+    # holds the three names with `locked` unlistable and not bare, and each check
+    # prints the one error that names the directory, with the second one's `bare`
+    assert found[0].unlistable == ((_RULES, "Permission denied"),)
+    assert found[0].names == ()
+    assert found[1].names == ("bare", "docs", "locked")
+    assert found[1].without_manifest == ("bare",)
+    assert found[1].unlistable == ((f"{_RULES}/locked", "Permission denied"),)
+    assert lines[0] == [
+        f"error: {_RULES}: The directory cannot be listed: Permission denied"
+    ]
+    assert lines[1] == [
+        f"error: {_RULES}/locked: The directory cannot be listed: Permission denied",
+        (
+            f"error: {_RULES}/bare: `bare` has no `ruleset.toml`; "
+            "its rules would be skipped."
+        ),
+    ]

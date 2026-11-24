@@ -7,7 +7,9 @@ raises for a problem of the config. A reference is judged as text, and its
 ruleset part against the directories of `.agents/wio/rules` that the port
 `CheckInputs.files` shows below `CheckInputs.root`: `is_dir` of the rules
 directory before `list_dir` of it, `is_dir` of each entry, and `exists` of its
-`ruleset.toml`, and nothing else; no check reads a file's content. A ruleset is
+`ruleset.toml`, and `list_dir` of an entry whose `ruleset.toml` is not there, to
+tell a directory that cannot be listed from one without a manifest, and nothing
+else; no check reads a file's content. A ruleset is
 known by its directory name or by its alias. Whether the family, code or
 rule preset after the dot exists needs the rule files, which the rules Work
 reads. Every `where` is a key path built with `join_path` and `item_path`, except
@@ -62,10 +64,15 @@ class Rulesets:
         names: The names of the entries that are directories, sorted; empty
             when `.agents/wio/rules` is not a directory.
         without_manifest: The names, sorted, of those with no `ruleset.toml`.
+        unlistable: The place and the reason of each directory that cannot be
+            listed, the rules directory or a ruleset's, in that order; such a
+            directory is never in `without_manifest`, because its manifest
+            cannot be seen.
     """
 
     names: tuple[str, ...]
     without_manifest: tuple[str, ...]
+    unlistable: tuple[tuple[str, str], ...] = ()
 
 
 _RULES = ".agents/wio/rules"
@@ -82,15 +89,61 @@ def read_rulesets(inputs: CheckInputs) -> Rulesets:
     Returns:
         The directories; the port's `list_dir` is called only when
         `.agents/wio/rules` is a directory, so a repository without one gives
-        none and no error.
+        none and no error. A directory that raises `OSError` when it is listed,
+        the rules directory or a ruleset's, is in `unlistable` and not raised.
     """
     files = inputs.files
     rules = inputs.root / _RULES
     if not files.is_dir(rules):
         return Rulesets((), ())
-    names = tuple(sorted(p.name for p in files.list_dir(rules) if files.is_dir(p)))
-    bare = tuple(n for n in names if not files.exists(rules / n / "ruleset.toml"))
-    return Rulesets(names, bare)
+    try:
+        entries = files.list_dir(rules)
+    except OSError as error:
+        return Rulesets((), (), ((_RULES, _reason(error)),))
+    names = tuple(sorted(p.name for p in entries if files.is_dir(p)))
+    bare, closed = _without_manifest(inputs, names)
+    return Rulesets(names, bare, closed)
+
+
+def _without_manifest(
+    inputs: CheckInputs, names: Sequence[str]
+) -> tuple[tuple[str, ...], tuple[tuple[str, str], ...]]:
+    """Find the ruleset directories that show no `ruleset.toml`.
+
+    Args:
+        inputs: The repository root and the port.
+        names: The names of the directories under `.agents/wio/rules`.
+
+    Returns:
+        The names that have no manifest, and the place and the reason of each
+        directory that cannot be listed, whose manifest cannot be seen and so is
+        not said to be missing.
+    """
+    bare: list[str] = []
+    closed: list[tuple[str, str]] = []
+    for name in names:
+        directory = inputs.root / _RULES / name
+        if inputs.files.exists(directory / "ruleset.toml"):
+            continue
+        try:
+            inputs.files.list_dir(directory)
+        except OSError as error:
+            closed.append((f"{_RULES}/{name}", _reason(error)))
+        else:
+            bare.append(name)
+    return tuple(bare), tuple(closed)
+
+
+def _reason(error: OSError) -> str:
+    """Say why the port could not do what it was asked.
+
+    Args:
+        error: What the port raised.
+
+    Returns:
+        The operating system's reason, or the error's own text when it has none.
+    """
+    return error.strerror or str(error)
 
 
 def judge_reference(
@@ -182,16 +235,20 @@ def check_rulesets(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
     Returns:
         An error at `.agents/wio/rules/<name>` for a directory whose name is not a
         ruleset name and one for a directory without a `ruleset.toml`, both when
-        both apply; an error at `rulesets.<name>` for a table with no directory;
-        and, for an alias, one error at `rulesets.<name>.alias`: not a ruleset
-        name in form, the alias of an earlier table, or the name of another
-        ruleset, directory or table. The name of a table is not judged for form.
+        both apply; an error at the directory, with the words that
+        `wio rules check` uses, for the rules directory or a ruleset's directory
+        that cannot be listed; an error at `rulesets.<name>` for a table with no
+        directory; and, for an alias, one error at `rulesets.<name>.alias`: not a
+        ruleset name in form, the alias of an earlier table, or the name of
+        another ruleset, directory or table. The name of a table is not judged for form.
     """
     rulesets = read_rulesets(inputs)
     for name in rulesets.names:
         if not NAME.fullmatch(name):
             message = f"`{name}` is not a ruleset name; a ruleset name is {NAME_FORM}."
             yield Diagnostic("error", f"{_RULES}/{name}", message)
+    for place, reason in rulesets.unlistable:
+        yield Diagnostic("error", place, f"The directory cannot be listed: {reason}")
     for name in rulesets.without_manifest:
         message = f"`{name}` has no `ruleset.toml`; its rules would be skipped."
         yield Diagnostic("error", f"{_RULES}/{name}", message)
