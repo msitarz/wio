@@ -19,24 +19,25 @@ it gave and which rules it contained.
   the action, the stage, the bundle id and the size of the body.
 - The event holds the hash of the file of each included rule, in the order of
   the bundle.
-- The event is built from the state at the start of the run and written after
-  the bundle has been delivered.
-- The event holds no prompt, no code and no free text.
-- A failure to write the event is a warning and never blocks the run.
+- The event is written after the bundle has been delivered.
 
 ## Non-Goals
 
 - The start commit and the dirty flag of a gate, which the sibling records.
 - Reading the event log, or the identification of the harness session, which
   `wio.log` does.
+- A failed delivery of a bundle to standard output, because printing it is the
+  delivery and it is not refused.
 
 ## Assumptions
 
 ### A-1
 
 `ContextEvent`, `EventSink` and the identification of the harness session in
-`wio.log` carry everything that a stage entry records, and the size of the event
-is the size of the body, as A-1 and A-2 of [wio context](../../README.md) say.
+`wio.log` carry everything that a stage entry records, as A-1 of
+[wio context](../../README.md) says, and the `size` of `ContextEvent`, which its
+docstring calls "the length of the bundle in bytes", is the size of the body, as
+A-2 of that Work says, so the docstring is corrected with this Work.
 
 ### A-2
 
@@ -46,10 +47,9 @@ reads no rule file.
 
 ### A-3
 
-A run writes no event when the log is switched off, as `wio.log` allows and its
-README says, and a repeated run in one session, after a compaction or an amended
-contract, writes another event, which a reader resolves by taking the first of
-the session; a run that was only warned about still writes one.
+A reader of the log takes the first `context` event of a session, as the
+concepts say, so a run that is repeated writes another event without confusing
+it.
 
 ## Mechanisms
 
@@ -59,9 +59,6 @@ the session; a run that was only warned about still writes one.
 - **`EventSink`** — in `wio.ports`, which writes the event and reports a failure
   as a warning.
 - **A gate** — a stage with `gate = true` in the config.
-- **The order of the run** — the event is built from the compiler result and
-  from the repository state read before the bundle is delivered, and it is
-  written once the delivery has succeeded.
 
 ## Acceptance criteria
 
@@ -106,12 +103,12 @@ The event of a stage that is not a gate holds no start commit and no dirty flag.
 ### **AC-4** A failure to write never blocks
 
 When the event cannot be written, the command warns, prints the bundle and exits
-0.
+0, which verifies C-2 of the top Work.
 
-#### An unwritable log
+#### An unwritable log, and a log that cannot be located
 
-- **Given** an event log whose append fails, and a Wio home that cannot be
-  found.
+- **Given** an event log whose append fails, and a relative `$WIO_HOME`, which
+  `wio.log` cannot locate.
 - **When** `wio context` runs for each.
 - **Then** the first warns that the event log could not be written and names the
   path, the second warns that the log could not be located, and each prints the

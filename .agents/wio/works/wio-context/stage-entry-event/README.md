@@ -15,7 +15,8 @@ later, so cost and quality cannot be analyzed and a later form of
 
 ## Goals
 
-- Each run records that a session entered a stage, with what it received.
+- Each run that delivers its bundle, with the log on, records that a session
+  entered a stage, with what it received.
 - A gate's entry also records the commit its review starts from and whether the
   tree had uncommitted changes.
 
@@ -37,21 +38,22 @@ records what that form will read and states nothing of its behaviour.
 ## Visuals
 
 Before, `wio context` writes no event, so a gate's review start is unknown.
-After, each run that delivers its bundle writes one `context` event to the event
-log, and a gate's event also carries the start commit and whether the tree was
-dirty, for the later form of `wio trailers --result` to read.
+After, each run that delivers its bundle, with the log on, writes one `context`
+event to the event log, and a gate's event also carries the start commit and
+whether the tree was dirty, for the later form of `wio trailers --result` to
+read.
 
 ## Acceptance criteria
 
 ### **AC-1** A gate's run writes one event
 
-A gate stage's run writes one `context` event that holds the fields of a stage
-entry and the start commit and the dirty flag, not two events.
+A gate stage's run writes one `context` event that carries both the fields of a
+stage entry and the start commit and the dirty flag, not two events; the fields
+are those that AC-7 of [wio context](../README.md) states.
 
 #### A gate
 
 - **Given** a repository with a commit and a stage with `gate = true`.
 - **When** `wio context` runs for it.
-- **Then** the log holds exactly one new `context` event, and it holds the Work,
-  the action, the stage, the bundle id, the size, the rules, the start commit
-  and the dirty flag.
+- **Then** the log holds exactly one new `context` event, and that one event
+  holds the stage entry's fields and the start and the dirty flag.
