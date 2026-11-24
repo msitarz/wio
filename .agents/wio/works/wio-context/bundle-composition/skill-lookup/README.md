@@ -45,8 +45,10 @@ The lookup leaves out a path with a fault and rejects a name that is empty, `.`,
 ### A-3
 
 Every regular file on disk below a skill's directory counts toward its hash, so
-a skill's directory holds only the skill's own files, and a symbolic link never
-counts, not even a `SKILL.md` that is one.
+a skill's directory holds only the skill's own files, and the same commit can
+give another hash on a machine with a stray file in it. A symbolic link never
+counts, so a skill whose `SKILL.md` is a link is found, as the check accepts it,
+and its hash leaves the link out.
 
 ## Mechanisms
 

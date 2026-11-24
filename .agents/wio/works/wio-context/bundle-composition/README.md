@@ -49,7 +49,15 @@ change of a label changes the id too.
 
 The parts of a bundle are joined by a fixed blank line, and `[bundle] separator`
 is read only for the items of the rules section, as Rule rendering says, so the
-docs stage corrects the description of that setting.
+docs stage corrects the description of that setting, and the description of
+`Bundle` in `src/wio/models/config.py` is corrected with it.
+
+### A-5
+
+Where the concepts and the scope document give the header "the exact command
+that produced the bundle", it is right for it to state the canonical command,
+without an option that changes only where the bundle goes, and the docs stage
+corrects both documents.
 
 ## Mechanisms
 
@@ -59,7 +67,8 @@ The names below are provisional.
   identity, the header and the assembly** — the seven Works below, each building
   one part of the bundle or one fact that the header states.
 - **`wio.context`** — the package that holds them, which imports no other
-  component.
+  component; the compiler that calls them is built by the integration stage of
+  the top Work.
 
 ## Visuals
 
@@ -104,15 +113,14 @@ lines, so both can be recomputed from the text.
   body and the files hash in the header.
 - **Then** the id and the counts equal the ones in the header.
 
-### **AC-2** A skill is found once and agreed on everywhere
+### **AC-2** The skill's directory and hash agree everywhere
 
-The path in the pointer, the directory in the header and the files hash in the
-header and in the id come from one lookup of the skill.
+The path in the pointer and the directory in the header, and the files hash in
+the header, come from one lookup of the skill.
 
 #### A skill with two files
 
 - **Given** a stage whose skill has `SKILL.md` and a reference file.
 - **When** the bundle is printed.
-- **Then** the pointer's path is the header's directory and `/SKILL.md`, the
-  body holds none of the skill's text, and the hash in the header is the hash of
-  those two files.
+- **Then** the pointer's path is the header's directory and `/SKILL.md`, and the
+  hash in the header is the hash of those two files.

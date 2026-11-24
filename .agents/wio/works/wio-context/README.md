@@ -146,6 +146,10 @@ and the `context` event. The ports that `wio.context` declares are in
 - **`rule_hash`** — in `wio.formats`, which hashes a rule's file.
 - **`Directories`** — in `wio.env`, which gives the temporary directory that
   `--output` writes to.
+- **The compiler** — provisional: the function that the integration stage of
+  this Work builds, which calls the checks, `Contracts`, `RuleSelection` and the
+  lookup, counts the included rules, gives the assembly the closure that builds
+  the header, and hands the bundle to the delivery and the event.
 - **The `wio.cli` entry** — `component_entry("context", wire)`, built by the
   command child, which wires every port to its component.
 

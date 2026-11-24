@@ -2,7 +2,7 @@
 id = "fadef4"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["30gfec", "ay92nt", "4h73tb", "ghq8mz", "bg0g78"]
+depends_on = ["ghq8mz"]
 -->
 
 # Assemble the bundle
@@ -54,6 +54,7 @@ order and the joining are required.
   which builds the body, computes its id with `bundle_id`, asks `header_for` for
   the header with that id, the body's UTF-8 bytes and its number of `"\n"`, and
   returns the header, `"\n\n"` and the body.
+- **An empty part** — one that is empty after its trailing newlines are removed.
 - **The body** — the text after the first blank line of the bundle, as the
   Glossary of [wio context](../../README.md) defines it; its size is its UTF-8
   bytes and the number of `"\n"` in it.
@@ -135,3 +136,10 @@ label.
 - **Then** the first holds no `--- contract ---` and no `--- rules ---`, the
   second holds no `--- stage ---`, and each equals the bundle of AC-1 with those
   parts and their labels removed.
+
+#### Every part empty
+
+- **Given** the parts of AC-1 with all three empty.
+- **When** the bundle is assembled.
+- **Then** the body is the closing line and a newline alone, and the bundle is
+  the header, a blank line and that body.

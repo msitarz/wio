@@ -29,6 +29,7 @@ to run again, and a wrong stage must be caught by reading the header.
 
 - Computing the id or the hash, which their Works do.
 - Warning about the size, which the delivery does.
+- Parsing the request, which the command does.
 - Defining the body, which the assembly does.
 
 ## Assumptions
@@ -50,9 +51,11 @@ are required.
   that is not continuable, `rules: <n>`, `size: <bytes> bytes, <lines> lines
   (body)`, `bundle: <id>`, `command: <canonical command>`, and for a skill
   `skill: <name> (<directory>, files <hash>)`.
-- **The builder** — `header(work: Work, stage: Stage, rules: int, size: Size,
-  bundle_id: str, command: str, skill: FoundSkill | None) -> str`, which gives
-  the lines joined by `"\n"`.
+- **The builder** — `header(work_id: str, title: str | None, action: str,
+  stage_name: str, stage: Stage, rules: int, size_bytes: int, size_lines: int,
+  bundle_id: str, skill: tuple[str, str, str] | None) -> str`, where `skill` is
+  the name, the directory and the files hash, which gives the lines joined by
+  `"\n"` and builds the command line from `work_id`, `action` and `stage_name`.
 - **The canonical command** — the one that the Glossary of `j85eh5` defines.
 
 ## Acceptance criteria
@@ -69,24 +72,24 @@ wording of the lines.
   `session = "fresh"`.
 - **When** the header is built.
 - **Then** its first three lines name the Work with its title, the action and
-  the stage, and it says that the stage is a gate judged by a person and that
-  the session is fresh.
+  the stage, and it has `gate: yes, judged by a person` and `session: fresh`, in
+  the provisional wording.
 
 #### A stage that is not a gate
 
 - **Given** a stage with no `gate`, no `session` and `continuable = false`, and
   another with `judge = "human"` and no `gate`.
 - **When** the header is built for each.
-- **Then** each says that the stage is not a gate, the first says that the
-  session is any and not to continue it, and neither says that a person judges.
+- **Then** each has `gate: no`, the first has
+  `session: any, do not continue it`, and neither says that a person judges.
 
 #### A fresh stage that is not continuable, and a Work with no title
 
 - **Given** a stage with `session = "fresh"` and `continuable = false`, and a
   Work with no title.
 - **When** the header is built.
-- **Then** it says that the session is fresh and not to continue it, and the
-  Work's line holds its id alone.
+- **Then** it has `session: fresh, do not continue it`, and the Work's line is
+  `work:` and the id alone.
 
 ### **AC-2** The header states what the session received
 
@@ -99,9 +102,8 @@ selected when none was.
 - **Given** the counts 1234 bytes and 56 lines with three rules, and the same
   counts with no rule.
 - **When** the header is built for each.
-- **Then** the first says that it holds three rules and that the body is 1234
-  bytes and 56 lines, the second says that it holds no rule, and each gives the
-  id that it was given.
+- **Then** the first has `rules: 3` and `size: 1234 bytes, 56 lines (body)`, the
+  second has `rules: 0`, and each gives the id that it was given.
 
 ### **AC-3** The header states the canonical command
 
@@ -110,11 +112,11 @@ action and the stage as parsed.
 
 #### A request
 
-- **Given** the request for the Work `k3m9xq`, the action `deliver` and the
-  stage `architecture`.
+- **Given** the Work id `k3m9xq`, the action `deliver` and the stage name
+  `architecture`.
 - **When** the header is built.
-- **Then** its command line is `wio context k3m9xq deliver architecture`, in the
-  provisional wording of the label.
+- **Then** its command line is `command: wio context k3m9xq deliver
+  architecture`, in the provisional wording of the label.
 
 ### **AC-4** A stage with a skill names where it was found
 

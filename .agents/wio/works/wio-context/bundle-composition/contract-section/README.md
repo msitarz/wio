@@ -44,7 +44,7 @@ needs no stripping of its own.
 ### **AC-1** The section is the view that `wio contracts show` prints
 
 The section equals the resolved view that `wio contracts show` prints for the
-Work after its table and its `----` line, with no metadata block.
+Work after the blank line that follows its `----` line, with no metadata block.
 
 #### A child with an inherited section
 
@@ -52,7 +52,7 @@ Work after its table and its `----` line, with no metadata block.
   of it.
 - **When** the section is built for the child.
 - **Then** it equals the view that `wio contracts show` prints for the child
-  after its table and its `----` line.
+  after the blank line that follows its `----` line.
 
 ### **AC-2** A contract with no body gives an empty section
 

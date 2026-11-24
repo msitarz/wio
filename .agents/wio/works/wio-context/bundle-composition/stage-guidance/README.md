@@ -28,7 +28,11 @@ already has.
 
 ## Assumptions
 
-None.
+### A-1
+
+The lookup never gives `None` for a stage with a skill, because
+`wio config check` refuses a config whose stage names a skill that no directory
+holds.
 
 ## Mechanisms
 
