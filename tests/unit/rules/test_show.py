@@ -172,3 +172,16 @@ def test_the_json_description_is_null_when_there_is_none() -> None:
 
     # Then the description is null and the body is empty
     assert (found["description"], found["body"]) == (None, "")
+
+
+def test_a_ruleset_without_rules_is_refused_with_its_cause() -> None:
+    """AC-5: an unknown rule of an empty ruleset says that it holds none."""
+    # Given a ruleset that holds no rule
+    discovery = Discovery((make_ruleset("empty", ["ARC"], []),), ())
+
+    # When one of its rules is shown
+    with pytest.raises(WioError) as caught:
+        show_rule("empty.ARC001", discovery)
+
+    # Then the refusal says that it holds no rule
+    assert "`empty` holds no rule and not `ARC001`" in str(caught.value)

@@ -211,7 +211,8 @@ def _missing(ruleset: LoadedRuleset, item: str) -> Rule:
     Raises:
         WioError: It names the ruleset's codes, or says that it holds none.
     """
-    held = and_list([f"`{r.code}`" for r in ruleset.rules]) or "no rule"
+    codes = [f"`{r.code}`" for r in ruleset.rules]
+    held = and_list(codes) if codes else "no rule"
     message = f"`{ruleset.name}` holds {held} and not `{item}`."
     raise WioError(message)
 
