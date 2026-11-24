@@ -238,6 +238,25 @@ def _reason(problem: Problem, entry: _Entry, catalog: RuleCatalog) -> str:
     return f"`{text}` names no rule preset of the config. {known}"
 
 
+def explain_problem(
+    problem: Problem, text: str, scope: Scope, catalog: RuleCatalog
+) -> str:
+    """Say why an entry cannot be expanded and what would do.
+
+    Args:
+        problem: What `expand` found for the entry.
+        text: The entry as written.
+        scope: What a bare name is where the entry was written.
+        catalog: The rulesets, to list what exists.
+
+    Returns:
+        The message that `wio rules check` gives for the entry, which starts with
+        the entry in backticks and lists the families, codes or rule presets that
+        exist.
+    """
+    return _reason(problem, _Entry("", text, scope), catalog)
+
+
 def _siblings(ruleset: str, item: str, catalog: RuleCatalog) -> str:
     """List what exists next to an item that names nothing.
 

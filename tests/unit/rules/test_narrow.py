@@ -20,10 +20,6 @@ if TYPE_CHECKING:
     from wio.models.listing import Listing
     from wio.models.rule import LoadedRuleset
 
-pytestmark = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="narrow is a stub"
-)
-
 
 def _rulesets(
     *, broken: bool = False, reverse: bool = False
@@ -315,3 +311,19 @@ def test_the_result_does_not_depend_on_the_order_of_the_inputs() -> None:
     assert replace(backward, header=replace(backward.header, references=())) == replace(
         forward, header=bare
     )
+
+
+def test_the_header_is_set_from_the_arguments_and_not_added_to() -> None:
+    """AC-1: a header that a view filled in is replaced by what `narrow` was given."""
+    # Given a listing whose header already names a reference and the mark
+    listing = _view()
+    stale = replace(
+        listing, header=replace(listing.header, references=("x",), not_selected=True)
+    )
+
+    # When it is narrowed by `demo.PAY` without `--not-selected`
+    found = _narrow(stale, ["demo.PAY"])
+
+    # Then the header names `demo.PAY` only and is not marked
+    assert found.header.references == ("demo.PAY",)
+    assert not found.header.not_selected
