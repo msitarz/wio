@@ -32,13 +32,15 @@ can tell what two sessions were given or compare their results.
 
 ## Glossary
 
-### Body
+### Bundle body
 
 The text of a [bundle](../../../../GLOSSARY.md) after its metadata, its header
 and the blank lines that follow them, up to the end: the labelled parts and the
 closing line, as
 [Assemble the bundle](bundle-composition/assemble-the-bundle/README.md) defines
-them. The size that the header states is that of the body.
+them. The size that the header states is that of the body. It is neither a
+rule's body nor a contract's body, and "the body" means this one unless a Work
+says "a rule's body".
 
 ### Metadata
 

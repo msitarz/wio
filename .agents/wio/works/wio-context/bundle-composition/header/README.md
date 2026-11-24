@@ -39,6 +39,12 @@ to run again, and a wrong stage must be caught by reading the header.
 The number of rules is the number of rules that the rules section prints, each
 once, and the command supplies it from the included rules of the `Selection`.
 
+### A-2
+
+The command passes the skill tuple exactly when the stage has a skill, so a
+stage with a skill never reaches the builder with `None`, and a stage with a
+goal never with a tuple.
+
 ## Mechanisms
 
 The labels, the layout and the signature below are provisional, but the facts
@@ -48,8 +54,9 @@ are required.
   title, `action: <name>`, `stage: <name>`, `gate: yes` or `gate: no`, with
   `, judged by a person` after `gate: yes` for `judge = "human"`,
   `session: fresh` or `session: any`, with `, do not continue it` for a stage
-  that is not continuable, `rules: <n>`, `size: <bytes> bytes, <lines> lines
-  (body)`, `command: <canonical command>`, and for a skill
+  that is not continuable, `rules: <n>`,
+  `size: <bytes> bytes, <lines> lines (body)`,
+  `command: <canonical command>`, and for a skill
   `skill: <name> (<directory>, files <hash>)`.
 - **The builder** — `header(work_id: str, title: str | None, action: str,
   stage_name: str, stage: Stage, rules: int, size_bytes: int, size_lines: int,
@@ -94,8 +101,7 @@ wording of the lines.
 ### **AC-2** The header states what the session received
 
 The header gives the number of rules and the size of the body in bytes and
-lines, in the provisional wording, and says that no rule was selected when none
-was.
+lines, in the provisional wording.
 
 #### Three rules, and none
 

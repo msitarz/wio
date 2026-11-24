@@ -36,7 +36,7 @@ a file that holds it and be told where the file is.
 
 The compiler result carries the bundle id that names the default file, as the
 command Work's compiler port says, and the id names the header and the body, so
-two runs that give the same id give the same file apart from its metadata line.
+two runs that give the same id give the same file.
 
 ### A-2
 

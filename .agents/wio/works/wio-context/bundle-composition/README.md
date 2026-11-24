@@ -40,13 +40,17 @@ concepts do not name, and the docs stage records them.
 
 ### A-3
 
-The bundle id is 12 hexadecimal digits for every stage, where the skill's files
-count through the input of the hash and not through a longer id, which keeps the
-id short as the concepts say, and it hashes the header and the whole body,
-labels and closing line included, where the concepts say the goal, the contract
-and the rules, so a change of the request, of a label or of the closing sentence
-changes the id too; the id itself stands in a metadata section that is not
-hashed, which the concepts do not have, and the docs stage records it.
+The bundle id is 12 hexadecimal digits for every stage, which keeps the id short
+as the concepts say, and the skill's files count through the files hash in the
+header's skill line, not through a longer id.
+
+### A-6
+
+The id hashes the header and the whole body, labels and closing line included,
+where the concepts say the goal, the contract and the rules, so a change of the
+request, of a label or of the closing sentence changes the id too, and the id
+stands in a metadata section that is not hashed, which the concepts do not have,
+and the docs stage records it.
 
 ### A-4
 
@@ -75,10 +79,11 @@ The names below are provisional.
 
 ## Visuals
 
-The diagram is drawn from commit `8edc675` of the branch `main`. Before, no part
-of a bundle is built. After, each part is built by one Work, and the assembly
-builds the body first, then the header from its size, then the id from the
-header and the body, and last the metadata that holds the id.
+The diagram is drawn from commit `8edc675` of the branch `main`, which gives the
+before. Before, no part of a bundle is built. After, the design is: each part is
+built by one Work, and the assembly builds the body first, then the header from
+its size, then the id from the header and the body, and last the metadata that
+holds the id.
 
 ```mermaid
 flowchart LR
@@ -101,7 +106,7 @@ flowchart LR
 ### **AC-1** The metadata and the header state what the text gives
 
 The id in the metadata is the id that the identity gives for the text after the
-first blank line, with the skill's files for a stage that has a skill, and the
+first blank line, and the
 size in the header is the body's bytes and lines, so both can be recomputed from
 the text.
 
@@ -116,9 +121,10 @@ the text.
 #### A stage with a skill
 
 - **Given** a bundle printed for a stage with a skill.
-- **When** the text after its first blank line is given to the identity with the
-  files hash from the header, and the body is counted.
-- **Then** the id and the counts equal the ones in the metadata and the header.
+- **When** the text after its first blank line is given to the identity, and the
+  body is counted.
+- **Then** the id and the counts equal the ones in the metadata and the header,
+  and the header's files hash is the one that the id counts.
 
 ### **AC-2** The skill's directory and hash agree everywhere
 

@@ -54,7 +54,7 @@ order, the joining and the three sections are required.
 - **The closing line** — `If your context was compacted, run the command in the
   header again.`
 - **The interface** — `assemble(stage: str, contract: str, rules: str,
-  skill_hash: str | None, header_for: Callable[[int, int], str]) -> str`, which
+  header_for: Callable[[int, int], str]) -> str`, which
   builds the body, asks `header_for` for the header with the body's UTF-8 bytes
   and its number of `"\n"`, computes the id with `bundle_id` from the header, a
   blank line and the body, and returns the metadata, a blank line, the header, a
@@ -64,7 +64,8 @@ order, the joining and the three sections are required.
   bytes and the number of `"\n"` in it.
 - **The text of the id** — the text after the first blank line, that is the
   header, a blank line and the body.
-- **An empty part** — one that is empty after its trailing newlines are removed.
+- **An empty part** — one that is empty after its trailing newlines are removed;
+  leading newlines and whitespace are kept as written.
 
 ## Acceptance criteria
 
@@ -79,8 +80,8 @@ line, in this order.
 
 #### All parts present
 
-- **Given** a stage part `GOAL`, a contract part `CONTRACT`, a rules part
-  `RULES` and no skill hash.
+- **Given** a stage part `GOAL`, a contract part `CONTRACT` and a rules part
+  `RULES`.
 - **When** the bundle is assembled.
 - **Then** the text is the following, in the provisional wording of the labels
   and the closing line, which is regenerated when that wording changes:
@@ -114,12 +115,12 @@ blank line, so neither is part of what it describes.
 
 #### A spy
 
-- **Given** a `header_for` that records its arguments and returns a header, the
-  parts of AC-1 and the skill hash `ab`.
+- **Given** a `header_for` that records its arguments and returns a header, and
+  the parts of AC-1.
 - **When** the bundle is assembled with headers of one line and of three lines.
 - **Then** the arguments are the same for both headers, 139 bytes and 13 `"\n"`
   for the body of AC-1, and the id in each metadata is the id that `bundle_id`
-  gives for the text after the first blank line and `ab`.
+  gives for the text after the first blank line.
 
 ### **AC-3** Newlines are removed and the bundle ends once
 
@@ -128,8 +129,8 @@ with exactly one newline.
 
 #### A part that ends in a newline and one that does not
 
-- **Given** a contract part `CONTRACT` followed by a newline and a rules part
-  `RULES` with none.
+- **Given** a stage part `GOAL`, a contract part `CONTRACT` followed by two
+  newlines and a rules part `RULES` with none.
 - **When** the bundle is assembled.
 - **Then** one blank line separates each pair of parts, and the bundle ends with
   the closing line and exactly one newline.
