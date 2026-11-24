@@ -3,6 +3,20 @@
 
 from typing import TYPE_CHECKING
 
+from wio.errors import WioError
+lazy from wio.formats import encode_json
+lazy from wio.rules.anywhere import selected_anywhere
+lazy from wio.rules.discovery import discover, refuse_on_errors
+lazy from wio.rules.inputs import (
+    build_rule_catalog,
+    chain_labels,
+    chain_text,
+    layer_label,
+    resolve_ruleset,
+    ruleset_map,
+)
+lazy from wio.rules.planning import plan_rule
+
 if TYPE_CHECKING:
     from argparse import Namespace
 
@@ -32,8 +46,38 @@ def render_created(new: NewRule, origins: tuple[Origin, ...], *, as_json: bool) 
     Returns:
         The text for standard output, ending in a newline.
     """
-    del new, origins, as_json
-    raise NotImplementedError
+    chains = [
+        chain_labels(layer_label(origin.layer, origin.name), route)
+        for origin in origins
+        for route in origin.routes
+    ]
+    if as_json:
+        return encode_json(_as_object(new, chains)) + "\n"
+    code = new.rule.qualified
+    lines = [f"created {code} {new.rule.name}", f"file: {new.path.as_posix()}"]
+    lines += [f"selected: {chain_text(code, chain)}" for chain in chains]
+    if not chains:
+        lines.append("selected: no, nothing selects it yet")
+    return "".join(f"{line}\n" for line in lines)
+
+
+def _as_object(new: NewRule, chains: list[tuple[str, ...]]) -> dict[str, object]:
+    """Describe the new rule as plain data for JSON.
+
+    Args:
+        new: The rule that was written.
+        chains: The chains of labels of the origins.
+
+    Returns:
+        `code`, `name`, `path`, `selected` and `origins`, in that order.
+    """
+    return {
+        "code": new.rule.qualified,
+        "name": new.rule.name,
+        "path": new.path.as_posix(),
+        "selected": bool(chains),
+        "origins": [list(chain) for chain in chains],
+    }
 
 
 def run_new(services: Services, args: Namespace, stdio: Stdio) -> int:
@@ -63,5 +107,24 @@ def run_new(services: Services, args: Namespace, stdio: Stdio) -> int:
         DiagnosticsError: The discovery reported an error anywhere.
         ConfigurationError: The config has an error.
     """
-    del services, args, stdio
-    raise NotImplementedError
+    config = services.settings.load()
+    root = services.repository.root()
+    discovery = discover(root, services.files)
+    refuse_on_errors(discovery)
+    catalog = build_rule_catalog(config, ruleset_map(discovery))
+    canonical = resolve_ruleset(args.ruleset, catalog) or args.ruleset
+    new = plan_rule(canonical, args.family, args.name, args.description, discovery)
+    target = root.joinpath(*new.path.parts)
+    if services.files.exists(target):
+        message = f"The file `{new.path.as_posix()}` exists and is not overwritten."
+        raise WioError(message)
+    services.files.write_text(target, new.text)
+    again = ruleset_map(discover(root, services.files))
+    written = again[canonical].get(new.rule.code)
+    if written is None:
+        message = f"The new rule `{new.rule.qualified}` was written but not read back."
+        raise WioError(message)
+    anywhere = selected_anywhere(config, again)
+    origins = anywhere.selected.get(written, ())
+    stdio.stdout.write(render_created(new, origins, as_json=args.json))
+    return 0

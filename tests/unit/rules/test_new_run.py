@@ -21,10 +21,6 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from pathlib import Path
 
-pytestmark = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="run_new is a stub"
-)
-
 _DEMO = ROOT / ".agents" / "wio" / "rules" / "demo"
 _MANIFEST = (
     '[families]\nARC = "A"\nPAY = "P"\n'

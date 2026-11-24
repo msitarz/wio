@@ -16,10 +16,6 @@ from wio.rules.reading import read_rule
 if TYPE_CHECKING:
     from wio.models.rule import LoadedRuleset
 
-pytestmark = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="plan_rule is a stub"
-)
-
 _DEMO = PurePosixPath(".agents/wio/rules/demo")
 
 

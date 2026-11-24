@@ -4,10 +4,14 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.errors import WioError
+lazy from wio.formats import declared, encode_comment_toml
+lazy from wio.rules.reading import read_rule
+
 if TYPE_CHECKING:
     from pathlib import PurePosixPath
 
-    from wio.models.rule import Rule
+    from wio.models.rule import LoadedRuleset, Rule
     from wio.rules.discovery import Discovery
 
 
@@ -68,5 +72,101 @@ def plan_rule(
             names the cause, and lists the rulesets, the families or the form
             that would do.
     """
-    del ruleset, family, name, description, discovery
-    raise NotImplementedError
+    loaded = _ruleset(ruleset, discovery)
+    _check_family(loaded, family)
+    _check_unused(loaded, name)
+    code, directory = _next(loaded, family)
+    path = directory / f"{code}-{name}.md"
+    data = {"code": code, "name": name}
+    if description is not None:
+        data["description"] = description
+    text = f"<!-- wio\n{encode_comment_toml(data)}-->\n"
+    reading = read_rule(loaded.name, path, text)
+    faults = [d.message for d in reading.diagnostics if d.severity == "error"]
+    if faults or reading.rule is None:
+        raise WioError(faults[0] if faults else f"The rule `{code}` is not valid.")
+    return NewRule(path, text, reading.rule)
+
+
+def _check_unused(ruleset: LoadedRuleset, name: str) -> None:
+    """Check that no rule of a ruleset has a name.
+
+    Args:
+        ruleset: The ruleset.
+        name: The name asked for.
+
+    Raises:
+        WioError: A rule of the ruleset has the name; it names that rule.
+    """
+    taken = next((rule for rule in ruleset.rules if rule.name == name), None)
+    if taken is not None:
+        message = (
+            f"The ruleset `{ruleset.name}` has a rule named `{name}`: "
+            f"`{taken.qualified}`."
+        )
+        raise WioError(message)
+
+
+def _next(ruleset: LoadedRuleset, family: str) -> tuple[str, PurePosixPath]:
+    """Find the next code of a family and the directory of its file.
+
+    Args:
+        ruleset: The ruleset.
+        family: The family, which the manifest declares.
+
+    Returns:
+        The family's letters and the number after the highest number of the
+        family, with at least three digits and as many as the highest code has,
+        and the directory of that highest rule or of the ruleset.
+    """
+    existing = ruleset.rules_of(family)
+    last = existing[-1] if existing else None
+    digits = len(last.code) - len(family) if last else 0
+    number = (last.number if last else 0) + 1
+    directory = last.path.parent if last else ruleset.path
+    return f"{family}{number:0{max(3, digits)}d}", directory
+
+
+def _ruleset(name: str, discovery: Discovery) -> LoadedRuleset:
+    """Find the ruleset that a request names.
+
+    Args:
+        name: The canonical name asked for.
+        discovery: What the walk found.
+
+    Returns:
+        The ruleset.
+
+    Raises:
+        WioError: No ruleset that was read has the name; it lists those that
+            were.
+    """
+    found = {ruleset.name: ruleset for ruleset in discovery.rulesets}
+    if name in found:
+        return found[name]
+    names = declared("Rulesets", "No ruleset was read.", sorted(found))
+    message = f"`{name}` is not a ruleset that was read. {names}"
+    raise WioError(message)
+
+
+def _check_family(ruleset: LoadedRuleset, family: str) -> None:
+    """Check that a ruleset's manifest declares a family.
+
+    Args:
+        ruleset: The ruleset.
+        family: The family asked for.
+
+    Raises:
+        WioError: The family is not declared; it lists those that are.
+    """
+    if family in ruleset.manifest.families:
+        return
+    names = declared(
+        "Declared families",
+        "No families are declared.",
+        list(ruleset.manifest.families),
+    )
+    message = (
+        f"The ruleset `{ruleset.name}` does not declare the family `{family}`. {names}"
+    )
+    raise WioError(message)
