@@ -74,9 +74,8 @@ class StageRules(Protocol):
     def selected(self, work_id: str, action: str, stage: str) -> Mapping[str, str]:
         """Find the rules that a stage selects for a Work.
 
-        The component that selects the rules satisfies it; until it exists,
-        `wio trailers` wires an adapter that selects none, so a cited rule code is
-        refused.
+        The `RuleSelector` of `wio.rules` satisfies it. A Work with no roots
+        selects no rule, so a gate record of it cites none.
 
         Args:
             work_id: The Work's id.

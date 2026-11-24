@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Literal
 
-lazy from wio.cli.null import NoRules
 lazy from wio.config import ConfigCommand, ConfigSettings
 lazy from wio.contracts import ContractsCommand, Services, WorkLookup
 lazy from wio.env import adapters as env
@@ -19,7 +18,7 @@ lazy from wio.io import views
 lazy from wio.log.command import LogCommand
 lazy from wio.log.review import ReviewCommand
 lazy from wio.log.sink import LogSink
-lazy from wio.rules import RulesCommand
+lazy from wio.rules import RulesCommand, RuleSelector
 lazy from wio.rules import Services as RulesServices
 lazy from wio.templates import TemplatesCatalog, TemplatesCommand
 lazy from wio.trailers import Services as TrailersServices
@@ -151,8 +150,8 @@ def trailers_command(events: EventSink | None = None) -> Command:
     Returns:
         The command, whose forms read the config, the history and the Works through
         the adapters, look a Work up in the working tree and then in `HEAD` and, for
-        a commit message, in the index and then in `HEAD`, and wire a port that
-        selects no rule until its component exists.
+        a commit message, in the index and then in `HEAD`, and select the rules of a
+        stage with a `RuleSelector` over the working tree.
 
     Raises:
         TrailersError: If the working directory is not inside a git repository.
@@ -194,7 +193,8 @@ def _trailers_services(events: EventSink | None = None) -> TrailersServices:
             io.SystemStdio(),
             config.log,
         )
-    return TrailersServices(settings, tree, history, staged, files, NoRules(), events)
+    selector = RuleSelector(settings, repository, files, tree)
+    return TrailersServices(settings, tree, history, staged, files, selector, events)
 
 
 def _log() -> Command:

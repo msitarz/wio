@@ -385,14 +385,14 @@ writes the review event before printing the record. The event keeps the
 cites, the reviewed commit and the judge for later inspection.
 [`wio log review`](../log/README.md#recording-a-gate-review-without-commit-records)
 uses the same checker. `ReviewEvent` in
-[`wio.models.events`](../models/events.py) holds the fields the form writes.
-The [log sink](../log/README.md#appending-an-event) applies the common envelope
-and records the event. The form reads the rules a stage
-selects through the provisional `StageRules` port of [`ports.pyi`](ports.pyi),
-which the rules component will satisfy; until it exists no rule is selected, so
-a cited rule code is refused. The docstrings say what each takes and returns,
-and the [tests](../../../tests/unit/trailers/test_gate.py) say how each case
-reads.
+[`wio.models.events`](../models/events.py) holds the fields the form writes. The
+[log sink](../log/README.md#appending-an-event) applies the common envelope and
+records the event. The form reads the rules a stage selects through the
+provisional `StageRules` port of [`ports.pyi`](ports.pyi), which the
+[`RuleSelector`](../rules/README.md#the-rule-selector) of `wio.rules` satisfies,
+so a cited rule code that the stage does not select is refused. The docstrings
+say what each takes and returns, and the
+[tests](../../../tests/unit/trailers/test_gate.py) say how each case reads.
 
 - **The refusals come in order, and the first group that finds something stops
   the rest.** The print form's field errors come first, then the cites, then a
@@ -492,9 +492,9 @@ case reads.
 - **The ports are wired in `wio.cli`.** The git adapter gives the history, the
   contracts component finds a Work in the working tree and then in `HEAD`, and,
   for a commit message, in the index and then in `HEAD`, so a commit that
-  deletes a Work still carries its record. Where a component does not exist yet
-  the command wires a null adapter from [`null.py`](../cli/null.py): a port that
-  selects no rule, so a cited rule code is refused as not selected.
+  deletes a Work still carries its record. The rules come from one
+  `RuleSelector` that reads the Work's roots where the contracts are found, in
+  the working tree.
 - **A working directory outside a repository is a usage mistake.** The git
   adapter refuses it with a `RuntimeError`, which the wiring turns into a
   `TrailersError` so that it exits 2 and not 70. The wiring reads the config for
