@@ -564,16 +564,15 @@ does no input or output.
 - **A chain says where a rule came from, and the rule came from what is on its
   right.** It starts with the rule's qualified code, then the layer, then the
   route from the outermost rule preset to the entry that named the rule, joined
-  by `←`, as [the concepts](../../../docs/concepts.md) write the origin of a
+  by `←`, as [the concepts](../../../docs/concepts.md) write the source of a
   rule. The labels and the chains are written by the functions of
   [the inputs](#the-inputs-of-the-selection), so every consumer writes them
   alike: `root <name>`, `stage <name>`, `rules_always_include` and
   `rules_always_exclude`.
 - **A `from:` line is an origin and a `by:` line is a removal, and a row shows
   its `from:` lines whether it is included or out.** There is one for each route
-  of each effect of the layers, sorted by layer, then name, then route. The
-  stage's name comes from the header of the listing, because a layer effect
-  holds only the name of a root.
+  of each effect of the layers. The stage's name comes from the header of the
+  listing, because a layer effect holds only the name of a root.
 - **The `out:` line gives the reason that the decision gave.** `not selected`,
   `excluded by the root's rule preset`, `excluded by the stage`,
   `vetoed by rules_always_exclude` and `cut by the roots` are the five reasons,
