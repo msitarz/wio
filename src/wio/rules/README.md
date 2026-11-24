@@ -8,8 +8,8 @@ of a stage, the decision of each rule, the rules that any include entry
 delivers, the roots of a stage and of a path, the errors of the references, the
 warnings of the selections and the bodies, the report of `wio rules check`,
 which joins them, and the selector that gives the rules of a stage to
-`wio context` and `wio trailers`, and how these parts make one selection.
-`list`, `new` and `show` build on the rest.
+`wio context` and `wio trailers`, and how these parts make one selection, and
+the listing of `wio rules list`. `new` and `show` build on the rest.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its code
 and name mean and [Rulesets on disk](../../../docs/concepts.md#rulesets-on-disk)
@@ -461,6 +461,52 @@ flowchart LR
   and out; a rule that no entry names is out in every view, which is why a
   listing can name the rules that nothing selects.
 
+## Listing the rules of a view
+
+[`list_view`](listing.py) decides the rules of a view and
+[`render_listing`](listing.py) writes them, and `run_list` joins them for
+`wio rules list`. Their docstrings say what each takes, returns and raises, and
+the [tests](../../../tests/unit/rules/test_list_view.py) say how each case
+reads. The types of a listing, `Listing`, `Header`, `Row` and `Explanation`, are
+in [`wio.models`](../models/listing.py), and the leaves that narrow and explain
+the listing fill the fields that this one leaves empty.
+
+- **A view differs from another only in the layers and the roots it applies.**
+  `--root`, `--path` and `--work` give the roots, `--stage` gives the stage, and
+  `list_view` calls [`select`](applicability.py) once, so the rules of a view
+  are those that `wio trailers` is given. A view without roots applies none, and
+  a view with no selector applies no layer and lists every rule with no
+  decision, so a listing of the whole repository is not a selection.
+- **The roots and the stage are applied as `select` takes them.** A root is that
+  root, a path gives the roots that contain it, and a Work gives the roots that
+  the stage selects for it, which are its own when no stage is given. A stage
+  alone leaves the roots not applied, so nothing is cut and each rule lists the
+  roots of the config that reach it.
+- **The header says what was applied.** `layers:` names `roots`, `stage` and
+  `always fields`, the last for both always fields, and `roots:` says
+  `not applied` when none were applied and `none` when they were and none
+  matched, so the two cases are not read as one.
+- **A rule that is out is shown only when it is asked for.** `Listing` holds
+  every rule considered and the renderer decides which to show: a rule that is
+  included or has no decision, one with an explanation, or all of them when the
+  header is marked `not selected`. An out row has `included` false in the JSON.
+- **The renderer prints an explanation without knowing it.** A row's
+  explanation gives its lines for the text and its fields for the JSON, so a
+  later leaf adds an explanation without changing the renderer.
+- **The text and the JSON hold the same rules.** The text is the header, a blank
+  line and one [block](../formats/README.md#the-layout-of-blocks) for each rule,
+  and `--json` is one object on one line with the header keys and then the
+  rules, for a program.
+- **The discovery runs once, and a selector that cannot be used is refused
+  before anything is printed.** `run_list` gives `list_view` the rulesets of its
+  own discovery, so it does not call `RuleSelector.selection`, which would
+  discover again. An unknown stage, root or Work, a Work with no roots and a
+  path outside the repository are a `WioError`, so they exit 2 and not 70, and a
+  fault in the rules is refused as it is for the selector.
+- **`--not-selected` and `--explain` are declared and not acted on.** The leaves
+  that narrow the listing by references and explain where a rule came from give
+  them their behavior on this listing.
+
 ## The group of subcommands
 
 [`__init__.py`](__init__.py) holds `RulesSpec`, `Services`, `Subcommand`, the
@@ -468,7 +514,7 @@ table `SUBCOMMANDS` and `json_option`, and [`command.py`](command.py) holds
 `RulesCommand`, which runs the subcommand that the arguments chose. It follows
 the pattern of [`wio.contracts`](../contracts/README.md#the-group), and its
 docstrings and [tests](../../../tests/unit/rules/test_command.py) say what each
-takes and returns. So far `check` is the only subcommand in the table.
+takes and returns. So far `check` and `list` are the subcommands in the table.
 
 - **A subcommand is one entry of the table.** The group knows nothing else of
   a subcommand, so adding one edits no other and builds no second shell.
