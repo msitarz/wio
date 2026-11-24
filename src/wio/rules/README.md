@@ -541,8 +541,7 @@ use.
   out row unless the header is marked `not selected`, so that mark, which the
   JSON writes as `not_selected`, is what shows the rules that nothing selects.
   The header's references and mark are set from the arguments and replace what
-  the listing held, so a listing narrowed twice cannot disagree with the second
-  call.
+  the listing held.
 - **A reference that cannot be used is refused, at any depth.** A name that
   names nothing, a malformed one, a cycle and a bad entry inside a rule preset
   that the reference reaches are each a `WioError` that names the reference. The

@@ -42,7 +42,9 @@ def narrow(
     it keeps the rules that they deliver and no entry does. The rows stay in the
     order of the listing, the header's references and mark are set from the
     arguments, replacing any that the listing held, and a listing that keeps
-    nothing is no error. It does no input or output.
+    nothing is no error. It does no input or output, and the result does not
+    depend on the order of the references, except in the header, or of the
+    tables of the config and the rulesets.
 
     Args:
         listing: The listing of a view, with every rule it considers.
