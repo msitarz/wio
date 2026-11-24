@@ -367,3 +367,41 @@ def test_a_discovery_with_an_error_is_refused_and_one_with_a_warning_is_not() ->
 
     # Then the first raised an error that carries the error and not the warning
     assert refused.value.diagnostics == (error,)
+
+
+def test_a_ruleset_directory_that_cannot_be_listed_has_no_second_error() -> None:
+    """AC-7: its manifest cannot be seen, so its absence is no fault."""
+    # Given a ruleset whose directory cannot be listed, so that its manifest is
+    # not seen either, beside a good one
+    files = _demo(("ARC001-a.md", "ARC001", "a"))
+    files[RULES / "locked" / "ruleset.toml"] = _manifest("ARC")
+    disk = MemoryFileSystem(files, closed={RULES / "locked"})
+
+    # When the discovery runs
+    found = _find(disk)
+
+    # Then one error names the directory and the good ruleset is still returned
+    assert kinds(found.diagnostics) == [("error", f"{_REL}/locked")]
+    assert [r.name for r in found.rulesets] == ["demo"]
+
+
+def test_a_directory_below_a_ruleset_is_named_and_the_manifest_is_still_read() -> None:
+    """AC-7: the error is at the nested directory, and the manifest's fault stays."""
+    # Given a ruleset whose manifest does not parse and whose directory `deep`
+    # cannot be listed
+    files = _demo(("ARC001-a.md", "ARC001", "a"))
+    files[RULES / "demo" / "ruleset.toml"] = "[x"
+    files[RULES / "demo" / "deep" / "ARC002-b.md"] = _rule("ARC002", "b")
+    deep = RULES / "demo" / "deep"
+    disk = MemoryFileSystem(files, closed={deep})
+
+    # When the discovery runs
+    found = _find(disk)
+
+    # Then the errors are the nested directory's and the manifest's, in the order of
+    # their places, none is a missing manifest, and the ruleset is left out
+    assert [d.where for d in found.diagnostics] == [
+        f"{_REL}/demo/deep",
+        f"{_REL}/demo/ruleset.toml:1",
+    ]
+    assert found.rulesets == ()

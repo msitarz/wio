@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass
 from functools import partial
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
 from wio.errors import DiagnosticsError
@@ -19,7 +19,6 @@ lazy from wio.formats.diagnostics import render_text
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
-    from pathlib import Path
 
     from wio.io.ports import FileSystem
     from wio.models.rule import Rule
@@ -250,11 +249,11 @@ def _read_ruleset(
         fault, and everything found, warnings included.
     """
     place = _place(root, directory)
-    manifest, found = _read_manifest(root, directory, files)
     try:
         paths = list(_walk(directory, files))
     except OSError as error:
-        return None, [*found, _unlistable(place, error)]
+        return None, _unlistable_ruleset(root, directory, error, files)
+    manifest, found = _read_manifest(root, directory, files)
     found.extend(_nested_manifests(root, directory, paths))
     if manifest is None:
         return None, found
@@ -263,6 +262,49 @@ def _read_ruleset(
     kept, relations = _relate(rules, manifest)
     ruleset = LoadedRuleset(directory.name, PurePosixPath(place), manifest, tuple(kept))
     return ruleset, [*found, *problems, *relations]
+
+
+def _unlistable_ruleset(
+    root: Path, directory: Path, error: OSError, files: FileSystem
+) -> list[Diagnostic]:
+    """Report a ruleset directory, or one below it, that cannot be listed.
+
+    Args:
+        root: The repository root.
+        directory: The ruleset's directory.
+        error: What the port raised.
+        files: The port that reads the manifest.
+
+    Returns:
+        One error at the directory that could not be listed, when the port names
+        it and it is below the root, otherwise at the ruleset's directory. The
+        manifest is read, and its faults come first, only when the directory
+        that failed is a deeper one, because a manifest inside a directory that
+        cannot be listed cannot be seen, so its absence is no second fault.
+    """
+    place = _place(root, directory)
+    where = _failed_at(root, error, place)
+    problem = _unlistable(where, error)
+    if where == place:
+        return [problem]
+    return [*_read_manifest(root, directory, files)[1], problem]
+
+
+def _failed_at(root: Path, error: OSError, default: str) -> str:
+    """Find the place that an operating system error names.
+
+    Args:
+        root: The repository root.
+        error: What the port raised.
+        default: The place to give when the error names none below the root.
+
+    Returns:
+        The place of the path that failed, or `default`.
+    """
+    named = Path(str(error.filename)) if error.filename else None
+    if named is None or not named.is_relative_to(root):
+        return default
+    return _place(root, named)
 
 
 def _nested_manifests(

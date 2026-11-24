@@ -28,6 +28,7 @@ class MemoryFileSystem:
     links: set[Path] = field(default_factory=set)
     broken: dict[Path, Exception] = field(default_factory=dict)
     failure: Exception | None = None
+    closed: set[Path] = field(default_factory=set)
     calls: list[tuple[str, Path]] = field(default_factory=list)
 
     appends: list[tuple[Path, str]] = field(default_factory=list)
@@ -100,8 +101,12 @@ class MemoryFileSystem:
             path: Any path.
 
         Returns:
-            True when the path is a key or holds one.
+            True when the path is a key or holds one, unless a directory above it
+            is in `closed`, as on a disk, where a directory without permission
+            shows nothing of what is in it.
         """
+        if any(directory in path.parents for directory in self.closed):
+            return False
         return path in self.files or any(path in key.parents for key in self.files)
 
     def is_dir(self, path: Path) -> bool:
@@ -149,8 +154,14 @@ class MemoryFileSystem:
             The files whose parent is the path and the child of the path that
             holds each deeper file, sorted and without repeats. The call is
             recorded.
+
+        Raises:
+            PermissionError: The path is in `closed`, with the file name that the
+                operating system gives it.
         """
         self.calls.append(("list_dir", path))
+        if path in self.closed:
+            raise PermissionError(13, "Permission denied", str(path))
         found = {
             path / key.relative_to(path).parts[0]
             for key in self.files

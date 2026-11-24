@@ -101,8 +101,11 @@ where each diagnostic lies, and its
 - **A ruleset is named by its directory.** A name of the wrong form, a symbolic
   link and a hidden directory are not rulesets, and a link is an error because
   the walk follows none, so a ruleset copied in by a link would otherwise be
-  silently empty. A directory that cannot be listed is one error at the
-  directory.
+  silently empty. A directory that cannot be listed is one error at that
+  directory, the one that failed when it is below a ruleset, and a ruleset
+  directory that cannot be listed is not also said to lack its `ruleset.toml`,
+  because the manifest cannot be seen in it. `wio config check` reports such a
+  directory with the same words.
 - **The discovery repeats what `wio config check` reports, on purpose.** A
   directory without a `ruleset.toml` and a ruleset name of the wrong form are
   errors of `wio config check` already, which stops every other command before
