@@ -42,9 +42,16 @@ a directory and reads their bytes, which the check does not need.
 The lookup leaves out a path with a fault and rejects a name that is empty, `.`,
 `..` or holds `/`, as the check does, so a directory it returns is normalized.
 
+### A-3
+
+Every regular file on disk below a skill's directory counts toward its hash, so
+a skill's directory holds only the skill's own files, and a symbolic link never
+counts, not even a `SKILL.md` that is one.
+
 ## Mechanisms
 
-The names and the shapes below are provisional.
+The names and the shapes below are provisional, except the hash, which is
+required.
 
 - **The skill search** — in `wio.config`, which looks in `[skills] paths` and
   then in `.agents/skills` and `.claude/skills`, and which this Work refactors
@@ -55,9 +62,8 @@ The names and the shapes below are provisional.
   skill.
 - **The files hash** — the SHA-256, as 64 lower-case hexadecimal digits, of the
   concatenation, for every regular file below the skill's directory at any depth
-  in the order of their relative paths as `/`-separated text, of the path, a NUL
-  byte, the file's bytes and a NUL byte; dotfiles count and a symbolic link does
-  not.
+  in the order of the UTF-8 bytes of their relative paths written with `/`, of
+  the path in UTF-8, a NUL byte, the file's bytes and a NUL byte.
 
 ## Constraints
 
@@ -83,15 +89,27 @@ holds `<name>/SKILL.md` is the skill's.
 
 ### **AC-2** What is not a skill is not found
 
-A directory that has no `SKILL.md`, a skill that is only in the user's home, and
-a name that is empty, `.`, `..` or holds `/` give `None`.
+A directory that has no `SKILL.md`, a skill that is only in the user's home, a
+skill under a path with a fault, and a name that is empty, `.`, `..` or holds
+`/` give `None`.
 
-#### Four ways not to find one
+#### A directory without `SKILL.md`, and a skill only in the home
 
-- **Given** `.agents/skills/wio-define` with no `SKILL.md`, `wio-define` in the
-  user's home directory, and a repository with a skill `wio-define`.
-- **When** `wio-define` is looked up, then `..`, then `a/b`, then the empty
-  name.
+- **Given** `.agents/skills/wio-define` with no `SKILL.md`, and `wio-define` in
+  the user's home directory.
+- **When** `wio-define` is looked up.
+- **Then** the lookup gives `None`.
+
+#### A path with a fault
+
+- **Given** `[skills] paths = ["./a"]` and `a/wio-define/SKILL.md`.
+- **When** `wio-define` is looked up and `wio config check` runs.
+- **Then** the lookup gives `None`, and the check reports the path.
+
+#### Names that are not skill names
+
+- **Given** a repository with a skill `wio-define`.
+- **When** `..`, `a/b` and the empty name are looked up.
 - **Then** each lookup gives `None`.
 
 ### **AC-3** The hash covers every file and only the files
@@ -102,10 +120,13 @@ link adds nothing.
 
 #### The bytes of the hash
 
-- **Given** a skill with `SKILL.md` and `references/a.md`.
+- **Given** a skill with `SKILL.md` holding `x` and a newline and
+  `references/a.md` holding `y` and a newline.
 - **When** its hash is computed.
-- **Then** it is the SHA-256 of `SKILL.md`, a NUL, the bytes of `SKILL.md`, a
-  NUL, `references/a.md`, a NUL, the bytes of `references/a.md` and a NUL.
+- **Then** it is
+  `1a47c19b09044a025c5c5b147b88adffccd800023e4e1c1ee70c730329c16fe2`, the
+  SHA-256 of `SKILL.md`, a NUL, `x` and a newline, a NUL, `references/a.md`, a
+  NUL, `y` and a newline, and a NUL.
 
 #### Five changes
 

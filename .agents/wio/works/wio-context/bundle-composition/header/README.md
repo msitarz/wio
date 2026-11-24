@@ -2,7 +2,7 @@
 id = "bg0g78"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["bgc8q9"]
+depends_on = []
 -->
 
 # Header
@@ -23,6 +23,7 @@ to run again, and a wrong stage must be caught by reading the header.
 - The header states the canonical command.
 - For a stage with a skill, the header names the directory the skill was found
   in and a hash of its files.
+- The header holds no blank line and no trailing newline.
 
 ## Non-Goals
 
@@ -32,12 +33,15 @@ to run again, and a wrong stage must be caught by reading the header.
 
 ## Assumptions
 
-None.
+### A-1
+
+The number of rules is the number of rules that the rules section prints, each
+once, and the command supplies it from the included rules of the `Selection`.
 
 ## Mechanisms
 
-The labels and the layout below are provisional, but the facts are required, and
-the header has no blank line.
+The labels, the layout and the signature below are provisional, but the facts
+are required.
 
 - **The lines** — `work: <id> (<title>)`, or `work: <id>` for a Work with no
   title, `action: <name>`, `stage: <name>`, `gate: yes` or `gate: no`, with
@@ -46,6 +50,9 @@ the header has no blank line.
   that is not continuable, `rules: <n>`, `size: <bytes> bytes, <lines> lines
   (body)`, `bundle: <id>`, `command: <canonical command>`, and for a skill
   `skill: <name> (<directory>, files <hash>)`.
+- **The builder** — `header(work: Work, stage: Stage, rules: int, size: Size,
+  bundle_id: str, command: str, skill: FoundSkill | None) -> str`, which gives
+  the lines joined by `"\n"`.
 - **The canonical command** — the one that the Glossary of `j85eh5` defines.
 
 ## Acceptance criteria
@@ -89,8 +96,8 @@ selected when none was.
 
 #### Three rules, and none
 
-- **Given** a body of 1234 bytes and 56 lines with three rules, and a body with
-  no rule.
+- **Given** the counts 1234 bytes and 56 lines with three rules, and the same
+  counts with no rule.
 - **When** the header is built for each.
 - **Then** the first says that it holds three rules and that the body is 1234
   bytes and 56 lines, the second says that it holds no rule, and each gives the
@@ -121,3 +128,13 @@ repository, and the hash of its files, and a stage with a goal has no such line.
 - **When** the header is built for each.
 - **Then** the first names `wio-define`, `.agents/skills/wio-define` and the
   hash it was given, and the second has no skill line.
+
+### **AC-5** The header is one block
+
+The header holds no blank line and does not end with a newline.
+
+#### Every kind of header
+
+- **Given** the headers of AC-1 to AC-4.
+- **When** each is examined.
+- **Then** none contains an empty line or ends with `"\n"`.

@@ -41,7 +41,9 @@ concepts do not name, and the docs stage records them.
 
 The bundle id is 12 hexadecimal digits for every stage, where the skill's files
 count through the input of the hash and not through a longer id, which keeps the
-id short as the concepts say.
+id short as the concepts say, and it hashes the whole body, labels and closing
+line included, where the concepts say the goal, the contract and the rules, so a
+change of a label changes the id too.
 
 ### A-4
 

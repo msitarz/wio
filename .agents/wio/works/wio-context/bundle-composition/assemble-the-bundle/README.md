@@ -23,37 +23,45 @@ introduces.
   removed, and the bundle ends with exactly one newline.
 - The closing line is one fixed sentence that tells the session to run the
   header's command again after its context is compacted.
-- The header is given the id and the size of the body, which it does not
-  contain.
-- A part that is empty leaves no label.
+- The header is built after the body and from the body's id and size alone.
+- A part that is empty, the stage's included, leaves no label.
 
 ## Non-Goals
 
-- Building the parts, which their Works do.
+- Building the parts and the header, which their Works do.
 - Printing the bundle, which the command and the delivery do.
 - Joining the items of the rules section, which Rule rendering does with
   `[bundle] separator`.
 
 ## Assumptions
 
-None.
+### A-1
+
+The labels, the closing sentence and the fixed blank line are the ones that A-2
+and A-4 of [Bundle composition](../README.md) declare as departures.
 
 ## Mechanisms
 
-The labels and the closing sentence are provisional, but the order and the
-joining are required.
+The labels, the closing sentence and the signature are provisional, but the
+order and the joining are required.
 
 - **The part labels** — the lines `--- stage ---`, `--- contract ---` and
   `--- rules ---`, each before its part and each followed by a blank line.
 - **The closing line** — `If your context was compacted, run the command in the
   header again.`
-- **The body** — the text after the first blank line of the bundle, which the
-  header does not contain, up to the end; its size is its UTF-8 bytes and the
-  number of `"\n"` in it.
-- **The order of the build** — the body first, then its id and its size, then
-  the header, so that the header describes the body and is not part of it.
+- **The interface** — `assemble(stage: str, contract: str, rules: str,
+  skill_hash: str | None, header_for: Callable[[str, int, int], str]) -> str`,
+  which builds the body, computes its id with `bundle_id`, asks `header_for` for
+  the header with that id, the body's UTF-8 bytes and its number of `"\n"`, and
+  returns the header, `"\n\n"` and the body.
+- **The body** — the text after the first blank line of the bundle, as the
+  Glossary of [wio context](../../README.md) defines it; its size is its UTF-8
+  bytes and the number of `"\n"` in it.
 
 ## Acceptance criteria
+
+The criteria use a `header_for` that returns the two lines `HEADER 1` and
+`HEADER 2` whatever it is given, unless they say otherwise.
 
 ### **AC-1** The parts come in order and are joined as written
 
@@ -62,15 +70,15 @@ line, each separated from the next by one blank line, in this order.
 
 #### All parts present
 
-- **Given** a header of two lines, a goal `GOAL`, a contract section `CONTRACT`
-  and a rules section `RULES`.
+- **Given** a stage part `GOAL`, a contract part `CONTRACT` and a rules part
+  `RULES`.
 - **When** the bundle is assembled.
 - **Then** the text is the following, in the provisional wording of the labels
   and the closing line:
 
   ```text
-  <header line 1>
-  <header line 2>
+  HEADER 1
+  HEADER 2
 
   --- stage ---
 
@@ -87,18 +95,19 @@ line, each separated from the next by one blank line, in this order.
   If your context was compacted, run the command in the header again.
   ```
 
-### **AC-2** The header describes the body and not itself
+### **AC-2** The header is built from the body alone
 
-The header is given the id and the size of the body, which is the text after the
-first blank line, and the header holds no blank line.
+`header_for` is given the id and the size of the body, which is the text after
+the first blank line, and the header is not part of what it describes.
 
-#### Counting the body
+#### A spy
 
-- **Given** the parts of a bundle.
-- **When** the bundle is assembled.
-- **Then** the size in the header is the UTF-8 bytes of the text after the first
-  blank line and the number of `"\n"` in it, and the id in the header is the id
-  of that text.
+- **Given** a `header_for` that records its arguments and returns a header, the
+  parts of AC-1 and the skill hash `ab`.
+- **When** the bundle is assembled with headers of one line and of three lines.
+- **Then** the arguments are the same for both headers: the id that `bundle_id`
+  gives for the text after the first blank line and `ab`, and the UTF-8 bytes
+  and the number of `"\n"` of that text.
 
 ### **AC-3** Newlines are removed and the bundle ends once
 
@@ -107,19 +116,22 @@ with exactly one newline.
 
 #### A part that ends in a newline and one that does not
 
-- **Given** a contract section `CONTRACT` followed by a newline and a rules
-  section `RULES` with none.
+- **Given** a contract part `CONTRACT` followed by a newline and a rules part
+  `RULES` with none.
 - **When** the bundle is assembled.
 - **Then** one blank line separates each pair of parts, and the bundle ends with
   the closing line and exactly one newline.
 
 ### **AC-4** An empty part leaves no label
 
-A contract section or a rules section that is empty is left out with its label.
+A stage part, a contract part or a rules part that is empty is left out with its
+label.
 
-#### No contract body and no rules
+#### Empty parts
 
-- **Given** a Work whose contract section is empty and a stage with no rule.
-- **When** the bundle is assembled.
-- **Then** it holds no `--- contract ---` and no `--- rules ---`, and it equals
-  the bundle of AC-1 with those two parts and their labels removed.
+- **Given** the parts of AC-1 with the contract part and the rules part empty,
+  and then with the stage part empty.
+- **When** each bundle is assembled.
+- **Then** the first holds no `--- contract ---` and no `--- rules ---`, the
+  second holds no `--- stage ---`, and each equals the bundle of AC-1 with those
+  parts and their labels removed.

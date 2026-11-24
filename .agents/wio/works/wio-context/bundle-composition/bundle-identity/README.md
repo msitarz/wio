@@ -2,7 +2,7 @@
 id = "ghq8mz"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["bgc8q9"]
+depends_on = []
 -->
 
 # Bundle identity
@@ -27,28 +27,35 @@ skill change.
 
 ## Assumptions
 
-None.
+### A-1
+
+The 12 digits and the hashing of the whole body, labels and closing line
+included, are the departures from the concepts that A-3 of
+[Bundle composition](../README.md) declares.
 
 ## Mechanisms
 
-The signature and the way the skill's hash joins the input are provisional.
+The signature is provisional. The hash and its input are required.
 
 - **`bundle_id(body: str, skill_hash: str | None) -> str`** — the first twelve
   lower-case hexadecimal digits of the SHA-256 of the UTF-8 bytes of `body`,
   followed, for a stage with a skill, by a NUL byte and the ASCII of
-  `skill_hash` in the input of the hash and not in the id.
+  `skill_hash`, in the input of the hash and not in the id.
 
 ## Acceptance criteria
 
-### **AC-1** The id is short and repeatable
+### **AC-1** The id is the one that the algorithm gives
 
-The id is 12 lower-case hexadecimal digits, and the same inputs always give it.
+The id is 12 lower-case hexadecimal digits, the same for the same inputs, and
+the two vectors below hold.
 
-#### Two computations, with and without a skill
+#### Two vectors
 
-- **Given** one body, and one body with a skill hash.
-- **When** each id is computed twice.
-- **Then** each pair is equal, and each id is 12 lower-case hexadecimal digits.
+- **Given** the body `a` and a newline, and the same body with the skill hash
+  `ab`.
+- **When** each id is computed, twice.
+- **Then** the first is `87428fc52280` and the second is `bc20ed27a414`, and
+  each computation gives the same id as the other.
 
 ### **AC-2** Any change to the body or the skill changes the id
 

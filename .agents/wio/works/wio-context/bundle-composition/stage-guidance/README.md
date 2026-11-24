@@ -41,22 +41,25 @@ None.
 
 ### **AC-1** A goal is shown as its value
 
-The part of a stage with a goal is the value of its `goal` key, unchanged.
+The part of a stage with a goal is the value of its `goal` key, unchanged, also
+when the value is empty.
 
-#### A goal with two lines
+#### A goal with two lines, and an empty goal
 
-- **Given** a stage whose `goal` value is two lines of text.
-- **When** its guidance is built.
-- **Then** the part is those two lines, unchanged.
+- **Given** a stage whose `goal` value is two lines of text, and a stage whose
+  `goal` is empty.
+- **When** the guidance of each is built.
+- **Then** the first part is those two lines, unchanged, and the second is
+  empty.
 
 ### **AC-2** A skill is pointed to and not included
 
-The part of a stage with a skill is this instruction, with the skill's name and
-the path relative to the repository, and it holds nothing of the skill's files:
+The part of a stage with a skill is this one line, with the skill's name and the
+path relative to the repository, and a single space between its sentences, and
+it holds nothing of the skill's files:
 
 ```text
-This stage's procedure is the skill `<name>`. Read `<path>/SKILL.md` and follow
-it; its other files are in the same directory.
+This stage's procedure is the skill `<name>`. Read `<path>/SKILL.md` and follow it; its other files are in the same directory.
 ```
 
 #### A skill in a configured directory
@@ -64,6 +67,6 @@ it; its other files are in the same directory.
 - **Given** a stage whose skill `wio-define` is found in `.agents/wio/skills`,
   which `[skills] paths` names.
 - **When** its guidance is built.
-- **Then** the part is the instruction with `wio-define` and
-  `.agents/wio/skills/wio-define/SKILL.md`, and it contains no text of
-  `SKILL.md`.
+- **Then** the part is that line with `wio-define` and
+  `.agents/wio/skills/wio-define/SKILL.md`, on one line, and it contains no text
+  of `SKILL.md`.

@@ -17,8 +17,8 @@ commands cannot show different contracts.
 
 - The bundle shows the Work's resolved contract as the view that
   `wio contracts show` prints.
-- A Work whose contract holds nothing after its metadata block gives an empty
-  section and does not fail.
+- A Work with no parent that passes a section, whose contract holds nothing
+  after its metadata block, gives an empty section and does not fail.
 
 ## Non-Goals
 
@@ -44,21 +44,23 @@ needs no stripping of its own.
 ### **AC-1** The section is the view that `wio contracts show` prints
 
 The section equals the resolved view that `wio contracts show` prints for the
-Work, with no metadata block.
+Work after its table and its `----` line, with no metadata block.
 
 #### A child with an inherited section
 
 - **Given** a parent whose template marks `Glossary` as inheritable and a child
   of it.
 - **When** the section is built for the child.
-- **Then** it equals the view that `wio contracts show` prints for the child.
+- **Then** it equals the view that `wio contracts show` prints for the child
+  after its table and its `----` line.
 
 ### **AC-2** A contract with no body gives an empty section
 
-A Work with nothing after its metadata block gives an empty section.
+A Work that has no parent passing a section, and nothing after its metadata
+block, gives an empty section.
 
 #### An empty contract
 
-- **Given** a Work whose file holds only its metadata block.
+- **Given** a Work with no parent whose file holds only its metadata block.
 - **When** the section is built.
 - **Then** it is empty and no error is raised.
