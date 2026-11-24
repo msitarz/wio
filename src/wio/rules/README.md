@@ -10,8 +10,8 @@ warnings of the selections and the bodies, the report of `wio rules check`,
 which joins them, and the selector that gives the rules of a stage to
 `wio context` and `wio trailers`, and how these parts make one selection, and
 the listing of `wio rules list` and its narrowing and explanation, and the
-planning and the creation of a rule for `wio rules new`. `show` builds on the
-rest.
+planning and the creation of a rule for `wio rules new`, and the finding and
+printing of one rule for `wio rules show`.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its code
 and name mean and [Rulesets on disk](../../../docs/concepts.md#rulesets-on-disk)
@@ -657,6 +657,49 @@ anything is written.
 - **The same repository and request give the same file.** Exactly one file is
   created.
 
+## Showing a rule
+
+[`show_rule`](showing.py) finds the one rule that a reference names,
+[`render_rule`](showing.py) writes it and [`run_show`](showing.py) runs the
+command, for `wio rules show`. A listing shows a rule in one line and a bundle
+shows it only to a session, so this is how a person reads one rule whole.
+Their docstrings say what each takes, returns and raises, and the
+[tests](../../../tests/unit/rules/test_show.py) and
+[scenarios](../../../tests/acceptance/rules/test_show.py) say how each case
+reads. `show_rule` and `render_rule` do no input or output.
+
+- **The reference is one rule's qualified code.** It is `<ruleset>.<code>`, and
+  a rule is named by its ruleset and code, never by a bare code, and the ruleset
+  may be its alias. `show_rule` judges its form with `parse_reference` and
+  `item_kind`, and tells a bare code from other malformed text with
+  `parse_own_item`.
+- **A reference that is not one rule's code is refused with its cause.** A
+  family, a rule preset, `all`, a bare code, malformed text, an unknown
+  ruleset, an unknown rule and an item in the form of a rule preset name and
+  not of a code are each a `WioError` that says which it is, so the command
+  exits 2 and prints nothing on standard output. The form is judged before the
+  ruleset is looked up.
+- **An alias is resolved by the command, and `show_rule` knows canonical names
+  only.** `run_show` resolves the ruleset part with `resolve_ruleset` and
+  leaves any other text as it is, so `show_rule` words every refusal. The
+  output names the rule by its canonical ruleset.
+- **An error of the discovery anywhere refuses the command before the
+  reference is looked at, and a warning does not.**
+- **The text is the header, a blank line and the body.** The header is the
+  qualified code and the name with the description, when the rule has one, and
+  `file: <path>` indented to the name, as the listings write them, and the path
+  is relative to the repository root and written with `/`. A rule without a body
+  prints only its header.
+- **The body is printed as the reader returns it.** It has no leading or
+  trailing blank lines, keeps its leading spaces and its line endings, and is
+  followed by one line feed. Standard output does not translate line ends, so a
+  CRLF reaches the reader of the output as it is stored.
+- **The JSON is one line.** It has `code`, which is qualified, `name`,
+  `description`, which is `null` when there is none, `summary`, `body` and
+  `path` in that order, with no final line feed in the body.
+- **The same repository and reference give the same bytes.** Nothing is
+  written.
+
 ## The group of subcommands
 
 [`__init__.py`](__init__.py) holds `RulesSpec`, `Services`, `Subcommand`, the
@@ -664,8 +707,8 @@ table `SUBCOMMANDS` and `json_option`, and [`command.py`](command.py) holds
 `RulesCommand`, which runs the subcommand that the arguments chose. It follows
 the pattern of [`wio.contracts`](../contracts/README.md#the-group), and its
 docstrings and [tests](../../../tests/unit/rules/test_command.py) say what each
-takes and returns. So far `check`, `list` and `new` are the subcommands in the
-table.
+takes and returns. So far `check`, `list`, `new` and `show` are the subcommands
+in the table.
 
 - **A subcommand is one entry of the table.** The group knows nothing else of
   a subcommand, so adding one edits no other and builds no second shell.
