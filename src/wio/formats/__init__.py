@@ -57,7 +57,7 @@ lazy from wio.formats.wording import (
     quote_string,
     quoted,
 )
-lazy from wio.formats.writer import encode_toml
+lazy from wio.formats.writer import encode_comment_toml, encode_toml
 
 __all__ = [
     "CODE",
@@ -85,6 +85,7 @@ __all__ = [
     "declared",
     "decode_lines",
     "decode_toml",
+    "encode_comment_toml",
     "encode_json",
     "encode_line",
     "encode_toml",
