@@ -45,11 +45,13 @@ not import `wio.trailers`, as A-3 of [wio context](../../README.md) says.
 rejects, so for a repository with no commit `reviewed_commit` does not return
 `None` as its docstring says. This Work changes `first_parents` so that for the
 revision `HEAD`, when `git log` has failed and `HEAD` is a symbolic reference to
-a branch that does not exist, so that `git rev-parse --verify HEAD^{commit}`
-fails, it gives an empty sequence; the check runs only after `git log` fails, so
-the success path makes no extra call. Every other revision that git rejects, an
-option-like one and a `HEAD` that is corrupt or names a missing object included,
-still raises `ValueError`. The docstrings of `src/wio/io/ports.pyi` and
+a branch that does not exist, which is the case when `git symbolic-ref -q HEAD`
+names a branch and `git show-ref --verify --quiet` of that branch exits 1, it
+gives an empty sequence; the check runs only after `git log` fails, so the
+success path makes no extra call. Every other revision that git rejects, an
+option-like one and a `HEAD` that is corrupt included, whether it is detached at
+a missing object or names a branch that points at one, so that `show-ref` exits
+128, still raises `ValueError`. The docstrings of `src/wio/io/ports.pyi` and
 `src/wio/io/adapters.py` and the `wio.io` README state the new case, and C-5 of
 the top Work names it as its one exception.
 
@@ -146,14 +148,14 @@ rejects still raises `ValueError`.
 
 #### The adapter
 
-- **Given** a repository with no commit, one with commits, and one whose `HEAD`
-  names a missing object.
+- **Given** a repository with no commit, one with commits, one whose `HEAD` is
+  detached at a missing object, and one whose branch points at a missing object.
 - **When** `first_parents` is called with `HEAD` in the first, then with
   `nosuch` and with `--all`, then with `HEAD` in the second, and with `HEAD` in
-  the third.
+  the last two.
 - **Then** the first call gives an empty sequence, the next two raise
   `ValueError`, the fourth gives the commits newest first as before, and the
-  last raises `ValueError`.
+  last two raise `ValueError`.
 
 ### **AC-5** A review with no reviewed commit is refused by both commands
 
