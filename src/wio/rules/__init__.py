@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The `wio rules` command: creating, checking and listing rules."""
+"""The `wio rules` command: creating, checking, listing and showing rules."""
 
 from dataclasses import astuple, dataclass
 from functools import partial
@@ -193,6 +193,37 @@ def _new(services: Services, args: Namespace, stdio: Stdio) -> int:
     return run_new(services, args, stdio)
 
 
+_SHOW_HELP = "Show one rule by its qualified code."
+_SHOW_REFERENCE = "The rule, as <ruleset>.<code>; the ruleset may be an alias."
+_SHOW_JSON = "Write one JSON object with the rule instead of the text."
+
+
+def _configure_show(parser: ArgumentParser) -> None:
+    """Declare the arguments of `wio rules show`.
+
+    Args:
+        parser: The subparser.
+    """
+    json_option(parser, help=_SHOW_JSON)
+    parser.add_argument("reference", help=_SHOW_REFERENCE)
+
+
+def _show(services: Services, args: Namespace, stdio: Stdio) -> int:
+    """Run `wio rules show` through its own module.
+
+    Args:
+        services: What the subcommand reads the project through.
+        args: The parsed arguments.
+        stdio: Where the rule goes.
+
+    Returns:
+        0 after the rule was printed.
+    """
+    from wio.rules import showing
+
+    return showing.run_show(services, args, stdio)
+
+
 def _list(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Run `wio rules list` through its own module.
 
@@ -213,6 +244,7 @@ SUBCOMMANDS: Final[Sequence[Subcommand]] = (
     Subcommand("check", _CHECK_HELP, partial(json_option, help=_CHECK_JSON), _check),
     Subcommand("list", _LIST_HELP, _configure_list, _list),
     Subcommand("new", _NEW_HELP, _configure_new, _new),
+    Subcommand("show", _SHOW_HELP, _configure_show, _show),
 )
 """The subcommands of `wio rules`, to which each subcommand Work adds an entry.
 
