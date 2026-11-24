@@ -5,8 +5,6 @@ import json
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
-import pytest
-
 from tests.unit.rules.support import make_rule
 from wio.models.listing import Header, Listing, Row
 from wio.models.rules import Decision
@@ -16,10 +14,6 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from wio.models.listing import Explanation
-
-pytestmark = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="render_listing is a stub"
-)
 
 _HEADER = Header(
     "root api", None, ("roots", "always fields"), ("api",), None, (), not_selected=False

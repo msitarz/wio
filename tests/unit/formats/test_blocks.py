@@ -1,13 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of the layout of the blocks that two listings share."""
 
-import pytest
-
 from wio.formats import Block, render_blocks
-
-pytestmark = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="render_blocks is a stub"
-)
 
 
 def test_keys_are_padded_to_the_widest_and_details_follow_the_title() -> None:

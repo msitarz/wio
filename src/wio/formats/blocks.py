@@ -41,5 +41,12 @@ def render_blocks(blocks: Sequence[Block]) -> str:
     Returns:
         The lines, each ended by a newline, and an empty string for no block.
     """
-    del blocks
-    raise NotImplementedError
+    width = max((len(block.key) for block in blocks), default=0)
+    lines: list[str] = []
+    for block in blocks:
+        indent = "  " * block.depth
+        suffix = f"  {block.suffix}" if block.suffix else ""
+        lines.append(f"{indent}{block.key.ljust(width)}  {block.title}{suffix}")
+        pad = indent + " " * (width + 2)
+        lines.extend(pad + detail for detail in block.details)
+    return "".join(f"{line}\n" for line in lines)

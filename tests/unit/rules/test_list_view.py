@@ -17,10 +17,6 @@ if TYPE_CHECKING:
     from wio.models.listing import Listing
     from wio.models.rule import LoadedRuleset
 
-pytestmark = pytest.mark.xfail(
-    raises=NotImplementedError, strict=True, reason="list_view is a stub"
-)
-
 _WORKS = Roots({"W": ("api",), "N": ()})
 
 
@@ -162,11 +158,15 @@ def test_a_stage_alone_applies_its_layer_and_cuts_nothing() -> None:
 
     # Then the roots are not applied and the rules carry the roots that reach them
     found = {
-        row.rule.qualified: row.decision.roots
+        row.rule.qualified: (row.decision.roots, row.decision.root_independent)
         for row in listing.rows
         if row.decision and row.decision.included
     }
-    assert found == {"demo.PAY001": ("api",), "process.FIX001": (), "web.WEB001": ()}
+    assert found == {
+        "demo.PAY001": (("api",), False),
+        "process.FIX001": ((), True),
+        "web.WEB001": (("ui",), False),
+    }
     assert listing.header.layers == ("stage", "always fields")
     assert listing.header.roots is None
 
