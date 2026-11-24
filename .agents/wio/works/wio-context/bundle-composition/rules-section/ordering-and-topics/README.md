@@ -45,9 +45,8 @@ line, which is binding; any other wording is provisional.
 
 - **The family line** — `<ruleset>: <topic> (<FAMILY>)`, with the canonical name
   of the ruleset and the topic from its manifest.
-- **The order of codes** — by the number of the code and then by its text, so
-  `ARC999` comes before `ARC1000` and `ARC001` before `ARC01`, as `wio rules`
-  orders them.
+- **The order of codes** — the one that `wio rules` uses, by the number of the
+  code and then by its text.
 
 ## Acceptance criteria
 

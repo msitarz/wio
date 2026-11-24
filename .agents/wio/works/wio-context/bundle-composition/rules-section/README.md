@@ -19,6 +19,7 @@ as written.
   to.
 - The rules of a group are in an order that depends only on their names.
 - Each rule is printed with its qualified name and its body as written.
+- A selection that includes no rule gives an empty section.
 
 ## Non-Goals
 
@@ -33,15 +34,19 @@ None.
 
 ## Mechanisms
 
-The name below is provisional.
+The names below are provisional.
 
 - **The rules section builder** — in `wio.context`, which turns a `Selection`
   into the text of the section by the three children below.
+- **The builder's inputs** — the `Selection`, the paths of the roots through the
+  shared `Settings` port, and the topic of each family through a port that
+  `wio.rules` satisfies from its manifests.
 
 ## Visuals
 
-Before, a selection is a map of rules to decisions. After, the rules that apply
-become one section.
+The diagram is drawn from commit `8edc675` of the branch `main`. Before, a
+selection is a map of rules to decisions. After, the rules that apply become one
+section.
 
 ```mermaid
 flowchart LR
@@ -56,7 +61,8 @@ flowchart LR
 ### **AC-1** A selection becomes one section
 
 The section built from a selection is the groups, the family lines and the
-rendered rules that the children specify, in one text.
+rendered rules that the children specify, in one text, and an empty text when no
+rule is included.
 
 #### Rules of different reach
 
@@ -67,7 +73,10 @@ rendered rules that the children specify, in one text.
   the topics `Process` for `FIX`, `Architecture` for `ARC` and `Python API` for
   `API`, the names and bodies shown below, and the default separator.
 - **When** the section is built.
-- **Then** it equals this text, in the provisional wording of the group lines:
+- **Then** it equals this text, the golden text of the integrated section, in
+  the provisional wording of the group lines, which is regenerated when that
+  wording changes; the group lines, the family lines and the rules in it are
+  specified by the children:
 
   ```text
   Rules for every root:
@@ -94,3 +103,10 @@ rendered rules that the children specify, in one text.
   python.API001 adapters-return-typed-results
   Adapters return typed results.
   ```
+
+#### No rule is included
+
+- **Given** a selection in which every rule is excluded, vetoed, cut by the
+  roots or not selected.
+- **When** the section is built.
+- **Then** the text is empty.

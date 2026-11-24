@@ -32,13 +32,20 @@ about.
 
 ### A-1
 
-A `Decision` of an included rule holds the roots that were applied and reach its
-ruleset, sorted by name, and is empty for a root-independent rule, so that a
-Work with no roots, whose selection includes no rule, gives no group.
+A `Decision` of an included rule holds the roots that were applied and that
+[reach](../../../../../../../src/wio/rules/GLOSSARY.md) its ruleset, sorted by
+name, and is empty for a root-independent rule, and a Work with no roots gets a
+selection that includes no rule, as the selector gives it, so it gives no group;
+the link says what reach is, because the glossary binds only its own directory.
 
 ### A-2
 
 The paths of a root come from the config.
+
+### A-3
+
+Every root has at least one path, because the config requires `paths` for a
+root.
 
 ## Mechanisms
 
@@ -50,8 +57,7 @@ binding is that a group line names the roots and their paths.
 - **The group line for no root** — `Rules for every root:`.
 - **The group line for roots** — `Rules for root <name> (<paths>):` for one root
   and `Rules for roots <name>, <name> (<paths>):` for several, where the paths
-  are those of the roots in the order of their names, each root's in the order
-  of the config, joined by `, `.
+  are those of the roots in the order of their names, joined by `, `.
 
 ## Acceptance criteria
 
@@ -84,16 +90,17 @@ roots reach is in the group of both.
 
 ### **AC-3** The order does not depend on the config
 
-The groups are sorted by the sorted names of their roots, and the paths of a
-group are in the order of the roots' names and then of the config, whatever the
-order of the config's tables and of the Work's `roots`.
+The groups are sorted by their root names, compared as tuples element by
+element with a shorter prefix first, and the paths of a group are in the order
+of the roots' names and then, for one root, of the config, whatever the order of
+the config's tables.
 
 #### Two orders, and a root with two paths
 
-- **Given** the same selection with the roots declared in two orders, a root
-  `web` whose paths are `apps/web` and `apps/admin` in that order, and a root
-  `api` at `services/api`, with `web` declared before `api` in one of the
-  configs.
+- **Given** the same selection with the roots declared in two orders in the
+  config, a root `web` whose paths are `apps/web` and `apps/admin` in that
+  order, and a root `api` at `services/api`, with `web` declared before `api` in
+  one of the configs.
 - **When** the groups are built from each.
 - **Then** both give the same groups in the same order, and the line of the
   group of both roots is

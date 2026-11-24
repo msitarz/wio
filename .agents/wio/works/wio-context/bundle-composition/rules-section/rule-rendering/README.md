@@ -53,7 +53,7 @@ the docs stage corrects both documents and the description of
 
 ## Mechanisms
 
-- **The rule's text** — `<ruleset>.<CODE> <name>`, one line ending and the body,
+- **The rule's text** — `<ruleset>.<CODE> <name>`, a `"\n"` and the body,
   such as `mattpocock.ERR003 errors-carry-context`; a rule with an empty body is
   its line alone, with no trailing line ending.
 - **The separator** — `separator` of the config's bundle settings, `"\n\n"` by
@@ -66,9 +66,9 @@ the docs stage corrects both documents and the description of
 ### **AC-1** A rule is its qualified line and its body
 
 The rule's text is the line with its canonical ruleset name, its code and its
-name, one line ending, and then its body as the reader returns it, and nothing
-else, so it says nothing of why the rule was selected; a rule with an empty body
-is the line alone.
+name, one line ending `"\n"`, and then its body as the reader returns it, and
+nothing else, so it says nothing of why the rule was selected; a rule with an
+empty body is the line alone.
 
 #### A rule with two paragraphs, and an empty body
 
