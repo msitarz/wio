@@ -241,3 +241,18 @@ def test_the_same_request_writes_the_same_bytes() -> None:
     # Then they hold the same files with the same bytes
     assert one.files == two.files
     assert len(one.files) == len(_files()) + 1
+
+
+def test_a_dangling_link_in_the_way_is_refused() -> None:
+    """AC-6: a symbolic link at the path is refused, though nothing is there."""
+    # Given a symbolic link at the path that the next code would use
+    disk = MemoryFileSystem(_files())
+    disk.links.add(_DEMO / "ARC004-keep-it-small.md")
+    before = dict(disk.files)
+
+    # When the rule is created
+    # Then it is refused with the file named and nothing is written
+    with pytest.raises(WioError) as raised:
+        _run(disk, "demo", "ARC", "keep-it-small")
+    assert "ARC004-keep-it-small.md" in str(raised.value)
+    assert disk.files == before

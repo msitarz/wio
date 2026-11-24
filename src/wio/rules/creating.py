@@ -85,8 +85,9 @@ def run_new(services: Services, args: Namespace, stdio: Stdio) -> int:
 
     It runs the discovery and refuses an error of it anywhere in the repository,
     resolves an alias to the canonical name of the ruleset, plans the rule with
-    `plan_rule`, and refuses when the file exists, because writing would
-    overwrite it, whether or not that file is a rule. Only then does it write the
+    `plan_rule`, and refuses when the file exists, or is a symbolic link even a
+    dangling one, because writing would overwrite it or go through the link,
+    whether or not that file is a rule. Only then does it write the
     file, run the discovery again to read it back, and ask `selected_anywhere`
     whether any entry of the config delivers the rule, whatever the roots. A
     warning of the discovery refuses nothing. Nothing is written for a request
@@ -115,7 +116,7 @@ def run_new(services: Services, args: Namespace, stdio: Stdio) -> int:
     canonical = resolve_ruleset(args.ruleset, catalog) or args.ruleset
     new = plan_rule(canonical, args.family, args.name, args.description, discovery)
     target = root.joinpath(*new.path.parts)
-    if services.files.exists(target):
+    if services.files.exists(target) or services.files.is_symlink(target):
         message = f"The file `{new.path.as_posix()}` exists and is not overwritten."
         raise WioError(message)
     services.files.write_text(target, new.text)
