@@ -1,21 +1,23 @@
 # `wio.rules`
 
-The component behind `wio rules`. So far it holds the group of subcommands that
-the subcommands will join, the reader of one rule file, the reader of a
-ruleset's manifest, the discovery of the rulesets, the expansion of rule
-presets, the inputs that the selection shares, the layers that select the rules
-of a stage, the decision of each rule, the rules that any include entry
-delivers, the roots of a stage and of a path, the errors of the references, the
-warnings of the selections and the bodies, the report of `wio rules check`,
-which joins them, and the selector that gives the rules of a stage to
-`wio context` and `wio trailers`, and how these parts make one selection, and
-the listing of `wio rules list` and its narrowing and explanation, and the
-planning and the creation of a rule for `wio rules new`, and the finding and
-printing of one rule for `wio rules show`.
+The component behind `wio rules`. It holds the group of subcommands, the reader
+of one rule file, the reader of a ruleset's manifest, the discovery of the
+rulesets, the expansion of rule presets, the inputs that the selection shares,
+the layers that select the rules of a stage, the decision of each rule, the
+rules that any include entry delivers, the roots of a stage and of a path, the
+errors of the references, the warnings of the selections and the bodies, the
+report of `wio rules check`, which joins them, and the selector that gives the
+rules of a stage to `wio trailers` and, once it exists, to `wio context`, and
+how these parts make one selection, the listing of `wio rules list` and its
+narrowing and explanation, the planning and the creation of a rule for
+`wio rules new`, the finding and printing of one rule for `wio rules show`, and
+what holds for the four subcommands as a whole.
 [A rule file](../../../docs/concepts.md#a-rule-file) says what the file holds,
 [Codes and families](../../../docs/concepts.md#codes-and-families) what its code
 and name mean and [Rulesets on disk](../../../docs/concepts.md#rulesets-on-disk)
-what a ruleset is. Its terms are in the [glossary](../../../GLOSSARY.md).
+what a ruleset is. Its terms are in the
+[glossary of this directory](GLOSSARY.md) and the
+[repository glossary](../../../GLOSSARY.md).
 
 ## Reading a rule file
 
@@ -288,8 +290,7 @@ case reads.
 ruleset: included, with the roots it applies to, or out, with the reason. One
 function serves every view of a listing and every consumer of a selection, so
 `wio rules list` and, once it exists, `wio context` cannot give a rule
-different decisions. Its
-docstring says what it takes and returns, and its
+different decisions. Its docstring says what it takes and returns, and its
 [tests](../../../tests/unit/rules/test_applicability.py) say how each case
 reads. `Decision` and `Reason` are in [`wio.models`](../models/rules.py).
 
@@ -375,10 +376,12 @@ contract. Their docstrings say what each takes, returns and raises, and their
 [Which roots a stage selects](../../../docs/concepts.md#which-roots-a-stage-selects)
 says what the forms of a stage's `roots` mean.
 
-- **A Work without roots fails loudly where the stage needs them.** A stage that
+- **A Work without roots raises where the stage needs them.** A stage that
   selects the Work's roots, without `roots` or through `@work`, raises
   `ValueError` for a Work that has none, whatever other roots it lists, because
-  an empty `@work` would hide the mistake behind the other roots' rules.
+  an empty `@work` would hide the mistake behind the other roots' rules. The
+  selector turns the error into a selection with no included rule, as
+  [the selector](#the-rule-selector) says.
 - **A stage's own roots never look at the Work.** A stage with only its own
   roots, or `[]`, never fails for the Work and never looks it up, because the
   Work is not what the stage selects. The stage is checked first, then its own
@@ -403,8 +406,8 @@ says what the forms of a stage's `roots` mean.
 
 The parts above decide which rules apply to a stage, and they are built so that
 every consumer reads one answer, so `wio trailers`, `wio rules list` and,
-once it exists, `wio context` cannot disagree on what a session was given. Its
-[tests](../../../tests/unit/rules/test_selection.py) are the criteria of the
+once it exists, `wio context` cannot disagree on what a session was given.
+Its [tests](../../../tests/unit/rules/test_selection.py) are the criteria of the
 selection.
 
 ```mermaid

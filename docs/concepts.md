@@ -2089,13 +2089,12 @@ Properties that matter:
   `context` event be written from inside the session, with the session's id. A
   wrong stage is caught by reading the header, which shows the Work, action,
   stage and goal first.
-- **Loud failures**: an unknown Work, action, stage or root is an error, and so
-  is a stage that selects the Work's roots when the Work has none. An empty
-  bundle looks like success, so it is never produced by mistake. Zero matching
-  rules is valid, and the header says so. A stage that is not in the pipeline
-  of the given action for this Work is only a warning, because the driver
-  decides. wio checks the pair: `deliver` with the stage `define` warns even
-  though `define` is one of the Work's stages.
+- **Loud failures**: an unknown Work, action, stage or root is an error. An
+  empty bundle looks like success, so it is never produced by mistake. Zero
+  matching rules is valid, and the header says so. A stage that is not in the
+  pipeline of the given action for this Work is only a warning, because the
+  driver decides. wio checks the pair: `deliver` with the stage `define` warns
+  even though `define` is one of the Work's stages.
 - **Explainable**: `wio rules list --explain` lists why each rule was included
   or excluded, without changing the bundle.
 - **Sized**: harnesses truncate long command output, and a truncated bundle
