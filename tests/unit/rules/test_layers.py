@@ -163,6 +163,23 @@ def test_the_four_layers_apply_in_order() -> None:
     assert _effects(found, "PAY002") == []
 
 
+def test_a_root_that_is_named_twice_is_applied_once() -> None:
+    """A repeated name adds one effect, as one name does."""
+    # Given the roots `api` with `ARC001` and `web` with the family `ARC`
+    config, rulesets = _two_roots()
+
+    # When the layers apply for `("api", "api", "web")` and for `("api", "web")`
+    twice = apply_layers(("api", "api", "web"), None, config, rulesets)
+    once = apply_layers(("api", "web"), None, config, rulesets)
+
+    # Then the results are the same, and `ARC001` has one effect for each root
+    assert twice == once
+    assert _effects(twice, "ARC001")[:2] == [
+        ("root", "adds", "api"),
+        ("root", "adds", "web"),
+    ]
+
+
 def test_an_exclude_takes_out_what_the_layers_so_far_added() -> None:
     """AC-2: the stage's excludes remove, and the always include adds back."""
     # Given a stage `t` that includes `demo.PAY` and excludes `demo.PAY001` and

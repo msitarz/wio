@@ -74,6 +74,8 @@ class RuleSelector:
         discovery = discover(self.repository.root(), self.files)
         refuse_on_errors(discovery)
         rulesets = ruleset_map(discovery)
+        if stage not in config.stages:
+            raise _UnknownStageError(stage)
         try:
             roots = stage_roots(config, stage, work_id, self.work_roots)
         except ValueError:
@@ -123,7 +125,7 @@ class RuleSelector:
         try:
             chosen = self.selection(work_id, stage)
         except KeyError as error:
-            raise WioError(_unknown(error.args[0], stage)) from error
+            raise WioError(_unknown(error)) from error
         root = self.repository.root()
         return {
             f"{rule.ruleset}.{rule.code}": rule_hash(self._bytes_of(root, rule))
@@ -167,16 +169,24 @@ def _all_out(selection: Selection) -> Selection:
     }
 
 
-def _unknown(name: object, stage: str) -> str:
+class _UnknownStageError(KeyError):
+    """The stage that was asked for is not in the config.
+
+    It is a `KeyError`, as the port says, and tells a stage from a Work or a root
+    by what it is and not by the name it carries, which a Work may share.
+    """
+
+
+def _unknown(error: KeyError) -> str:
     """Say which name was not known.
 
     Args:
-        name: The name that the `KeyError` carries.
-        stage: The stage that was asked for.
+        error: The `KeyError` of the selection, which carries the name.
 
     Returns:
         A sentence that names the stage, or the Work or root, that is unknown.
     """
-    if name == stage:
+    name = error.args[0]
+    if isinstance(error, _UnknownStageError):
         return f"The config has no stage `{name}`."
     return f"No Work or root `{name}` is known."
