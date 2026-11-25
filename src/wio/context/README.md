@@ -81,3 +81,14 @@ family, its docstring says how, and its
   it where it was.
 - **The topic of a family comes through a [port](ports.pyi),** because a
   selection holds rules and their decisions and no topic.
+
+## Grouping the rules
+
+[`group_rules`](grouping.py) groups the rules that apply by the roots they apply
+to, its docstring says how the groups are ordered and what their lines read, and
+its [tests](../../../tests/unit/context/test_grouping.py) show each case.
+
+- **A group line names its roots and their paths,** so a session can tell which
+  files each group of rules is about.
+- **A root may have no path,** because the config accepts an empty list: such a
+  root is a named set of rules, and its line has only its name to give.

@@ -2056,7 +2056,8 @@ Output, printed to the session:
    Root-independent rules come first, under `Rules for every root:`, because
    rules about how to work frame the rest. Then the rules are grouped by the set
    of roots they apply to, each group under one line that names the roots and
-   their paths, such as `Rules for root api (services/api):`. The roots in that
+   the paths they have, such as `Rules for root api (services/api):`, or the
+   roots alone when none of them has a path. The roots in that
    line are sorted by name, and the groups are sorted by their sorted root
    names, so the order of a `roots` list or of the config's tables never changes
    the bundle. Within a group they are ordered by ruleset, then by family, under
