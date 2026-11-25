@@ -76,28 +76,33 @@ def _out(kind: ReasonKind, *, root_independent: bool = False) -> Decision:
 
 
 def _shown(groups: tuple[RuleGroup, ...]) -> list[tuple[str, list[str]]]:
-    """Reduce groups to their lines and codes, without the order inside one.
+    """Reduce groups to their lines and codes.
 
     Args:
         groups: The groups.
 
     Returns:
-        Each line with its codes, sorted.
+        Each line with its codes in the order of the group.
     """
-    return [(g.line, sorted(r.code for r in g.rules)) for g in groups]
+    return [(g.line, [r.code for r in g.rules]) for g in groups]
 
 
 @_PENDING
 def test_the_rules_that_need_no_root_come_first() -> None:
     """AC-1: under one line, ahead of a root given before them."""
-    # Given a selection with a rule of `api` and then a root-independent rule
-    selection: Selection = {_rule("API001"): _in("api"), _rule("FIX001"): _in()}
+    # Given a selection with two root-independent rules on both sides of a rule
+    # of `api`
+    selection: Selection = {
+        _rule("FIX001"): _in(),
+        _rule("API001"): _in("api"),
+        _rule("FIX002"): _in(),
+    }
 
     # When the groups are built
     found = _shown(group_rules(selection, _ROOTS))
 
-    # Then the rules for every root come first
-    assert found == [(_EVERY, ["FIX001"]), (_ONLY_API, ["API001"])]
+    # Then both are in the one group for every root, which comes first
+    assert found == [(_EVERY, ["FIX001", "FIX002"]), (_ONLY_API, ["API001"])]
 
 
 @_PENDING
@@ -147,10 +152,11 @@ def test_a_group_is_the_exact_set_of_roots_in_the_order_of_their_names(
 @_PENDING
 def test_groups_are_ordered_by_names_one_by_one() -> None:
     """AC-3: a shorter list comes before a longer one that it begins."""
-    # Given roots `a`, `ab` and `b`, and rules of `ab`, of `a` and `b`, and of `a`
-    roots = {name: Root(paths=(f"p/{name}",)) for name in ("a", "ab", "b")}
+    # Given roots `a`, `a+` and `b`, whose `+` sorts before a comma, and rules
+    # of `a+`, of `a` and `b`, and of `a`
+    roots = {name: Root(paths=(f"p/{name}",)) for name in ("a", "a+", "b")}
     selection: Selection = {
-        _rule("X001"): _in("ab"),
+        _rule("X001"): _in("a+"),
         _rule("Y001"): _in("a", "b"),
         _rule("Z001"): _in("a"),
     }
@@ -158,11 +164,11 @@ def test_groups_are_ordered_by_names_one_by_one() -> None:
     # When the groups are built
     lines = [group.line for group in group_rules(selection, roots)]
 
-    # Then `a` is first, then `a, b`, then `ab`
+    # Then `a` is first, then `a, b`, then `a+`
     assert lines == [
         "Rules for root a (p/a):",
         "Rules for roots a, b (p/a, p/b):",
-        "Rules for root ab (p/ab):",
+        "Rules for root a+ (p/a+):",
     ]
 
 
