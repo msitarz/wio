@@ -263,8 +263,12 @@ found, the class says what is hashed, and the
 [unit](../../../tests/unit/config/test_skills.py) and
 [disk](../../../tests/integration/config/test_skills.py) tests show each case.
 
-- **The check and the lookup share one search,** in [`paths.py`](paths.py), so a
-  skill that `wio config check` accepts is the skill that is found.
+- **The check and the lookup share one search,** in [`paths.py`](paths.py), so
+  in a config that loads the skill of every stage that names one is found.
+- **A config with an error gets no answer,** because the lookup reads its
+  [settings](settings.py) first and they refuse such a config, as for every
+  command that reads them. So a missing skill or a faulty skill path ends every
+  lookup with that error.
 - **Every regular file counts,** because a skill's references and scripts are
   part of its procedure. So a skill's directory should hold only the skill's own
   files: a stray one gives the same commit another hash on that machine.
