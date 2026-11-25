@@ -47,6 +47,34 @@ def group_rules(
 
     Returns:
         The groups, none for a selection that includes no rule.
+
+    Raises:
+        KeyError: If an included rule names a root that `roots` does not hold,
+            which a selection made with the same config never does.
     """
-    del selection, roots
-    raise NotImplementedError
+    members: dict[tuple[str, ...], list[Rule]] = {}
+    for rule, decision in selection.items():
+        if decision.included:
+            members.setdefault(tuple(sorted(decision.roots)), []).append(rule)
+    return tuple(
+        RuleGroup(_line(names, roots), tuple(members[names]))
+        for names in sorted(members)
+    )
+
+
+def _line(names: tuple[str, ...], roots: Mapping[str, Root]) -> str:
+    """Write the line that introduces a group.
+
+    Args:
+        names: The names of the group's roots in their order; none for the
+            rules that need no root.
+        roots: The roots of the config by name.
+
+    Returns:
+        The group line.
+    """
+    if not names:
+        return "Rules for every root:"
+    paths = ", ".join(path for name in names for path in roots[name].paths)
+    noun = "root" if len(names) == 1 else "roots"
+    return f"Rules for {noun} {', '.join(names)} ({paths}):"

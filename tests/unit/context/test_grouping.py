@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from wio.context.grouping import RuleGroup
     from wio.models.rules import ReasonKind, Selection
 
-_PENDING = pytest.mark.xfail(strict=True, raises=NotImplementedError)
 _API = Root(paths=("services/api",))
 _WEB = Root(paths=("apps/web", "apps/admin"))
 _ROOTS = {"api": _API, "web": _WEB}
@@ -87,25 +86,24 @@ def _shown(groups: tuple[RuleGroup, ...]) -> list[tuple[str, list[str]]]:
     return [(g.line, [r.code for r in g.rules]) for g in groups]
 
 
-@_PENDING
 def test_the_rules_that_need_no_root_come_first() -> None:
     """AC-1: under one line, ahead of a root given before them."""
-    # Given a selection with two root-independent rules on both sides of a rule
-    # of `api`
+    # Given a selection whose first rule is of `api`, followed by two
+    # root-independent rules that are not in the order of their codes
     selection: Selection = {
-        _rule("FIX001"): _in(),
         _rule("API001"): _in("api"),
         _rule("FIX002"): _in(),
+        _rule("FIX001"): _in(),
     }
 
     # When the groups are built
     found = _shown(group_rules(selection, _ROOTS))
 
-    # Then both are in the one group for every root, which comes first
-    assert found == [(_EVERY, ["FIX001", "FIX002"]), (_ONLY_API, ["API001"])]
+    # Then both are in the one group for every root, which comes first, in the
+    # order given
+    assert found == [(_EVERY, ["FIX002", "FIX001"]), (_ONLY_API, ["API001"])]
 
 
-@_PENDING
 def test_there_is_no_every_root_line_without_such_rules() -> None:
     """AC-1: no empty group."""
     # Given a selection with a rule of `api` only
@@ -118,7 +116,6 @@ def test_there_is_no_every_root_line_without_such_rules() -> None:
     assert found == [(_ONLY_API, ["API001"])]
 
 
-@_PENDING
 @pytest.mark.parametrize(
     "roots",
     [_ROOTS, {"web": _WEB, "api": _API}],
@@ -149,7 +146,6 @@ def test_a_group_is_the_exact_set_of_roots_in_the_order_of_their_names(
     ]
 
 
-@_PENDING
 def test_groups_are_ordered_by_names_one_by_one() -> None:
     """AC-3: a shorter list comes before a longer one that it begins."""
     # Given roots `a`, `a+` and `b`, whose `+` sorts before a comma, and rules
@@ -172,7 +168,6 @@ def test_groups_are_ordered_by_names_one_by_one() -> None:
     ]
 
 
-@_PENDING
 def test_only_the_rules_that_apply_are_grouped() -> None:
     """AC-4: four ways out are in no group."""
     # Given one rule of each way out, some of them root-independent, and none in
