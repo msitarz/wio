@@ -77,7 +77,8 @@ flowchart LR
 
 - **It selects, explains and labels nothing.** `wio rules` selects,
   `wio rules list --explain` says why, and the label of the section belongs to
-  whatever joins the parts of the bundle, so the text is the rules alone.
+  whatever joins the parts of the bundle, so the text carries no label and no
+  reason.
 - **The codes come back with the text,** in the order printed, so a record of
   what a session was given needs no second pass that could disagree with it.
 
