@@ -51,21 +51,24 @@ and accepts an empty list, and such a root is a named set of rules.
 
 Where
 [the concepts](../../../../../../../docs/concepts.md#11-the-context-compiler)
-and the scope document say that a group line names the roots and their paths, it
+and [the scope document](../../../../../../../docs/v0.1-scope.md) say that a
+group line names the roots and their paths, it
 is right for a line to show the paths that its roots have and none when they
 have none, and the docs stage corrects both documents.
 
 ## Mechanisms
 
 The concepts fix `Rules for every root:` and the form of
-`Rules for root api (services/api):`; the group line for several roots is
-provisional, and the criteria below quote it in that provisional form. What is
-binding is that a group line names the roots and the paths they have.
+`Rules for root api (services/api):`; the group line for several roots and those
+for roots with no path are provisional, and the criteria below quote them in
+that provisional form. What is binding is that a group line names the roots and
+the paths they have.
 
 - **The group line for no root** — `Rules for every root:`.
 - **The group line for roots** — `Rules for root <name> (<paths>):` for one root
-  and `Rules for roots <name>, <name> (<paths>):` for several, where the paths
-  are those of the roots in the order of their names, joined by `, `.
+  and `Rules for roots <name>, <name> (<paths>):` for several, when at least one
+  of the group's roots has a path, where the paths are those of the roots in the
+  order of their names, joined by `, `.
 - **The group line for roots with no path** — `Rules for root <name>:` and
   `Rules for roots <name>, <name>:`, without parentheses, when none of the
   group's roots has a path.
@@ -131,7 +134,7 @@ is in no group, and a selection that includes no rule gives no group.
 - **Then** the first gives no group, and the second gives one group that holds
   only the included rule.
 
-### **AC-5** A root with no path is named alone
+### **AC-5** A root with no path adds none
 
 A group line names every root of the group and shows the paths of those that
 have one, and has no parentheses when none of them has a path.
