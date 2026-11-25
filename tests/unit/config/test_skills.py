@@ -187,7 +187,7 @@ def test_a_directory_without_the_skill_file_does_not_end_the_search() -> None:
 def test_what_is_not_a_skill_is_not_found(
     name: str, paths: tuple[str, ...], path: str
 ) -> None:
-    """AC-2: each way of not being a skill gives `None`."""
+    """AC-2, A-2: each way of not being a skill; a faulty path is left out."""
     # Given a file that a looser search would take for the skill
     files = _tree({path: "x"})
 
@@ -312,7 +312,7 @@ def test_names_are_hashed_and_ordered_as_their_bytes_on_disk() -> None:
 
 
 def test_a_skill_under_a_faulty_path_is_reported_and_not_found() -> None:
-    """AC-2: the check reports the path that the lookup leaves out."""
+    """A-2: the check reports the path that the search leaves out."""
     # Given a skill under a path that is not normalized
     files = _tree({"a/wio-define/SKILL.md": "x"})
     config = Config(skills=Skills(paths=("./a",)))
@@ -378,7 +378,7 @@ def test_a_symbolic_link_adds_nothing() -> None:
 
 
 def test_the_lookup_and_the_check_agree() -> None:
-    """AC-5: found exactly when `wio config check` accepts the skill."""
+    """A-1: the check and the search judge each skill of a config alike."""
     # Given stages whose skills are in each default directory, one whose skill
     # is a directory without `SKILL.md` and one whose skill exists nowhere
     files = _tree(

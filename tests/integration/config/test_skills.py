@@ -10,6 +10,7 @@ import pytest
 
 from tests.support import enter, git
 from wio.config.checks import CheckInputs
+from wio.config.loader import load_config
 from wio.config.paths import check_skills
 from wio.config.settings import ConfigSettings
 from wio.config.skills import RepositorySkills
@@ -296,3 +297,69 @@ def test_settings_that_refuse_the_config_end_the_lookup(
 
     # Then the error names the faulty path
     assert "skills.paths[0]" in str(caught.value)
+
+
+def _configured(sandbox: Sandbox, stages: dict[str, str]) -> None:
+    """Write a config whose stages name skills.
+
+    Args:
+        sandbox: The repository.
+        stages: The skill of each stage.
+    """
+    text = "".join(f'[stages.{n}]\nskill = "{s}"\n' for n, s in stages.items())
+    _write(sandbox.root / ".agents" / "wio" / "config.toml", text)
+
+
+@pytest.mark.slow
+def test_every_stage_skill_of_a_config_that_loads_is_found(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-5: the real check accepts the config, and each skill is found."""
+    # Given a config with a skill in each default directory
+    git(sandbox, "init", "-q", check=True)
+    _write(sandbox.root / ".agents" / "skills" / "one" / "SKILL.md", "x")
+    _write(sandbox.root / ".claude" / "skills" / "two" / "SKILL.md", "x")
+    _configured(sandbox, {"first": "one", "second": "two"})
+    enter(sandbox, monkeypatch)
+    repository = adapters.GitRepository(ProcessEnvironment())
+    files = adapters.LocalFileSystem()
+
+    # When the config is checked and each skill is looked up
+    checked = load_config(repository, files)
+    lookup = _lookup(ConfigSettings(repository, files))
+    found = [lookup.find_skill(name) for name in ("one", "two")]
+
+    # Then the check reports no error, and both are found
+    assert [d for d in checked.diagnostics if d.severity == "error"] == []
+    assert [skill.directory for skill in found if skill] == [
+        ".agents/skills/one",
+        ".claude/skills/two",
+    ]
+
+
+@pytest.mark.slow
+def test_a_stage_whose_skill_is_missing_ends_every_lookup(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-5: the config does not load, also for the skill that exists."""
+    # Given a config with a stage whose skill exists and one whose does not
+    git(sandbox, "init", "-q", check=True)
+    _write(sandbox.root / ".agents" / "skills" / "one" / "SKILL.md", "x")
+    _configured(sandbox, {"here": "one", "gone": "ghost"})
+    enter(sandbox, monkeypatch)
+    repository = adapters.GitRepository(ProcessEnvironment())
+    files = adapters.LocalFileSystem()
+
+    # When the config is checked and each skill is looked up
+    checked = load_config(repository, files)
+    lookup = _lookup(ConfigSettings(repository, files))
+    refused = []
+    for name in ("one", "ghost"):
+        with pytest.raises(ConfigurationError) as caught:
+            lookup.find_skill(name)
+        refused.append(str(caught.value))
+
+    # Then the check reports only the second stage, and each lookup raises it
+    errors = [d.where for d in checked.diagnostics if d.severity == "error"]
+    assert errors == ["stages.gone.skill"]
+    assert all("stages.gone.skill" in message for message in refused)
