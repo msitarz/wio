@@ -113,7 +113,7 @@ class Gates:
 
 @dataclass(frozen=True)
 class Bundle:
-    """How a context bundle is joined."""
+    """The settings of a context bundle."""
 
     separator: str = field(
         default="\n\n",

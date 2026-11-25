@@ -5,9 +5,9 @@ before it starts a stage of a Work.
 [The context compiler](../../../docs/concepts.md#11-the-context-compiler) says
 what a [bundle](../../../GLOSSARY.md) holds and which properties it keeps.
 
-Today the directory holds the shell of the command, the bundle id and the
-header: it has no check of its inputs and no composition of the bundle, so a run
-is refused, as
+Today the directory holds the shell of the command and parts of a bundle, each
+in a section below. It has no check of its inputs and no composition of the
+bundle, so a run is refused, as
 [`wio.cli`](../cli/README.md#the-table-of-commands) describes. Its terms are
 those of the [repository glossary](../../../GLOSSARY.md).
 
@@ -72,4 +72,4 @@ items of the rules section, their docstrings say how, and their
   selected leaves a bundle, and so its id, as it was.
 - **The configured separator stands between every two items** of the section,
   the lines that introduce rules as much as the rules, so a project that
-  chooses one sees it everywhere the section is divided.
+  chooses one sees it between all of them.
