@@ -39,7 +39,8 @@ holds.
 - **The stage's `goal` or `skill`** — read through the shared `Settings` port;
   the config requires exactly one of them.
 - **The skill lookup** — gives the directory of the skill, relative to the
-  repository.
+  repository; the builder takes the `FoundSkill | None` from its caller, which
+  looks the skill up once, and never looks it up itself.
 
 ## Acceptance criteria
 
