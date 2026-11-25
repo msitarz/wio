@@ -32,7 +32,6 @@ def test_context_reads_the_project_through_the_adapters() -> None:
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(strict=True)
 def test_a_run_says_that_no_bundle_can_be_composed_yet(
     sandbox: Sandbox,
     monkeypatch: pytest.MonkeyPatch,

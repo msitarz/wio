@@ -4,8 +4,10 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.context import Compiled
+
 if TYPE_CHECKING:
-    from wio.context import Check, Compiled
+    from wio.context import Check
     from wio.context.ports import Composer
 
 
@@ -37,4 +39,7 @@ class Compiler:
                 before any later check and before the composition, or from the
                 composition.
         """
-        raise NotImplementedError
+        warnings = tuple(
+            text for check in self.checks for text in check(work_id, action, stage)
+        )
+        return Compiled(self.composer.compose(work_id, action, stage), warnings)

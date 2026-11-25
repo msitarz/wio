@@ -24,20 +24,19 @@ if TYPE_CHECKING:
 
     from wio.cli.ports import Command
 
-_PENDING = pytest.mark.xfail(strict=True)
 _ARGV = ["context", "k3m9xq", "deliver", "architecture"]
 
 
 def _compiled() -> Compiled:
-    """Build a result with two rules and two warnings that are not sorted.
+    """Build a result with two rules and warnings, unsorted and one repeated.
 
     Returns:
         The result.
     """
     bundle = CompiledBundle(
-        "the bundle\n", "4f3a9c01b2d7", 11, {"a.A001": "1", "b.B001": "2"}
+        "the bundle\n\n", "4f3a9c01b2d7", 12, {"a.A001": "1", "b.B001": "2"}
     )
-    return Compiled(bundle, ("zulu thing", "alpha thing"))
+    return Compiled(bundle, ("zulu thing", "alpha thing", "zulu thing"))
 
 
 def _command(
@@ -129,7 +128,6 @@ def test_the_usage_names_the_work_the_action_and_the_stage() -> None:
     assert "<work> <action> <stage>" in usage
 
 
-@_PENDING
 def test_the_bundle_goes_to_standard_output_and_the_warnings_are_reported() -> None:
     """AC-2: the text alone on standard output, one line for each warning."""
     # Given a fake compiler that returns a text, rules and two warnings
@@ -140,12 +138,28 @@ def test_the_bundle_goes_to_standard_output_and_the_warnings_are_reported() -> N
     code, out, err = run_main(_ARGV, [entry])
 
     # Then the output is the text, each warning is a line, and it exits 0
-    assert (code, out) == (0, "the bundle\n")
-    assert err == "warning: zulu thing\nwarning: alpha thing\n"
+    assert (code, out) == (0, "the bundle\n\n")
+    assert err.splitlines() == [
+        "warning: zulu thing",
+        "warning: alpha thing",
+        "warning: zulu thing",
+    ]
     assert asked == [("k3m9xq", "deliver", "architecture")]
 
 
-@_PENDING
+def test_there_is_no_json_option() -> None:
+    """The command prints raw text for a session, so it declares no `--json`."""
+    # Given a command over a fake compiler that records what it is asked
+    asked: list[tuple[str, str, str]] = []
+    entry = _entry(lambda: _command(_compiled(), asked))
+
+    # When `wio context` runs with `--json`
+    code, out, _ = run_main([*_ARGV, "--json"], [entry])
+
+    # Then it is a usage error, and nothing was compiled or printed
+    assert (code, out, asked) == (2, "", [])
+
+
 @pytest.mark.parametrize(
     ("error", "expected"),
     [(WioError("cannot go on"), 2), (ValueError("broken"), 70)],

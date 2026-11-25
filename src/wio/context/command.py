@@ -50,4 +50,7 @@ class ContextCommand:
                 standard output. The command catches no error, so any other one
                 reaches the command line as a bug.
         """
-        raise NotImplementedError
+        compiled = self._compiler(args.work, args.action, args.stage)
+        stdio.stderr.writelines(f"warning: {text}\n" for text in compiled.warnings)
+        stdio.stdout.write(compiled.bundle.text)
+        return 0

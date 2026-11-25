@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 
     from wio.context import Check
 
-_PENDING = pytest.mark.xfail(strict=True)
 _INPUTS = ("k3m9xq", "deliver", "architecture")
 _BUNDLE = CompiledBundle("text\n", "4f3a9c01b2d7", 5, {})
 type _Calls = list[tuple[str, str, str, str]]
@@ -67,7 +66,7 @@ def _check(name: str, calls: _Calls, error: Exception | None = None) -> Check:
             stage: The stage.
 
         Returns:
-            One warning that names the check.
+            Two warnings that name the check, the same one twice.
 
         Raises:
             Exception: The error that the check was made with.
@@ -75,12 +74,11 @@ def _check(name: str, calls: _Calls, error: Exception | None = None) -> Check:
         calls.append((name, work_id, action, stage))
         if error is not None:
             raise error
-        return [f"warning of {name}"]
+        return [f"warning of {name}"] * 2
 
     return check
 
 
-@_PENDING
 def test_a_failing_check_stops_the_run() -> None:
     """AC-4: nothing runs after the first check that raises."""
     # Given a composer and two checks that record their calls, the first failing
@@ -100,9 +98,8 @@ def test_a_failing_check_stops_the_run() -> None:
     assert composer.calls == [("zulu", *_INPUTS)]
 
 
-@_PENDING
 def test_passing_checks_compose_once_with_their_warnings_in_order() -> None:
-    """AC-4: one composition after the checks, whose warnings keep their order."""
+    """AC-4: one composition after the checks, which keeps every warning."""
     # Given a composer and two checks that each warn, named so that the order
     # they run in is not the sorted one
     composer = _Composer()
@@ -117,4 +114,5 @@ def test_passing_checks_compose_once_with_their_warnings_in_order() -> None:
         ("alpha", *_INPUTS),
         ("composer", *_INPUTS),
     ]
-    assert compiled == Compiled(_BUNDLE, ("warning of zulu", "warning of alpha"))
+    warnings = ("warning of zulu",) * 2 + ("warning of alpha",) * 2
+    assert compiled == Compiled(_BUNDLE, warnings)
