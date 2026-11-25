@@ -10,6 +10,7 @@ import pytest
 from tests.unit.contracts.helpers import BASE, services, work_under_works
 from tests.unit.fakes import ROOT, FakeStdio, MemoryFileSystem
 from wio.contracts import ContractsError
+from wio.contracts.context_view import ContractViews
 from wio.contracts.discovery import discover_works
 from wio.contracts.hierarchy import build_hierarchy
 from wio.contracts.refusal import HINT
@@ -27,8 +28,11 @@ from wio.models.template import Template
 if TYPE_CHECKING:
     import io
     from collections.abc import Collection, Mapping
+    from unittest.mock import Mock
 
+    from wio.context.ports import Contracts
     from wio.contracts.ports import TemplateCatalog
+    from wio.models.config import HierarchyMode
     from wio.models.works import Work
 
 DIRECTORY = ROOT / BASE / "p"
@@ -498,3 +502,143 @@ def test_an_incomplete_tree_refuses_the_command_before_the_argument_is_looked_up
     # raised
     assert str(raised.value).endswith(HINT)
     assert cast("io.StringIO", stdio.stdout).getvalue() == ""
+
+
+@pytest.mark.parametrize(("mode", "has_glossary"), [("nesting", True), ("flat", False)])
+def test_bundle_view_matches_show_for_the_configured_hierarchy(
+    mode: HierarchyMode, *, has_glossary: bool
+) -> None:
+    """Compare the bundle view with the output of the contracts command.
+
+    The parent passes on its glossary through its template, and the supplied
+    resolved contract keeps the view available after the files are removed.
+
+    Args:
+        mode: The configured hierarchy mode.
+        has_glossary: Whether the mode lets the child inherit the glossary.
+    """
+    # Given a child whose parent passes on a glossary through its template
+    files = _tree(
+        {
+            "p/README.md": _marked(
+                'id = "p5n2hv"\ntemplate = "feature.parent"',
+                "# Parent\n\n## Glossary\n\nA term and its meaning.\n",
+            ),
+            "p/c/README.md": _marked('id = "k3m9xq"', "# Child\n"),
+        }
+    )
+    path = Path("templates/feature.parent.md")
+    files.files[ROOT / path] = _marked(
+        'wio = 1\nkind = "feature"', "## Glossary <!-- wio: inherit -->\n"
+    )
+    wired = services(files, Config(works=Works(hierarchy=mode)))
+    catalog = cast("Mock", wired.catalog)
+    catalog.find.return_value = Template(
+        "feature.parent", "feature", "parent", None, path, entry=False
+    )
+    catalog.is_rejected.return_value = False
+    stdio = FakeStdio()
+    run_show(wired, Namespace(work="k3m9xq", json=False), stdio)
+    shown = cast("io.StringIO", stdio.stdout).getvalue().split("\n----\n\n", 1)[1]
+
+    # When the contract's resolved view is requested for the bundle
+    provider: Contracts = ContractViews(wired)
+    contract = provider.resolved("k3m9xq")
+    files.files.clear()
+    view = provider.view(contract)
+
+    # Then the whole view matches show, with the glossary only in nesting mode
+    assert ("### Glossary\n\nA term and its meaning." in shown) is has_glossary
+    assert view == shown
+
+
+def test_bundle_view_is_empty_for_a_contract_with_only_metadata() -> None:
+    """Render a metadata-only contract as an empty string.
+
+    The Work is at the top of the tree and therefore inherits no sections.
+    """
+    # Given a top Work with only a metadata block
+    files = _tree({"c/README.md": _marked('id = "k3m9xq"', "").rstrip() + "\n"})
+    provider = ContractViews(services(files, Config(works=SETTINGS)))
+
+    # When the contract's resolved view is requested for the bundle
+    view = provider.view(provider.resolved("k3m9xq"))
+
+    # Then the view is empty
+    assert view == ""
+
+
+@pytest.mark.parametrize(
+    "tree",
+    [
+        {"a/README.md": _marked('id = "a7b2c4"')},
+        {
+            "a/README.md": _marked('id = "a7b2c4"'),
+            "a/other.md": _marked('id = "p5n2hv"'),
+            "c/README.md": _marked('id = "k3m9xq"'),
+        },
+        {
+            "a/README.md": _marked('id = "k3m9xq"'),
+            "c/README.md": _marked('id = "k3m9xq"'),
+        },
+    ],
+    ids=["unknown-id", "incomplete-tree", "shared-id"],
+)
+def test_bundle_view_refuses_the_same_work_as_show(tree: dict[str, str]) -> None:
+    """Cover the refusals required by AC-3.
+
+    Args:
+        tree: The Works of one refusal scenario, by relative path.
+    """
+    # Given a tree that show refuses when asked for the Work
+    wired = services(_tree(tree), Config(works=SETTINGS))
+    with pytest.raises(ContractsError) as shown:
+        run_show(wired, Namespace(work="k3m9xq", json=False), FakeStdio())
+
+    # When the same Work is requested for the bundle
+    with pytest.raises(ContractsError) as refused:
+        ContractViews(wired).resolved("k3m9xq")
+
+    # Then the refusal names the same problem as show
+    assert str(refused.value) == str(shown.value)
+
+
+def test_bundle_view_resolves_a_work_with_an_optional_metadata_fault() -> None:
+    """Resolve a Work whose optional metadata has the wrong type.
+
+    Its id remains readable and the fault leaves the Works tree complete.
+    """
+    # Given a Work with a malformed optional field
+    files = _tree({"c/README.md": _marked('id = "k3m9xq"\nroots = 42', "# Child\n")})
+    provider = ContractViews(services(files, Config(works=SETTINGS)))
+
+    # When the Work is resolved and its view printed
+    contract = provider.resolved("k3m9xq")
+    view = provider.view(contract)
+
+    # Then the Work and its body are still available
+    assert contract.work.id == "k3m9xq"
+    assert view == "# Child\n"
+
+
+def test_bundle_view_resolves_a_work_when_other_works_share_an_id() -> None:
+    """Resolve a Work whose own id identifies it uniquely.
+
+    A shared id elsewhere leaves the tree complete and affects only the lookup
+    of the shared id.
+    """
+    # Given two Works with a shared id and a third with a unique id
+    files = _tree(
+        {
+            "a/README.md": _marked('id = "a7b2c4"'),
+            "b/README.md": _marked('id = "a7b2c4"'),
+            "c/README.md": _marked('id = "k3m9xq"', "# Separate Work\n"),
+        }
+    )
+    provider = ContractViews(services(files, Config(works=SETTINGS)))
+
+    # When the unique Work's resolved view is requested for the bundle
+    view = provider.view(provider.resolved("k3m9xq"))
+
+    # Then the unique Work's view is available
+    assert view == "# Separate Work\n"

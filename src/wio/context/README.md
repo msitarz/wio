@@ -67,6 +67,14 @@ says what they state, and its
   a skill was found, so what the header says agrees with the rest of the
   bundle by having one source.
 
+## The contract section
+
+A session needs the same contract and inherited sections as a person running
+`wio contracts show`. The `Contracts` port gives composition the resolved
+contract for both rule selection and rendering, so the two operations see the
+same contract. [Port](ports.pyi) and
+[provider](../contracts/context_view.py).
+
 ## The rules section
 
 [`rules_section`](section.py) turns a selection into the text of the section,
