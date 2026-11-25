@@ -67,6 +67,10 @@ it holds nothing of the skill's files:
 This stage's procedure is the skill `<name>`. Read `<path>/SKILL.md` and follow it; its other files are in the same directory.
 ```
 
+In the displayed name and path, a literal backslash is written as `\\`, a
+line feed as `\n`, and a carriage return as `\r`. Each escape represents one
+character of the original name or path. Skill lookup uses the original values.
+
 #### A skill in a configured directory
 
 - **Given** a stage whose skill `wio-define` is found in `.agents/wio/skills`,
@@ -75,3 +79,12 @@ This stage's procedure is the skill `<name>`. Read `<path>/SKILL.md` and follow 
 - **Then** the part is that line with `wio-define` and
   `.agents/wio/skills/wio-define/SKILL.md`, on one line, and it contains no text
   of `SKILL.md`.
+
+#### A skill path with a newline or a literal backslash
+
+- **Given** a skill `wio-define` whose directory starts with `team`, a line
+  feed, and `skills/`, and another lookup whose directory instead starts with
+  `team`, a literal backslash, and `nskills/`.
+- **When** guidance is built for each lookup result.
+- **Then** each instruction stays on one line. Its path starts with
+  `team\nskills/` for the first result and `team\\nskills/` for the second.
