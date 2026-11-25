@@ -20,7 +20,8 @@ files, because `wio.config` only checks that the skill exists.
 - A skill is never looked for in the user's home.
 - The files of a skill have one hash that changes when any of them changes.
 - The directory is given relative to the repository.
-- The lookup finds a skill exactly when `wio config check` accepts it.
+- In a config that loads, the lookup finds the skill of every stage that names
+  one.
 
 ## Non-Goals
 
@@ -50,6 +51,12 @@ a skill's directory holds only the skill's own files, and the same commit can
 give another hash on a machine with a stray file in it. A symbolic link never
 counts, so a skill whose `SKILL.md` is a link is found, as the check accepts it,
 and its hash leaves the link out.
+
+### A-4
+
+A config loads only when `wio config check` finds no error in it, and the
+`Settings` port raises for any other, so while a skill path has a fault or a
+stage's skill is not found, every lookup raises that error and gives no answer.
 
 ## Mechanisms
 
@@ -90,11 +97,12 @@ holds `<name>/SKILL.md` is the skill's.
 - **When** the skill is looked up.
 - **Then** the directory is `.agents/wio/skills/wio-define`.
 
-### **AC-2** What is not a skill is not found
+### **AC-2** What gives no skill
 
-A directory that has no `SKILL.md`, a skill that is only in the user's home, a
-skill under a path with a fault, and a name that is empty, `.`, `..` or holds
-`/` give `None`.
+In a config that loads, a directory that has no `SKILL.md`, a skill that is only
+in the user's home, and a name that is empty, `.`, `..` or holds `/` give
+`None`; a config that does not load, such as one with a skill path that has a
+fault, ends the lookup with the error of the settings instead of an answer.
 
 #### A directory without `SKILL.md`, and a skill only in the home
 
@@ -107,7 +115,8 @@ skill under a path with a fault, and a name that is empty, `.`, `..` or holds
 
 - **Given** `[skills] paths = ["./a"]` and `a/wio-define/SKILL.md`.
 - **When** `wio-define` is looked up and `wio config check` runs.
-- **Then** the lookup gives `None`, and the check reports the path.
+- **Then** the check reports the path, and the lookup raises the error of the
+  settings.
 
 #### Names that are not skill names
 
@@ -153,13 +162,21 @@ The directory of the skill is returned relative to the repository root and with
 
 ### **AC-5** The lookup and the check agree
 
-A skill that `wio config check` accepts for a stage is found, and a skill that
-it rejects is not.
+In a config that loads, the skill of every stage that names one is found, and a
+config in which the check rejects a skill does not load, so it ends the lookup
+with the error of the settings.
+
+#### Every stage's skill exists
+
+- **Given** a config that loads, with one stage whose skill is in
+  `.agents/skills` and one whose skill is in `.claude/skills`.
+- **When** `wio config check` runs and each skill is looked up.
+- **Then** the check reports no error, and both skills are found.
 
 #### A stage with a skill and one without
 
 - **Given** a repository where one stage names a skill that exists and another
   names one that exists nowhere.
 - **When** `wio config check` runs and each skill is looked up.
-- **Then** the check reports an error only for the second, and the lookup finds
-  only the first.
+- **Then** the check reports an error only for the second, and each lookup
+  raises the error of the settings.

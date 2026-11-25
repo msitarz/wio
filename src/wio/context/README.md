@@ -34,6 +34,13 @@ The docstrings of [the package](__init__.py),
   [rule for port stubs](../../../tests/tooling/test_ports.py) lets none of them
   import from its own package.
 
+## Finding a skill
+
+A bundle points to a stage's skill and counts its files, and the
+[`SkillLookup` port](ports.pyi) is how this package asks for both. `wio.config`
+[satisfies it](../config/README.md#finding-a-skill), because it already searches
+for skills to check the config. The text of `SKILL.md` never enters a bundle.
+
 ## The bundle id
 
 [`bundle_id`](identity.py) names a bundle by its text, and its

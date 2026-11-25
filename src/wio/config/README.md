@@ -254,6 +254,28 @@ for it.
 - **`resolve` judges a key path by the fields of the `Config` alone,** so a
   table without entries is told from an unknown key.
 
+## Finding a skill
+
+[`RepositorySkills`](skills.py) satisfies the
+[`SkillLookup` port](../context/ports.pyi) of `wio context`, which asks for the
+directory of a stage's skill and a hash of its files. The port says what is
+found, the class says what is hashed, and the
+[unit](../../../tests/unit/config/test_skills.py) and
+[disk](../../../tests/integration/config/test_skills.py) tests show each case.
+
+- **The check and the lookup share one search,** in [`paths.py`](paths.py), so
+  in a config that loads the skill of every stage that names one is found.
+- **A config with an error gets no answer,** because the lookup reads its
+  [settings](settings.py) first and they refuse such a config, as for every
+  command that reads them. So a missing skill or a faulty skill path ends every
+  lookup with that error.
+- **Every regular file counts,** because a skill's references and scripts are
+  part of its procedure. So a skill's directory should hold only the skill's own
+  files: a stray one gives the same commit another hash on that machine.
+- **A symbolic link below the directory counts for nothing,** also a `SKILL.md`
+  that is one: such a skill is found, as the check accepts it, and the link is
+  left out of its hash.
+
 ## What is not here
 
 - The checks that parse a template or a rule file: a template's kind and
