@@ -100,7 +100,6 @@ def _real_entry() -> Entry:
     return entry
 
 
-@_PENDING
 def test_the_help_of_wio_lists_context() -> None:
     """AC-1: `wio --help` lists `context` with its description."""
     # Given the entry of `context` in the table
@@ -115,7 +114,6 @@ def test_the_help_of_wio_lists_context() -> None:
     assert describe().help in " ".join(out.split())
 
 
-@_PENDING
 def test_the_usage_names_the_work_the_action_and_the_stage() -> None:
     """AC-1: with no argument the usage names the three and the exit code is 2."""
     # Given the entry of `context` in the table
@@ -169,7 +167,6 @@ def test_failures_map_to_exit_codes(error: Exception, expected: int) -> None:
     assert (err == "error: cannot go on\n") is (expected == 2)
 
 
-@_PENDING
 def test_only_a_run_wires_the_command_and_wires_it_once() -> None:
     """AC-5: the help does not wire `context`, and a run does it once."""
     # Given the entry of the table with a `wire` that records its calls

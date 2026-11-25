@@ -10,7 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Literal
 
+lazy from wio.cli.null import UnwiredComposer
 lazy from wio.config import ConfigCommand, ConfigSettings
+lazy from wio.context import Compiler, ContextCommand
+lazy from wio.context import Services as ContextServices
 lazy from wio.contracts import ContractsCommand, Services, WorkLookup
 lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
@@ -150,7 +153,10 @@ def _context() -> Command:
         compiler has no check yet, and its composer refuses every run with a
         `WioError` until the composition is wired.
     """
-    raise NotImplementedError
+    environment = env.ProcessEnvironment()
+    repository = io.GitRepository(environment)
+    services = ContextServices(repository, io.LocalFileSystem(), environment)
+    return ContextCommand(services, Compiler(UnwiredComposer()).compile)
 
 
 def trailers_command(events: EventSink | None = None) -> Command:
@@ -254,6 +260,7 @@ def _root(repository: Repository) -> Path:
 
 COMMANDS: Final[Sequence[Entry]] = (
     component_entry("config", _config),
+    component_entry("context", _context),
     component_entry("contracts", _contracts),
     component_entry("log", _log),
     component_entry("rules", _rules),
