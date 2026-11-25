@@ -30,7 +30,9 @@ if TYPE_CHECKING:
     from collections.abc import Collection, Mapping
     from unittest.mock import Mock
 
+    from wio.context.ports import Contracts
     from wio.contracts.ports import TemplateCatalog
+    from wio.models.config import HierarchyMode
     from wio.models.works import Work
 
 DIRECTORY = ROOT / BASE / "p"
@@ -502,11 +504,18 @@ def test_an_incomplete_tree_refuses_the_command_before_the_argument_is_looked_up
     assert cast("io.StringIO", stdio.stdout).getvalue() == ""
 
 
-def test_bundle_view_matches_show_for_a_child_with_inherited_sections() -> None:
+@pytest.mark.parametrize(("mode", "has_glossary"), [("nesting", True), ("flat", False)])
+def test_bundle_view_matches_show_for_the_configured_hierarchy(
+    mode: HierarchyMode, *, has_glossary: bool
+) -> None:
     """Compare the bundle view with the output of the contracts command.
 
     The parent passes on its glossary through its template, and the supplied
     resolved contract keeps the view available after the files are removed.
+
+    Args:
+        mode: The configured hierarchy mode.
+        has_glossary: Whether the mode lets the child inherit the glossary.
     """
     # Given a child whose parent passes on a glossary through its template
     files = _tree(
@@ -522,7 +531,7 @@ def test_bundle_view_matches_show_for_a_child_with_inherited_sections() -> None:
     files.files[ROOT / path] = _marked(
         'wio = 1\nkind = "feature"', "## Glossary <!-- wio: inherit -->\n"
     )
-    wired = services(files, Config(works=SETTINGS))
+    wired = services(files, Config(works=Works(hierarchy=mode)))
     catalog = cast("Mock", wired.catalog)
     catalog.find.return_value = Template(
         "feature.parent", "feature", "parent", None, path, entry=False
@@ -533,13 +542,13 @@ def test_bundle_view_matches_show_for_a_child_with_inherited_sections() -> None:
     shown = cast("io.StringIO", stdio.stdout).getvalue().split("\n----\n\n", 1)[1]
 
     # When the contract's resolved view is requested for the bundle
-    provider = ContractViews(wired)
+    provider: Contracts = ContractViews(wired)
     contract = provider.resolved("k3m9xq")
     files.files.clear()
     view = provider.view(contract)
 
-    # Then the whole view matches show, including the inherited glossary
-    assert "### Glossary\n\nA term and its meaning." in shown
+    # Then the whole view matches show, with the glossary only in nesting mode
+    assert ("### Glossary\n\nA term and its meaning." in shown) is has_glossary
     assert view == shown
 
 
@@ -610,3 +619,26 @@ def test_bundle_view_resolves_a_work_with_an_optional_metadata_fault() -> None:
     # Then the Work and its body are still available
     assert contract.work.id == "k3m9xq"
     assert view == "# Child\n"
+
+
+def test_bundle_view_resolves_a_work_when_other_works_share_an_id() -> None:
+    """Resolve a Work whose own id identifies it uniquely.
+
+    A shared id elsewhere leaves the tree complete and affects only the lookup
+    of the shared id.
+    """
+    # Given two Works with a shared id and a third with a unique id
+    files = _tree(
+        {
+            "a/README.md": _marked('id = "a7b2c4"'),
+            "b/README.md": _marked('id = "a7b2c4"'),
+            "c/README.md": _marked('id = "k3m9xq"', "# Separate Work\n"),
+        }
+    )
+    provider = ContractViews(services(files, Config(works=SETTINGS)))
+
+    # When the unique Work's resolved view is requested for the bundle
+    view = provider.view(provider.resolved("k3m9xq"))
+
+    # Then the unique Work's view is available
+    assert view == "# Separate Work\n"
