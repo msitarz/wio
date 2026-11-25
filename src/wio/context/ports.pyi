@@ -96,8 +96,9 @@ class SkillLookup(Protocol):
     def find_skill(self, name: str) -> FoundSkill | None:
         """Find a skill and hash its files.
 
-        It looks in `[skills] paths`, in their order, and then in
-        `.agents/skills` and `.claude/skills`, never in the user's home, and
+        It looks in `[skills] paths`, in their order and with the paths that
+        have a fault left out, and then in `.agents/skills` and
+        `.claude/skills`, never in the user's home, and
         finds a skill exactly when `wio config check` accepts it. It reads the
         settings first, so a config that they refuse gets no lookup.
 

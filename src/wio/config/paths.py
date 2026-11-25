@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The checks of the paths, skills and templates that the config names.
 
-Every function is a `Check` of `wio.config.checks`, and like those of
+Every `check_` function is a `Check` of `wio.config.checks`, and like those of
 `wio.config.pipelines` it judges the best-effort `Config` as it stands and never
 raises for a problem of the config. A path is judged as text and, for a missing
 path or skill, against `CheckInputs.files` below `CheckInputs.root` through its

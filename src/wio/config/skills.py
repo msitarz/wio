@@ -2,11 +2,16 @@
 """The lookup of a skill's directory and the hash of its files."""
 
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
+from wio.config.paths import searched_directories, skill_directory
+from wio.models.skill import FoundSkill
+
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from wio.io.ports import FileSystem, Repository
-    from wio.models.skill import FoundSkill
     from wio.ports import Settings
 
 
@@ -48,5 +53,27 @@ class RepositorySkills:
             ConfigurationError: If the settings cannot be loaded.
             OSError: If a file of the skill cannot be listed or read.
         """
-        del name
-        raise NotImplementedError
+        searched = searched_directories(self.settings.load().skills.paths)
+        root = self.repository.root()
+        parent = skill_directory(name, searched, root, self.files)
+        if parent is None:
+            return None
+        directory = (PurePosixPath(parent) / name).as_posix()
+        return FoundSkill(directory, _files_hash(root / directory, self.files))
+
+
+def _files_hash(directory: Path, files: FileSystem) -> str:
+    """Hash the files of a skill, as `RepositorySkills` says.
+
+    Args:
+        directory: The skill's directory.
+        files: Lists and reads what is in it.
+
+    Returns:
+        The 64 lower-case hexadecimal digits.
+
+    Raises:
+        OSError: If a file cannot be listed or read.
+    """
+    del directory, files
+    raise NotImplementedError
