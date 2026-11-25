@@ -48,7 +48,6 @@ def test_guidance_preserves_the_goal(goal: str) -> None:
             r"review\r\nnow",
             r"team\nskills/review\r\nnow",
             id="line-breaks",
-            marks=pytest.mark.xfail(strict=True, raises=AssertionError),
         ),
         pytest.param(
             r"review\r\nnow",
@@ -56,7 +55,6 @@ def test_guidance_preserves_the_goal(goal: str) -> None:
             r"review\\r\\nnow",
             r"team\\nskills/review\\r\\nnow",
             id="literal-backslashes",
-            marks=pytest.mark.xfail(strict=True, raises=AssertionError),
         ),
     ],
 )
