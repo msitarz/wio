@@ -37,7 +37,9 @@ None.
 The names below are provisional.
 
 - **The rules section builder** — in `wio.context`, which turns a `Selection`
-  into the text of the section by the three children below.
+  into the text of the section by the three children below, and returns with the
+  text the qualified codes of the included rules in the order the text prints
+  them, which the compiler hashes for the event.
 - **The builder's inputs** — the `Selection`, the paths of the roots through the
   shared `Settings` port, and the topic of each family through a port that
   `wio.rules` satisfies from its manifests.
@@ -62,7 +64,8 @@ flowchart LR
 
 The section built from a selection is the groups, the family lines and the
 rendered rules that the children specify, in one text, and an empty text when no
-rule is included.
+rule is included; the codes returned with it are those of the rules in the text,
+in the order of the text.
 
 #### Rules of different reach
 
@@ -73,7 +76,9 @@ rule is included.
   the topics `Process` for `FIX`, `Architecture` for `ARC` and `Python API` for
   `API`, the names and bodies shown below, and the default separator.
 - **When** the section is built.
-- **Then** it equals this text, the golden text of the integrated section, in
+- **Then** the codes are `process.FIX001`, `mattpocock.ARC001`,
+  `mattpocock.ARC002` and `python.API001`, and the text equals this text, the
+  golden text of the integrated section, in
   the provisional wording of the group lines, which is regenerated when that
   wording changes; the group lines, the family lines and the rules in it are
   specified by the children:

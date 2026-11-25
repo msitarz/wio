@@ -21,7 +21,7 @@ it is large.
 
 ## Non-Goals
 
-- Compiling the bundle, which the composition does.
+- Composing the bundle, which the Works under Bundle composition do.
 - Shortening a bundle that is large, which a project does with its rules.
 
 ## Assumptions
@@ -72,7 +72,8 @@ When the file cannot be written, the size warning is reported before the error.
 ### **AC-3** Several warnings come in one order
 
 The compiler's warnings come first, then the size warning, then the warning
-about a path inside the worktree.
+about a path inside the worktree, which is the order that
+[The wio context command](../the-wio-context-command/README.md) states.
 
 #### All three kinds
 

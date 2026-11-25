@@ -26,7 +26,9 @@ failures to exit codes.
 
 ## Non-Goals
 
-- Compiling the bundle, which the Works under Bundle composition do.
+- Composing the bundle, which the Works under Bundle composition do, and wiring
+  them to the compiler, which the integration stage of
+  [wio context](../README.md) does.
 - The option `--output`, the checks of the inputs and the `context` event, which
   their own Works add to this command.
 
@@ -40,8 +42,8 @@ that provides `describe()` and a command, and an entry of the table in
 
 ### A-2
 
-The compiler is a collaborator that the other Works provide, so the criteria
-here run the command with a fake of it, and its result carries what the Works
+The compiler is a collaborator, so the criteria of the command run it with a
+fake of it, and its result carries what the Works
 that deliver the bundle need: the text, the bundle id, the size of the body in
 UTF-8 bytes as an integer, the qualified code and the `rule_hash` of each
 included rule in the order of the bundle, and the warnings.
@@ -55,17 +57,26 @@ The names below are provisional, except the command and its three arguments.
   light.
 - **`Services`** — frozen, what the command reads the project and writes its
   results through, which the Works that add ports extend.
+- **The compiler** — provisional: the function that this Work builds, which runs
+  the checks that the Works of Check the inputs add, in the order they say, and
+  then asks a composition port for the bundle, and returns the compiler port's
+  result. The composition port is faked here and in the criteria of the checks
+  and is wired to the real composition by the integration stage of
+  [wio context](../README.md).
 - **The compiler port** — one call that takes the Work's id, the action and the
   stage, and returns a result that holds the text of the bundle, its id, the
   size of its body in UTF-8 bytes as an integer, the qualified code and the
-  `rule_hash` of each included rule in the order of the bundle, which the rules
-  section gives and a port wired to the selector hashes, and the warnings found
-  on the way; the Works that deliver the bundle and record the entry read the
-  id, the size and the rules from it.
+  `rule_hash` of each included rule in the order of the bundle, where the rules
+  section gives the qualified codes in the order it prints them and the hashes
+  come from `selected` of `RuleSelector` through a port of `wio.context`, which
+  the integration stage of [wio context](../README.md) declares, and the
+  warnings found on the way; the Works that deliver the bundle and record the
+  entry read the id, the size and the rules from it.
 - **A warning** — one line on standard error that begins `warning: `, which the
   command writes through `Stdio` for the compiler's warnings and for those of
-  the Works that deliver the bundle, in the order of the compiler's, then the
-  size, then the worktree path.
+  the Works that deliver the bundle and record the entry, in this order and
+  stated only here: the compiler's, the size, the worktree path, and then those
+  of the entry, the start, the dirty flag and the event log.
 - **The entry** — `component_entry("context", wire)` in `wio.cli.table`, whose
   `wire` builds `Services` with the adapters of `wio.io` and `wio.env`.
 
@@ -109,7 +120,21 @@ exception is exit 70.
 - **Then** the first prints `error: <message>` on standard error, nothing on
   standard output, and exits 2, and the second exits 70.
 
-### **AC-4** Describing is light and a run wires once
+### **AC-4** The compiler runs the checks before it composes
+
+The checks run in order, and the first that raises a `WioError` stops the run
+before the composition is asked.
+
+#### A failing check
+
+- **Given** a composition that records its calls and two checks, the first of
+  which raises a `WioError`.
+- **When** the compiler runs.
+- **Then** the error reaches the caller, the second check and the composition
+  were not called, and with passing checks the composition is called once and
+  its bundle is returned.
+
+### **AC-5** Describing is light and a run wires once
 
 Describing the command imports nothing under `wio.context` but its `__init__`,
 and the wiring runs only when the command runs.

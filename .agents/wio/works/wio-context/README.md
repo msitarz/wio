@@ -19,12 +19,14 @@ can tell what two sessions were given or compare their results.
   must produce, the Work's resolved contract and the rules that apply to it.
 - Two sessions given the same inputs can be shown to have seen the same context,
   because the bundle and its id are the same.
-- Any change to the goal, the contract, the rules or the skill's files shows in
-  the bundle id.
+- A change to the text of the goal, of the resolved contract, of the name or
+  body of a selected rule, or to a file of the stage's skill shows in the bundle
+  id.
 - A driver is told when a choice looks wrong, such as a stage outside the
   action's pipeline, and is never blocked by it.
-- An unknown Work, action, stage or root is refused, so a mistaken bundle is
-  never taken for success.
+- An unknown Work, action or stage, and an unknown root of a Work at a stage
+  that selects the Work's roots, is refused, so a mistaken bundle is never taken
+  for success.
 - A session can read the bundle from a file when its harness truncates long
   output.
 - Each stage entry is recorded, including the commit a gate's review starts
@@ -68,101 +70,74 @@ bundle to standard output.
 
 ### A-1
 
-`ContextEvent`, `EventSink` and the identification of the harness session in
-`wio.log` carry everything that a stage entry records, so `wio.log` needs no
-change but the move of the function that names a clone's key, which Write the
-bundle to a file declares.
-
-### A-2
-
-The `size` of the `context` event is the size of the body, the number that the
-header states.
-
-### A-3
-
-The reviewed-commit finder `reviewed_commit` of `wio.trailers` is reached by
-`wio.context` through a port that `wio.cli` wires to it, closing over the
-history and the reader, because `wio.context` may not import `wio.trailers`, and
-the finder itself is not changed, except as Record where a gate review starts
-says for a repository with no commit.
-
-### A-4
-
-The search for a skill that `wio.config` uses to check that a stage's skill
-exists can be shared by changing only who may call it.
-
-### A-5
-
-The effective pipeline of an action for a Work, with a stage preset expanded,
-can be had from `shown_actions` of `wio.contracts`, without computing it again.
-
-### A-6
-
-The resolved view of a Work already starts after the metadata block, so the
-contract section needs no stripping of its own.
-
-### A-7
-
-The hash of each rule's file that the event records is the `rule_hash` of
-`wio.formats`, the one that `wio trailers` cites.
-
-### A-8
-
-A `Selection` carries what the grouping of rules needs: whether each rule is
-included, its roots and whether its ruleset is root-independent.
-
-### A-9
-
 The goal or skill pointer, the contract section and the rules section can each
 be composed without the others, so that a bundle without a Work stays possible
 later.
 
-### A-10
+### A-2
 
 Where `docs/concepts.md` and `docs/v0.1-scope.md` differ, the concepts are
 right: the scope document says that `wio context` can explain why a rule was
 included, which the concepts give to `wio rules list --explain`, and the docs
-stage corrects it.
+stage corrects it. The children declare their other departures from the
+concepts, each in the Work that makes it: the metadata, the labels, the id and
+the fixed blank line in [Bundle composition](bundle-composition/README.md), the
+separator in
+[Rule rendering](bundle-composition/rules-section/rule-rendering/README.md), the
+size of the body in
+[Warn about an oversized bundle](delivery-of-the-bundle/warn-about-an-oversized-bundle/README.md)
+and the forms of `--output` in
+[Write the bundle to a file](delivery-of-the-bundle/write-the-bundle-to-a-file/README.md).
 
-### A-11
+### A-3
 
 For a Work with no roots at a stage that selects the Work's roots, a bundle with
-a warning is right where the concepts have the stage fail, as the
-`RuleSelection` port already says by giving such a Work a selection with no
-included rule, and the docs stage corrects the concepts.
+a warning is right where the concepts have the stage fail, and the docs stage
+corrects the concepts; [Warn about a Work with no
+roots](check-the-inputs/warn-about-a-work-with-no-roots/README.md) states the
+warning.
 
 ## Mechanisms
 
 The names of the ports, the types and the modules below are provisional, except
-the ones that `docs/concepts.md` already fixes: the command, the bundle's parts
-and the `context` event. The ports that `wio.context` declares are in
-`src/wio/context/ports.pyi`, which the architecture stage extends.
+the command and the `context` event, which `docs/concepts.md` fixes; the
+bundle's parts are as the children define them. The ports that `wio.context`
+declares are in `src/wio/context/ports.pyi`, which the architecture stages of
+the leaves extend, each for the port its Work adds.
 
 - **`wio.context` package** — the compiler of the bundle and the `wio context`
   command, built by the children below; it imports no other component.
 - **`Contracts` and `RuleSelection` ports** — in `src/wio/context/ports.pyi`,
   satisfied by `wio.contracts` and by `RuleSelector` of `wio.rules`; the
   stage-entry and input checks add ports of their own for what the other
-  children consume.
+  children consume. `Contracts` gives the resolved contract, which the selection
+  needs for the roots, and the text of the resolved view, so that `wio.context`
+  never lays the view out itself.
 - **`render_resolved`** — in `wio.contracts`, the one function that writes a
-  Work's resolved view, which the contract section embeds.
+  Work's resolved view; the provider of the `Contracts` port calls it, which
+  [Contract section](bundle-composition/contract-section/README.md) builds.
 - **`Selection` and `Decision`** — in `wio.models.rules`, what the rules section
   groups and prints.
 - **`ContextEvent` and `EventSink`** — in `wio.models.events` and `wio.ports`,
   what `Record a stage entry` writes.
 - **`reviewed_commit`** — in `wio.trailers`, which `Record where a gate review
   starts` reuses through a port.
-- **The skill search** — in `wio.config`, which `Skill lookup` reuses through a
-  port.
-- **`shown_actions`** — in `wio.contracts`, whose result the pipeline warning
-  reuses through a port.
-- **`rule_hash`** — in `wio.formats`, which hashes a rule's file.
-- **`Directories`** — in `wio.env`, which gives the temporary directory that
-  `--output` writes to.
-- **The compiler** — provisional: the function that the integration stage of
-  this Work builds, which calls the checks, `Contracts`, `RuleSelection` and the
-  lookup, counts the included rules, gives the assembly the closure that builds
-  the header, and hands the bundle to the delivery and the event.
+- **The skill search** — in `wio.config`, which `Skill lookup` makes reusable.
+- **The effective pipeline** — `WorkLookup.pipeline` of `wio.contracts`, which
+  the pipeline warning reuses through a port.
+- **`rule_hash`** — in `wio.formats`, which hashes a rule's file; the `selected`
+  method of `RuleSelector` gives each included rule's hash.
+- **`Directories`** — in `wio.env`, whose `temp_dir` gives the temporary
+  directory that `--output` writes to and which
+  [Write the bundle to a file](delivery-of-the-bundle/write-the-bundle-to-a-file/README.md)
+  implements.
+- **The compiler** — provisional, in layers: the command Work builds the
+  function that runs the checks and then asks a composition port for the bundle,
+  and returns the result that the command Work defines; the Works under Bundle
+  composition build the composition; the integration stage of this Work wires
+  the two, counts the included rules and gives the assembly the closure that
+  builds the header. The command, not the compiler, delivers the result and
+  writes the event.
 - **The `wio.cli` entry** — `component_entry("context", wire)`, built by the
   command child, which wires every port to its component.
 
@@ -170,45 +145,54 @@ and the `context` event. The ports that `wio.context` declares are in
 
 ### C-1
 
-`wio.context` depends only on the ports that it declares and the shared ones of
-`wio.ports`, and imports no adapter and no other component; `wio.cli` wires each
-port to the component on its other side. `uv run tach check` verifies it.
+`wio.context` depends only on the ports that it declares, the shared ones of
+`wio.ports`, `wio.io` and `wio.env`, and `wio.models`, `wio.formats` and
+`wio.errors`, and imports no adapter and no other component; `wio.cli` wires
+each port to the component on its other side. `uv run tach check` and the review
+of the imports verify it, because `docs/known-issues.md` says that `tach check`
+sometimes passes a forbidden import.
 
 ### C-2
 
 The command writes only the bundle, to standard output or to the file that
 `--output` names, and the `context` event, and nothing else in the worktree; a
 failure to write the event is a warning and never blocks, as `wio.log` states.
-AC-5 verifies that a refusal writes no event, and the unit tests of the
-children that write verify the rest on fakes of the ports.
+AC-5 verifies that a refusal writes no event, AC-8 verifies that a run leaves
+the worktree as it found it, and the criteria of Record a stage entry verify
+that a failed delivery writes no event and that a failed write of the event
+never blocks.
 
 ### C-3
 
-The exit codes are those of `wio`: 0 for success, warnings included, 2 for an
-error that the user must fix and 70 for a bug in wio. AC-4 and AC-5 verify them.
+The exit codes are those of `wio`, and `context` uses no 1: 0 for success,
+warnings included, 2 for an error that the user must fix and 70 for a bug in
+wio. AC-4 and AC-5 verify 0 and 2, and AC-3 of
+[The wio context command](the-wio-context-command/README.md) verifies 70.
 
 ### C-4
 
-The output is deterministic: it holds no timestamp and no path of the machine
+The bundle is deterministic: it holds no timestamp and no path of the machine
 that ran it, and its order depends on no hash and on no order of the config's
 tables. AC-2 verifies it with golden files.
 
 ### C-5
 
-The contract section is the text of `render_resolved`, the selection is the one
-that `wio rules list` shows for the same Work and stage, and the three reuses of
-A-3, A-4 and A-5 leave the output of their owners unchanged: the existing tests
-of `wio.config`, `wio.trailers`, `wio.contracts` and `wio.io` pass without a
-change, except that a repository with no commit gives an empty history, as
-Record where a gate review starts says.
+The selection is the one that `wio rules list` shows for the same Work and
+stage, which AC-9 verifies. The reuses leave the output of their owners
+unchanged, as their Works state: the existing tests of `wio.config`,
+`wio.contracts`, `wio.io`, `wio.env`, `wio.log` and `wio.rules` pass, changed
+only where a Work names the change, such as the test of `wio.env` that expects
+`temp_dir` to raise, the key of a clone that moves, and the empty history of a
+repository with no commit that Record where a gate review starts gives.
 
 ### C-6
 
 A normal run loads only the modules that it needs. This is a qualitative
 requirement, verified by the Work itself with an integration test in a fresh
 interpreter that lists the modules a run must not import, as the one for
-`wio contracts show` does; the architecture stage names them. No criterion of
-this parent claims it.
+`wio contracts show` does; the architecture stage of
+[The wio context command](the-wio-context-command/README.md) names them. No
+criterion of this parent claims it.
 
 ## Visuals
 
@@ -219,7 +203,7 @@ what the Work changes.
 
 `wio.cli` has no `context` entry, and `wio.context` holds only the stubs of two
 ports that nothing satisfies. `wio.contracts`, `wio.rules` and `wio.log` already
-provide what a bundle is made of.
+provide what a bundle is made of, and `temp_dir` of `wio.env` raises.
 
 ```mermaid
 flowchart LR
@@ -227,7 +211,7 @@ flowchart LR
     ctx["wio.context: ports.pyi only"]
     contracts["wio.contracts: resolved view"]
     rules["wio.rules: RuleSelector"]
-    log["wio.log: ContextEvent, EventSink"]
+    log["wio.log: LogSink"]
     cli -. "no entry" .-> ctx
     ctx -. "Contracts port, no provider" .-> contracts
     ctx -. "RuleSelection port, no provider" .-> rules
@@ -250,19 +234,20 @@ flowchart LR
         entry["stage-entry event"]
     end
     cli["wio.cli: wires the ports (changed)"]
-    contracts["wio.contracts: resolved view, pipeline (changed)"]
-    rules["wio.rules: RuleSelector"]
+    contracts["wio.contracts: resolved view, pipeline, roots"]
+    rules["wio.rules: RuleSelector, topics (changed)"]
     config["wio.config: skill search (changed)"]
-    trailers["wio.trailers: reviewed_commit (changed)"]
-    log["wio.log: EventSink"]
-    env["wio.env: Directories"]
-    checks --> compose --> deliver
-    compose --> entry
+    trailers["wio.trailers: reviewed_commit"]
+    io["wio.io: first_parents (changed)"]
+    log["wio.log: LogSink, key of a clone (changed)"]
+    env["wio.env: Directories.temp_dir (changed)"]
+    checks --> compose --> deliver --> entry
     cli -. "wires" .-> context
-    context -. "Contracts, pipeline" .-> contracts
-    context -. "RuleSelection" .-> rules
+    context -. "Contracts, pipeline, roots" .-> contracts
+    context -. "RuleSelection, topics, hashes" .-> rules
     context -. "skill lookup" .-> config
     context -. "reviewed commit" .-> trailers
+    trailers -. "history" .-> io
     entry -. "EventSink" .-> log
     deliver -. "temporary directory" .-> env
 ```
@@ -306,46 +291,53 @@ the same bundle id.
 
 ### **AC-3** A change to any input shows in the bundle id
 
-Changing the stage's goal, the Work's contract, the file of a selected rule or a
-file of the stage's skill gives a different bundle id, and changing only the
-invocation does not.
+Changing the text of the stage's goal, of the Work's resolved contract or of a
+selected rule's name or body, or a file of the stage's skill, gives a different
+bundle id, and changing only where the bundle goes does not.
 
 #### Four changes and one that is not
 
-- **Given** the bundle of AC-1 and its id.
-- **When** the goal, the contract, a selected rule's file and a file of the
-  skill are changed one at a time, and then the command runs with `--output`.
-- **Then** each of the four changes gives an id that differs from the first, and
-  the run with `--output` gives the first id.
+- **Given** the bundle of AC-1 and its id, and the bundle of the same Work at a
+  stage with a skill and its id.
+- **When** the goal, the contract and a selected rule's body are changed one at
+  a time in the first, a file of the skill is changed in the second, and then
+  the command runs with `--output`.
+- **Then** each of the four changes gives an id that differs from that of its
+  bundle before the change, and the run with `--output` gives the first id.
 
 ### **AC-4** A questionable choice never blocks
 
 A stage outside the action's pipeline, a Work with no roots at a stage that
 selects the Work's roots and a bundle over the configured size each give a
-warning, the same bundle bytes as without the warning, and exit 0.
+warning on standard error, the bundle on standard output, and exit 0.
 
 #### Three warnings
 
 - **Given** a Work and a stage that is outside its action's pipeline, a Work
   with no roots at a stage that selects the Work's roots, and a size threshold
   below the size of a bundle.
-- **When** `wio context` runs for each.
-- **Then** each prints a warning and the bundle, the bundle of each is the one
-  that the same inputs give without the cause of the warning, where only the
-  Work, the stage or the threshold differs, and the exit code is 0.
+- **When** `wio context` runs for each, and for the last again without the
+  threshold.
+- **Then** each prints a warning on standard error and the bundle on standard
+  output, the exit code is 0, and the bundle printed with the threshold equals
+  the one printed without it.
 
 ### **AC-5** An unknown input produces no bundle
 
-An unknown Work, action, stage or root exits 2, prints no bundle on standard
-output and records no event.
+An unknown Work, action or stage, and an unknown root of a Work at a stage that
+selects the Work's roots, exit 2, print no bundle on standard output and record
+no event.
 
 #### Four unknowns
 
 - **Given** a repository and the id of no Work, the name of no action, the name
-  of no stage and a Work whose `roots` list the name of no root.
+  of no stage and a Work whose `roots` list the name of no root, run at a stage
+  that selects the Work's roots.
 - **When** `wio context` runs for each.
 - **Then** each exits 2 with no bundle on standard output, and the event log
-  holds no new `context` event.
+  holds no new `context` event; the case of a stage with roots of its own, which
+  gets its bundle, is AC-4 of
+  [Refuse an unknown action, stage or root](check-the-inputs/refuse-an-unknown-action-stage-or-root/README.md).
 
 ### **AC-6** A file holds the same bundle
 
@@ -355,24 +347,55 @@ same inputs, and the command prints where it wrote them.
 #### Default and given path
 
 - **Given** the Work, action and stage of AC-1.
-- **When** `wio context --output` and `wio context --output <path>` run.
+- **When** `wio context <work> <action> <stage> --output` and the same with
+  `--output <path>` run.
 - **Then** each prints its path, and the file at each holds the bytes of the
   golden file of AC-2.
 
 ### **AC-7** A stage entry is recorded
 
 A run records one `context` event whose bundle id is the one in the metadata,
-and for a gate stage the event also holds the commit the review starts from and
-whether the tree was dirty.
+whose `rules` are the rules printed in the bundle, in the order printed, each
+with the hash of its file, and for a gate stage the event also holds the commit
+the review starts from, when the repository has one, and whether the tree was
+dirty.
 
 #### A stage and a gate
 
 - **Given** a repository with a commit, a stage and a gate stage of an action of
-  a Work.
+  a Work, each selecting two rules from real rule files.
 - **When** `wio context` runs for each.
 - **Then** the log holds one event for each whose bundle id equals the id in
-  that run's metadata, the gate's event holds the commit and the dirty flag, and
-  the other event holds neither.
+  that run's metadata, whose `rules` hold the qualified codes in the order that
+  the bundle prints them, each with the `rule_hash` of its file, the gate's
+  event holds the commit and the dirty flag, and the other event holds neither.
+
+### **AC-8** A run leaves the worktree as it found it
+
+A run without `--output` changes no file of the worktree, and a run with
+`--output` changes only the file it names.
+
+#### Before and after
+
+- **Given** a repository with a Work and a stage, and a snapshot of the files of
+  its worktree.
+- **When** `wio context` runs without `--output`, and then with `--output` and a
+  path outside the worktree.
+- **Then** the snapshot after each run equals the first, and the second run
+  wrote its file outside the worktree.
+
+### **AC-9** The rules are those that `wio rules list` shows
+
+The rules printed in the bundle are the included rules that `wio rules list`
+shows for the same Work and stage, in the same count.
+
+#### The same selection
+
+- **Given** a repository with a Work, a stage and rulesets that include, exclude
+  and leave out rules.
+- **When** `wio rules list` and `wio context` run for that Work and stage.
+- **Then** the qualified codes in the bundle's rules section are exactly the
+  included ones of the list, each once.
 
 ## Additional context
 
@@ -383,10 +406,11 @@ whether the tree was dirty.
 - `src/wio/context/ports.pyi` already declares `Contracts.resolved` and
   `RuleSelection.select`. `RuleSelector` of `wio.rules` satisfies the second and
   gives a Work with no roots a selection with no included rule, which is why
-  A-11 makes the warning the way to say it.
-- `wio.trailers` finds the reviewed commit with `reviewed_commit(action, stage,
-  history, reader)`, and `wio trailers --result` compares it with the start that
-  the `context` event of the gate records.
+  A-3 makes the warning the way to say it.
+- `wio.trailers` finds the reviewed commit with
+  `reviewed_commit(action, stage, history, reader)`; a later form of
+  `wio trailers --result` will compare it with the start that the `context`
+  event of the gate records.
 - A bundle without a Work would reuse the rules section and the closing line,
-  which is the reason for A-9 and for keeping the canonical command the request
-  as parsed.
+  which is the reason for A-1 and for keeping the canonical command the one as
+  parsed.

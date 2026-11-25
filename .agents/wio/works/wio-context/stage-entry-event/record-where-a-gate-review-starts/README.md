@@ -37,7 +37,8 @@ from and whether the tree had uncommitted changes.
 The finder `reviewed_commit` of `wio.trailers` is reached through a port of
 `wio.context`, provisional, in `src/wio/context/ports.pyi`, that `wio.cli` wires
 to it and that closes over the history and the reader, because `wio.context` may
-not import `wio.trailers`, as A-3 of [wio context](../../README.md) says.
+not import `wio.trailers`, and `wio.cli`'s wiring closes the port over the
+history and the reader.
 
 ### A-2
 
@@ -55,7 +56,8 @@ corrupt, so that `symbolic-ref` exits 128. A `.git/HEAD` that git cannot read
 makes git say that the directory is not a repository, which raises
 `RuntimeError` as for any other use outside a repository. The docstrings of
 `src/wio/io/ports.pyi` and `src/wio/io/adapters.py` and the `wio.io` README
-state the new case, and C-5 of the top Work names it as its one exception.
+state the new case, and C-5 of [wio context](../../README.md) names it as an
+exception.
 
 ### A-3
 

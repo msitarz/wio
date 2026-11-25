@@ -35,10 +35,12 @@ Work must not block a session, but a mistaken pair, such as `deliver` with
 ### A-1
 
 The effective pipeline of an action for a Work, with a stage preset already
-expanded into its stages, can be had from `shown_actions` and `ShownAction` of
-`wio.contracts`, which `wio contracts show` uses, so that `wio context` cannot
-disagree with it about where a pipeline comes from, and the warning that a Work
-has no pipeline for the action is the one that `wio trailers` already gives.
+expanded into its stages, can be had from `WorkLookup.pipeline` of
+`wio.contracts`, which `wio trailers` uses for the same warning and which gives
+`None` when the action is absent or removed or the preset is undeclared, so that
+`wio context` cannot disagree with it about where a pipeline comes from, and the
+warning that a Work has no pipeline for the action is the one that
+`wio trailers` already gives.
 
 ### A-2
 
@@ -50,8 +52,8 @@ preset.
 ## Mechanisms
 
 - **The pipeline port** — in `src/wio/context/ports.pyi`, provisional, satisfied
-  by `wio.contracts` from `shown_actions`, which gives each action of a Work
-  with its stages.
+  by `wio.contracts` from `WorkLookup.pipeline`, which gives the stages of one
+  action of a Work.
 
 ## Acceptance criteria
 

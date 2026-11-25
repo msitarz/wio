@@ -50,7 +50,7 @@ read.
 A gate stage's run writes one `context` event that carries both the fields of a
 stage entry and the start commit and the dirty flag, not two events; it adds
 only that the entry and the start are one event, and the fields are those that
-AC-7 of [wio context](../README.md) states.
+Record a stage entry writes for every stage.
 
 #### A gate
 

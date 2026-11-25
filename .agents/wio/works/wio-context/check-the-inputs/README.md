@@ -45,15 +45,20 @@ and the Work's roots that a stage does not select play no part, as in
 The name below is provisional.
 
 - **The roots port** — in `src/wio/context/ports.pyi`, satisfied by
-  `wio.contracts`, which gives the roots of a Work with `@descendants` expanded
-  and each name once; the refusal of an unknown root and the warning about a
-  Work with no roots read the roots through it, and no child delivers it, so the
-  architecture stage owns it.
-- **The checks and the composition** — provisional: the checks run before the
-  bundle is composed, so a fake of the composition leaves them real, and the
-  criteria of this group and its children run with the composition faked; the
-  action, the stage and the root are checked before the rule selection is asked,
-  because `RuleSelector` judges the rules first and here they are judged last.
+  `WorkLookup.roots_of` of `wio.contracts`, which gives the roots of a Work with
+  `@descendants` expanded and each name once, so the port is only a declaration;
+  the refusal of an unknown root and the warning about a Work with no roots read
+  the roots through it, and the architecture stage of
+  [Refuse an unknown action, stage or root](refuse-an-unknown-action-stage-or-root/README.md)
+  declares it.
+- **The checks and the composition** — provisional: each leaf adds its check to
+  the compiler that
+  [The wio context command](../the-wio-context-command/README.md) builds, which
+  runs the checks before it asks for the composition, so a fake of the
+  composition leaves them real, and the criteria of this group and its children
+  run with the composition faked; the action, the stage and the root are checked
+  before the rule selection is asked, because `RuleSelector` judges the rules
+  first and here they are judged last.
 
 ## Visuals
 

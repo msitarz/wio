@@ -22,7 +22,9 @@ commands cannot show different contracts.
 
 ## Non-Goals
 
-- Laying out the resolved view, which `wio.contracts` does.
+- Laying out the resolved view, which `render_resolved` of `wio.contracts` does,
+  and which `wio.context` cannot do itself, because it may not import that
+  component.
 - Judging the contract, which `wio contracts check` does.
 
 ## Assumptions
@@ -36,8 +38,14 @@ needs no stripping of its own.
 ## Mechanisms
 
 - **`render_resolved`** — in `wio.contracts`, the one function that writes the
-  resolved view, which this section calls and does not copy.
-- **The `Contracts` port** — gives the resolved contract of a Work.
+  resolved view, which the provider of the port calls and nothing copies.
+- **The `Contracts` port** — in `src/wio/context/ports.pyi`: `resolved` gives
+  the resolved contract of a Work, which the rule selection needs, and a second
+  method gives the text of its resolved view. This Work builds the provider in
+  `wio.contracts`, which finds the Work in the hierarchy and resolves it as
+  `wio contracts show` does with `resolve_work`, and returns the text of
+  `render_resolved` for the second method, so that the section is that text
+  taken as it is.
 
 ## Acceptance criteria
 

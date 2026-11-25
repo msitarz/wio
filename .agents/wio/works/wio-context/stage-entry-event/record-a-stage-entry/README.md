@@ -33,15 +33,18 @@ it gave and which rules it contained.
 ### A-1
 
 `ContextEvent`, `EventSink` and the identification of the harness session in
-`wio.log` carry everything that a stage entry records, as A-1 of
-[wio context](../../README.md) says, and the `size` of `ContextEvent`, which its
-docstring calls "the length of the bundle in bytes", is the size of the body, as
-A-2 of that Work says, so the docstring is corrected with this Work.
+`wio.log` carry everything that a stage entry records, so `wio.log` needs no
+change but the move of the function that names a clone's key, which
+[Write the bundle to a file](../../delivery-of-the-bundle/write-the-bundle-to-a-file/README.md)
+declares, and the `size` of `ContextEvent`, which its docstring calls "the
+length of the bundle in bytes", is the size of the body, the number that the
+header states, so the docstring is corrected with this Work.
 
 ### A-2
 
 The compiler result carries the qualified code and the `rule_hash` of each
-included rule in the order of the bundle, as the command Work says, so this Work
+included rule in the order of the bundle, as the command Work says, and the
+compiler hashes the files through `selected` of `RuleSelector`, so this Work
 reads no rule file.
 
 ### A-3
@@ -107,7 +110,8 @@ The event of a stage that is not a gate holds no start commit and no dirty flag.
 ### **AC-4** A failure to write never blocks
 
 When the event cannot be written, the command warns, prints the bundle and exits
-0, which verifies C-2 of the top Work.
+0, which verifies the failure to write the event in C-2 of
+[wio context](../../README.md).
 
 #### An unwritable log, and a log that cannot be located
 

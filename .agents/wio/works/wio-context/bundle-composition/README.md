@@ -74,8 +74,8 @@ The names below are provisional.
   identity, the header and the assembly** — the seven Works below, each building
   one part of the bundle or one fact that the header states.
 - **`wio.context`** — the package that holds them, which imports no other
-  component; the compiler that calls them is built by the integration stage of
-  the top Work.
+  component; the compiler that calls them is built by the command Work, and the
+  integration stage of [wio context](../README.md) wires it to them.
 
 ## Visuals
 
