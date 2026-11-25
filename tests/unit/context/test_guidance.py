@@ -86,3 +86,27 @@ def test_guidance_points_to_the_found_skill(
         f"`{shown_directory}/SKILL.md` and follow it; "
         "its other files are in the same directory."
     )
+
+
+def test_guidance_requires_a_lookup_result_for_a_skill_stage() -> None:
+    """Raise a clear error when the caller omits the resolved skill.
+
+    The stage names a skill, so the guidance requires the caller's lookup
+    result to locate its procedure.
+    """
+    # Given a stage that names a skill
+    settings = Mock()
+    settings.load.return_value = Config(
+        stages=freeze({"define": Stage(skill="wio-define")})
+    )
+
+    # When guidance is requested without a lookup result
+    with pytest.raises(
+        ValueError, match="requires a configured and resolved skill"
+    ) as error:
+        stage_guidance(settings, "define", None)
+
+    # Then the error names the stage that needs a resolved skill
+    assert (
+        str(error.value) == "Stage `define` requires a configured and resolved skill."
+    )
