@@ -94,8 +94,7 @@ holds `<name>/SKILL.md` is the skill's.
 
 A directory that has no `SKILL.md`, a skill that is only in the user's home, a
 skill under a path with a fault, and a name that is empty, `.`, `..` or holds
-`/` give `None`, in a lookup whose settings give it the config; settings that
-refuse a config with an error end the lookup with that error before it answers.
+`/` give `None`.
 
 #### A directory without `SKILL.md`, and a skill only in the home
 
@@ -155,7 +154,7 @@ The directory of the skill is returned relative to the repository root and with
 ### **AC-5** The lookup and the check agree
 
 A skill that `wio config check` accepts for a stage is found, and a skill that
-it rejects is not, in a lookup whose settings give it the config, as AC-2 says.
+it rejects is not.
 
 #### A stage with a skill and one without
 
