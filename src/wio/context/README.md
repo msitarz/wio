@@ -5,8 +5,9 @@ before it starts a stage of a Work.
 [The context compiler](../../../docs/concepts.md#11-the-context-compiler) says
 what a [bundle](../../../GLOSSARY.md) holds and which properties it keeps.
 
-Today the directory holds the shell of the command and the bundle id: it has no
-check of its inputs and no composition of the bundle, so a run is refused, as
+Today the directory holds the shell of the command, the bundle id and the
+header: it has no check of its inputs and no composition of the bundle, so a run
+is refused, as
 [`wio.cli`](../cli/README.md#the-table-of-commands) describes. Its terms are
 those of the [repository glossary](../../../GLOSSARY.md).
 
@@ -44,3 +45,17 @@ The docstrings of [the package](__init__.py),
   a hash of them in the header.
 - **The id has one length for every stage** and is kept short, as
   [the concepts](../../../docs/concepts.md#11-the-context-compiler) ask.
+
+## The header
+
+[`header`](heading.py) writes the first lines a session reads, its docstring
+says what they state, and its
+[tests](../../../tests/unit/context/test_heading.py) show the wording.
+
+- **The Work, the action and the stage come first,** so a session that was
+  given the wrong stage is caught by reading the top.
+- **The command is the one that gives this bundle again,** so it leaves out an
+  option that only changes where the bundle goes.
+- **It looks nothing up.** The caller supplies the counts, the sizes and where
+  a skill was found, so what the header says agrees with the rest of the
+  bundle by having one source.

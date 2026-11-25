@@ -1,0 +1,182 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Tests of the header of a bundle."""
+
+import pytest
+
+from wio.context import header
+from wio.models.config import Stage
+
+_HASH = "1a47c19b09044a025c5c5b147b88adffccd800023e4e1c1ee70c730329c16fe2"
+_SKILL = ("wio-define", ".agents/skills/wio-define", _HASH)
+
+
+def _header(
+    stage: Stage,
+    *,
+    title: str | None = "Demo",
+    rules: int = 3,
+    skill: tuple[str, str, str] | None = None,
+) -> str:
+    """Build the header of `k3m9xq` at `deliver` and `architecture`.
+
+    Args:
+        stage: The stage's settings.
+        title: The Work's title.
+        rules: The number of rules.
+        skill: The skill, if the stage has one.
+
+    Returns:
+        The header.
+    """
+    return header(
+        "k3m9xq", title, "deliver", "architecture", stage, rules, 1234, 56, skill
+    )
+
+
+def test_a_fresh_gate_that_a_person_judges() -> None:
+    """AC-1, AC-2, AC-3: every line of a header, in order."""
+    # Given a stage that is a gate with a person as judge and a fresh session
+    stage = Stage(goal="Judge.", gate=True, judge="human", session="fresh")
+
+    # When the header is built
+    text = _header(stage)
+
+    # Then it names the Work, action and stage first and states the rest
+    assert text.split("\n") == [
+        "work: k3m9xq (Demo)",
+        "action: deliver",
+        "stage: architecture",
+        "gate: yes, judged by a person",
+        "session: fresh",
+        "rules: 3",
+        "size: 1234 bytes, 56 lines (body)",
+        "command: wio context k3m9xq deliver architecture",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("stage", "gate", "session"),
+    [
+        (
+            Stage(goal="Do.", continuable=False),
+            "gate: no",
+            "session: any, do not continue it",
+        ),
+        (Stage(goal="Do.", judge="human"), "gate: no", "session: any"),
+        (Stage(goal="Do.", gate=True), "gate: yes", "session: any"),
+        (
+            Stage(goal="Do.", session="fresh", continuable=False),
+            "gate: no",
+            "session: fresh, do not continue it",
+        ),
+        (
+            Stage(goal="J.", gate=True, session="fresh", continuable=False),
+            "gate: yes",
+            "session: fresh, do not continue it",
+        ),
+    ],
+    ids=[
+        "not-continuable",
+        "judge-without-gate",
+        "agent-gate",
+        "fresh-and-single",
+        "single-gate",
+    ],
+)
+def test_the_gate_and_session_lines(stage: Stage, gate: str, session: str) -> None:
+    """AC-1: only a gate says who judges, and the session advice is given."""
+    # Given the stage
+
+    # When the header is built
+    lines = _header(stage).split("\n")
+
+    # Then the gate and session lines say what the stage is
+    assert lines[3:5] == [gate, session]
+
+
+def test_a_work_with_no_title_is_named_by_its_id_alone() -> None:
+    """AC-1: no empty parentheses."""
+    # Given a Work with no title
+
+    # When the header is built
+    lines = _header(Stage(goal="Do."), title=None).split("\n")
+
+    # Then the first line holds the id alone
+    assert lines[0] == "work: k3m9xq"
+
+
+def test_a_bundle_with_no_rule_says_so() -> None:
+    """AC-2: zero rules is stated."""
+    # Given no rule
+
+    # When the header is built
+    text = _header(Stage(goal="Do."), rules=0)
+
+    # Then it states zero
+    assert "rules: 0" in text.split("\n")
+
+
+def test_a_stage_with_a_skill_names_where_it_was_found() -> None:
+    """AC-4: the skill, its directory and its hash, and no such line for a goal."""
+    # Given a stage with a skill and one with a goal
+
+    # When the header is built for each
+    with_skill = _header(Stage(skill="wio-define"), skill=_SKILL).split("\n")
+    with_goal = _header(Stage(goal="Do.")).split("\n")
+
+    # Then only the first has the skill line, after the command
+    assert with_skill[-1] == (
+        f"skill: wio-define (.agents/skills/wio-define, files {_HASH})"
+    )
+    assert with_skill[:-1] == with_goal
+
+
+_KINDS = {
+    "fresh-human-gate": Stage(goal="J.", gate=True, judge="human", session="fresh"),
+    "agent-gate": Stage(goal="J.", gate=True),
+    "plain": Stage(goal="Do."),
+    "judge-without-gate": Stage(goal="Do.", judge="human"),
+    "not-continuable": Stage(goal="Do.", continuable=False),
+    "fresh": Stage(goal="Do.", session="fresh"),
+    "fresh-and-single": Stage(goal="Do.", session="fresh", continuable=False),
+}
+"""One stage of every kind that AC-1 to AC-4 name."""
+
+
+@pytest.mark.parametrize("rules", [3, 0])
+@pytest.mark.parametrize("skill", [None, _SKILL], ids=["goal", "skill"])
+@pytest.mark.parametrize("title", ["Demo", None], ids=["titled", "untitled"])
+@pytest.mark.parametrize("stage", _KINDS.values(), ids=_KINDS.keys())
+def test_the_header_is_one_block(
+    stage: Stage, title: str | None, skill: tuple[str, str, str] | None, rules: int
+) -> None:
+    """AC-5: no blank line and no newline at the end."""
+    # Given a header of every kind
+
+    # When it is built
+    lines = _header(stage, title=title, skill=skill, rules=rules).split("\n")
+
+    # Then it has no empty line, which also says it does not end with a newline,
+    # and it has a line for each fact
+    assert "" not in lines
+    assert len(lines) == (8 if skill is None else 9)
+
+
+def test_the_command_and_the_skill_state_what_they_are_given() -> None:
+    """AC-2, AC-3, AC-4: other facts and another directory are stated as given."""
+    # Given another Work, action and stage, and a skill of a configured directory
+    skill = ("review", "tools/skills/review", "0f0f")
+
+    # When the header is built
+    text = header(
+        "a7b2c4", None, "define", "review", Stage(skill="review"), 1, 2, 3, skill
+    )
+
+    # Then the lines state those
+    lines = text.split("\n")
+    assert lines[:3] == ["work: a7b2c4", "action: define", "stage: review"]
+    assert lines[5:7] == ["rules: 1", "size: 2 bytes, 3 lines (body)"]
+    assert lines[-2:] == [
+        "command: wio context a7b2c4 define review",
+        "skill: review (tools/skills/review, files 0f0f)",
+    ]
