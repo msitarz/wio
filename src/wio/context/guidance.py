@@ -31,5 +31,16 @@ def stage_guidance(
     Raises:
         ConfigurationError: The config cannot be loaded.
         KeyError: The config does not declare the stage.
+        ValueError: A stage without a goal lacks a skill name or lookup result.
     """
-    raise NotImplementedError
+    stage = settings.load().stages[stage_name]
+    if stage.goal is not None:
+        return stage.goal
+    if stage.skill is None or skill is None:
+        message = f"Stage `{stage_name}` requires a configured and resolved skill."
+        raise ValueError(message)
+    return (
+        f"This stage's procedure is the skill `{stage.skill}`. Read "
+        f"`{skill.directory}/SKILL.md` and follow it; "
+        "its other files are in the same directory."
+    )

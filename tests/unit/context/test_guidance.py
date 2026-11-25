@@ -14,7 +14,6 @@ from wio.models.frozen import freeze
 from wio.models.skill import FoundSkill
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 @pytest.mark.parametrize("goal", ["  Read the contract.\nWrite the tests.\n", ""])
 def test_guidance_preserves_the_goal(goal: str) -> None:
     """Give the session the goal exactly as written in the config.
@@ -33,7 +32,6 @@ def test_guidance_preserves_the_goal(goal: str) -> None:
     assert guidance == goal
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 @pytest.mark.parametrize(
     ("name", "directory"),
     [
