@@ -70,3 +70,14 @@ items of the rules section, their docstrings say how, and their
   rulesets can share.
 - **How a rule was selected never shows in its text,** because the session
   needs the rule, and `wio rules list --explain` answers the other question.
+
+## Ordering the rules
+
+[`order_rules`](ordering.py) orders the rules of one group and introduces each
+family, its docstring says how, and its
+[tests](../../../tests/unit/context/test_ordering.py) show each case.
+
+- **Only names decide the order,** so moving a rule between rule presets leaves
+  it where it was.
+- **The topic of a family comes through a [port](ports.pyi),** because a
+  selection holds rules and their decisions and no topic.

@@ -69,3 +69,22 @@ class Composer(Protocol):
             WioError: For what the user must fix before there is a bundle.
         """
         ...
+
+class Topics(Protocol):
+    """The topics that the rulesets declare for their families."""
+
+    def topic(self, ruleset: str, family: str) -> str:
+        """Give the topic of a family of a ruleset.
+
+        Args:
+            ruleset: The ruleset's canonical name.
+            family: The upper-case letters of the family.
+
+        Returns:
+            The topic that the ruleset's manifest declares for the family.
+
+        Raises:
+            KeyError: If no ruleset has that name, or its manifest declares no
+                such family, which no rule of a selection leads to.
+        """
+        ...
