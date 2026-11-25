@@ -7,6 +7,7 @@ satisfies each is wired in by `wio.cli`; `wio.context` never imports it.
 
 from typing import Protocol
 
+from wio.models.bundle import CompiledBundle
 from wio.models.resolved import ResolvedContract
 from wio.models.rules import Selection
 
@@ -47,5 +48,24 @@ class RuleSelection(Protocol):
 
         Raises:
             KeyError: If the stage or the Work is not known.
+        """
+        ...
+
+class Composer(Protocol):
+    """What composes the bundle of a Work at a stage of an action."""
+
+    def compose(self, work_id: str, action: str, stage: str) -> CompiledBundle:
+        """Compose the bundle.
+
+        Args:
+            work_id: The Work's id.
+            action: The name of the action.
+            stage: The name of the stage.
+
+        Returns:
+            The finished bundle.
+
+        Raises:
+            WioError: For what the user must fix before there is a bundle.
         """
         ...

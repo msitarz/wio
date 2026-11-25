@@ -142,6 +142,15 @@ def _rules() -> Command:
     return RulesCommand(RulesServices(settings, repository, files, environment, works))
 
 
+def _context() -> Command:
+    """Wire `wio context` to the project's ports.
+
+    Returns:
+        The command, which reads and writes the project through the adapters.
+    """
+    raise NotImplementedError
+
+
 def trailers_command(events: EventSink | None = None) -> Command:
     """Wire `wio trailers` to git, the contracts component and a sink.
 
