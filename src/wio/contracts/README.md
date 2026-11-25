@@ -476,9 +476,11 @@ docstrings there say each rule of the layout and of what an ancestor passes. The
 [Inheritance, computed](../../../docs/concepts.md#inheritance-computed) says
 what inherits and why.
 
-- **One function writes the text.** `wio contracts show` and the context bundle
-  print the same bytes because both call `render_resolved`, and the value holds
-  the parts and not the text so that neither can lay it out on its own.
+- **One function writes the text.** The provider for bundle composition uses
+  the same renderer and Work id lookup as `wio contracts show` so the two
+  views agree. Its interface keeps the resolved contract available for rule
+  selection and rendering from one read. [Provider](context_view.py) and
+  [tests](../../../tests/unit/contracts/test_showing.py).
 - **An inherited section is named by its ancestor.** It stands under a
   `## Inherited from:` heading and is demoted one level, so it can be neither
   mistaken for one of the Work's own sections nor read as one.
