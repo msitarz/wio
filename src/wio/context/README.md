@@ -5,8 +5,8 @@ before it starts a stage of a Work.
 [The context compiler](../../../docs/concepts.md#11-the-context-compiler) says
 what a [bundle](../../../GLOSSARY.md) holds and which properties it keeps.
 
-Today the directory holds the shell of the command: it has no check of its
-inputs and no composition of the bundle, so a run is refused, as
+Today the directory holds the shell of the command and the bundle id: it has no
+check of its inputs and no composition of the bundle, so a run is refused, as
 [`wio.cli`](../cli/README.md#the-table-of-commands) describes. Its terms are
 those of the [repository glossary](../../../GLOSSARY.md).
 
@@ -35,12 +35,12 @@ The docstrings of [the package](__init__.py),
 
 ## The bundle id
 
-[`bundle_id`](identity.py) names a bundle by its text, and its docstring says
-what it returns.
+[`bundle_id`](identity.py) names a bundle by its text, and its
+[tests](../../../tests/unit/context/test_identity.py) hold the known values.
 
-- **It hashes what it is given and reads nothing else,** so what an id covers is
-  decided where the text is built. A part that is not in the text, such as a
-  file of a skill, counts only through something written into the text, such as
-  a hash of the skill's files.
-- **The id has one length for every stage** and is short, because a person
-  compares it by eye between two sessions.
+- **What an id covers is decided where the text is built,** because the
+  function takes the text alone. A part that is not in the text counts only
+  through something written into it: the files of a skill are to count through
+  a hash of them in the header.
+- **The id has one length for every stage** and is kept short, as
+  [the concepts](../../../docs/concepts.md#11-the-context-compiler) ask.
