@@ -5,8 +5,8 @@ before it starts a stage of a Work.
 [The context compiler](../../../docs/concepts.md#11-the-context-compiler) says
 what a [bundle](../../../GLOSSARY.md) holds and which properties it keeps.
 
-Today the directory holds the shell of the command: it has no check of its
-inputs and no composition of the bundle, so a run is refused, as
+Today the directory holds the shell of the command and the bundle id: it has no
+check of its inputs and no composition of the bundle, so a run is refused, as
 [`wio.cli`](../cli/README.md#the-table-of-commands) describes. Its terms are
 those of the [repository glossary](../../../GLOSSARY.md).
 
@@ -32,3 +32,15 @@ The docstrings of [the package](__init__.py),
   composition port names it, and the
   [rule for port stubs](../../../tests/tooling/test_ports.py) lets none of them
   import from its own package.
+
+## The bundle id
+
+[`bundle_id`](identity.py) names a bundle by its text, and its
+[tests](../../../tests/unit/context/test_identity.py) hold the known values.
+
+- **What an id covers is decided where the text is built,** because the
+  function takes the text alone. A part that is not in the text counts only
+  through something written into it: the files of a skill are to count through
+  a hash of them in the header.
+- **The id has one length for every stage** and is kept short, as
+  [the concepts](../../../docs/concepts.md#11-the-context-compiler) ask.

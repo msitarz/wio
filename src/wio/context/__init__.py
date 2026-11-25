@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from wio.models.bundle import CompiledBundle
 lazy from wio.context.command import ContextCommand
 lazy from wio.context.compiler import Compiler
+lazy from wio.context.identity import bundle_id
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser
@@ -98,5 +99,6 @@ __all__ = [
     "ContextCommand",
     "ContextSpec",
     "Services",
+    "bundle_id",
     "describe",
 ]
