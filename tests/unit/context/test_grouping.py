@@ -185,3 +185,26 @@ def test_only_the_rules_that_apply_are_grouped() -> None:
     # Then there is no group, and then one that holds the included rule only
     assert without == ()
     assert with_one == [(_ONLY_API, ["IN001"])]
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError)
+def test_a_root_with_no_path_adds_none() -> None:
+    """AC-5: no parentheses when no root of the group has a path."""
+    # Given a root `api` with a path, roots `x` and `y` with none, and rules of
+    # `x` and `y`, of `x`, and of `api` and `x`
+    roots = {"api": _API, "x": Root(paths=()), "y": Root(paths=())}
+    selection: Selection = {
+        _rule("XY001"): _in("x", "y"),
+        _rule("X001"): _in("x"),
+        _rule("AX001"): _in("api", "x"),
+    }
+
+    # When the groups are built
+    found = _shown(group_rules(selection, roots))
+
+    # Then each line names its roots, with the paths of those that have one
+    assert found == [
+        ("Rules for roots api, x (services/api):", ["AX001"]),
+        ("Rules for root x:", ["X001"]),
+        ("Rules for roots x, y:", ["XY001"]),
+    ]

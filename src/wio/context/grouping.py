@@ -38,7 +38,10 @@ def group_rules(
     begins, so the order of the config never changes the result. Their lines are
     `Rules for root <name> (<paths>):` for one root and
     `Rules for roots <name>, <name> (<paths>):` for several, with the paths in
-    the order of the root names and, within a root, of the config.
+    the order of the root names and, within a root, of the config. A root may
+    have no path and then adds none; the line of a group whose roots have no path
+    names them alone, as `Rules for root <name>:` or
+    `Rules for roots <name>, <name>:`.
 
     Args:
         selection: The rules with their decisions, whose included rules name the
