@@ -2035,13 +2035,14 @@ Output, printed to the session:
 
 1. A header: the Work, the action, the stage, whether the stage is a gate, the
    session advice, the number of rules, the size of the bundle in bytes and
-   lines, a short bundle id, and the exact command that produced the bundle.
-   For a stage with a skill, it also names the directory the skill was found in
-   and a hash of the skill's files. The bundle id is a hash of the parts below
-   the header (the goal, the resolved contract and the rules) and of the skill's
+   lines, a short bundle id, and the exact command that produced the bundle. For
+   a stage with a skill, it also names the directory the skill was found in and
+   a hash of the skill's files. The bundle id is a hash of the parts below the
+   header (the goal, the resolved contract and the rules) and of the skill's
    files, so it does not depend on the header that contains it, on how wio was
    invoked or on `--output`, and it changes when the skill does. A skill's
-   references and scripts are part of its procedure, so all its files count.
+   references and scripts are part of its procedure, so all its files count, but
+   not a symbolic link among them.
 2. The stage's goal, or, for a stage with a skill, one fixed instruction to read
    it: "This stage's procedure is the skill `wio-define`. Read
    `.agents/skills/wio-define/SKILL.md` and follow it; its other files are in

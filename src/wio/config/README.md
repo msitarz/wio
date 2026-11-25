@@ -166,6 +166,23 @@ docstrings say what each check reports and where.
   machine. Other harnesses' directories are added through `[skills] paths`
   ([the stage](../../../docs/concepts.md#7-stage)).
 
+### Finding a skill
+
+[`RepositorySkills`](skills.py) gives `wio context` the directory of a stage's
+skill and a hash of its files. Its docstring says what is hashed, the
+[port](../context/ports.pyi) says what is found, and the
+[unit](../../../tests/unit/config/test_skills.py) and
+[disk](../../../tests/integration/config/test_skills.py) tests show each case.
+
+- **The check and the lookup share one search,** in [`paths.py`](paths.py), so a
+  skill that `wio config check` accepts is the skill that is found.
+- **Every regular file counts,** because a skill's references and scripts are
+  part of its procedure. So a skill's directory should hold only the skill's own
+  files: a stray one gives the same commit another hash on that machine.
+- **A symbolic link below the directory counts for nothing,** also a `SKILL.md`
+  that is one: such a skill is found, as the check accepts it, and the link is
+  left out of its hash.
+
 ### The rule selection checks
 
 [`selection.py`](selection.py) judges the references that the config makes to
