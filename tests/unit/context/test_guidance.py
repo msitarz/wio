@@ -33,13 +33,36 @@ def test_guidance_preserves_the_goal(goal: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("name", "directory"),
+    ("name", "directory", "shown_name", "shown_directory"),
     [
-        ("wio-define", ".agents/wio/skills/wio-define"),
-        ("review", "team/procedures/review"),
+        (
+            "wio-define",
+            ".agents/wio/skills/wio-define",
+            "wio-define",
+            ".agents/wio/skills/wio-define",
+        ),
+        ("review", "team/procedures/review", "review", "team/procedures/review"),
+        pytest.param(
+            "review\r\nnow",
+            "team\nskills/review\r\nnow",
+            r"review\r\nnow",
+            r"team\nskills/review\r\nnow",
+            id="line-breaks",
+            marks=pytest.mark.xfail(strict=True, raises=AssertionError),
+        ),
+        pytest.param(
+            r"review\r\nnow",
+            r"team\nskills/review\r\nnow",
+            r"review\\r\\nnow",
+            r"team\\nskills/review\\r\\nnow",
+            id="literal-backslashes",
+            marks=pytest.mark.xfail(strict=True, raises=AssertionError),
+        ),
     ],
 )
-def test_guidance_points_to_the_found_skill(name: str, directory: str) -> None:
+def test_guidance_points_to_the_found_skill(
+    name: str, directory: str, shown_name: str, shown_directory: str
+) -> None:
     """Direct the session to the named skill using the caller's lookup.
 
     The complete line is fixed and contains only the name and file location
@@ -48,6 +71,8 @@ def test_guidance_points_to_the_found_skill(name: str, directory: str) -> None:
     Args:
         name: The stage's configured skill.
         directory: The directory found by the caller.
+        shown_name: The skill name as it should appear in the guidance.
+        shown_directory: The directory as it should appear in the guidance.
     """
     # Given a stage with a skill found in a configured directory
     settings = Mock()
@@ -59,7 +84,7 @@ def test_guidance_points_to_the_found_skill(name: str, directory: str) -> None:
 
     # Then the guidance is exactly one instruction pointing to SKILL.md
     assert guidance == (
-        f"This stage's procedure is the skill `{name}`. Read "
-        f"`{directory}/SKILL.md` and follow it; "
+        f"This stage's procedure is the skill `{shown_name}`. Read "
+        f"`{shown_directory}/SKILL.md` and follow it; "
         "its other files are in the same directory."
     )
