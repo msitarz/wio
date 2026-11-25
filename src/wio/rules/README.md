@@ -8,7 +8,8 @@ rules that any include entry delivers, the roots of a stage and of a path, the
 errors of the references, the warnings of the selections and the bodies, the
 report of `wio rules check`, which joins them, and the selector that gives the
 rules of a stage to `wio trailers` and, once it exists, to `wio context`, and
-how these parts make one selection, the listing of `wio rules list` and its
+how these parts make one selection, the topics of the families for
+`wio context`, the listing of `wio rules list` and its
 narrowing and explanation, the planning and the creation of a rule for
 `wio rules new`, the finding and printing of one rule for `wio rules show`, and
 what holds for the four subcommands as a whole.
@@ -968,3 +969,9 @@ Its docstrings say what each method takes, returns and raises, and its
   other methods read only what the discovery reads. The action does not change
   which rules a stage selects, so `selected` takes it because its port does and
   does not read it.
+
+## The topics of the families
+
+[`RuleTopics`](topics.py) tells `wio context` the topic of a family, which a
+selection does not carry. Its docstring says what it reads and when, and its
+[tests](../../../tests/unit/rules/test_topics.py) show its answers.
