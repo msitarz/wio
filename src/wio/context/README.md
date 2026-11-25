@@ -70,8 +70,8 @@ says what they state, and its
 ## Stage guidance
 
 A stage that names a skill points to the procedure the harness can already
-load. Composition supplies the same skill lookup result to guidance and the
-header so both refer to the same skill. Escaping the displayed name and path
+load. The guidance builder accepts a skill lookup result from its caller so
+composition can share that result with the header. Escaping the name and path
 keeps the instruction on one line while preserving the characters a session
 needs to find the file. [Guidance builder](guidance.py) and
 [tests](../../../tests/unit/context/test_guidance.py).
