@@ -26,8 +26,10 @@ from wio.models.diagnostics import Diagnostic
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
+    from pathlib import Path
 
     from wio.config.checks import CheckInputs
+    from wio.io.ports import FileSystem
     from wio.models.config import Config
 
 _SKILL_DIRECTORIES = (".agents/skills", ".claude/skills")
@@ -138,6 +140,44 @@ def check_skills(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
             and not _found(skill, searched, inputs)
         ):
             yield _missing_skill(name, skill, searched)
+
+
+def searched_directories(skill_paths: Sequence[str]) -> list[str]:
+    """List the directories that a skill is looked for in, in order.
+
+    Args:
+        skill_paths: The paths of `[skills] paths`, as written.
+
+    Returns:
+        The paths without a fault, then `.agents/skills` and `.claude/skills`,
+        each once, relative to the repository root.
+    """
+    del skill_paths
+    raise NotImplementedError
+
+
+def skill_directory(
+    skill: str, searched: Sequence[str], root: Path, files: FileSystem
+) -> str | None:
+    """Find the directory that holds a skill's `SKILL.md`.
+
+    It asks the disk only whether a path exists, and looks nowhere but in
+    `searched` below `root`.
+
+    Args:
+        skill: The skill's name.
+        searched: The directories to look in, as `searched_directories` gives
+            them.
+        root: The repository root.
+        files: Tells whether a path exists.
+
+    Returns:
+        The first of `searched` that has `<skill>/SKILL.md`, or `None` when none
+        has, and without a lookup for a name that is empty, is `.` or `..` or
+        has a `/`.
+    """
+    del skill, searched, root, files
+    raise NotImplementedError
 
 
 def check_templates(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:

@@ -10,6 +10,7 @@ from typing import Protocol
 from wio.models.bundle import CompiledBundle
 from wio.models.resolved import ResolvedContract
 from wio.models.rules import Selection
+from wio.models.skill import FoundSkill
 
 class Contracts(Protocol):
     """The Work contracts that a bundle shows."""
@@ -86,5 +87,29 @@ class Topics(Protocol):
         Raises:
             KeyError: If no ruleset has that name, or its manifest declares no
                 such family, which no rule of a selection leads to.
+        """
+        ...
+
+class SkillLookup(Protocol):
+    """The skills of the repository that a stage can name."""
+
+    def find_skill(self, name: str) -> FoundSkill | None:
+        """Find a skill and hash its files.
+
+        It looks in `[skills] paths`, in their order, and then in
+        `.agents/skills` and `.claude/skills`, never in the user's home, and
+        finds a skill exactly when `wio config check` accepts it.
+
+        Args:
+            name: The skill's name, as a stage writes it.
+
+        Returns:
+            The first directory that holds `<name>/SKILL.md`, with the hash of
+            its files, or `None` when none does or the name is empty, `.`, `..`
+            or holds `/`.
+
+        Raises:
+            ConfigurationError: If the settings cannot be loaded.
+            OSError: If a file of the skill cannot be listed or read.
         """
         ...
