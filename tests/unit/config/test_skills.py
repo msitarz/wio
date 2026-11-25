@@ -15,7 +15,6 @@ from wio.models.config import Config, Skills, Stage
 from wio.models.frozen import freeze
 from wio.models.skill import FoundSkill
 
-_PENDING = pytest.mark.xfail(strict=True, raises=NotImplementedError)
 _SKILL = ".agents/skills/wio-define"
 
 
@@ -83,7 +82,6 @@ def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-@_PENDING
 @pytest.mark.parametrize(
     ("paths", "present", "expected"),
     [
@@ -114,7 +112,6 @@ def test_the_first_match_wins_in_the_documented_order(
     assert found.directory == expected
 
 
-@_PENDING
 def test_a_directory_without_the_skill_file_does_not_end_the_search() -> None:
     """AC-1: the default directories are searched after the configured ones."""
     # Given a configured directory whose `wio-define` has no `SKILL.md`, and the
@@ -129,7 +126,6 @@ def test_a_directory_without_the_skill_file_does_not_end_the_search() -> None:
     assert found.directory == _SKILL
 
 
-@_PENDING
 @pytest.mark.parametrize(
     ("name", "paths", "path"),
     [
@@ -156,7 +152,6 @@ def test_what_is_not_a_skill_is_not_found(
     assert found is None
 
 
-@_PENDING
 def test_the_hash_is_of_the_paths_and_the_bytes() -> None:
     """AC-3: the bytes that the contract fixes."""
     # Given a skill with two files
@@ -171,7 +166,6 @@ def test_the_hash_is_of_the_paths_and_the_bytes() -> None:
     )
 
 
-@_PENDING
 def test_the_files_are_hashed_in_the_order_of_their_path_bytes() -> None:
     """AC-3: not in the order that a walk of the tree meets them."""
     # Given files whose order by directory differs from their order by path
@@ -187,7 +181,6 @@ def test_the_files_are_hashed_in_the_order_of_their_path_bytes() -> None:
     assert found.files_hash == _sha(b"SKILL.md\0s\0a-b\x002\0a/c\x001\0")
 
 
-@_PENDING
 def test_hidden_files_and_directories_count() -> None:
     """AC-3: every file, whatever its name."""
     # Given a skill with a hidden file and a file in a hidden directory
@@ -203,7 +196,6 @@ def test_hidden_files_and_directories_count() -> None:
     assert found.files_hash == _sha(b".d/f\0f\0.env\0e\0SKILL.md\0s\0")
 
 
-@_PENDING
 def test_a_symbolic_link_adds_nothing() -> None:
     """AC-3: a link to a file, to a directory and as `SKILL.md`."""
     # Given a skill whose `SKILL.md`, one file and one directory are links
@@ -228,7 +220,6 @@ def test_a_symbolic_link_adds_nothing() -> None:
     assert found == FoundSkill(_SKILL, _sha(b"kept\0k\0"))
 
 
-@_PENDING
 def test_the_lookup_and_the_check_agree() -> None:
     """AC-5: found exactly when `wio config check` accepts the skill."""
     # Given a stage whose skill exists and one whose skill exists nowhere

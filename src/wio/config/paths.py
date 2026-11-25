@@ -130,14 +130,13 @@ def check_skills(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
         is not judged, and a stage that has both is left to the shape.
     """
     yield from _skill_path_faults(config.skills.paths)
-    valid = [path for path in config.skills.paths if judge_path(path) is None]
-    searched = list(dict.fromkeys([*valid, *_SKILL_DIRECTORIES]))
+    searched = searched_directories(config.skills.paths)
     for name, stage in config.stages.items():
         skill = stage.skill
         if (
             stage.goal is None
             and skill is not None
-            and not _found(skill, searched, inputs)
+            and skill_directory(skill, searched, inputs.root, inputs.files) is None
         ):
             yield _missing_skill(name, skill, searched)
 
@@ -152,8 +151,8 @@ def searched_directories(skill_paths: Sequence[str]) -> list[str]:
         The paths without a fault, then `.agents/skills` and `.claude/skills`,
         each once, relative to the repository root.
     """
-    del skill_paths
-    raise NotImplementedError
+    valid = [path for path in skill_paths if judge_path(path) is None]
+    return list(dict.fromkeys([*valid, *_SKILL_DIRECTORIES]))
 
 
 def skill_directory(
@@ -176,8 +175,16 @@ def skill_directory(
         skill's own directory, or `None` when none has, and without a lookup for
         a name that is empty, is `.` or `..` or has a `/`.
     """
-    del skill, searched, root, files
-    raise NotImplementedError
+    if skill in {"", ".", ".."} or "/" in skill:
+        return None
+    return next(
+        (
+            directory
+            for directory in searched
+            if files.exists(root / directory / skill / _SKILL_FILE)
+        ),
+        None,
+    )
 
 
 def check_templates(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]:
@@ -362,26 +369,6 @@ def _root_path(
     if inputs.files.exists(inputs.root / path):
         return None
     return Diagnostic("warning", where, f"`{path}` does not exist yet.")
-
-
-def _found(skill: str, searched: Sequence[str], inputs: CheckInputs) -> bool:
-    """Tell whether a skill has a `SKILL.md` in one of the directories.
-
-    Args:
-        skill: The skill's name.
-        searched: The directories, relative to the repository root.
-        inputs: The repository root and the port that tells whether it exists.
-
-    Returns:
-        False for a name that is empty, is `.` or `..` or has a `/`, without a
-        lookup; otherwise whether a directory has `<skill>/SKILL.md`.
-    """
-    if skill in {"", ".", ".."} or "/" in skill:
-        return False
-    return any(
-        inputs.files.exists(inputs.root / directory / skill / _SKILL_FILE)
-        for directory in searched
-    )
 
 
 def _missing_skill(stage: str, skill: str, searched: Sequence[str]) -> Diagnostic:

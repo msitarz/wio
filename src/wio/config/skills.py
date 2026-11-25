@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The lookup of a skill's directory and the hash of its files."""
 
+import hashlib
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
@@ -9,6 +10,7 @@ from wio.config.paths import searched_directories, skill_directory
 from wio.models.skill import FoundSkill
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
 
     from wio.io.ports import FileSystem, Repository
@@ -75,5 +77,33 @@ def _files_hash(directory: Path, files: FileSystem) -> str:
     Raises:
         OSError: If a file cannot be listed or read.
     """
-    del directory, files
-    raise NotImplementedError
+    digest = hashlib.sha256()
+    named = sorted(
+        (path.relative_to(directory).as_posix().encode(errors="surrogateescape"), path)
+        for path in _regular_files(directory, files)
+    )
+    for name, path in named:
+        digest.update(b"\0".join((name, files.read_bytes(path), b"")))
+    return digest.hexdigest()
+
+
+def _regular_files(directory: Path, files: FileSystem) -> Iterator[Path]:
+    """Find every regular file below a directory without following links.
+
+    Args:
+        directory: The directory, which may itself be a link.
+        files: Lists the directories.
+
+    Yields:
+        The files at any depth, in no particular order.
+
+    Raises:
+        OSError: If a directory cannot be listed.
+    """
+    for entry in files.list_dir(directory):
+        if files.is_symlink(entry):
+            continue
+        if files.is_dir(entry):
+            yield from _regular_files(entry, files)
+        elif files.is_file(entry):
+            yield entry

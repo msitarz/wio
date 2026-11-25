@@ -18,8 +18,6 @@ if TYPE_CHECKING:
 
     from tests.sandbox import Sandbox
 
-_PENDING = pytest.mark.xfail(strict=True, raises=NotImplementedError)
-
 
 class _Settings:
     """Settings that give the config of an empty file."""
@@ -68,7 +66,6 @@ def _hash() -> str:
     return found.files_hash
 
 
-@_PENDING
 @pytest.mark.slow
 def test_the_hash_changes_with_the_files_and_only_with_them(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -102,7 +99,6 @@ def test_the_hash_changes_with_the_files_and_only_with_them(
     assert hashes[3:] == [hashes[3]] * 3
 
 
-@_PENDING
 @pytest.mark.slow
 def test_the_directory_is_relative_to_the_repository_from_anywhere_in_it(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -124,7 +120,6 @@ def test_the_directory_is_relative_to_the_repository_from_anywhere_in_it(
     assert found.directory == ".agents/skills/wio-define"
 
 
-@_PENDING
 @pytest.mark.slow
 def test_a_skill_in_the_home_directory_is_not_found(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -147,7 +142,6 @@ def test_a_skill_in_the_home_directory_is_not_found(
     assert found is None
 
 
-@_PENDING
 @pytest.mark.slow
 def test_a_linked_skill_directory_has_the_files_of_its_target(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -171,7 +165,6 @@ def test_a_linked_skill_directory_has_the_files_of_its_target(
     assert found.files_hash == hashlib.sha256(b"SKILL.md\0x\n\0").hexdigest()
 
 
-@_PENDING
 @pytest.mark.slow
 def test_a_skill_file_that_the_check_accepts_is_found(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
@@ -188,3 +181,22 @@ def test_a_skill_file_that_the_check_accepts_is_found(
 
     # Then it is found
     assert found is not None
+
+
+@pytest.mark.slow
+def test_an_entry_that_is_not_a_regular_file_adds_nothing(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-3: only regular files are read."""
+    # Given a skill that holds a named pipe, which a read would block on
+    git(sandbox, "init", "-q", check=True)
+    skill = sandbox.root / ".agents" / "skills" / "wio-define"
+    _write(skill / "SKILL.md", "x\n")
+    os.mkfifo(skill / "pipe")
+    enter(sandbox, monkeypatch)
+
+    # When it is looked up
+    found = _hash()
+
+    # Then only the regular file is hashed
+    assert found == hashlib.sha256(b"SKILL.md\0x\n\0").hexdigest()
