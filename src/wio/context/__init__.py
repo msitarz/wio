@@ -25,8 +25,8 @@ type Check = Callable[[str, str, str], Sequence[str]]
 """A check of the inputs, run before the bundle is composed.
 
 It takes the Work's id, the action and the stage, and returns the text of its
-warnings, without the `warning: ` prefix, or raises a `WioError` for an input
-that gets no bundle.
+warnings, each one line without the `warning: ` prefix, or raises a `WioError`
+for an input that gets no bundle.
 """
 
 

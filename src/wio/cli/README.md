@@ -15,6 +15,9 @@ by adding an entry made with `component_entry`, and nothing else.
 - `wio.cli` keeps a [null adapter](null.py) for a test that needs no side
   effect: `NoEvents` drops the events of a review. The command records reviews
   through the [log sink](../log/README.md#appending-an-event).
+- `wio context` is listed before it can compose a bundle. Until its composition
+  is wired, [`UnwiredComposer`](null.py) refuses each run, so a user is told
+  why and does not take it for a bug. It goes away with that wiring.
 - `Entry.wire` takes no platform parameter. The first adapter that differs by
   platform adds it.
 
@@ -80,7 +83,9 @@ tests check the rest, because only a real command has output to check.
   the error messages, in plain text.
 - `--json` is an option of each command, declared by its `configure`. On exit 0
   or 1, standard output holds one JSON document and nothing else. On exit 2 and
-  70 it is empty, and the message is plain text on standard error.
+  70 it is empty, and the message is plain text on standard error. A command
+  whose output is raw text to be used as it is, such as a record of
+  `wio trailers` or the bundle of `wio context`, declares none.
 - Output is deterministic: sorted, and without timestamps, except in `wio log`,
   whose purpose is to report when events happened. Notes and warnings never
   change the exit code. There is no pager, and wio's own messages are never
