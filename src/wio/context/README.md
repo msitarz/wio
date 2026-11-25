@@ -5,9 +5,9 @@ before it starts a stage of a Work.
 [The context compiler](../../../docs/concepts.md#11-the-context-compiler) says
 what a [bundle](../../../GLOSSARY.md) holds and which properties it keeps.
 
-Today the directory holds the shell of the command, the bundle id and the
-header: it has no check of its inputs and no composition of the bundle, so a run
-is refused, as
+Today the directory holds the shell of the command and parts of a bundle, each
+in a section below. It has no check of its inputs and no composition of the
+bundle, so a run is refused, as
 [`wio.cli`](../cli/README.md#the-table-of-commands) describes. Its terms are
 those of the [repository glossary](../../../GLOSSARY.md).
 
@@ -59,3 +59,14 @@ says what they state, and its
 - **It looks nothing up.** The caller supplies the counts, the sizes and where
   a skill was found, so what the header says agrees with the rest of the
   bundle by having one source.
+
+## Writing the rules
+
+[`render_rule` and `join_items`](rendering.py) write one rule and join the
+items of the rules section, their docstrings say how, and their
+[tests](../../../tests/unit/context/test_rendering.py) show each case.
+
+- **A rule is named by its ruleset and code,** never by a bare code, which two
+  rulesets can share.
+- **How a rule was selected never shows in its text,** because the session
+  needs the rule, and `wio rules list --explain` answers the other question.
