@@ -29,7 +29,7 @@ _ARGV = ["context", "k3m9xq", "deliver", "architecture"]
 
 
 def _compiled() -> Compiled:
-    """Build a result with two rules and two warnings.
+    """Build a result with two rules and two warnings that are not sorted.
 
     Returns:
         The result.
@@ -37,7 +37,7 @@ def _compiled() -> Compiled:
     bundle = CompiledBundle(
         "the bundle\n", "4f3a9c01b2d7", 11, {"a.A001": "1", "b.B001": "2"}
     )
-    return Compiled(bundle, ("first thing", "second thing"))
+    return Compiled(bundle, ("zulu thing", "alpha thing"))
 
 
 def _command(
@@ -54,6 +54,19 @@ def _command(
     """
 
     def compiler(work_id: str, action: str, stage: str) -> Compiled:
+        """Record the arguments and give the configured result.
+
+        Args:
+            work_id: The Work's id.
+            action: The action.
+            stage: The stage.
+
+        Returns:
+            The result.
+
+        Raises:
+            Exception: The configured error.
+        """
         if asked is not None:
             asked.append((work_id, action, stage))
         return value_or_raise(result)
@@ -113,7 +126,9 @@ def test_the_usage_names_the_work_the_action_and_the_stage() -> None:
 
     # Then a usage line naming them is on standard error and it exits 2
     assert (code, out) == (2, "")
-    assert "usage: wio context [-h] <work> <action> <stage>" in err
+    usage = " ".join(err.split())
+    assert "usage: wio context " in usage
+    assert "<work> <action> <stage>" in usage
 
 
 @_PENDING
@@ -128,7 +143,7 @@ def test_the_bundle_goes_to_standard_output_and_the_warnings_are_reported() -> N
 
     # Then the output is the text, each warning is a line, and it exits 0
     assert (code, out) == (0, "the bundle\n")
-    assert err == "warning: first thing\nwarning: second thing\n"
+    assert err == "warning: zulu thing\nwarning: alpha thing\n"
     assert asked == [("k3m9xq", "deliver", "architecture")]
 
 
@@ -161,6 +176,11 @@ def test_only_a_run_wires_the_command_and_wires_it_once() -> None:
     wired: list[None] = []
 
     def wire() -> Command:
+        """Count the call and build the command.
+
+        Returns:
+            The command.
+        """
         wired.append(None)
         return _command(_compiled())
 

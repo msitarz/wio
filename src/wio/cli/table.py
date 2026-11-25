@@ -146,7 +146,9 @@ def _context() -> Command:
     """Wire `wio context` to the project's ports.
 
     Returns:
-        The command, which reads and writes the project through the adapters.
+        The command, which reads and writes the project through the adapters. Its
+        compiler has no check yet, and its composer refuses every run with a
+        `WioError` until the composition is wired.
     """
     raise NotImplementedError
 
