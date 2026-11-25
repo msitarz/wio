@@ -59,3 +59,17 @@ says what they state, and its
 - **It looks nothing up.** The caller supplies the counts, the sizes and where
   a skill was found, so what the header says agrees with the rest of the
   bundle by having one source.
+
+## Writing the rules
+
+[`render_rule` and `join_items`](rendering.py) write one rule and join the
+items of the rules section, their docstrings say how, and their
+[tests](../../../tests/unit/context/test_rendering.py) show each case.
+
+- **A rule is named by its ruleset and code,** never by a bare code, which two
+  rulesets can share.
+- **A rule's text depends on the rule alone,** so reorganising how rules are
+  selected leaves a bundle, and so its id, as it was.
+- **The configured separator stands between every two items** of the section,
+  the lines that introduce rules as much as the rules, so a project that
+  chooses one sees it everywhere the section is divided.

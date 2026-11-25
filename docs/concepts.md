@@ -167,7 +167,7 @@ name carries no meaning, and the rule may be at any depth of its ruleset.
 | `[skills] paths` | *open* | Where wio looks for skills first. | [Stage](#7-stage) |
 | `[trailers] reader` | *optional* | How records are read from messages: `scan` or `git`. | [Reading records](#reading-records) |
 | `[log]` | *optional* | Harness definitions, harness preference and additional environment variables for the event log. | [Log settings](../src/wio/config/README.md#log-settings) |
-| Bundle settings | *optional* | A size threshold and the separator between rules; their keys are *open*. | [The context compiler](#11-the-context-compiler) |
+| Bundle settings | *optional* | A size threshold and the separator between the items of the rules section; their keys are *open*. | [The context compiler](#11-the-context-compiler) |
 
 `wio config` shows these settings with their source (`list` and `show`), and
 `wio config check` prints every diagnostic of the file, one
@@ -2059,21 +2059,22 @@ Output, printed to the session:
    their paths, such as `Rules for root api (services/api):`. The roots in that
    line are sorted by name, and the groups are sorted by their sorted root
    names, so the order of a `roots` list or of the config's tables never changes
-   the bundle. Within a group
-   they are ordered by ruleset, then by family, under the topic its
-   `ruleset.toml` declares, such as `mattpocock: Error handling (ERR)`, then by
-   code, so the bundle's bytes stay deterministic. A rule arrives through any
-   number of rule presets, so it is grouped by its family, never by a rule
-   preset: moving it between rule presets does not move it in the bundle. Each
-   rule is a line with its qualified canonical name and its name, such as
+   the bundle. Within a group they are ordered by ruleset, then by family, under
+   the topic its `ruleset.toml` declares, such as
+   `mattpocock: Error handling (ERR)`, then by code, so the bundle's bytes stay
+   deterministic. A rule arrives through any number of rule presets, so it is
+   grouped by its family, never by a rule preset: moving it between rule presets
+   does not move it in the bundle. Each rule is a line with its qualified
+   canonical name and its name, such as
    `mattpocock.ERR003 errors-carry-context`, followed by its body exactly as
-   written, and rules are separated by two newlines, or by the separator the
-   config sets. A bare code would be ambiguous across rulesets, so gates and
-   events cite rules by the same qualified name. A ruleset reached by two roots
-   of the Work gives each rule once, in the group for both roots. The bundle
-   does not say why a rule was selected: the agent needs the rule, and the
-   bundle id then stays the same when rule presets are reorganised without
-   changing the rules. `wio rules list --explain` gives the source
+   written. The items of this section, the group lines, the topic lines and the
+   rules, are separated by two newlines, or by the separator the config sets. A
+   bare code would be ambiguous across rulesets, so gates and events cite rules
+   by the same qualified name. A ruleset reached by two roots of the Work gives
+   each rule once, in the group for both roots. The bundle does not say why a
+   rule was selected: the agent needs the rule, and the bundle id then stays the
+   same when rule presets are reorganised without changing the rules.
+   `wio rules list --explain` gives the source
    ([Listing rules](#listing-rules)).
 5. One fixed closing line: if the session's context was compacted, run the
    command from the header again.

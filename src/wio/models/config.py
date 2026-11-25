@@ -119,7 +119,8 @@ class Bundle:
         default="\n\n",
         metadata={
             "description": (
-                "The text between the parts of a bundle; a blank line by default."
+                "The text between the items of a bundle's rules section; a blank "
+                "line by default."
             )
         },
     )
