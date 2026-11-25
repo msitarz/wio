@@ -187,12 +187,11 @@ def test_only_the_rules_that_apply_are_grouped() -> None:
     assert with_one == [(_ONLY_API, ["IN001"])]
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError)
 def test_a_root_with_no_path_adds_none() -> None:
     """AC-5: no parentheses when no root of the group has a path."""
     # Given roots `api` and `web` with paths, roots `a`, `b`, `x` and `y` with
-    # none, and rules of `x` and `y`, of `x`, of `api` and `x`, and of a set
-    # whose roots with no path come first and between the others
+    # none, and rules of `x` and `y`, of `x`, of `api` and `x`, of `a`, and of a
+    # set whose roots with no path come first and between the others
     bare = {name: Root(paths=()) for name in ("a", "b", "x", "y")}
     roots = {**_ROOTS, **bare}
     selection: Selection = {
@@ -200,6 +199,7 @@ def test_a_root_with_no_path_adds_none() -> None:
         _rule("XY001"): _in("x", "y"),
         _rule("X001"): _in("x"),
         _rule("AX001"): _in("api", "x"),
+        _rule("A001"): _in("a"),
     }
 
     # When the groups are built
@@ -207,6 +207,7 @@ def test_a_root_with_no_path_adds_none() -> None:
 
     # Then each line names its roots, with the paths of those that have one
     assert found == [
+        ("Rules for root a:", ["A001"]),
         (
             "Rules for roots a, api, b, web (services/api, apps/web, apps/admin):",
             ["MIX001"],
@@ -215,3 +216,16 @@ def test_a_root_with_no_path_adds_none() -> None:
         ("Rules for root x:", ["X001"]),
         ("Rules for roots x, y:", ["XY001"]),
     ]
+
+
+def test_a_root_that_the_config_does_not_hold_is_not_taken_for_one_with_no_path() -> (
+    None
+):
+    """AC-5: only a root of the config can have no path."""
+    # Given a rule of a root that the config does not hold
+    selection: Selection = {_rule("X001"): _in("ghost")}
+
+    # When the groups are built
+    # Then the root is refused and not shown without a path
+    with pytest.raises(KeyError):
+        group_rules(selection, _ROOTS)

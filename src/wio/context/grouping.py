@@ -80,4 +80,5 @@ def _line(names: tuple[str, ...], roots: Mapping[str, Root]) -> str:
         return "Rules for every root:"
     paths = ", ".join(path for name in names for path in roots[name].paths)
     noun = "root" if len(names) == 1 else "roots"
-    return f"Rules for {noun} {', '.join(names)} ({paths}):"
+    shown = f" ({paths})" if paths else ""
+    return f"Rules for {noun} {', '.join(names)}{shown}:"
