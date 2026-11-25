@@ -1,10 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Provide resolved Work contracts and their views for context bundles."""
+"""Provide resolved Work contracts and their views for context bundles.
+
+Bundle composition uses the same lookup and rendering rules as the contracts
+command, with the resolved contract available separately for rule selection.
+"""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from wio.contracts.resolve import render_resolved
+from wio.contracts.discovery import discover_works
+from wio.contracts.hierarchy import build_hierarchy
+from wio.contracts.refusal import refuse_tree
+from wio.contracts.resolve import render_resolved, resolve_work
+from wio.contracts.showing import find_by_id
 
 if TYPE_CHECKING:
     from wio.contracts import Services
@@ -37,7 +45,16 @@ class ContractViews:
             OSError: The Work's own file cannot be read.
             UnicodeDecodeError: The Work's own file is not UTF-8.
         """
-        raise NotImplementedError
+        settings = self.services.settings.load().works
+        root = self.services.repository.root()
+        files = self.services.files
+        discovery = discover_works(root, settings, files)
+        refuse_tree(discovery, shared=False)
+        work = find_by_id(discovery, work_id)
+        hierarchy = build_hierarchy(discovery.works, settings.hierarchy)
+        return resolve_work(
+            work, hierarchy.ancestors[work.path], self.services.catalog, root, files
+        )
 
     def view(self, contract: ResolvedContract) -> str:
         """Write the resolved view without looking up the Work again.

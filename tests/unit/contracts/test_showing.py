@@ -502,9 +502,12 @@ def test_an_incomplete_tree_refuses_the_command_before_the_argument_is_looked_up
     assert cast("io.StringIO", stdio.stdout).getvalue() == ""
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_bundle_view_matches_show_for_a_child_with_inherited_sections() -> None:
-    """Cover AC-1 with a parent whose template passes on its glossary."""
+    """Compare the bundle view with the output of the contracts command.
+
+    The parent passes on its glossary through its template, and the supplied
+    resolved contract keeps the view available after the files are removed.
+    """
     # Given a child whose parent passes on a glossary through its template
     files = _tree(
         {
@@ -531,16 +534,20 @@ def test_bundle_view_matches_show_for_a_child_with_inherited_sections() -> None:
 
     # When the contract's resolved view is requested for the bundle
     provider = ContractViews(wired)
-    view = provider.view(provider.resolved("k3m9xq"))
+    contract = provider.resolved("k3m9xq")
+    files.files.clear()
+    view = provider.view(contract)
 
     # Then the whole view matches show, including the inherited glossary
     assert "### Glossary\n\nA term and its meaning." in shown
     assert view == shown
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_bundle_view_is_empty_for_a_contract_with_only_metadata() -> None:
-    """Cover AC-2 with a Work that has neither a body nor a parent."""
+    """Render a metadata-only contract as an empty string.
+
+    The Work is at the top of the tree and therefore inherits no sections.
+    """
     # Given a top Work with only a metadata block
     files = _tree({"c/README.md": _marked('id = "k3m9xq"', "").rstrip() + "\n"})
     provider = ContractViews(services(files, Config(works=SETTINGS)))
@@ -552,7 +559,6 @@ def test_bundle_view_is_empty_for_a_contract_with_only_metadata() -> None:
     assert view == ""
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 @pytest.mark.parametrize(
     "tree",
     [
@@ -588,9 +594,11 @@ def test_bundle_view_refuses_the_same_work_as_show(tree: dict[str, str]) -> None
     assert str(refused.value) == str(shown.value)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_bundle_view_resolves_a_work_with_an_optional_metadata_fault() -> None:
-    """Cover AC-3 when the fault leaves the Works tree complete."""
+    """Resolve a Work whose optional metadata has the wrong type.
+
+    Its id remains readable and the fault leaves the Works tree complete.
+    """
     # Given a Work with a malformed optional field
     files = _tree({"c/README.md": _marked('id = "k3m9xq"\nroots = 42', "# Child\n")})
     provider = ContractViews(services(files, Config(works=SETTINGS)))
