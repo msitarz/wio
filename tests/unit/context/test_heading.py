@@ -3,7 +3,7 @@
 
 import pytest
 
-from wio.context.heading import header
+from wio.context import header
 from wio.models.config import Stage
 
 _PENDING = pytest.mark.xfail(strict=True, raises=NotImplementedError)

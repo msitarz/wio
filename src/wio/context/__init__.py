@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from wio.models.bundle import CompiledBundle
 lazy from wio.context.command import ContextCommand
 lazy from wio.context.compiler import Compiler
+lazy from wio.context.heading import header
 lazy from wio.context.identity import bundle_id
 
 if TYPE_CHECKING:
@@ -101,4 +102,5 @@ __all__ = [
     "Services",
     "bundle_id",
     "describe",
+    "header",
 ]
