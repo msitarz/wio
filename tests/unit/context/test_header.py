@@ -125,18 +125,53 @@ def test_a_stage_with_a_skill_names_where_it_was_found() -> None:
     assert with_skill[:-1] == with_goal
 
 
+_KINDS = {
+    "fresh-human-gate": Stage(goal="J.", gate=True, judge="human", session="fresh"),
+    "agent-gate": Stage(goal="J.", gate=True),
+    "plain": Stage(goal="Do."),
+    "judge-without-gate": Stage(goal="Do.", judge="human"),
+    "not-continuable": Stage(goal="Do.", continuable=False),
+    "fresh": Stage(goal="Do.", session="fresh"),
+    "fresh-and-single": Stage(goal="Do.", session="fresh", continuable=False),
+}
+"""One stage of every kind that AC-1 to AC-4 name."""
+
+
 @_PENDING
+@pytest.mark.parametrize("rules", [3, 0])
 @pytest.mark.parametrize("skill", [None, _SKILL], ids=["goal", "skill"])
 @pytest.mark.parametrize("title", ["Demo", None], ids=["titled", "untitled"])
+@pytest.mark.parametrize("stage", _KINDS.values(), ids=_KINDS.keys())
 def test_the_header_is_one_block(
-    skill: tuple[str, str, str] | None, title: str | None
+    stage: Stage, title: str | None, skill: tuple[str, str, str] | None, rules: int
 ) -> None:
     """AC-5: no blank line and no newline at the end."""
-    # Given every kind of header
-    stage = Stage(goal="Do.", gate=True, judge="human", continuable=False)
+    # Given a header of every kind
 
     # When it is built
-    text = _header(stage, title=title, skill=skill)
+    lines = _header(stage, title=title, skill=skill, rules=rules).split("\n")
 
-    # Then it has no empty line and does not end with a newline
-    assert "" not in text.split("\n")
+    # Then it has no empty line, which also says it does not end with a newline,
+    # and it has a line for each fact
+    assert "" not in lines
+    assert len(lines) == (8 if skill is None else 9)
+
+
+@_PENDING
+def test_the_command_and_the_skill_state_what_they_are_given() -> None:
+    """AC-3, AC-4: another Work, request and skill directory are stated as given."""
+    # Given another Work, action and stage, and a skill of a configured directory
+    skill = ("review", "tools/skills/review", "0f0f")
+
+    # When the header is built
+    text = header(
+        "a7b2c4", None, "define", "review", Stage(skill="review"), 1, 2, 3, skill
+    )
+
+    # Then the lines state those
+    lines = text.split("\n")
+    assert lines[:3] == ["work: a7b2c4", "action: define", "stage: review"]
+    assert lines[-2:] == [
+        "command: wio context a7b2c4 define review",
+        "skill: review (tools/skills/review, files 0f0f)",
+    ]
