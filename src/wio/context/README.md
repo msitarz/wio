@@ -68,8 +68,5 @@ items of the rules section, their docstrings say how, and their
 
 - **A rule is named by its ruleset and code,** never by a bare code, which two
   rulesets can share.
-- **A rule's text depends on the rule alone,** so reorganising how rules are
-  selected leaves a bundle, and so its id, as it was.
-- **The configured separator stands between every two items** of the section,
-  the lines that introduce rules as much as the rules, so a project that
-  chooses one sees it between all of them.
+- **How a rule was selected never shows in its text,** because the session
+  needs the rule, and `wio rules list --explain` answers the other question.
