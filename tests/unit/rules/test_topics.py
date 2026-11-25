@@ -11,7 +11,6 @@ from wio.rules.topics import RuleTopics
 if TYPE_CHECKING:
     from wio.context.ports import Topics
 
-_PENDING = pytest.mark.xfail(strict=True, raises=NotImplementedError)
 _RULES = ROOT / ".agents" / "wio" / "rules"
 
 
@@ -32,7 +31,6 @@ def _topics() -> Topics:
     return RuleTopics(FakeRepository(), MemoryFileSystem(files))
 
 
-@_PENDING
 @pytest.mark.parametrize(
     ("ruleset", "family", "expected"),
     [
@@ -56,7 +54,6 @@ def test_the_port_answers_from_the_manifests(
     assert found == expected
 
 
-@_PENDING
 @pytest.mark.parametrize(
     ("ruleset", "family"), [("ghost", "ERR"), ("mattpocock", "API")]
 )

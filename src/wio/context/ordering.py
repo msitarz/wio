@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The order of the rules of a group and the lines that introduce families."""
 
+from itertools import groupby
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -29,5 +30,11 @@ def order_rules(rules: Iterable[Rule], topics: Topics) -> tuple[str | Rule, ...]
     Raises:
         KeyError: If `topics` has no topic for a family of a rule.
     """
-    del rules, topics
-    raise NotImplementedError
+    items: list[str | Rule] = []
+    ordered = sorted(rules, key=lambda r: (r.ruleset, r.family, r.number, r.code))
+    for (ruleset, family), members in groupby(
+        ordered, key=lambda r: (r.ruleset, r.family)
+    ):
+        items.append(f"{ruleset}: {topics.topic(ruleset, family)} ({family})")
+        items.extend(members)
+    return tuple(items)

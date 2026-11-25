@@ -9,8 +9,6 @@ import pytest
 from wio.context.ordering import order_rules
 from wio.models.rule import Rule
 
-_PENDING = pytest.mark.xfail(strict=True, raises=NotImplementedError)
-
 
 @dataclass
 class _Topics:
@@ -26,6 +24,7 @@ class _Topics:
             ("mattpocock", "ERR"): "Error handling",
             ("python", "API"): "Python API",
             ("python", "ERR"): "Process",
+            ("python", "PYTH"): "Idioms",
         }
     )
 
@@ -70,7 +69,6 @@ def _shown(items: tuple[str | Rule, ...]) -> list[str]:
     return [item if isinstance(item, str) else item.qualified for item in items]
 
 
-@_PENDING
 def test_the_order_depends_only_on_names() -> None:
     """AC-1: by ruleset, family, number and text, whatever the order given."""
     # Given two rulesets and codes that a text sort misorders, unsorted
@@ -101,7 +99,6 @@ def test_the_order_depends_only_on_names() -> None:
     ]
 
 
-@_PENDING
 def test_a_family_has_one_topic_line_before_its_first_rule() -> None:
     """AC-2: once for each family, ahead of it."""
     # Given two families of one ruleset, mixed
@@ -120,7 +117,6 @@ def test_a_family_has_one_topic_line_before_its_first_rule() -> None:
     ]
 
 
-@_PENDING
 def test_a_family_of_the_same_letters_has_a_line_for_each_ruleset() -> None:
     """AC-2: a family belongs to its ruleset, also when two share the letters."""
     # Given two rulesets with a family `ERR` that stand next to each other
@@ -138,7 +134,6 @@ def test_a_family_of_the_same_letters_has_a_line_for_each_ruleset() -> None:
     ]
 
 
-@_PENDING
 @pytest.mark.parametrize("reverse", [False, True], ids=["one-order", "the-other"])
 def test_the_route_by_which_rules_arrive_moves_nothing(*, reverse: bool) -> None:
     """AC-3: the same rules give the same result in any order of arrival."""
@@ -161,7 +156,6 @@ def test_the_route_by_which_rules_arrive_moves_nothing(*, reverse: bool) -> None
     ]
 
 
-@_PENDING
 def test_no_rule_gives_no_line() -> None:
     """AC-2: nothing to introduce."""
     # Given no rule
@@ -171,3 +165,14 @@ def test_no_rule_gives_no_line() -> None:
 
     # Then there is nothing
     assert found == ()
+
+
+def test_a_family_is_all_the_letters_of_a_code() -> None:
+    """AC-2: a family of another length has its own line."""
+    # Given a family of four letters
+
+    # When its rule is ordered
+    found = order_rules([_rule("python.PYTH001")], _Topics())
+
+    # Then the line names all four
+    assert _shown(found) == ["python: Idioms (PYTH)", "python.PYTH001"]
