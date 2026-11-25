@@ -24,8 +24,8 @@ def render_rule(rule: Rule) -> str:
         as the rule holds it. A rule with an empty body is its line alone, with
         no newline after it.
     """
-    del rule
-    raise NotImplementedError
+    line = f"{rule.qualified} {rule.name}"
+    return f"{line}\n{rule.body}" if rule.body else line
 
 
 def join_items(items: Sequence[str], separator: str) -> str:
@@ -39,5 +39,4 @@ def join_items(items: Sequence[str], separator: str) -> str:
         The items with `separator`, as written, between every two adjacent ones
         and neither before the first nor after the last; empty for no item.
     """
-    del items, separator
-    raise NotImplementedError
+    return separator.join(items)

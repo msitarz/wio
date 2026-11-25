@@ -9,30 +9,36 @@ from wio.context.rendering import join_items, render_rule
 from wio.models.config import Bundle
 from wio.models.rule import Rule
 
-_PENDING = pytest.mark.xfail(strict=True, raises=NotImplementedError)
 _ITEMS = (
     "Rules for root api (services/api):",
     "mattpocock: Error handling (ERR)",
     "mattpocock.ERR003 errors-carry-context\nWrap.",
     "  mattpocock.ERR004 no-silent-catch\nA hard break.  ",
+    "mattpocock: Error handling (ERR)",
 )
 
 
-def _rule(body: str, ruleset: str = "mattpocock", code: str = "ERR003") -> Rule:
+def _rule(
+    body: str,
+    ruleset: str = "mattpocock",
+    code: str = "ERR003",
+    name: str = "errors-carry-context",
+) -> Rule:
     """Build a rule whose other texts differ from its body and name.
 
     Args:
         body: The body.
         ruleset: The ruleset's canonical name.
         code: The code.
+        name: The name.
 
     Returns:
-        The rule named `errors-carry-context`.
+        The rule.
     """
     return Rule(
         ruleset=ruleset,
         code=code,
-        name="errors-carry-context",
+        name=name,
         description="A description that is not shown.",
         summary="A summary that is not shown.",
         body=body,
@@ -41,7 +47,6 @@ def _rule(body: str, ruleset: str = "mattpocock", code: str = "ERR003") -> Rule:
     )
 
 
-@_PENDING
 @pytest.mark.parametrize(
     "body",
     [
@@ -65,38 +70,37 @@ def test_a_rule_is_its_qualified_line_and_its_body(body: str) -> None:
     assert text == "mattpocock.ERR003 errors-carry-context\n" + body
 
 
-@_PENDING
 def test_a_rule_with_no_body_is_its_line_alone() -> None:
     """AC-1: no newline follows the line, and the ruleset is the rule's own."""
     # Given a rule of another ruleset with an empty body
-    rule = _rule("", ruleset="python", code="API001")
+    rule = _rule("", ruleset="python", code="API001", name="typed-results")
 
     # When it is rendered
     text = render_rule(rule)
 
     # Then it is the line alone
-    assert text == "python.API001 errors-carry-context"
+    assert text == "python.API001 typed-results"
 
 
-@_PENDING
 @pytest.mark.parametrize(
     "separator",
-    [Bundle().separator, "\n---\n", " | ", "\\n{0}"],
-    ids=["default", "configured", "no-newline", "as-written"],
+    [Bundle().separator, "\n---\n", " | ", "\\n{0}", ""],
+    ids=["default", "configured", "no-newline", "as-written", "empty"],
 )
 def test_every_item_is_joined_by_the_separator_as_written(separator: str) -> None:
     """AC-2: between every two items, and at neither end."""
-    # Given the group line, a family line and two rules, and a separator
-    first, second, third, fourth = _ITEMS
+    # Given a group line, a family line, two rules and a repeated line, and a
+    # separator
+    first, second, third, fourth, fifth = _ITEMS
 
     # When they are joined
     text = join_items(_ITEMS, separator)
 
     # Then the separator stands between each two and nowhere else
-    assert text == (first + separator + second + separator + third + separator + fourth)
+    head = first + separator + second + separator + third
+    assert text == head + separator + fourth + separator + fifth
 
 
-@_PENDING
 @pytest.mark.parametrize(("items", "expected"), [((), ""), (("only",), "only")])
 def test_no_item_or_one_has_no_separator(items: tuple[str, ...], expected: str) -> None:
     """AC-2: the separator is never added to an end."""
