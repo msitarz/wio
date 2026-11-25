@@ -51,8 +51,9 @@ The name below is provisional.
   the roots through it, and the architecture stage of
   [Refuse an unknown action, stage or root](refuse-an-unknown-action-stage-or-root/README.md)
   declares it.
-- **The checks and the composition** — provisional: each leaf adds its check to
-  the compiler that
+- **The checks and the composition** — provisional: the checks run in the order
+  of the refusals of AC-1, then the warning about the pipeline and then the one
+  about the roots, and each leaf adds its check to the compiler that
   [The wio context command](../the-wio-context-command/README.md) builds, which
   runs the checks before it asks for the composition, so a fake of the
   composition leaves them real, and the criteria of this group and its children
@@ -92,7 +93,7 @@ the tree, the Work, the action, the stage, the root, the rules.
 ### **AC-2** Every warning of a run is reported once
 
 A run that deserves the warning about the pipeline and the warning about the
-roots reports both, each once, and exits 0.
+roots reports both, each once, the pipeline's first, and exits 0.
 
 #### Two warnings together
 
@@ -101,4 +102,5 @@ roots reports both, each once, and exits 0.
   action whose pipeline does not hold the stage, and a stage with no `roots`.
 - **When** `wio context` runs for that Work, action and stage.
 - **Then** the fixed bundle is printed, each of the two warnings is reported
-  once, and the exit code is 0.
+  once, the warning about the pipeline comes before the one about the roots,
+  and the exit code is 0.

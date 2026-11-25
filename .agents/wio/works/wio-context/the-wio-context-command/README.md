@@ -10,8 +10,8 @@ depends_on = []
 ## Purpose
 
 `wio context` is a component name that nothing provides, so the command has no
-place to be described, wired and reached from `wio`, and nothing maps its
-failures to exit codes.
+place to be described, wired and reached from `wio`, and nothing declares its
+ports.
 
 ## Goals
 
@@ -20,7 +20,7 @@ failures to exit codes.
 - The command prints the bundle that the compiler returns to standard output
   and each warning that the compiler reports, and exits 0.
 - A mistake that the user must fix exits 2, and a failure that is a bug in wio
-  exits 70.
+  exits 70, as `wio.cli` already maps them, so the command lets them reach it.
 - Describing the command loads nothing but the package's `__init__`, and only a
   run wires the ports.
 
@@ -31,6 +31,9 @@ failures to exit codes.
   [wio context](../README.md) does.
 - The option `--output`, the checks of the inputs and the `context` event, which
   their own Works add to this command.
+- The option `--json`: the command prints raw text for a session to read, so it
+  declares none, as `wio trailers` does, which departs from
+  `src/wio/cli/README.md` and which the docs stage records.
 
 ## Assumptions
 
@@ -50,7 +53,8 @@ included rule in the order of the bundle, and the warnings.
 
 ## Mechanisms
 
-The names below are provisional, except the command and its three arguments.
+The names and signatures below are provisional, except the command and its
+three arguments.
 
 - **`wio.context` package** — provides `describe()` and `ContextCommand`, and
   binds its implementation with a `lazy import` so that describing it stays
@@ -59,27 +63,42 @@ The names below are provisional, except the command and its three arguments.
   results through; this Work wires only the shell, with the adapters of `wio.io`
   and `wio.env`, and each Work that adds a port extends `Services` and `wire`
   for it.
-- **The composition port** — in `src/wio/context/ports.pyi`, declared here: one
-  call that takes the Work's id, the action and the stage's name and returns a
-  `Bundle` that holds the text of the bundle, its id, the size of its body in
-  UTF-8 bytes as an integer, and the qualified code and `rule_hash` of each rule
-  it prints, in the order it prints them;
+- **`CompiledBundle`** — frozen, declared here in `wio.context`: `text: str`,
+  `id: str`, `size: int` (the body in UTF-8 bytes) and `rules: Mapping[str,
+  str]`, the qualified code of each printed rule mapped to its `rule_hash`, in
+  the order printed. It is not the `Bundle` of `wio.models.config`, which holds
+  the settings.
+- **The composition port** — in `src/wio/context/ports.pyi`, declared here:
+  `compose(work_id: str, action: str, stage: str) -> CompiledBundle`;
   [Compose the bundle](../bundle-composition/compose-the-bundle/README.md)
   satisfies it.
-- **The compiler** — provisional: the function that this Work builds, which runs
-  the checks that the Works of Check the inputs add, each returning its warnings
-  or raising a `WioError`, then asks the composition port for the bundle, and
-  returns the compiler port's result. The checks run in the order that those
-  Works state, and their warnings are kept in the order they ran.
-- **The compiler port** — one call that takes the Work's id, the action and the
-  stage, and returns a result that holds the fields of the `Bundle` and the
-  warnings found on the way; the Works that deliver the bundle and record the
-  entry read the id, the size and the rules from it.
+- **A check** — `Callable[[str, str, str], Sequence[str]]`, declared here: it
+  takes the Work's id, the action and the stage, and returns the text of its
+  warnings or raises a `WioError`.
+- **The compiler** — provisional: the function
+  `compile(work_id: str, action: str, stage: str) -> Compiled` that this Work
+  builds, which runs the checks that the Works of Check the inputs add, in the
+  order that [Check the inputs](../check-the-inputs/README.md) states, and then
+  asks the composition port for the bundle. `Compiled` holds
+  `bundle: CompiledBundle` and `warnings: tuple[str, ...]`, those of the checks
+  in the order they ran; the Works that deliver the bundle and record the entry
+  read the id, the size and the rules from `bundle`.
+- **The criteria that need the real composition** — those of the checks that the
+  rule selection judges build it in the test from the real adapters, as `wire`
+  does, because no production wiring exists before the integration stage of
+  [wio context](../README.md).
 - **A warning** — one line on standard error that begins `warning: `, which the
   command writes through `Stdio` for the compiler's warnings and for those of
-  the Works that deliver the bundle and record the entry, in this order and
-  stated only here: the compiler's, the size, the worktree path, and then those
-  of the entry, the start, the dirty flag and the event log.
+  the Works that deliver the bundle and record the entry. The order is the
+  compiler's, the size, the worktree path, and then those of the entry, the
+  start, the dirty flag and the event log, which are reported with the entry and
+  so not when delivery fails; AC-3 of
+  [Delivery of the bundle](../delivery-of-the-bundle/README.md) verifies the
+  first three, AC-2 of [Check the inputs](../check-the-inputs/README.md) the
+  compiler's, and AC-10 of [wio context](../README.md) the whole order.
+- **The modules that a run must not import** — the architecture stage of this
+  Work names them for the integration test that C-6 of
+  [wio context](../README.md) describes.
 - **The entry** — `component_entry("context", wire)` in `wio.cli.table`, whose
   `wire` builds `Services` with the adapters of `wio.io` and `wio.env`.
 
@@ -130,14 +149,19 @@ before the composition is asked.
 
 #### A failing check
 
-- **Given** a composition that records its calls, two checks, the first of
-  which raises a `WioError`, and two passing checks that return one warning
-  each.
+- **Given** a composition that records its calls, and two checks, the first of
+  which raises a `WioError`.
 - **When** the compiler runs.
-- **Then** the error reaches the caller, the second check and the composition
-  were not called, and with the passing checks the composition is called once,
-  and the result holds its bundle and the two warnings in the order the checks
-  ran.
+- **Then** the error reaches the caller, and neither the second check nor the
+  composition was called.
+
+#### Passing checks
+
+- **Given** a composition that records its calls and returns a bundle, and two
+  checks that return one warning each.
+- **When** the compiler runs.
+- **Then** the composition was called once, and the result holds its bundle and
+  the two warnings in the order the checks ran.
 
 ### **AC-5** Describing is light and a run wires once
 

@@ -22,8 +22,8 @@ looks complete hides that, so the driver must be told.
 
 ## Non-Goals
 
-- Refusing the run, because a bundle with the rules of the stage's own roots is
-  still useful and the driver decides.
+- Refusing the run, because the driver decides and the bundle still carries the
+  guidance and the contract, though the stage selects no rule for such a Work.
 - Selecting the rules, which `wio rules` does and which gives such a Work a
   selection with no included rule.
 

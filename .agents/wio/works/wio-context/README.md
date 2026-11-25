@@ -141,12 +141,13 @@ leaf that adds a port extends.
   bundle, and returns the result that the command Work defines;
   [Compose the bundle](bundle-composition/compose-the-bundle/README.md) builds
   the composition behind that port from the other Works under Bundle
-  composition, asks for the selection once and hashes the printed rules. The
-  command, not the compiler, delivers the result and writes the event.
+  composition, asks for the selection once and hashes the printed rules.
+- **Delivery and the event** — the command, not the compiler, delivers the
+  result and writes the event.
 - **The `wio.cli` entry** — `component_entry("context", wire)`, built by the
   command child, which wires only the shell; each Work that adds a port extends
-  `Services` and `wire` for it, and the integration stage of this Work checks
-  that every port is wired to its component.
+  `Services` and `wire` for it, and the integration stage of this Work wires the
+  composition and checks that every port is wired to its component.
 
 ## Constraints
 
@@ -196,10 +197,11 @@ repository with no commit that Record where a gate review starts gives.
 
 A normal run loads only the modules that it needs. This is a qualitative
 requirement that no criterion claims, because only the integrated command can
-show it; the system review of this Work checks it with an integration test in a
+show it; the integration stage of this Work writes an integration test in a
 fresh interpreter that lists the modules a run must not import, as the one for
-`wio contracts show` does, and the architecture stage of
-[The wio context command](the-wio-context-command/README.md) names them.
+`wio contracts show` does, the system review judges it, and the architecture
+stage of [The wio context command](the-wio-context-command/README.md) names the
+modules.
 
 ## Visuals
 
@@ -366,7 +368,7 @@ same inputs, and the command prints where it wrote them.
 A run records one `context` event whose bundle id is the one in the metadata,
 whose `rules` are the rules printed in the bundle, in the order printed, each
 with the hash of its file, and for a gate stage the event also holds the commit
-the review starts from, when the repository has one, and whether the tree was
+the review starts from, unless no commit qualifies, and whether the tree was
 dirty.
 
 #### A stage and a gate
@@ -405,6 +407,22 @@ shows for the same Work and stage, in the same count.
 - **When** `wio rules list` and `wio context` run for that Work and stage.
 - **Then** the qualified codes in the bundle's rules section are exactly the
   included ones of the list, each once.
+
+### **AC-10** The warnings come in one order
+
+A run that deserves every warning reports them on standard error in this order:
+the pipeline's, the roots', the size, the worktree path, the start, the dirty
+flag and the event log.
+
+#### Seven warnings
+
+- **Given** a gate stage outside its action's pipeline for a Work with no roots,
+  a size threshold below the size of the body, `--output` given a path under the
+  repository root, a `History` whose reads raise `ValueError`, a `Repository`
+  whose dirty read raises `RuntimeError`, and an event log whose append fails.
+- **When** `wio context` runs with that `--output`.
+- **Then** standard error holds the seven warnings, one per line, in the order
+  above, and the exit code is 0.
 
 ## Additional context
 

@@ -43,7 +43,9 @@ The names below are provisional.
   resolved view, which the provider of the port calls and nothing copies.
 - **The `Contracts` port** — in `src/wio/context/ports.pyi`: `resolved` gives
   the resolved contract of a Work, which the rule selection needs, and a second
-  method, `view`, gives the text of its resolved view. This Work builds the
+  method, `view(contract)`, takes the resolved contract that `resolved` gave and
+  gives the text of its resolved view, so that the title and the text come from
+  one resolution. This Work builds the
   provider in `wio.contracts`, which finds the Work in the hierarchy and
   resolves it as `wio contracts show` does with `resolve_work`, and returns the
   text of `render_resolved` for the second method, so that the section is that

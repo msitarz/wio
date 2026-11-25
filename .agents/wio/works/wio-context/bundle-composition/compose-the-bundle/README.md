@@ -2,7 +2,7 @@
 id = "m4c8wp"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["bgc8q9", "30gfec", "ay92nt", "bg0g78", "ghq8mz", "fadef4", "4h73tb"]
+depends_on = ["b53rss", "bgc8q9", "30gfec", "ay92nt", "bg0g78", "ghq8mz", "fadef4", "4h73tb"]
 -->
 
 # Compose the bundle
@@ -46,8 +46,9 @@ shared `Settings` port, as the header Work needs them.
 
 The hash of a printed rule is `rule_hash` of the bytes of the file at
 `Rule.path`, read through `FileSystem` under the root that `Repository` gives,
-which are the bytes that `selected` of `RuleSelector` hashes, so a rule and its
-hash come from one selection and one read.
+which are the bytes that `selected` of `RuleSelector` hashes; the file is read
+again for the hash after the discovery read it for the rule, and a change
+between the two reads is accepted, as it is for `selected`.
 
 ### A-3
 
@@ -60,15 +61,18 @@ Work's closure keeps.
 
 The names below are provisional, except what the Goals require.
 
-- **The composition** — in `wio.context`: it asks `Contracts` for the resolved
-  contract and the text of its view, `RuleSelection` once for the selection, the
-  skill lookup for the stage's skill, builds each part with the Work that owns
+- **The composition** — in `wio.context`, which takes its ports as arguments so
+  that a test and `wio.cli` build it the same way: it asks `Contracts` for the
+  resolved contract and then for the text of the view of that contract,
+  `RuleSelection` once for the selection, the skill lookup once for the stage's
+  skill, which it gives to both the stage's guidance and the header, builds each
+  part with the Work that owns
   it, and gives `assemble` a `header_for` closure that builds the header with
   the Work's title, the stage's settings, the number of printed rules, the sizes
   and the skill.
-- **`Bundle`** — frozen: the text, the id, the size of the body in bytes, and a
-  mapping of qualified code to `rule_hash` that holds the printed rules in the
-  order printed.
+- **`CompiledBundle`** — the value that
+  [The wio context command](../../the-wio-context-command/README.md) declares
+  and this composition builds.
 - **The composition port** — the one that
   [The wio context command](../../the-wio-context-command/README.md) declares
   and this composition satisfies.
@@ -141,10 +145,12 @@ hash, and a stage with a goal gives it none.
 
 #### A skill and a goal
 
-- **Given** a stage with a skill that the lookup finds, and a stage with a goal.
+- **Given** a stage with a skill that a lookup finds, which counts its calls,
+  and a stage with a goal.
 - **When** the bundle is composed for each.
-- **Then** the first header has the skill line with the lookup's directory and
-  hash, and the second has no skill line.
+- **Then** the lookup was called once, the first header has the skill line with
+  its directory and hash, the pointer in the first bundle has the same
+  directory, and the second header has no skill line.
 
 ### **AC-6** A fault returns no bundle
 
