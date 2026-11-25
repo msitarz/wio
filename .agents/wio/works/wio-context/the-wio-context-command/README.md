@@ -63,11 +63,12 @@ three arguments.
   results through; this Work wires only the shell, with the adapters of `wio.io`
   and `wio.env`, and each Work that adds a port extends `Services` and `wire`
   for it.
-- **`CompiledBundle`** — frozen, declared here in `wio.context`: `text: str`,
-  `id: str`, `size: int` (the body in UTF-8 bytes) and `rules: Mapping[str,
-  str]`, the qualified code of each printed rule mapped to its `rule_hash`, in
-  the order printed. It is not the `Bundle` of `wio.models.config`, which holds
-  the settings.
+- **`CompiledBundle`** — frozen, declared in `wio.models.bundle` and re-exported
+  by `wio.context`, because the composition port names it and a ports stub
+  imports nothing from its own package: `text: str`, `id: str`, `size: int` (the
+  body in UTF-8 bytes) and `rules: Mapping[str, str]`, the qualified code of
+  each printed rule mapped to its `rule_hash`, in the order printed. It is not
+  the `Bundle` of `wio.models.config`, which holds the settings.
 - **The composition port** — in `src/wio/context/ports.pyi`, declared here:
   `compose(work_id: str, action: str, stage: str) -> CompiledBundle`;
   [Compose the bundle](../bundle-composition/compose-the-bundle/README.md)
