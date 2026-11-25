@@ -2068,13 +2068,14 @@ Output, printed to the session:
    does not move it in the bundle. Each rule is a line with its qualified
    canonical name and its name, such as
    `mattpocock.ERR003 errors-carry-context`, followed by its body exactly as
-   written. The items of this section, the group lines, the topic lines and the
+   written. The items of this section, the group lines, the family lines and the
    rules, are separated by two newlines, or by the separator the config sets. A
    bare code would be ambiguous across rulesets, so gates and events cite rules
    by the same qualified name. A ruleset reached by two roots of the Work gives
    each rule once, in the group for both roots. The bundle does not say why a
    rule was selected: the agent needs the rule, and the bundle id then stays the
-   same when rule presets are reorganised without changing the rules.
+   same when rule presets are reorganised without changing which rules are
+   selected, their roots or their text.
    `wio rules list --explain` gives the source
    ([Listing rules](#listing-rules)).
 5. One fixed closing line: if the session's context was compacted, run the

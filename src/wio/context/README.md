@@ -60,6 +60,28 @@ says what they state, and its
   a skill was found, so what the header says agrees with the rest of the
   bundle by having one source.
 
+## The rules section
+
+[`rules_section`](section.py) turns a selection into the text of the section,
+its docstring says what it joins and returns, and its
+[tests](../../../tests/unit/context/test_section.py) hold the whole text for one
+selection. The three parts below do the work.
+
+```mermaid
+flowchart LR
+    sel["selection: rules and decisions"] --> grp["grouping: included rules by root set"]
+    grp --> ord["ordering: each group by ruleset, family, code"]
+    ord --> ren["rendering: each rule, items joined by the separator"]
+    ren --> sec["the section's text and codes"]
+```
+
+- **It selects, explains and labels nothing.** `wio rules` selects,
+  `wio rules list --explain` says why, and the label of the section belongs to
+  whatever joins the parts of the bundle, so the text carries no label and no
+  reason.
+- **The codes come back with the text,** in the order printed, so a record of
+  what a session was given needs no second pass that could disagree with it.
+
 ## Writing the rules
 
 [`render_rule` and `join_items`](rendering.py) write one rule and join the
@@ -88,7 +110,7 @@ family, its docstring says how, and its
 to, its docstring says how the groups are ordered and what their lines read, and
 its [tests](../../../tests/unit/context/test_grouping.py) show each case.
 
-- **A group line names its roots and their paths,** so a session can tell which
-  files each group of rules is about.
+- **A group line names its roots and the paths they have,** so a session can
+  tell which files each group of rules is about.
 - **A root may have no path,** because the config accepts an empty list: such a
   root is a named set of rules, and its line has only its name to give.
