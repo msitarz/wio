@@ -17,7 +17,7 @@ about.
 
 - The rules that need no root come first, under one line that says so.
 - The other rules are grouped by the exact set of roots they apply to, each
-  group under one line that names the roots and their paths.
+  group under one line that names the roots and the paths they have.
 - The groups are in an order that depends only on the names of their roots.
 - A rule is in one group, however many roots reach its ruleset.
 - Only the rules that apply are grouped.
@@ -44,20 +44,34 @@ The paths of a root come from the config.
 
 ### A-3
 
-Every root has at least one path, because the config requires `paths` for a
-root.
+A root may have no path, because the config requires the `paths` key for a root
+and accepts an empty list, and such a root is a named set of rules.
+
+### A-4
+
+Where
+[the concepts](../../../../../../../docs/concepts.md#11-the-context-compiler)
+and [the scope document](../../../../../../../docs/v0.1-scope.md) say that a
+group line names the roots and their paths, it
+is right for a line to show the paths that its roots have and none when they
+have none, and the docs stage corrects both documents.
 
 ## Mechanisms
 
 The concepts fix `Rules for every root:` and the form of
-`Rules for root api (services/api):`; the group line for several roots is
-provisional, and the criteria below quote it in that provisional form. What is
-binding is that a group line names the roots and their paths.
+`Rules for root api (services/api):`; the group line for several roots and those
+for roots with no path are provisional, and the criteria below quote them in
+that provisional form. What is binding is that a group line names the roots and
+the paths they have.
 
 - **The group line for no root** — `Rules for every root:`.
 - **The group line for roots** — `Rules for root <name> (<paths>):` for one root
-  and `Rules for roots <name>, <name> (<paths>):` for several, where the paths
-  are those of the roots in the order of their names, joined by `, `.
+  and `Rules for roots <name>, <name> (<paths>):` for several, when at least one
+  of the group's roots has a path, where the paths are those of the roots in the
+  order of their names, joined by `, `.
+- **The group line for roots with no path** — `Rules for root <name>:` and
+  `Rules for roots <name>, <name>:`, without parentheses, when none of the
+  group's roots has a path.
 
 ## Acceptance criteria
 
@@ -119,3 +133,17 @@ is in no group, and a selection that includes no rule gives no group.
 - **When** the groups are built.
 - **Then** the first gives no group, and the second gives one group that holds
   only the included rule.
+
+### **AC-5** A root with no path adds none
+
+A group line names every root of the group and shows the paths of those that
+have one, and has no parentheses when none of them has a path.
+
+#### Roots with and without a path
+
+- **Given** a root `api` at `services/api`, roots `x` and `y` whose `paths` are
+  empty, and rules that apply to `x`, to `x` and `y`, and to `api` and `x`.
+- **When** the groups are built.
+- **Then** their lines are `Rules for roots api, x (services/api):`,
+  `Rules for root x:` and `Rules for roots x, y:`, in that order and in the
+  provisional wording.
