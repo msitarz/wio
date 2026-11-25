@@ -289,13 +289,16 @@ def test_settings_that_refuse_the_config_end_the_lookup(
     _write(config, '[skills]\npaths = ["./a"]\n')
     enter(sandbox, monkeypatch)
     repository = adapters.GitRepository(ProcessEnvironment())
-    settings = ConfigSettings(repository, adapters.LocalFileSystem())
+    files = adapters.LocalFileSystem()
 
-    # When the skill is looked up with the real settings
+    # When the config is checked and the skill is looked up with the real
+    # settings
+    checked = load_config(repository, files)
     with pytest.raises(ConfigurationError) as caught:
-        _lookup(settings).find_skill("wio-define")
+        _lookup(ConfigSettings(repository, files)).find_skill("wio-define")
 
-    # Then the error names the faulty path
+    # Then the check reports the path, and the lookup raises it
+    assert [d.where for d in checked.diagnostics] == ["skills.paths[0]"]
     assert "skills.paths[0]" in str(caught.value)
 
 

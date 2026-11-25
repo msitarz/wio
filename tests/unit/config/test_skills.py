@@ -4,6 +4,7 @@
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -15,6 +16,9 @@ from wio.errors import ConfigurationError
 from wio.models.config import Config, Skills, Stage
 from wio.models.frozen import freeze
 from wio.models.skill import FoundSkill
+
+if TYPE_CHECKING:
+    from wio.context.ports import SkillLookup
 
 _SKILL = ".agents/skills/wio-define"
 
@@ -80,7 +84,7 @@ def _find(
     Returns:
         What the lookup gives.
     """
-    lookup = RepositorySkills(FakeRepository(), files, _Settings(paths))
+    lookup: SkillLookup = RepositorySkills(FakeRepository(), files, _Settings(paths))
     return lookup.find_skill(name)
 
 
@@ -311,9 +315,10 @@ def test_names_are_hashed_and_ordered_as_their_bytes_on_disk() -> None:
     assert found.files_hash == _sha(b"SKILL.md\0s\0\xf0\x90\x80\x80\x002\0\xff\x001\0")
 
 
-def test_a_skill_under_a_faulty_path_is_reported_and_not_found() -> None:
+def test_the_search_leaves_out_the_path_that_the_check_reports() -> None:
     """A-2: the check reports the path that the search leaves out."""
-    # Given a skill under a path that is not normalized
+    # Given a skill under a path that is not normalized, and settings that give
+    # the config all the same
     files = _tree({"a/wio-define/SKILL.md": "x"})
     config = Config(skills=Skills(paths=("./a",)))
 
@@ -377,7 +382,7 @@ def test_a_symbolic_link_adds_nothing() -> None:
     assert found == FoundSkill(_SKILL, _sha(b"kept\0k\0"))
 
 
-def test_the_lookup_and_the_check_agree() -> None:
+def test_the_check_and_the_search_judge_each_skill_alike() -> None:
     """A-1: the check and the search judge each skill of a config alike."""
     # Given stages whose skills are in each default directory, one whose skill
     # is a directory without `SKILL.md` and one whose skill exists nowhere
@@ -396,7 +401,8 @@ def test_the_lookup_and_the_check_agree() -> None:
     }
     config = Config(stages=freeze(stages))
 
-    # When the config is checked and each skill is looked up
+    # When the config is checked, and each skill is looked up with settings that
+    # do not refuse it
     errors = [d.where for d in check_skills(config, CheckInputs(ROOT, files))]
     found = {name: _find(files, str(s.skill)) for name, s in stages.items()}
 
