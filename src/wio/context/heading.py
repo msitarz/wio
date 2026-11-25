@@ -39,7 +39,8 @@ def header(
         size_bytes: The size of the body in UTF-8 bytes.
         size_lines: The number of lines of the body.
         skill: For a stage with a skill, its name, the directory it was found
-            in, relative to the repository, and the hash of its files.
+            in, relative to the repository, and the hash of its files. The
+            caller passes it exactly when the stage has a skill.
 
     Returns:
         The lines joined by newlines, with no blank line and no newline at the

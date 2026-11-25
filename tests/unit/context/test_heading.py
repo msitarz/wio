@@ -3,10 +3,10 @@
 
 import pytest
 
-from wio.context.header import header
+from wio.context.heading import header
 from wio.models.config import Stage
 
-_PENDING = pytest.mark.xfail(strict=True)
+_PENDING = pytest.mark.xfail(strict=True, raises=NotImplementedError)
 _SKILL = ("wio-define", ".agents/skills/wio-define", "1a47c19b09044a02")
 
 
@@ -159,7 +159,7 @@ def test_the_header_is_one_block(
 
 @_PENDING
 def test_the_command_and_the_skill_state_what_they_are_given() -> None:
-    """AC-3, AC-4: another Work, request and skill directory are stated as given."""
+    """AC-2, AC-3, AC-4: other facts and another directory are stated as given."""
     # Given another Work, action and stage, and a skill of a configured directory
     skill = ("review", "tools/skills/review", "0f0f")
 
@@ -171,6 +171,7 @@ def test_the_command_and_the_skill_state_what_they_are_given() -> None:
     # Then the lines state those
     lines = text.split("\n")
     assert lines[:3] == ["work: a7b2c4", "action: define", "stage: review"]
+    assert lines[5:7] == ["rules: 1", "size: 2 bytes, 3 lines (body)"]
     assert lines[-2:] == [
         "command: wio context a7b2c4 define review",
         "skill: review (tools/skills/review, files 0f0f)",
