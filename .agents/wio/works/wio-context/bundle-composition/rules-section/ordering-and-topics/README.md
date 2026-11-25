@@ -45,6 +45,10 @@ line, which is binding; any other wording is provisional.
 
 - **The family line** — `<ruleset>: <topic> (<FAMILY>)`, with the canonical name
   of the ruleset and the topic from its manifest.
+- **The topics port** — in `src/wio/context/ports.pyi`, provisional:
+  `topic(ruleset: str, family: str) -> str`, which this Work declares and builds
+  in `wio.rules` from the `families` of the manifest of each ruleset that its
+  discovery loads.
 - **The order of codes** — the one that `wio rules` uses, by the number of the
   code and then by its text.
 
@@ -94,3 +98,17 @@ through another rule preset or with other layer effects.
   routes and the layer effects of their decisions differ.
 - **When** the group is ordered for each.
 - **Then** the two orders and the family lines are equal.
+
+### **AC-4** The topics port answers from the manifests
+
+The port gives the topic that a ruleset's manifest declares for a family.
+
+#### Two rulesets
+
+- **Given** two rulesets, one whose manifest declares `Error handling` for `ERR`
+  and `Architecture` for `ARC`, and one that declares `Python API` for `API` and
+  `Process` for `ERR`.
+- **When** the port is asked for each ruleset and family.
+- **Then** it gives the topic that the manifest of that ruleset declares, so the
+  family `ERR` has `Error handling` in the first ruleset and `Process` in the
+  second.

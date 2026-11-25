@@ -39,8 +39,8 @@ context is compacted, and gives the metadata the id of what follows it.
 ### A-1
 
 The labels, the closing sentence, the fixed blank line and the metadata first
-are the ones that A-2 to A-4 of [Bundle composition](../README.md) declare as
-departures.
+are the ones that A-2, A-4 and A-5 of [Bundle composition](../README.md) declare
+as departures.
 
 ## Mechanisms
 

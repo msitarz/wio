@@ -2,7 +2,7 @@
 id = "k8z4gf"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["b53rss"]
+depends_on = ["b53rss", "ay92nt", "m4c8wp"]
 -->
 
 # Refuse an unreadable config, tree, Work or rules
@@ -138,7 +138,8 @@ may appear.
 ### **AC-6** A fault in the rules is refused
 
 A rule file or a manifest with a fault exits 2 with the diagnostics of
-`wio rules`, and no bundle.
+`wio rules`, and no bundle; the criteria run with the real composition of
+Compose the bundle, which makes the selection.
 
 #### A rule with an undeclared family
 

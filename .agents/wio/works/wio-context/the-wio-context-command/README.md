@@ -56,20 +56,23 @@ The names below are provisional, except the command and its three arguments.
   binds its implementation with a `lazy import` so that describing it stays
   light.
 - **`Services`** — frozen, what the command reads the project and writes its
-  results through, which the Works that add ports extend.
+  results through; this Work wires only the shell, with the adapters of `wio.io`
+  and `wio.env`, and each Work that adds a port extends `Services` and `wire`
+  for it.
+- **The composition port** — in `src/wio/context/ports.pyi`, declared here: one
+  call that takes the Work's id, the action and the stage's name and returns a
+  `Bundle` that holds the text of the bundle, its id, the size of its body in
+  UTF-8 bytes as an integer, and the qualified code and `rule_hash` of each rule
+  it prints, in the order it prints them;
+  [Compose the bundle](../bundle-composition/compose-the-bundle/README.md)
+  satisfies it.
 - **The compiler** — provisional: the function that this Work builds, which runs
-  the checks that the Works of Check the inputs add, in the order they say, and
-  then asks a composition port for the bundle, and returns the compiler port's
-  result. The composition port is faked here and in the criteria of the checks
-  and is wired to the real composition by the integration stage of
-  [wio context](../README.md).
+  the checks that the Works of Check the inputs add, each returning its warnings
+  or raising a `WioError`, then asks the composition port for the bundle, and
+  returns the compiler port's result. The checks run in the order that those
+  Works state, and their warnings are kept in the order they ran.
 - **The compiler port** — one call that takes the Work's id, the action and the
-  stage, and returns a result that holds the text of the bundle, its id, the
-  size of its body in UTF-8 bytes as an integer, the qualified code and the
-  `rule_hash` of each included rule in the order of the bundle, where the rules
-  section gives the qualified codes in the order it prints them and the hashes
-  come from `selected` of `RuleSelector` through a port of `wio.context`, which
-  the integration stage of [wio context](../README.md) declares, and the
+  stage, and returns a result that holds the fields of the `Bundle` and the
   warnings found on the way; the Works that deliver the bundle and record the
   entry read the id, the size and the rules from it.
 - **A warning** — one line on standard error that begins `warning: `, which the
@@ -127,12 +130,14 @@ before the composition is asked.
 
 #### A failing check
 
-- **Given** a composition that records its calls and two checks, the first of
-  which raises a `WioError`.
+- **Given** a composition that records its calls, two checks, the first of
+  which raises a `WioError`, and two passing checks that return one warning
+  each.
 - **When** the compiler runs.
 - **Then** the error reaches the caller, the second check and the composition
-  were not called, and with passing checks the composition is called once and
-  its bundle is returned.
+  were not called, and with the passing checks the composition is called once,
+  and the result holds its bundle and the two warnings in the order the checks
+  ran.
 
 ### **AC-5** Describing is light and a run wires once
 

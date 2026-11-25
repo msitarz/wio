@@ -2,7 +2,7 @@
 id = "ztj4hj"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["b53rss"]
+depends_on = ["b53rss", "42cb49"]
 -->
 
 # Warn about a Work with no roots
@@ -36,8 +36,9 @@ concepts say.
 
 ## Mechanisms
 
-- **The roots port** — the one that the parent names, which gives the expanded
-  roots of a Work.
+- **The roots port** — the one that
+  [Refuse an unknown action, stage or root](../refuse-an-unknown-action-stage-or-root/README.md)
+  declares, which gives the expanded roots of a Work.
 - **The stage's `roots`** — read through the shared `Settings` port.
 
 ## Acceptance criteria

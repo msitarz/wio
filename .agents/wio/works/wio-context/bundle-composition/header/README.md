@@ -29,7 +29,7 @@ to run again, and a wrong stage must be caught by reading the header.
 
 - Computing the id or the hash, which their Works do.
 - Warning about the size, which the delivery does.
-- Parsing the request, which the command does.
+- Parsing the request, which `wio.cli` does.
 - Defining the body, which the assembly does.
 
 ## Assumptions
@@ -37,11 +37,12 @@ to run again, and a wrong stage must be caught by reading the header.
 ### A-1
 
 The number of rules is the number of rules that the rules section prints, each
-once, and the command supplies it from the included rules of the `Selection`.
+once, and the composition supplies it from the included rules of the
+`Selection`.
 
 ### A-2
 
-The command passes the skill tuple exactly when the stage has a skill, so a
+The composition passes the skill tuple exactly when the stage has a skill, so a
 stage with a skill never reaches the builder with `None`, and a stage with a
 goal never with a tuple.
 

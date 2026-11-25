@@ -2,7 +2,7 @@
 id = "kgf116"
 template = "feature.parent"
 roots = ["@descendants"]
-depends_on = []
+depends_on = ["v2dxyw"]
 -->
 
 # Check the inputs
@@ -58,7 +58,9 @@ The name below is provisional.
   composition leaves them real, and the criteria of this group and its children
   run with the composition faked; the action, the stage and the root are checked
   before the rule selection is asked, because `RuleSelector` judges the rules
-  first and here they are judged last.
+  first and here they are judged last; the selection is asked once, by Compose
+  the bundle, so the criteria about a fault in the rules run with that
+  composition real.
 
 ## Visuals
 

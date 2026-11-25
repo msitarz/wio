@@ -34,8 +34,9 @@ files, because `wio.config` only checks that the skill exists.
 The search that `wio.config` uses to check that a stage's skill exists, which is
 private to `wio.config.paths` today and answers only whether a skill is found,
 can be refactored to return the directory of the first match without changing
-what `wio config check` reports, and a port of `wio.context` lists the files of
-a directory and reads their bytes, which the check does not need.
+what `wio config check` reports, and the files of a directory are listed and
+read through `FileSystem` of `wio.io`, which already lists a directory and reads
+bytes.
 
 ### A-2
 

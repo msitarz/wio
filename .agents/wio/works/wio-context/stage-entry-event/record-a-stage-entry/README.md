@@ -2,7 +2,7 @@
 id = "fy51ae"
 template = "feature.leaf"
 roots = ["wio"]
-depends_on = ["b53rss", "fadef4", "q6mf05"]
+depends_on = ["b53rss", "m4c8wp", "q6mf05"]
 -->
 
 # Record a stage entry
@@ -43,9 +43,9 @@ header states, so the docstring is corrected with this Work.
 ### A-2
 
 The compiler result carries the qualified code and the `rule_hash` of each
-included rule in the order of the bundle, as the command Work says, and the
-compiler hashes the files through `selected` of `RuleSelector`, so this Work
-reads no rule file.
+included rule in the order of the bundle, as the command Work says, and Compose
+the bundle hashes the files, so this Work reads no rule file; the criteria run
+the command with a fake compiler that returns the result they state.
 
 ### A-3
 
@@ -77,25 +77,24 @@ qualified code in the order of the bundle.
 
 #### A stage with two rules
 
-- **Given** a stage whose bundle holds `mp.ARC001` and `mp.ERR002` in that
-  order.
+- **Given** a compiler result with the id `7a2383bc4098`, the body size 139 and
+  the rules `mp.ARC001` and `mp.ERR002` in that order.
 - **When** `wio context` runs.
-- **Then** the log holds one event whose `bundle` is the id in the metadata,
-  whose `size` is the size in the header, and whose `rules` map `mp.ARC001` and
+- **Then** the log holds one event whose `bundle` is that id, whose `size` is
+  that body size, and whose `rules` map `mp.ARC001` and
   `mp.ERR002`, in that order, to the `rule_hash` of their files.
 
-### **AC-2** Only the included rules are recorded
+### **AC-2** A result with no rule records an empty `rules`
 
-An excluded rule is not in `rules`, and a bundle with no included rule has an
-empty `rules`.
+A compiler result with no rule gives an event with an empty `rules`; that an
+excluded rule never reaches the result is a criterion of Compose the bundle.
 
 #### An excluded rule, and none included
 
-- **Given** a stage with one included rule and one excluded rule, and a stage
-  with no included rule.
+- **Given** a compiler result with one rule, and one with none.
 - **When** `wio context` runs for each.
-- **Then** the first event's `rules` holds the included rule only, and the
-  second event's `rules` is empty.
+- **Then** the first event's `rules` holds that rule, and the second event's
+  `rules` is empty.
 
 ### **AC-3** A stage that is not a gate records no start and no dirty flag
 

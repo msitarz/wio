@@ -39,10 +39,11 @@ The names below are provisional.
 - **The rules section builder** — in `wio.context`, which turns a `Selection`
   into the text of the section by the three children below, and returns with the
   text the qualified codes of the included rules in the order the text prints
-  them, which the compiler hashes for the event.
+  them, which Compose the bundle hashes for the event.
 - **The builder's inputs** — the `Selection`, the paths of the roots through the
-  shared `Settings` port, and the topic of each family through a port that
-  `wio.rules` satisfies from its manifests.
+  shared `Settings` port, and the topic of each family through the topics port
+  that Ordering and topics declares and builds in `wio.rules` from its
+  manifests.
 
 ## Visuals
 

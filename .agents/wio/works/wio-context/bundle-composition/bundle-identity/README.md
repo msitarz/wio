@@ -31,7 +31,7 @@ rules or the skill change.
 ### A-1
 
 The 12 digits and the hashing of the header and the whole body, labels and
-closing line included, are the departures from the concepts that A-3 and A-6 of
+closing line included, are the departures from the concepts that A-3 and A-4 of
 [Bundle composition](../README.md) declare.
 
 ## Mechanisms
