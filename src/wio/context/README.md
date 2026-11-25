@@ -67,6 +67,15 @@ says what they state, and its
   a skill was found, so what the header says agrees with the rest of the
   bundle by having one source.
 
+## Stage guidance
+
+A stage that names a skill points to the procedure the harness can already
+load. Composition supplies the same skill lookup result to guidance and the
+header so both refer to the same skill. Escaping the displayed name and path
+keeps the instruction on one line while preserving the characters a session
+needs to find the file. [Guidance builder](guidance.py) and
+[tests](../../../tests/unit/context/test_guidance.py).
+
 ## The contract section
 
 A session needs the same contract and inherited sections as a person running
