@@ -32,3 +32,15 @@ The docstrings of [the package](__init__.py),
   composition port names it, and the
   [rule for port stubs](../../../tests/tooling/test_ports.py) lets none of them
   import from its own package.
+
+## The bundle id
+
+[`bundle_id`](identity.py) names a bundle by its text, and its docstring says
+what it returns.
+
+- **It hashes what it is given and reads nothing else,** so what an id covers is
+  decided where the text is built. A part that is not in the text, such as a
+  file of a skill, counts only through something written into the text, such as
+  a hash of the skill's files.
+- **The id has one length for every stage** and is short, because a person
+  compares it by eye between two sessions.
