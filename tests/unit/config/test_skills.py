@@ -181,6 +181,41 @@ def test_the_files_are_hashed_in_the_order_of_their_path_bytes() -> None:
     assert found.files_hash == _sha(b"SKILL.md\0s\0a-b\x002\0a/c\x001\0")
 
 
+def test_names_are_hashed_and_ordered_as_their_bytes_on_disk() -> None:
+    """AC-3: also a name that is not UTF-8."""
+    # Given a name with the byte `ff`, which is not UTF-8, and a name whose
+    # character comes after it as text and before it as bytes
+    files = _tree(
+        {
+            f"{_SKILL}/SKILL.md": "s",
+            f"{_SKILL}/\udcff": "1",
+            f"{_SKILL}/\U00010000": "2",
+        }
+    )
+
+    # When the skill is looked up
+    found = _find(files)
+
+    # Then the bytes of each name are hashed, in the order of those bytes
+    assert found is not None
+    assert found.files_hash == _sha(b"SKILL.md\0s\0\xf0\x90\x80\x80\x002\0\xff\x001\0")
+
+
+def test_a_skill_under_a_faulty_path_is_reported_and_not_found() -> None:
+    """AC-2: the check reports the path that the lookup leaves out."""
+    # Given a skill under a path that is not normalized
+    files = _tree({"a/wio-define/SKILL.md": "x"})
+    config = Config(skills=Skills(paths=("./a",)))
+
+    # When the config is checked and the skill is looked up
+    errors = [d.where for d in check_skills(config, CheckInputs(ROOT, files))]
+    found = _find(files, paths=("./a",))
+
+    # Then the path is reported and there is no skill
+    assert errors == ["skills.paths[0]"]
+    assert found is None
+
+
 def test_hidden_files_and_directories_count() -> None:
     """AC-3: every file, whatever its name."""
     # Given a skill with a hidden file and a file in a hidden directory

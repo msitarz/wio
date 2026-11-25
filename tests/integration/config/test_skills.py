@@ -3,13 +3,15 @@
 
 import hashlib
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 import pytest
 
 from tests.support import enter, git
+from wio.config.settings import ConfigSettings
 from wio.config.skills import RepositorySkills
 from wio.env.adapters import ProcessEnvironment
+from wio.errors import ConfigurationError
 from wio.io import adapters
 from wio.models.config import Config
 
@@ -17,6 +19,23 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from tests.sandbox import Sandbox
+
+
+class _RegularOnly(adapters.LocalFileSystem):
+    """A disk that fails, and does not block, on a read of what is not a file."""
+
+    @override
+    def read_bytes(self, path: Path) -> bytes:
+        """Read a regular file.
+
+        Args:
+            path: The file.
+
+        Returns:
+            Its bytes.
+        """
+        assert path.is_file(), f"read of {path}, which is not a regular file"
+        return super().read_bytes(path)
 
 
 class _Settings:
@@ -31,16 +50,19 @@ class _Settings:
         return Config()
 
 
-def _lookup() -> RepositorySkills:
+def _lookup(settings: ConfigSettings | None = None) -> RepositorySkills:
     """Build the lookup with the real adapters.
+
+    Args:
+        settings: The settings; those of an empty config by default.
 
     Returns:
         The lookup of the repository of the working directory.
     """
     return RepositorySkills(
         adapters.GitRepository(ProcessEnvironment()),
-        adapters.LocalFileSystem(),
-        _Settings(),
+        _RegularOnly(),
+        settings or _Settings(),
     )
 
 
@@ -188,7 +210,8 @@ def test_an_entry_that_is_not_a_regular_file_adds_nothing(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """AC-3: only regular files are read."""
-    # Given a skill that holds a named pipe, which a read would block on
+    # Given a skill that holds a named pipe, which a read would block on, and a
+    # disk that fails instead
     git(sandbox, "init", "-q", check=True)
     skill = sandbox.root / ".agents" / "skills" / "wio-define"
     _write(skill / "SKILL.md", "x\n")
@@ -200,3 +223,45 @@ def test_an_entry_that_is_not_a_regular_file_adds_nothing(
 
     # Then only the regular file is hashed
     assert found == hashlib.sha256(b"SKILL.md\0x\n\0").hexdigest()
+
+
+@pytest.mark.slow
+def test_the_bytes_of_a_file_are_hashed_as_they_are_stored(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-3: no decoding and no change of line ends."""
+    # Given a skill with a file that is not text and has a CRLF line end
+    git(sandbox, "init", "-q", check=True)
+    skill = sandbox.root / ".agents" / "skills" / "wio-define"
+    _write(skill / "SKILL.md", "x\n")
+    (skill / "logo.bin").write_bytes(b"\xff\x00\r\n")
+    enter(sandbox, monkeypatch)
+
+    # When it is looked up
+    found = _hash()
+
+    # Then the hash is of the stored bytes
+    stored = b"SKILL.md\0x\n\0logo.bin\0\xff\x00\r\n\0"
+    assert found == hashlib.sha256(stored).hexdigest()
+
+
+@pytest.mark.slow
+def test_settings_that_refuse_the_config_end_the_lookup(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-2: the real settings give no config that has an error."""
+    # Given a skill under a path that the config writes with a fault
+    git(sandbox, "init", "-q", check=True)
+    _write(sandbox.root / "a" / "wio-define" / "SKILL.md", "x")
+    config = sandbox.root / ".agents" / "wio" / "config.toml"
+    _write(config, '[skills]\npaths = ["./a"]\n')
+    enter(sandbox, monkeypatch)
+    repository = adapters.GitRepository(ProcessEnvironment())
+    settings = ConfigSettings(repository, adapters.LocalFileSystem())
+
+    # When the skill is looked up with the real settings
+    with pytest.raises(ConfigurationError) as caught:
+        _lookup(settings).find_skill("wio-define")
+
+    # Then the error names the faulty path
+    assert "skills.paths[0]" in str(caught.value)
