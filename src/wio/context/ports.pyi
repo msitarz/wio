@@ -25,7 +25,23 @@ class Contracts(Protocol):
             The resolved contract.
 
         Raises:
-            KeyError: If no Work has that id.
+            ContractsError: The tree is incomplete, or the id is unknown or
+                shared.
+            ConfigurationError: The config cannot be loaded.
+            OSError: The Work's own file cannot be read.
+            UnicodeDecodeError: The Work's own file is not UTF-8.
+        """
+        ...
+
+    def view(self, contract: ResolvedContract) -> str:
+        """Write the view of an already resolved contract.
+
+        Args:
+            contract: The contract returned by `resolved`.
+
+        Returns:
+            The resolved view as `wio contracts show` prints it, empty when
+            the Work has no body and no inherited sections.
         """
         ...
 
