@@ -5,10 +5,7 @@ import pytest
 
 from wio.context import bundle_id
 
-_PENDING = pytest.mark.xfail(strict=True)
 
-
-@_PENDING
 def test_the_id_is_the_one_that_the_algorithm_gives() -> None:
     """AC-1: the known text has the known id, each time."""
     # Given the text `a` and a newline
@@ -21,7 +18,18 @@ def test_the_id_is_the_one_that_the_algorithm_gives() -> None:
     assert found == ("87428fc52280", "87428fc52280")
 
 
-@_PENDING
+def test_a_text_is_hashed_as_its_utf_8_bytes_without_normalization() -> None:
+    """AC-1: characters beyond ASCII count, a decomposed accent as written."""
+    # Given a text with a decomposed accent, a dash and a Polish letter
+    text = "cafe\u0301 \u2014 \u017c\n"
+
+    # When its id is computed
+    found = bundle_id(text)
+
+    # Then it is the first 12 digits of the SHA-256 of its UTF-8 bytes
+    assert found == "a0d488645c70"
+
+
 @pytest.mark.parametrize(
     "changed",
     [
