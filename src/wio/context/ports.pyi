@@ -98,15 +98,17 @@ class SkillLookup(Protocol):
 
         It looks in `[skills] paths`, in their order, and then in
         `.agents/skills` and `.claude/skills`, never in the user's home, and
-        finds a skill exactly when `wio config check` accepts it.
+        finds a skill exactly when `wio config check` accepts it. It reads the
+        settings first, so a config that they refuse gets no lookup.
 
         Args:
             name: The skill's name, as a stage writes it.
 
         Returns:
-            The first directory that holds `<name>/SKILL.md`, with the hash of
-            its files, or `None` when none does or the name is empty, `.`, `..`
-            or holds `/`.
+            The directory `<dir>/<name>` of the first `<dir>` searched in which
+            it holds a `SKILL.md`, with the hash of the files of
+            `<dir>/<name>`, or `None` when there is none or the name is empty,
+            `.`, `..` or holds `/`.
 
         Raises:
             ConfigurationError: If the settings cannot be loaded.

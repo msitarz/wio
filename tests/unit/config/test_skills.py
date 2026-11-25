@@ -115,12 +115,27 @@ def test_the_first_match_wins_in_the_documented_order(
 
 
 @_PENDING
+def test_a_directory_without_the_skill_file_does_not_end_the_search() -> None:
+    """AC-1: the default directories are searched after the configured ones."""
+    # Given a configured directory whose `wio-define` has no `SKILL.md`, and the
+    # skill in a default directory
+    files = _tree({"a/wio-define/notes.md": "n", f"{_SKILL}/SKILL.md": "x"})
+
+    # When it is looked up
+    found = _find(files, paths=("a",))
+
+    # Then the one in the default directory is found
+    assert found is not None
+    assert found.directory == _SKILL
+
+
+@_PENDING
 @pytest.mark.parametrize(
     ("name", "paths", "path"),
     [
         ("wio-define", (), f"{_SKILL}/notes.md"),
         ("wio-define", ("./a",), "a/wio-define/SKILL.md"),
-        ("..", (), ".agents/SKILL.md"),
+        ("..", (), ".agents/skills/../SKILL.md"),
         ("a/b", (), ".agents/skills/a/b/SKILL.md"),
         ("", (), ".agents/skills/SKILL.md"),
         (".", (), ".agents/skills/SKILL.md"),
@@ -170,6 +185,22 @@ def test_the_files_are_hashed_in_the_order_of_their_path_bytes() -> None:
     # Then `a-b` is hashed before `a/c`
     assert found is not None
     assert found.files_hash == _sha(b"SKILL.md\0s\0a-b\x002\0a/c\x001\0")
+
+
+@_PENDING
+def test_hidden_files_and_directories_count() -> None:
+    """AC-3: every file, whatever its name."""
+    # Given a skill with a hidden file and a file in a hidden directory
+    files = _tree(
+        {f"{_SKILL}/SKILL.md": "s", f"{_SKILL}/.env": "e", f"{_SKILL}/.d/f": "f"}
+    )
+
+    # When it is looked up
+    found = _find(files)
+
+    # Then both are hashed
+    assert found is not None
+    assert found.files_hash == _sha(b".d/f\0f\0.env\0e\0SKILL.md\0s\0")
 
 
 @_PENDING

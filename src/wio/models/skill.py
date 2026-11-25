@@ -12,9 +12,9 @@ class FoundSkill:
         directory: The skill's directory, relative to the repository root and
             with `/` separators.
         files_hash: The SHA-256, as 64 lower-case hexadecimal digits, of the
-            path and the bytes of every regular file below the directory. It
-            changes when a file is changed, added, removed or renamed, and not
-            with a modification time or a mode.
+            path and the bytes of every regular file below the directory, with
+            symbolic links left out. It changes when a file is changed, added,
+            removed or renamed, and not with a modification time or a mode.
     """
 
     directory: str

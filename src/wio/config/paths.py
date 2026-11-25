@@ -159,7 +159,7 @@ def searched_directories(skill_paths: Sequence[str]) -> list[str]:
 def skill_directory(
     skill: str, searched: Sequence[str], root: Path, files: FileSystem
 ) -> str | None:
-    """Find the directory that holds a skill's `SKILL.md`.
+    """Find which of the searched directories holds a skill.
 
     It asks the disk only whether a path exists, and looks nowhere but in
     `searched` below `root`.
@@ -172,9 +172,9 @@ def skill_directory(
         files: Tells whether a path exists.
 
     Returns:
-        The first of `searched` that has `<skill>/SKILL.md`, or `None` when none
-        has, and without a lookup for a name that is empty, is `.` or `..` or
-        has a `/`.
+        The first of `searched` that has `<skill>/SKILL.md`, so the parent of the
+        skill's own directory, or `None` when none has, and without a lookup for
+        a name that is empty, is `.` or `..` or has a `/`.
     """
     del skill, searched, root, files
     raise NotImplementedError

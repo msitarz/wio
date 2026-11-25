@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of the lookup of a skill on a real disk and a real repository."""
 
+import hashlib
 import os
 from typing import TYPE_CHECKING
 
@@ -73,11 +74,12 @@ def test_the_hash_changes_with_the_files_and_only_with_them(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """AC-3, C-1: bytes and names count; links, times and modes do not."""
-    # Given a repository with a skill of two files
+    # Given a repository with a skill of two texts and a file that is not text
     git(sandbox, "init", "-q", check=True)
     skill = sandbox.root / ".agents" / "skills" / "wio-define"
     _write(skill / "SKILL.md", "x\n")
     _write(skill / "references" / "a.md", "y\n")
+    (skill / "logo.bin").write_bytes(b"\xff\x00\r\n")
     enter(sandbox, monkeypatch)
     hashes = [_hash()]
 
@@ -143,3 +145,46 @@ def test_a_skill_in_the_home_directory_is_not_found(
 
     # Then there is none
     assert found is None
+
+
+@_PENDING
+@pytest.mark.slow
+def test_a_linked_skill_directory_has_the_files_of_its_target(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-3: only links below the skill's directory are left out."""
+    # Given a skill in `.agents/skills` and a link to it that is searched first
+    git(sandbox, "init", "-q", check=True)
+    target = sandbox.root / "shared" / "wio-define"
+    _write(target / "SKILL.md", "x\n")
+    linked = sandbox.root / ".agents" / "skills" / "wio-define"
+    linked.parent.mkdir(parents=True)
+    linked.symlink_to(target, target_is_directory=True)
+    enter(sandbox, monkeypatch)
+
+    # When it is looked up
+    found = _lookup().find_skill("wio-define")
+
+    # Then the link is the directory, and the target's file is hashed
+    assert found is not None
+    assert found.directory == ".agents/skills/wio-define"
+    assert found.files_hash == hashlib.sha256(b"SKILL.md\0x\n\0").hexdigest()
+
+
+@_PENDING
+@pytest.mark.slow
+def test_a_skill_file_that_the_check_accepts_is_found(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-5: the check asks only that `SKILL.md` exists."""
+    # Given a skill whose `SKILL.md` is a directory, which the check accepts
+    git(sandbox, "init", "-q", check=True)
+    skill = sandbox.root / ".agents" / "skills" / "wio-define"
+    (skill / "SKILL.md").mkdir(parents=True)
+    enter(sandbox, monkeypatch)
+
+    # When it is looked up
+    found = _lookup().find_skill("wio-define")
+
+    # Then it is found
+    assert found is not None
