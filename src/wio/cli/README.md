@@ -15,9 +15,9 @@ by adding an entry made with `component_entry`, and nothing else.
 - `wio.cli` keeps a [null adapter](null.py) for a test that needs no side
   effect: `NoEvents` drops the events of a review. The command records reviews
   through the [log sink](../log/README.md#appending-an-event).
-- `wio context` is listed before it can compose a bundle. Until its composition
-  is wired, [`UnwiredComposer`](null.py) refuses each run, so a user is told
-  why and does not take it for a bug. It goes away with that wiring.
+- `wio context` is listed before it can compose a bundle, and
+  [`UnwiredComposer`](null.py) stands in its place until the composition is
+  wired. It goes away with that wiring.
 - `Entry.wire` takes no platform parameter. The first adapter that differs by
   platform adds it.
 

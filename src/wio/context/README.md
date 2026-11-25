@@ -25,10 +25,10 @@ The docstrings of [the package](__init__.py),
   answered with a bundle, which would look like success.
 - **The warnings are reported before the bundle is written,** so a delivery
   that fails does not hide them.
-- **The command catches no error.** The
-  [dispatch of `wio.cli`](../cli/README.md#failures-and-exit-codes) already
-  tells a mistake of the user from a bug.
-- **There is no `--json`,** because a session reads the printed text as it is.
+- **The command leaves every error to the
+  [dispatch of `wio.cli`](../cli/README.md#failures-and-exit-codes),** which
+  already tells a mistake of the user from a bug.
 - **The finished bundle is a [shared type](../models/bundle.py),** because the
-  composition port names it and a
-  [ports stub](../README.md#ports) imports nothing from its own package.
+  composition port names it, and the
+  [rule for port stubs](../../../tests/tooling/test_ports.py) lets none of them
+  import from its own package.

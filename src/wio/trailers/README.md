@@ -487,8 +487,9 @@ case reads.
   end as a bug.
 - **There is no `--json`, on purpose.** The write form prints a plain record to
   append to a commit message and a check sends its findings to standard error,
-  so the command deviates from the convention that every command declares
-  `--json`.
+  and
+  [a command whose output is used as it is](../cli/README.md#what-every-command-follows)
+  declares none.
 - **The ports are wired in `wio.cli`.** The git adapter gives the history, the
   contracts component finds a Work in the working tree and then in `HEAD`, and,
   for a commit message, in the index and then in `HEAD`, so a commit that
