@@ -3,39 +3,26 @@
 
 import hashlib
 import os
-from typing import TYPE_CHECKING, override
+import socket
+from typing import TYPE_CHECKING
 
 import pytest
 
 from tests.support import enter, git
+from wio.config.checks import CheckInputs
+from wio.config.paths import check_skills
 from wio.config.settings import ConfigSettings
 from wio.config.skills import RepositorySkills
 from wio.env.adapters import ProcessEnvironment
 from wio.errors import ConfigurationError
 from wio.io import adapters
-from wio.models.config import Config
+from wio.models.config import Config, Stage
+from wio.models.frozen import freeze
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from tests.sandbox import Sandbox
-
-
-class _RegularOnly(adapters.LocalFileSystem):
-    """A disk that fails, and does not block, on a read of what is not a file."""
-
-    @override
-    def read_bytes(self, path: Path) -> bytes:
-        """Read a regular file.
-
-        Args:
-            path: The file.
-
-        Returns:
-            Its bytes.
-        """
-        assert path.is_file(), f"read of {path}, which is not a regular file"
-        return super().read_bytes(path)
 
 
 class _Settings:
@@ -61,7 +48,7 @@ def _lookup(settings: ConfigSettings | None = None) -> RepositorySkills:
     """
     return RepositorySkills(
         adapters.GitRepository(ProcessEnvironment()),
-        _RegularOnly(),
+        adapters.LocalFileSystem(),
         settings or _Settings(),
     )
 
@@ -77,15 +64,54 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def _hash() -> str:
+def _hash(lookup: RepositorySkills | None = None) -> str:
     """Look the skill `wio-define` up for its hash.
+
+    Args:
+        lookup: The lookup to ask; a new one by default.
 
     Returns:
         The files hash.
     """
-    found = _lookup().find_skill("wio-define")
+    found = (lookup or _lookup()).find_skill("wio-define")
     assert found is not None
     return found.files_hash
+
+
+def _check(sandbox: Sandbox) -> list[str]:
+    """Check the skill of a stage that names `wio-define`.
+
+    Args:
+        sandbox: The repository.
+
+    Returns:
+        Where the check reports.
+    """
+    config = Config(stages=freeze({"s": Stage(skill="wio-define")}))
+    inputs = CheckInputs(sandbox.root, adapters.LocalFileSystem())
+    return [found.where for found in check_skills(config, inputs)]
+
+
+@pytest.mark.slow
+def test_a_linked_skill_file_is_found_and_left_out_of_the_hash(
+    sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-5, A-3: the check accepts a link, and the hash does not count it."""
+    # Given a skill whose `SKILL.md` is a link to a file outside it
+    git(sandbox, "init", "-q", check=True)
+    _write(sandbox.root / "shared.md", "x")
+    skill = sandbox.root / ".agents" / "skills" / "wio-define"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").symlink_to(sandbox.root / "shared.md")
+    enter(sandbox, monkeypatch)
+
+    # When the config is checked and the skill is looked up
+    errors = _check(sandbox)
+    found = _hash()
+
+    # Then the check accepts it, and the hash is of no file
+    assert errors == []
+    assert found == hashlib.sha256(b"").hexdigest()
 
 
 @pytest.mark.slow
@@ -100,21 +126,22 @@ def test_the_hash_changes_with_the_files_and_only_with_them(
     _write(skill / "references" / "a.md", "y\n")
     (skill / "logo.bin").write_bytes(b"\xff\x00\r\n")
     enter(sandbox, monkeypatch)
-    hashes = [_hash()]
+    lookup = _lookup()
+    hashes = [_hash(lookup)]
 
     # When a byte changes, a file is added, a file is renamed, a link is added,
     # and then a time and a mode change
     _write(skill / "references" / "a.md", "z\n")
-    hashes.append(_hash())
+    hashes.append(_hash(lookup))
     _write(skill / "b.md", "b\n")
-    hashes.append(_hash())
+    hashes.append(_hash(lookup))
     (skill / "b.md").rename(skill / "c.md")
-    hashes.append(_hash())
+    hashes.append(_hash(lookup))
     (skill / "link.md").symlink_to(skill / "c.md")
-    hashes.append(_hash())
+    hashes.append(_hash(lookup))
     os.utime(skill / "SKILL.md", (0, 0))
     (skill / "SKILL.md").chmod(0o755)
-    hashes.append(_hash())
+    hashes.append(_hash(lookup))
 
     # Then the first three changes give a new hash, and the last two do not
     assert len(set(hashes[:4])) == 4
@@ -198,10 +225,12 @@ def test_a_skill_file_that_the_check_accepts_is_found(
     (skill / "SKILL.md").mkdir(parents=True)
     enter(sandbox, monkeypatch)
 
-    # When it is looked up
+    # When the config is checked and the skill is looked up
+    errors = _check(sandbox)
     found = _lookup().find_skill("wio-define")
 
-    # Then it is found
+    # Then the check accepts it, and it is found
+    assert errors == []
     assert found is not None
 
 
@@ -210,13 +239,15 @@ def test_an_entry_that_is_not_a_regular_file_adds_nothing(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """AC-3: only regular files are read."""
-    # Given a skill that holds a named pipe, which a read would block on, and a
-    # disk that fails instead
+    # Given a skill that holds a socket, which fails to open
     git(sandbox, "init", "-q", check=True)
     skill = sandbox.root / ".agents" / "skills" / "wio-define"
     _write(skill / "SKILL.md", "x\n")
-    os.mkfifo(skill / "pipe")
     enter(sandbox, monkeypatch)
+    monkeypatch.chdir(skill)
+    with socket.socket(socket.AF_UNIX) as bound:
+        bound.bind("socket")
+    monkeypatch.chdir(sandbox.root)
 
     # When it is looked up
     found = _hash()

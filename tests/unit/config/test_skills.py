@@ -11,6 +11,7 @@ from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
 from wio.config.checks import CheckInputs
 from wio.config.paths import check_skills
 from wio.config.skills import RepositorySkills
+from wio.errors import ConfigurationError
 from wio.models.config import Config, Skills, Stage
 from wio.models.frozen import freeze
 from wio.models.skill import FoundSkill
@@ -35,6 +36,19 @@ class _Settings:
             The config.
         """
         return Config(skills=Skills(paths=self.paths))
+
+
+class _Refusing:
+    """Settings that refuse the config."""
+
+    def load(self) -> Config:
+        """Refuse.
+
+        Raises:
+            ConfigurationError: Always.
+        """
+        message = "refused"
+        raise ConfigurationError(message)
 
 
 def _tree(files: dict[str, str], links: tuple[str, ...] = ()) -> MemoryFileSystem:
@@ -94,22 +108,35 @@ def _sha(data: bytes) -> str:
         ((), (".claude/skills", ".agents/skills"), ".agents/skills/wio-define"),
         ((), (".claude/skills",), ".claude/skills/wio-define"),
         ((".",), (".",), "wio-define"),
+        (("a", "b"), ("b",), "b/wio-define"),
+        (("./x", "b"), ("b",), "b/wio-define"),
+        (("~/x",), ("~/x",), "~/x/wio-define"),
     ],
-    ids=["configured", "in-their-order", "agents", "claude", "the-root"],
+    ids=[
+        "configured",
+        "in-their-order",
+        "agents",
+        "claude",
+        "the-root",
+        "the-second",
+        "after-a-faulty-one",
+        "a-tilde-is-a-name",
+    ],
 )
 def test_the_first_match_wins_in_the_documented_order(
     paths: tuple[str, ...], present: tuple[str, ...], expected: str
 ) -> None:
     """AC-1, AC-4: `[skills] paths`, then the two default directories."""
     # Given the skill in the directories
-    files = _tree({str(Path(d, "wio-define", "SKILL.md")): "x" for d in present})
+    files = _tree({str(Path(d, "wio-define", "SKILL.md")): d for d in present})
 
     # When it is looked up
     found = _find(files, paths=paths)
 
-    # Then the first directory in the order is given, relative to the root
-    assert found is not None
-    assert found.directory == expected
+    # Then the first directory in the order is given, relative to the root, with
+    # the hash of its own file
+    own = expected.removesuffix("wio-define").rstrip("/") or "."
+    assert found == FoundSkill(expected, _sha(f"SKILL.md\0{own}\0".encode()))
 
 
 def test_a_directory_without_the_skill_file_does_not_end_the_search() -> None:
@@ -135,8 +162,27 @@ def test_a_directory_without_the_skill_file_does_not_end_the_search() -> None:
         ("a/b", (), ".agents/skills/a/b/SKILL.md"),
         ("", (), ".agents/skills/SKILL.md"),
         (".", (), ".agents/skills/SKILL.md"),
+        ("wio-define", ("",), "wio-define/SKILL.md"),
+        ("wio-define", ("/abs",), "/abs/wio-define/SKILL.md"),
+        ("wio-define", ("../out",), "../out/wio-define/SKILL.md"),
+        ("wio-define", (), "wio-define/SKILL.md"),
+        ("wio-define", (), "skills/wio-define/SKILL.md"),
+        ("wio-define", (), ".agents/wio/skills/wio-define/SKILL.md"),
     ],
-    ids=["no-skill-file", "faulty-path", "dot-dot", "slash", "empty", "dot"],
+    ids=[
+        "no-skill-file",
+        "not-normalized-path",
+        "dot-dot",
+        "slash",
+        "empty",
+        "dot",
+        "empty-path",
+        "absolute-path",
+        "escaping-path",
+        "the-root-unasked",
+        "skills-unasked",
+        "wio-skills-unasked",
+    ],
 )
 def test_what_is_not_a_skill_is_not_found(
     name: str, paths: tuple[str, ...], path: str
@@ -150,6 +196,70 @@ def test_what_is_not_a_skill_is_not_found(
 
     # Then there is no skill
     assert found is None
+
+
+@pytest.mark.parametrize(
+    "name",
+    [".hidden", "a b", "a\\b", " padded "],
+    ids=["hidden", "space", "backslash", "padded"],
+)
+def test_a_skill_with_an_unusual_name_is_found(name: str) -> None:
+    """AC-5: only the empty name, `.`, `..` and `/` are refused."""
+    # Given a skill whose name is unusual
+    files = _tree({f".agents/skills/{name}/SKILL.md": "x"})
+    config = Config(stages=freeze({"s": Stage(skill=name)}))
+
+    # When the config is checked and the skill is looked up
+    errors = list(check_skills(config, CheckInputs(ROOT, files)))
+    found = _find(files, name)
+
+    # Then the check accepts it, and it is found under its name as written
+    assert errors == []
+    assert found is not None
+    assert found.directory == f".agents/skills/{name}"
+
+
+@pytest.mark.parametrize("name", ["..", ""], ids=["dot-dot", "empty"])
+def test_the_settings_are_read_before_the_name_is_judged(name: str) -> None:
+    """AC-2: settings that refuse end the lookup of any name."""
+    # Given settings that refuse the config
+    refusing = RepositorySkills(FakeRepository(), _tree({}), _Refusing())
+
+    # When a name that is no skill name is looked up
+    # Then the refusal is raised and not answered with `None`
+    with pytest.raises(ConfigurationError):
+        refusing.find_skill(name)
+
+
+@pytest.mark.parametrize("fault", ["unreadable-file", "unlistable-directory"])
+def test_what_cannot_be_read_is_not_left_out(fault: str) -> None:
+    """AC-3, C-1: the hash never depends on what permissions let through."""
+    # Given a skill with a file that cannot be read, or a directory that cannot
+    # be listed
+    files = _tree({f"{_SKILL}/SKILL.md": "s", f"{_SKILL}/sub/f": "f"})
+    if fault == "unreadable-file":
+        files.broken[ROOT / _SKILL / "sub" / "f"] = PermissionError(13, "denied")
+    else:
+        files.closed.add(ROOT / _SKILL / "sub")
+
+    # When it is looked up
+    # Then the failure is raised
+    with pytest.raises(PermissionError):
+        _find(files)
+
+
+def test_the_whole_of_a_long_file_and_a_name_as_written_are_hashed() -> None:
+    """AC-3: nothing is cut off or normalized."""
+    # Given a long file that ends in NUL bytes, and a name with a combining mark
+    text = "x" * 200_000 + "\0\0"
+    files = _tree({f"{_SKILL}/SKILL.md": text, f"{_SKILL}/e\u0301": "e"})
+
+    # When the skill is looked up
+    found = _find(files)
+
+    # Then all of both is hashed
+    assert found is not None
+    assert found.files_hash == _sha(b"SKILL.md\0" + text.encode() + b"\0e\xcc\x81\0e\0")
 
 
 def test_the_hash_is_of_the_paths_and_the_bytes() -> None:
@@ -216,19 +326,31 @@ def test_a_skill_under_a_faulty_path_is_reported_and_not_found() -> None:
     assert found is None
 
 
-def test_hidden_files_and_directories_count() -> None:
-    """AC-3: every file, whatever its name."""
-    # Given a skill with a hidden file and a file in a hidden directory
-    files = _tree(
-        {f"{_SKILL}/SKILL.md": "s", f"{_SKILL}/.env": "e", f"{_SKILL}/.d/f": "f"}
-    )
+def test_every_file_counts_whatever_its_name_depth_or_size() -> None:
+    """AC-3, A-3: hidden, tool-made, empty and deep files too."""
+    # Given a skill with files that a tool might think it can skip
+    names = [
+        ".DS_Store",
+        ".d/f",
+        ".env",
+        ".git/HEAD",
+        "SKILL.md",
+        "__pycache__/m.pyc",
+        "a/b/c/d",
+        "empty",
+        "node_modules/p",
+    ]
+    files = _tree({f"{_SKILL}/{n}": "" if n == "empty" else "x" for n in names})
 
     # When it is looked up
     found = _find(files)
 
-    # Then both are hashed
+    # Then each is hashed
+    expected = b"".join(
+        n.encode() + (b"\0\0" if n == "empty" else b"\0x\0") for n in names
+    )
     assert found is not None
-    assert found.files_hash == _sha(b".d/f\0f\0.env\0e\0SKILL.md\0s\0")
+    assert found.files_hash == _sha(expected)
 
 
 def test_a_symbolic_link_adds_nothing() -> None:
@@ -257,16 +379,27 @@ def test_a_symbolic_link_adds_nothing() -> None:
 
 def test_the_lookup_and_the_check_agree() -> None:
     """AC-5: found exactly when `wio config check` accepts the skill."""
-    # Given a stage whose skill exists and one whose skill exists nowhere
-    files = _tree({f"{_SKILL}/SKILL.md": "x"})
-    stages = {"here": Stage(skill="wio-define"), "gone": Stage(skill="ghost")}
+    # Given stages whose skills are in each default directory, one whose skill
+    # is a directory without `SKILL.md` and one whose skill exists nowhere
+    files = _tree(
+        {
+            f"{_SKILL}/SKILL.md": "x",
+            ".claude/skills/other/SKILL.md": "x",
+            ".agents/skills/bare/notes.md": "n",
+        }
+    )
+    stages = {
+        "here": Stage(skill="wio-define"),
+        "there": Stage(skill="other"),
+        "bare": Stage(skill="bare"),
+        "gone": Stage(skill="ghost"),
+    }
     config = Config(stages=freeze(stages))
 
     # When the config is checked and each skill is looked up
     errors = [d.where for d in check_skills(config, CheckInputs(ROOT, files))]
     found = {name: _find(files, str(s.skill)) for name, s in stages.items()}
 
-    # Then the check reports only the second, and only the first is found
-    assert errors == ["stages.gone.skill"]
-    assert found["here"] is not None
-    assert found["gone"] is None
+    # Then the check reports the last two, and only the first two are found
+    assert errors == ["stages.bare.skill", "stages.gone.skill"]
+    assert [name for name, skill in found.items() if skill] == ["here", "there"]
