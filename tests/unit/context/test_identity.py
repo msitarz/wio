@@ -3,7 +3,7 @@
 
 import pytest
 
-from wio.context.identity import bundle_id
+from wio.context import bundle_id
 
 _PENDING = pytest.mark.xfail(strict=True)
 
