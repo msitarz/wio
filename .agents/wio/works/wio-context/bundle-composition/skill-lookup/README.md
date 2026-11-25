@@ -55,8 +55,8 @@ and its hash leaves the link out.
 ### A-4
 
 A config loads only when `wio config check` finds no error in it, and the
-`Settings` port raises for any other, so a skill path with a fault or a stage
-whose skill is not found gets that error and no answer from the lookup.
+`Settings` port raises for any other, so while a skill path has a fault or a
+stage's skill is not found, every lookup raises that error and gives no answer.
 
 ## Mechanisms
 
@@ -97,12 +97,12 @@ holds `<name>/SKILL.md` is the skill's.
 - **When** the skill is looked up.
 - **Then** the directory is `.agents/wio/skills/wio-define`.
 
-### **AC-2** What is not a skill is not found
+### **AC-2** What gives no skill
 
-A directory that has no `SKILL.md`, a skill that is only in the user's home,
-and a name that is empty, `.`, `..` or holds `/` give `None`, and a config that
-does not load, such as one with a skill path that has a fault, ends the lookup
-with the error of the settings instead of an answer.
+In a config that loads, a directory that has no `SKILL.md`, a skill that is only
+in the user's home, and a name that is empty, `.`, `..` or holds `/` give
+`None`; a config that does not load, such as one with a skill path that has a
+fault, ends the lookup with the error of the settings instead of an answer.
 
 #### A directory without `SKILL.md`, and a skill only in the home
 
