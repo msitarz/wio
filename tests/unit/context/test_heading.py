@@ -6,8 +6,8 @@ import pytest
 from wio.context import header
 from wio.models.config import Stage
 
-_PENDING = pytest.mark.xfail(strict=True, raises=NotImplementedError)
-_SKILL = ("wio-define", ".agents/skills/wio-define", "1a47c19b09044a02")
+_HASH = "1a47c19b09044a025c5c5b147b88adffccd800023e4e1c1ee70c730329c16fe2"
+_SKILL = ("wio-define", ".agents/skills/wio-define", _HASH)
 
 
 def _header(
@@ -33,7 +33,6 @@ def _header(
     )
 
 
-@_PENDING
 def test_a_fresh_gate_that_a_person_judges() -> None:
     """AC-1, AC-2, AC-3: every line of a header, in order."""
     # Given a stage that is a gate with a person as judge and a fresh session
@@ -55,7 +54,6 @@ def test_a_fresh_gate_that_a_person_judges() -> None:
     ]
 
 
-@_PENDING
 @pytest.mark.parametrize(
     ("stage", "gate", "session"),
     [
@@ -71,8 +69,19 @@ def test_a_fresh_gate_that_a_person_judges() -> None:
             "gate: no",
             "session: fresh, do not continue it",
         ),
+        (
+            Stage(goal="J.", gate=True, session="fresh", continuable=False),
+            "gate: yes",
+            "session: fresh, do not continue it",
+        ),
     ],
-    ids=["not-continuable", "judge-without-gate", "agent-gate", "fresh-and-single"],
+    ids=[
+        "not-continuable",
+        "judge-without-gate",
+        "agent-gate",
+        "fresh-and-single",
+        "single-gate",
+    ],
 )
 def test_the_gate_and_session_lines(stage: Stage, gate: str, session: str) -> None:
     """AC-1: only a gate says who judges, and the session advice is given."""
@@ -85,7 +94,6 @@ def test_the_gate_and_session_lines(stage: Stage, gate: str, session: str) -> No
     assert lines[3:5] == [gate, session]
 
 
-@_PENDING
 def test_a_work_with_no_title_is_named_by_its_id_alone() -> None:
     """AC-1: no empty parentheses."""
     # Given a Work with no title
@@ -97,7 +105,6 @@ def test_a_work_with_no_title_is_named_by_its_id_alone() -> None:
     assert lines[0] == "work: k3m9xq"
 
 
-@_PENDING
 def test_a_bundle_with_no_rule_says_so() -> None:
     """AC-2: zero rules is stated."""
     # Given no rule
@@ -109,7 +116,6 @@ def test_a_bundle_with_no_rule_says_so() -> None:
     assert "rules: 0" in text.split("\n")
 
 
-@_PENDING
 def test_a_stage_with_a_skill_names_where_it_was_found() -> None:
     """AC-4: the skill, its directory and its hash, and no such line for a goal."""
     # Given a stage with a skill and one with a goal
@@ -120,7 +126,7 @@ def test_a_stage_with_a_skill_names_where_it_was_found() -> None:
 
     # Then only the first has the skill line, after the command
     assert with_skill[-1] == (
-        "skill: wio-define (.agents/skills/wio-define, files 1a47c19b09044a02)"
+        f"skill: wio-define (.agents/skills/wio-define, files {_HASH})"
     )
     assert with_skill[:-1] == with_goal
 
@@ -137,7 +143,6 @@ _KINDS = {
 """One stage of every kind that AC-1 to AC-4 name."""
 
 
-@_PENDING
 @pytest.mark.parametrize("rules", [3, 0])
 @pytest.mark.parametrize("skill", [None, _SKILL], ids=["goal", "skill"])
 @pytest.mark.parametrize("title", ["Demo", None], ids=["titled", "untitled"])
@@ -157,7 +162,6 @@ def test_the_header_is_one_block(
     assert len(lines) == (8 if skill is None else 9)
 
 
-@_PENDING
 def test_the_command_and_the_skill_state_what_they_are_given() -> None:
     """AC-2, AC-3, AC-4: other facts and another directory are stated as given."""
     # Given another Work, action and stage, and a skill of a configured directory

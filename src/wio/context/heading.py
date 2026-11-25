@@ -46,6 +46,45 @@ def header(
         The lines joined by newlines, with no blank line and no newline at the
         end.
     """
-    del work_id, title, action, stage_name, stage, rules
-    del size_bytes, size_lines, skill
-    raise NotImplementedError
+    named = work_id if title is None else f"{work_id} ({title})"
+    lines = [
+        f"work: {named}",
+        f"action: {action}",
+        f"stage: {stage_name}",
+        f"gate: {_gate(stage)}",
+        f"session: {_session(stage)}",
+        f"rules: {rules}",
+        f"size: {size_bytes} bytes, {size_lines} lines (body)",
+        f"command: wio context {work_id} {action} {stage_name}",
+    ]
+    if skill is not None:
+        name, directory, files = skill
+        lines.append(f"skill: {name} ({directory}, files {files})")
+    return "\n".join(lines)
+
+
+def _gate(stage: Stage) -> str:
+    """Say whether a stage is a gate, and who judges it when a person does.
+
+    Args:
+        stage: The stage's settings.
+
+    Returns:
+        The text of the gate line, which names a judge only for a gate.
+    """
+    if not stage.gate:
+        return "no"
+    return "yes" if stage.judge is None else "yes, judged by a person"
+
+
+def _session(stage: Stage) -> str:
+    """Give a stage's advice on the session that runs it.
+
+    Args:
+        stage: The stage's settings.
+
+    Returns:
+        The text of the session line.
+    """
+    advice = "" if stage.continuable else ", do not continue it"
+    return f"{stage.session}{advice}"
