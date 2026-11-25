@@ -14,7 +14,7 @@ _ITEMS = (
     "Rules for root api (services/api):",
     "mattpocock: Error handling (ERR)",
     "mattpocock.ERR003 errors-carry-context\nWrap.",
-    "mattpocock.ERR004 no-silent-catch",
+    "  mattpocock.ERR004 no-silent-catch\nA hard break.  ",
 )
 
 
@@ -46,10 +46,12 @@ def _rule(body: str, ruleset: str = "mattpocock", code: str = "ERR003") -> Rule:
     "body",
     [
         "Wrap an error.\n\nWhy: so it is found.",
-        "    indented first line\n\n\n  kept  \nlast",
+        "    indented first line\n\n\n  kept  \nlast  ",
+        "    every line\n    is indented",
+        "a\ttab\t",
         "one\r\ntwo",
     ],
-    ids=["paragraphs", "whitespace", "line-ends"],
+    ids=["paragraphs", "whitespace", "indented", "tabs", "line-ends"],
 )
 def test_a_rule_is_its_qualified_line_and_its_body(body: str) -> None:
     """AC-1: the line, one newline and the body unchanged, and nothing else."""
