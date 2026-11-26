@@ -43,6 +43,16 @@ can introduce an unknown root here.
 The [acceptance scenarios](../../../tests/acceptance/context/test_inputs.py)
 show the errors at the command boundary.
 
+## Warning about missing Work roots
+
+[The warning check](no_roots.py) tells the driver when a stage selects a Work's
+empty roots, because the bundle otherwise hides that no rules came from those
+roots. A missing `roots` key, an empty list and a leaf's `@descendants` all
+resolve to no roots; the
+[real-lookup scenarios](../../../tests/integration/context/test_no_roots.py)
+show how those cases and the stage's selection affect the warning. The bundle is
+still printed so the driver can decide what to do.
+
 ## Bundle composition
 
 [Composition](composition.py) shares one selection across rendering, the
