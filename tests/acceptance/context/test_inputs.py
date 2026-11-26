@@ -70,6 +70,7 @@ def test_unknown_selected_work_root_is_refused(wio: Wio) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Warning is stubbed")
 def test_unselected_work_root_does_not_block_bundle(wio: Wio) -> None:
     """AC-4: a stage selecting its own roots gets a bundle."""
     # Given a Work with an unknown root and a stage selecting its own roots

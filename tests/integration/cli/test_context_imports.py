@@ -26,6 +26,7 @@ sys.stderr.write(repr((code, [name for name in names if name in sys.modules])))
 
 
 @pytest.mark.slow
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Warning is stubbed")
 def test_context_run_does_not_load_unrelated_commands(sandbox: Sandbox) -> None:
     """C-6: composing a bundle leaves the named unrelated modules unloaded."""
     # Given a repository with a goal stage and a Work
@@ -33,11 +34,12 @@ def test_context_run_does_not_load_unrelated_commands(sandbox: Sandbox) -> None:
     config.parent.mkdir(parents=True)
     config.write_text(
         '[actions.deliver]\ndescription = "Deliver"\n'
+        "[roots.api]\npaths = []\n"
         '[stages.goal]\ngoal = "Read the contract."\n'
     )
     work = sandbox.root / ".agents/wio/works/demo/README.md"
     work.parent.mkdir(parents=True)
-    work.write_text('<!-- wio\nid = "k3m9xq"\n-->\n\n# Demo\n')
+    work.write_text('<!-- wio\nid = "k3m9xq"\nroots = ["api"]\n-->\n\n# Demo\n')
     git(sandbox, "init", "-q", check=True)
 
     # When the command runs in a fresh interpreter

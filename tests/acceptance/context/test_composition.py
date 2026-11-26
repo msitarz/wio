@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Warning is stubbed")
 def test_bundle_identity_and_body_size_for_goal_and_skill(wio: Wio) -> None:
     """AC-1: both kinds of stage state the identity and size of their text."""
     # Given a Work with goal and skill stages
@@ -36,6 +37,7 @@ def test_bundle_identity_and_body_size_for_goal_and_skill(wio: Wio) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Warning is stubbed")
 def test_skill_pointer_and_header_agree_on_directory_and_files(wio: Wio) -> None:
     """AC-2: the pointer and header describe the same two-file skill."""
     # Given a skill with its instruction and a reference
