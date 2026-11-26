@@ -10,6 +10,7 @@ from tests.acceptance.channels import Channel
 if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Output, Wio
 
+
 _RUN = ["context", "k3m9xq", "deliver", "implementation"]
 _CONFIG = ".agents/wio/config.toml"
 _WORKS = ".agents/wio/works"
@@ -72,13 +73,14 @@ def test_two_marked_files_in_a_directory_are_refused(wio: Wio) -> None:
     """AC-2: the refusal names both files."""
     # Given a nesting tree with a directory that holds two marked files
     _nested(wio)
-    wio.put(f"{_WORKS}/demo/other.md", _marked("a1b2c3"))
+    wio.put(f"{_WORKS}/pair/README.md", _marked("a1b2c3"))
+    wio.put(f"{_WORKS}/pair/other.md", _marked("d4e5f6"))
 
     # When a Work of the tree is requested
     result = wio.run(_RUN)
 
     # Then both files are named
-    _refused(result, "demo/README.md", "demo/other.md")
+    _refused(result, "pair/README.md", "pair/other.md")
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -96,7 +98,9 @@ def test_a_work_with_no_id_is_refused(wio: Wio) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.parametrize("argument", ["nope11", "works/a/README.md"])
+@pytest.mark.parametrize(
+    "argument", ["nope11", "works/a/README.md", ".agents/wio/works/demo/README.md"]
+)
 def test_an_id_that_no_work_has_is_refused(wio: Wio, argument: str) -> None:
     """AC-3: an argument that looks like a path is an id that no Work has."""
     # Given a complete tree
@@ -186,3 +190,32 @@ def test_a_fault_in_the_rules_is_refused(
     # Then it names what is at fault with the diagnostics of `wio rules`
     _refused(result, named)
     assert result.stderr == listed.stderr
+
+
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+def test_an_unknown_work_is_judged_before_the_names(wio: Wio) -> None:
+    """The parent's order: the Work comes before the action."""
+    # Given a complete tree
+    wio.fixture("context/unreadable")
+
+    # When both the Work and the action are unknown
+    result = wio.run(["context", "nope11", "delivr", "implementation"])
+
+    # Then the refusal is that of the Work
+    _refused(result, "No Work has the id `nope11`.")
+    assert "delivr" not in result.stderr
+
+
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+def test_an_incomplete_tree_is_judged_before_the_names(wio: Wio) -> None:
+    """The parent's order: the tree comes before the action."""
+    # Given a marked file with no id
+    wio.fixture("context/unreadable")
+    wio.put(f"{_WORKS}/anonymous/README.md", b"<!-- wio\n-->\n\n# Anonymous\n")
+
+    # When the action is unknown too
+    result = wio.run(["context", "k3m9xq", "delivr", "implementation"])
+
+    # Then the refusal is that of the tree
+    _refused(result, "anonymous/README.md")
+    assert "delivr" not in result.stderr
