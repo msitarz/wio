@@ -55,7 +55,7 @@ class RuleSelection(Protocol):
         selection in which no rule is included.
 
         Args:
-            contract: The Work's resolved contract, which gives its roots.
+            contract: The resolved contract, which gives the Work's id.
             stage: The name of a stage in the config.
 
         Returns:
@@ -64,6 +64,7 @@ class RuleSelection(Protocol):
             or why a rule was left out.
 
         Raises:
+            DiagnosticsError: Rule discovery reports a fault.
             KeyError: If the stage or the Work is not known.
         """
         ...
