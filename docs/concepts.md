@@ -2033,16 +2033,15 @@ and the rule files.
 
 Output, printed to the session:
 
-1. A header: the Work, the action, the stage, whether the stage is a gate, the
-   session advice, the number of rules, the size of the bundle in bytes and
-   lines, a short bundle id, and the exact command that produced the bundle. For
-   a stage with a skill, it also names the directory the skill was found in and
-   a hash of the skill's files. The bundle id is a hash of the parts below the
-   header (the goal, the resolved contract and the rules) and of the skill's
-   files, so it does not depend on the header that contains it, on how wio was
-   invoked or on `--output`, and it changes when the skill does. A skill's
-   references and scripts are part of its procedure, so all its files count, but
-   not a symbolic link among them.
+1. Metadata, `bundle: <id>`, followed by a header naming the Work, action,
+   stage, gate and session advice, rule count, body size in bytes and lines,
+   and canonical command. The canonical command names the Work, action and
+   stage, without options that only change where the bundle is written. For a
+   skill stage the header also names the skill directory and its files hash.
+   The 12-digit bundle id hashes the header and whole body, including their
+   separator, but not the metadata. The skill's files therefore count through
+   their hash in the header. References and scripts are part of a skill's
+   procedure, so all its files count, but not symbolic links among them.
 2. The stage's goal, or, for a stage with a skill, one fixed instruction to read
    it: "This stage's procedure is the skill `wio-define`. Read
    `.agents/skills/wio-define/SKILL.md` and follow it; its other files are in
@@ -2081,6 +2080,11 @@ Output, printed to the session:
    ([Listing rules](#listing-rules)).
 5. One fixed closing line: if the session's context was compacted, run the
    command from the header again.
+
+The body follows the metadata and header, with a blank line between each. Its
+nonempty parts are labelled `--- stage ---`, `--- contract ---` and
+`--- rules ---`, and separated by blank lines from each other and the closing
+line. The configured separator joins items within the rules section only.
 
 Properties that matter:
 

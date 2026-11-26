@@ -47,7 +47,9 @@ it, so composition reports a missing skill as an error the user can fix.
 The [composition tests](../../../tests/unit/context/test_composition.py)
 cover the bundle's text, measurements, identities, and refusals. The
 [wiring test](../../../tests/integration/cli/test_context_wiring.py) shows the
-command composing a bundle with project adapters.
+command composing a bundle with project adapters. The
+[system scenarios](../../../tests/acceptance/context/test_composition.py) check
+the emitted identity, body size and skill pointer against the assembled text.
 
 ## Finding a skill
 
