@@ -11,13 +11,14 @@ import pytest
 
 from tests.unit.context.fakes import (
     ContractStub,
+    RuleFiles,
     SelectionFake,
     SettingsStub,
     SkillsFake,
     TopicsStub,
 )
 from tests.unit.context.support import applies, left_out
-from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
+from tests.unit.fakes import ROOT, FakeRepository
 from wio.context.assembly import assemble
 from wio.context.composition import Composition
 from wio.context.heading import header
@@ -39,6 +40,7 @@ pytestmark = pytest.mark.xfail(strict=True, raises=NotImplementedError)
 
 _WORK = Work("k3m9xq", "Demo", Path("work.md"), None, ("api",), (), freeze({}))
 _CONTRACT = ResolvedContract(_WORK, "# Démo\n\nContract text.", ())
+_VIEW = "# Inherited constraints\n\nRègles.\n\n" + _CONTRACT.own
 _GOAL = Stage(goal="Review café.")
 _PROCESS = Rule(
     "process",
@@ -46,7 +48,7 @@ _PROCESS = Rule(
     "fix-the-cause",
     None,
     "Fix it.",
-    "",
+    "Fix it.",
     1,
     PurePosixPath("process.md"),
 )
@@ -56,7 +58,7 @@ _PYTHON = Rule(
     "type-ports",
     None,
     "Type ports.",
-    "",
+    "Type ports.",
     1,
     PurePosixPath("python.md"),
 )
@@ -67,7 +69,7 @@ def _wire(
     stage: Stage = _GOAL,
     *,
     skills: SkillsFake | None = None,
-    files: MemoryFileSystem | None = None,
+    files: RuleFiles | None = None,
 ) -> Composer:
     """Connect composition to in-memory services for a review stage.
 
@@ -84,7 +86,7 @@ def _wire(
         Config(stages=freeze({"review": stage}), roots=freeze({"api": Root(paths=())}))
     )
     return Composition(
-        ContractStub(_CONTRACT),
+        ContractStub(_CONTRACT, _VIEW),
         selection,
         TopicsStub(),
         skills if skills is not None else SkillsFake(None),
@@ -94,14 +96,17 @@ def _wire(
     )
 
 
-def _rule_files() -> MemoryFileSystem:
+def _rule_files() -> RuleFiles:
     """Prepare identifiable file bytes for the rules.
 
     Returns:
         The repository's two rule files with distinct contents.
     """
-    return MemoryFileSystem(
-        {ROOT / _PROCESS.path: "Process\n", ROOT / _PYTHON.path: "Python\r\n"}
+    return RuleFiles(
+        data={
+            ROOT / _PROCESS.path: b"Process\n",
+            ROOT / _PYTHON.path: b"Python\xff\r\n",
+        }
     )
 
 
@@ -146,14 +151,15 @@ def test_bundle_has_the_rendered_parts_id_and_size() -> None:
     bundle = composer.compose("k3m9xq", "deliver", "review")
     metadata, _, text = bundle.text.partition("\n\n")
     heading, _, body = text.partition("\n\n")
+    lines = body.count("\n")
 
     # Then real assembly gives the same text and the counts match the body
-    assert bundle.text == assemble("Review café.", _CONTRACT.own, rules, header_for)
+    assert bundle.text == assemble("Review café.", _VIEW, rules, header_for)
     assert metadata == f"bundle: {bundle.id}"
     assert bundle.id == bundle_id(text)
     assert bundle.size == len(body.encode("utf-8"))
     assert "rules: 2" in heading.splitlines()
-    assert f"size: {bundle.size} bytes, {body.count(chr(10))} lines (body)" in heading
+    assert f"size: {bundle.size} bytes, {lines} lines (body)" in heading
 
 
 def test_rule_hashes_follow_the_print_order() -> None:
@@ -170,7 +176,7 @@ def test_rule_hashes_follow_the_print_order() -> None:
     # Then the recorded identities follow the print order
     assert list(bundle.rules.items()) == [
         ("process.FIX001", rule_hash(b"Process\n")),
-        ("python.API001", rule_hash(b"Python\r\n")),
+        ("python.API001", rule_hash(b"Python\xff\r\n")),
     ]
 
 
@@ -212,7 +218,7 @@ def test_only_included_rules_are_printed_and_recorded(*, included: bool) -> None
     assert ("process.FIX001" in bundle.text) is included
     assert tuple(bundle.rules) == (("process.FIX001",) if included else ())
     assert f"rules: {int(included)}" in bundle.text.splitlines()
-    assert files.calls == ([("read_text", ROOT / _PROCESS.path)] if included else [])
+    assert files.calls == ([("read_bytes", ROOT / _PROCESS.path)] if included else [])
 
 
 @pytest.mark.parametrize(
@@ -285,7 +291,7 @@ def test_unreadable_rule_file_names_its_path() -> None:
     The refusal identifies the file the reader needs to fix.
     """
     # Given one included rule whose file cannot be read
-    files = MemoryFileSystem(broken={ROOT / _PROCESS.path: PermissionError("denied")})
+    files = RuleFiles(data={ROOT / _PROCESS.path: PermissionError("denied")})
     composer = _wire(SelectionFake({_PROCESS: applies()}), files=files)
 
     # When the bundle is composed

@@ -5,13 +5,18 @@ Each fake supplies the configured result directly to the composition.
 """
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, override
 
 from tests.fakes import value_or_raise
+from tests.unit.fakes import MemoryFileSystem
 lazy from wio.errors import DiagnosticsError
 lazy from wio.models.config import Config
 lazy from wio.models.resolved import ResolvedContract
 lazy from wio.models.rules import Selection
 lazy from wio.models.skill import FoundSkill
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass
@@ -20,9 +25,11 @@ class ContractStub:
 
     Attributes:
         contract: The resolved contract to return.
+        text: The separately prepared rendered view.
     """
 
     contract: ResolvedContract
+    text: str
 
     def resolved(self, work_id: str) -> ResolvedContract:
         """Give the configured contract for the specified Work.
@@ -46,7 +53,7 @@ class ContractStub:
             The configured view.
         """
         assert contract is self.contract
-        return self.contract.own
+        return self.text
 
 
 @dataclass
@@ -141,3 +148,31 @@ class TopicsStub:
         return {("process", "FIX"): "Process", ("python", "API"): "Python API"}[
             ruleset, family
         ]
+
+
+@dataclass
+class RuleFiles(MemoryFileSystem):
+    """Store rule bytes separately from files read as text.
+
+    Attributes:
+        data: The bytes or read error at each rule's absolute path.
+    """
+
+    data: dict[Path, bytes | OSError] = field(default_factory=dict)
+
+    @override
+    def read_bytes(self, path: Path) -> bytes:
+        """Record a byte read and return the stored bytes.
+
+        Args:
+            path: The absolute path of the rule file.
+
+        Returns:
+            The raw bytes stored for the path.
+
+        Raises:
+            FileNotFoundError: No bytes are stored for the path.
+            Exception: The configured failure for this path.
+        """
+        self.calls.append(("read_bytes", path))
+        return value_or_raise(self.data.get(path, FileNotFoundError(path)))
