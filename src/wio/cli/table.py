@@ -10,18 +10,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Literal
 
-lazy from wio.cli.null import UnwiredComposer
-lazy from wio.config import ConfigCommand, ConfigSettings
-lazy from wio.context import Compiler, ContextCommand
+lazy from wio.config import ConfigCommand, ConfigSettings, RepositorySkills
+lazy from wio.context import Compiler, Composition, ContextCommand
 lazy from wio.context import Services as ContextServices
-lazy from wio.contracts import ContractsCommand, Services, WorkLookup
+lazy from wio.contracts import ContractsCommand, ContractViews, Services, WorkLookup
 lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
 lazy from wio.io import views
 lazy from wio.log.command import LogCommand
 lazy from wio.log.review import ReviewCommand
 lazy from wio.log.sink import LogSink
-lazy from wio.rules import RulesCommand, RuleSelector
+lazy from wio.rules import RulesCommand, RuleSelector, RuleTopics
 lazy from wio.rules import Services as RulesServices
 lazy from wio.templates import TemplatesCatalog, TemplatesCommand
 lazy from wio.trailers import Services as TrailersServices
@@ -119,14 +118,23 @@ def _contracts() -> Command:
         the templates through the catalog of `wio.templates` and draw ids from the
         system's randomness.
     """
+    return ContractsCommand(_contracts_services())
+
+
+def _contracts_services() -> Services:
+    """Connect contract readers and writers to the current project.
+
+    Returns:
+        The shared contract services for commands that use the working tree.
+    """
     environment = env.ProcessEnvironment()
     repository = io.GitRepository(environment)
     files = io.LocalFileSystem()
     settings = ConfigSettings(repository, files)
     catalog = TemplatesCatalog(settings, repository, files)
-    entropy = env.SystemEntropy()
-    services = Services(settings, repository, files, catalog, entropy, environment)
-    return ContractsCommand(services)
+    return Services(
+        settings, repository, files, catalog, env.SystemEntropy(), environment
+    )
 
 
 def _rules() -> Command:
@@ -149,14 +157,27 @@ def _context() -> Command:
     """Wire `wio context` to the project's ports.
 
     Returns:
-        The command, which reads and writes the project through the adapters. Its
-        compiler has no check yet, and its composer refuses every run with a
-        `WioError` until the composition is wired.
+        The command, with bundle composition over the project adapters. Its
+        compiler runs composition directly until input checks are installed.
     """
-    environment = env.ProcessEnvironment()
-    repository = io.GitRepository(environment)
-    services = ContextServices(repository, io.LocalFileSystem(), environment)
-    return ContextCommand(services, Compiler(UnwiredComposer()).compile)
+    contracts = _contracts_services()
+    settings, repository, files = (
+        contracts.settings,
+        contracts.repository,
+        contracts.files,
+    )
+    works = WorkLookup(settings, repository, contracts.catalog, files, [files])
+    composer = Composition(
+        ContractViews(contracts),
+        RuleSelector(settings, repository, files, works),
+        RuleTopics(repository, files),
+        RepositorySkills(repository, files, settings),
+        settings,
+        repository,
+        files,
+    )
+    services = ContextServices(repository, files, contracts.environment)
+    return ContextCommand(services, Compiler(composer).compile)
 
 
 def trailers_command(events: EventSink | None = None) -> Command:
