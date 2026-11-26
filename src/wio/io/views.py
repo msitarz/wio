@@ -76,6 +76,17 @@ class ReadOnlyFiles(ABC):
             raise FileNotFoundError(path)
         return text
 
+    def resolve(self, path: Path) -> Path:
+        """Refuse path resolution for this revision view.
+
+        Args:
+            path: The path to resolve.
+
+        Raises:
+            NotImplementedError: Until path resolution is implemented.
+        """
+        raise NotImplementedError(str(path))
+
     def read_bytes(self, path: Path) -> bytes:
         """Read a file as the bytes of its text.
 

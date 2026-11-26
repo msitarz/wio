@@ -3,6 +3,7 @@
 
 import os
 import secrets
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -76,10 +77,16 @@ class ProcessDirectories:
     """The well-known directories of the process's user, as the `Directories` port.
 
     Attributes:
-        environment: Where `WIO_HOME` is read, so a test can fix it.
+        environment: Where `WIO_HOME` and `TMPDIR` are read.
+        platform: The platform name used for the default temporary directory.
+        darwin_temp: The system temporary directory on macOS.
+        other_temp: The system temporary directory on other platforms.
     """
 
     environment: Environment
+    platform: str = sys.platform
+    darwin_temp: Path = Path("/private/tmp")
+    other_temp: Path = Path("/tmp")
 
     def temp_dir(self) -> Path:
         """Find the directory for temporary files.

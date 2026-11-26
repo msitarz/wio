@@ -26,6 +26,22 @@ class FileSystem(Protocol):
     reach a file raises the `OSError` subclass that describes it.
     """
 
+    def resolve(self, path: Path) -> Path:
+        """Resolve a path to an absolute path, following symbolic links.
+
+        The path need not exist. Relative paths start at the working directory.
+
+        Args:
+            path: The path to resolve.
+
+        Returns:
+            The resolved absolute path.
+
+        Raises:
+            OSError: If the path cannot be resolved.
+        """
+        ...
+
     def read_text(self, path: Path) -> str:
         """Read a file as UTF-8 text.
 

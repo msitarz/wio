@@ -206,3 +206,49 @@ def test_a_user_home_that_is_missing_or_relative_is_an_oserror(
     # Then it raises an OSError
     with pytest.raises(OSError, match="home"):
         directories.wio_home()
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="temp_dir pending")
+def test_the_named_temporary_directory_is_returned_without_testing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-empty TMPDIR is returned as given, even when it is relative."""
+    # Given a relative temporary directory that need not exist
+    monkeypatch.setenv("TMPDIR", "relative/temp")
+    directories = adapters.ProcessDirectories(adapters.ProcessEnvironment())
+
+    # When the temporary directory is requested
+    found = directories.temp_dir()
+
+    # Then the named path is returned unchanged
+    assert found == Path("relative/temp")
+
+
+@pytest.mark.parametrize("platform", ["darwin", "linux"])
+@pytest.mark.parametrize("value", [None, "", "/tmp/t"])
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="temp_dir pending")
+def test_temporary_directory_uses_the_platform_default(
+    platform: str, value: str | None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-4: empty and unset TMPDIR use the tested platform directory."""
+    # Given two scratch system directories and an environment value
+    darwin = tmp_path / "darwin"
+    other = tmp_path / "other"
+    darwin.mkdir()
+    other.mkdir()
+    if value is None:
+        monkeypatch.delenv("TMPDIR", raising=False)
+    else:
+        monkeypatch.setenv("TMPDIR", value)
+    directories = adapters.ProcessDirectories(
+        adapters.ProcessEnvironment(), platform, darwin, other
+    )
+
+    # When the temporary directory is requested
+    found = directories.temp_dir()
+
+    # Then the named directory or the tested platform default is returned
+    expected = Path(value) if value else (darwin if platform == "darwin" else other)
+    assert found == expected
+    assert list(darwin.iterdir()) == []
+    assert list(other.iterdir()) == []

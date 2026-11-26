@@ -55,6 +55,17 @@ class LocalFileSystem:
         """
         return path.read_bytes().decode("utf-8")
 
+    def resolve(self, path: Path) -> Path:
+        """Resolve a local path, including a path that does not yet exist.
+
+        Args:
+            path: The path to resolve.
+
+        Returns:
+            The absolute path with symbolic links followed.
+        """
+        return path.resolve()
+
     def read_bytes(self, path: Path) -> bytes:
         """Read a file as it is stored.
 
