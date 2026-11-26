@@ -14,6 +14,7 @@ lazy from wio.config import ConfigCommand, ConfigSettings, RepositorySkills
 lazy from wio.context import Compiler, Composition, ContextCommand
 lazy from wio.context import Services as ContextServices
 lazy from wio.context.inputs import KnownInputs
+lazy from wio.context.known_work import KnownWork
 lazy from wio.context.no_roots import NoRootsWarning
 lazy from wio.context.pipeline import PipelineWarning
 lazy from wio.contracts import ContractsCommand, ContractViews, Services, WorkLookup
@@ -169,8 +170,9 @@ def _context() -> Command:
         contracts.files,
     )
     works = WorkLookup(settings, repository, contracts.catalog, files, [files])
+    views = ContractViews(contracts)
     composer = Composition(
-        ContractViews(contracts),
+        views,
         RuleSelector(settings, repository, files, works),
         RuleTopics(repository, files),
         RepositorySkills(repository, files, settings),
@@ -184,6 +186,7 @@ def _context() -> Command:
         Compiler(
             composer,
             (
+                KnownWork(views),
                 KnownInputs(settings, works),
                 PipelineWarning(works),
                 NoRootsWarning(settings, works),

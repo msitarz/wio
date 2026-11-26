@@ -44,15 +44,16 @@ is accepted.
 
 The judgement that `wio contracts show` makes of the tree, which refuses an
 incomplete tree and a shared id and goes on past other faults, can be reached
-through the `Contracts` port, whose provider raises `ContractsError`; the
-`KeyError` that the stub of the port documents is provisional.
+through the `Contracts` port, whose provider raises `ContractsError`.
 
 ### A-3
 
 The rule selection refuses with the diagnostics when a rule file or a manifest
-has a fault, as `wio rules list` does, and `wio context` lets that refusal stand
-as exit 2, judged after the action, the stage and the root; the stub of the port
-documents only `KeyError`, which is provisional on this point.
+has a fault that loading the config does not report, as `wio rules list` does,
+and `wio context` lets that refusal stand as exit 2, judged after the action,
+the stage and the root, while a fault that loading the config reports, such as a
+ruleset directory with no `ruleset.toml`, is refused as a config error before
+every other refusal.
 
 ## Mechanisms
 

@@ -1,0 +1,8 @@
+[works.defaults.actions]
+deliver = ["implementation"]
+[actions.deliver]
+description = "Deliver"
+[roots.api]
+paths = []
+[stages.implementation]
+goal = "Build"
