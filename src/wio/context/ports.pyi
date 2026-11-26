@@ -133,3 +133,20 @@ class SkillLookup(Protocol):
             OSError: If a file of the skill cannot be listed or read.
         """
         ...
+
+class WorkRoots(Protocol):
+    """The roots of a Work, with descendants expanded."""
+
+    def roots_of(self, work_id: str) -> tuple[str, ...] | None:
+        """Find the Work's roots in the working tree.
+
+        Args:
+            work_id: The id of the Work.
+
+        Returns:
+            The sorted, distinct roots, or None if the Work is unknown.
+
+        Raises:
+            ConfigurationError: The settings cannot be loaded.
+        """
+        ...
