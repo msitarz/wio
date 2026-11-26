@@ -11,8 +11,12 @@ if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
 
 
+class _WarningNotWiredError(Exception):
+    """The bundle is valid, but the warning is not wired yet."""
+
+
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=AssertionError)
+@pytest.mark.xfail(strict=True, raises=_WarningNotWiredError)
 def test_empty_work_roots_warn_for_both_selection_forms(wio: Wio) -> None:
     """AC-1: empty, absent and descendant roots warn with a bundle."""
     # Given a Work and stages selecting its roots implicitly or with @work
@@ -32,6 +36,9 @@ def test_empty_work_roots_warn_for_both_selection_forms(wio: Wio) -> None:
     for result in results:
         assert result.exit_code == 0
         assert result.stdout.startswith("bundle: ")
+    if all(not result.stderr for result in results):
+        raise _WarningNotWiredError
+    for result in results:
         assert len(result.stderr.splitlines()) == 1
         assert "warning:" in result.stderr
         assert "k3m9xq" in result.stderr
