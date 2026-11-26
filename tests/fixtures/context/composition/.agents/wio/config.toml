@@ -1,3 +1,5 @@
+[works.defaults.actions]
+deliver = ["goal", "skill"]
 [actions.deliver]
 description = "Deliver"
 [roots.api]
