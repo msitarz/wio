@@ -155,8 +155,8 @@ there.
 ### **AC-5** An unusable directory or file is an error
 
 When no temporary directory can be used, or the file cannot be written, the
-command exits 2, says what to do, and writes no bundle on standard output and no
-file.
+command exits 2, says what to do, and writes no bundle on standard output;
+after a file-write failure, the destination may be absent, partial or truncated.
 
 #### Four failures
 
@@ -167,7 +167,7 @@ file.
 - **Then** the first exits 2 and names `$TMPDIR` and `--output <path>`, the
   second exits 2 and names the file, `$TMPDIR` and `--output <path>`, the third
   exits 2 and names the path alone, and the fourth is a usage error, and none
-  writes a file or a bundle on standard output.
+  writes a bundle on standard output.
 
 ### **AC-6** A bare `--output` before the arguments is a usage error
 
