@@ -252,3 +252,25 @@ def test_temporary_directory_uses_the_platform_default(
     assert found == expected
     assert list(darwin.iterdir()) == []
     assert list(other.iterdir()) == []
+
+
+@pytest.mark.parametrize("platform", ["darwin", "linux"])
+@pytest.mark.parametrize("kind", ["missing", "file"])
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="temp_dir pending")
+def test_an_unusable_system_temporary_directory_raises(
+    platform: str, kind: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The system directory is tested, but an explicit TMPDIR is not."""
+    # Given a system directory that is missing or is a regular file
+    target = tmp_path / "unusable"
+    if kind == "file":
+        target.write_text("file", encoding="utf-8")
+    monkeypatch.delenv("TMPDIR", raising=False)
+    directories = adapters.ProcessDirectories(
+        adapters.ProcessEnvironment(), platform, target, target
+    )
+
+    # When the system directory is requested
+    # Then it fails instead of returning an unusable path
+    with pytest.raises(OSError):  # noqa: PT011 - the port promises any OSError
+        directories.temp_dir()

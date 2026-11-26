@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Delivery of context bundles to files."""
 
+import hashlib
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -32,6 +34,7 @@ def test_output_option_accepts_the_two_explicit_path_forms(wio: Wio) -> None:
     assert (missing.exit_code, missing.stdout) == (2, "")
     assert (named.exit_code, equals.exit_code) == (0, 0)
     assert (named.stdout, equals.stdout) == ("b.md\n", "b.md\n")
+    assert wio.read("b.md").startswith(b"bundle: ")
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -53,8 +56,11 @@ def test_default_output_is_in_the_temporary_directory(
     # Then the printed file holds the bundle under the temporary directory
     assert result.exit_code == 0
     path = Path(result.stdout.strip())
-    assert path.parent.parent == Path(sandbox.env["TMPDIR"]) / "wio"
-    assert path.name == f"{bundle_id}.md"
+    identity = sandbox.root.resolve() / ".git"
+    digest = hashlib.sha256(os.fsencode(identity)).hexdigest()[:12]
+    expected = Path(sandbox.env["TMPDIR"]) / "wio" / f"repo-{digest}"
+    assert path == expected / f"{bundle_id}.md"
+    assert result.stdout == f"{path}\n"
     assert path.read_text(encoding="utf-8") == bundle.stdout
 
 
@@ -62,21 +68,32 @@ def test_default_output_is_in_the_temporary_directory(
 @pytest.mark.xfail(strict=True, raises=AssertionError, reason="output warnings pending")
 def test_output_inside_the_worktree_warns(wio: Wio, sandbox: Sandbox) -> None:
     """AC-3: resolved paths inside the worktree warn, including a link."""
-    # Given a Work, an outside link into its repository, and an outside path
+    # Given inside paths, a link into the worktree and an outside path
     wio.fixture("context/unreadable")
     link = sandbox.root.parent / "link.md"
     link.symlink_to(sandbox.root / "linked.md")
     outside = sandbox.root.parent / "outside.md"
-    args = _CONTEXT_ARGS
-    paths = ["inside.md", str(link), str(outside)]
+    (sandbox.root / "sub").mkdir()
+    sandbox.env["TMPDIR"] = str(sandbox.root / "tmp")
+    paths = [str(sandbox.root / "absolute.md"), "inside.md", "sub/../dot.md", str(link)]
 
-    # When the bundle is written to each path
-    results = [wio.run([*args, "--output", path]) for path in paths]
+    # When each path, the outside path, and the default are requested
+    inside = [wio.run([*_CONTEXT_ARGS, "--output", path]) for path in paths]
+    external = wio.run([*_CONTEXT_ARGS, "--output", str(outside)])
+    default = wio.run([*_CONTEXT_ARGS, "--output"])
 
-    # Then the inside destinations warn and the outside destination does not
-    assert all(result.exit_code == 0 for result in results)
-    assert all("committed" in result.stderr for result in results[:2])
-    assert "committed" not in results[2].stderr
+    # Then every path is written, with a warning only for the inside paths
+    assert all(result.exit_code == 0 for result in (*inside, external, default))
+    for result in (*inside, default):
+        assert "uncommitted" in result.stderr
+        assert "committed" in result.stderr
+        assert (
+            Path(result.stdout.strip()).is_file()
+            if Path(result.stdout.strip()).is_absolute()
+            else (sandbox.root / result.stdout.strip()).is_file()
+        )
+    assert "uncommitted" not in external.stderr
+    assert outside.is_file()
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -92,7 +109,7 @@ def test_invalid_output_paths_are_refused(wio: Wio, sandbox: Sandbox) -> None:
 
     # When the default file, a directory, and an empty path are requested
     default = wio.run([*args, "--output"])
-    directory = wio.run([*args, "--output", "."])
+    directory = wio.run([*args, "--output", str(sandbox.root)])
     empty = wio.run([*args, "--output="])
 
     # Then all are errors and the default explains its alternatives
@@ -102,7 +119,10 @@ def test_invalid_output_paths_are_refused(wio: Wio, sandbox: Sandbox) -> None:
     )
     assert "$TMPDIR" in default.stderr
     assert "--output" in default.stderr
-    assert "." in directory.stderr
+    assert str(blocker / "tmp") in default.stderr
+    assert str(sandbox.root) in directory.stderr
+    assert "$TMPDIR" not in directory.stderr
+    assert "--output" not in directory.stderr
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -119,10 +139,14 @@ def test_output_keeps_the_last_option_and_does_not_expand_tilde(
     # When a bare output follows a named one, and a tilde path is given
     default = wio.run([*args, "--output=x.md", "--output"])
     tilde = wio.run([*args, "--output", "~/b.md"])
+    sandbox.env["TMPDIR"] = str(sandbox.root.parent / "new-temp")
+    missing = wio.run([*args, "--output"])
 
     # Then the last option uses the relative temporary directory and tilde is literal
-    assert (default.exit_code, tilde.exit_code) == (0, 0)
+    assert (default.exit_code, tilde.exit_code, missing.exit_code) == (0, 0, 0)
     assert default.stdout.startswith("rel/tmp/wio/")
+    assert (sandbox.root / default.stdout.strip()).is_file()
+    assert Path(missing.stdout.strip()).is_file()
     assert tilde.stdout == "~/b.md\n"
     assert (sandbox.root / "~" / "b.md").is_file()
 
