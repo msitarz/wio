@@ -32,7 +32,10 @@ def test_context_run_does_not_load_unrelated_commands(sandbox: Sandbox) -> None:
     # Given a repository with a goal stage and a Work
     config = sandbox.root / ".agents/wio/config.toml"
     config.parent.mkdir(parents=True)
-    config.write_text('[stages.goal]\ngoal = "Read the contract."\n')
+    config.write_text(
+        '[actions.deliver]\ndescription = "Deliver"\n'
+        '[stages.goal]\ngoal = "Read the contract."\n'
+    )
     work = sandbox.root / ".agents/wio/works/demo/README.md"
     work.parent.mkdir(parents=True)
     work.write_text('<!-- wio\nid = "k3m9xq"\n-->\n\n# Demo\n')

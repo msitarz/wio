@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 _PROJECT = {
     ".agents/wio/config.toml": """\
 rules_always_include = ["demo.ARC001"]
+[actions.deliver]
+description = "Deliver"
 [roots.api]
 paths = []
 [rulesets.demo]
