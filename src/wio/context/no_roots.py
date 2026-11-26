@@ -11,6 +11,10 @@ if TYPE_CHECKING:
     from wio.ports import Settings
 
 
+class _WarningNotImplementedError(NotImplementedError):
+    """The warning boundary has not been implemented yet."""
+
+
 @dataclass(frozen=True)
 class NoRootsWarning:
     """Check whether a stage selects an empty set of Work roots.
@@ -42,4 +46,5 @@ class NoRootsWarning:
             ConfigurationError: The settings cannot be loaded.
             KeyError: The stage is not declared.
         """
-        raise NotImplementedError
+        del work_id, action, stage
+        raise _WarningNotImplementedError
