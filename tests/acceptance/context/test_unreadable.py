@@ -131,12 +131,13 @@ def test_a_shared_id_refuses_only_its_own_lookup(wio: Wio) -> None:
 def test_faults_that_leave_the_tree_complete_do_not_refuse(wio: Wio) -> None:
     """AC-5: metadata, graph and template faults do not stop the bundle."""
     # Given a Work with a dangling dependency, an unknown key and no such
-    # template, and another with a repeated heading
+    # template, and another with a repeated heading and a mistyped dependency
     wio.fixture("context/unreadable")
     faults = 'depends_on = ["zzzzzz"]\nunknown = 1\ntemplate = "no.such"\n'
     wio.put(f"{_WORKS}/demo/README.md", _marked("k3m9xq", faults))
     repeated = "# Other\n\n## Goals\n\n## Goals\n"
-    wio.put(f"{_WORKS}/other/README.md", _marked("a1b2c3", body=repeated))
+    other = _marked("a1b2c3", "depends_on = 1\n", repeated)
+    wio.put(f"{_WORKS}/other/README.md", other)
 
     # When the first Work is requested
     result = wio.run(_RUN)
