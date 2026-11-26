@@ -46,8 +46,8 @@ show the errors at the command boundary.
 ## Warning about missing Work roots
 
 [The warning check](no_roots.py) tells the driver when a stage selects a Work's
-empty roots, because the bundle otherwise hides that no rules came from those
-roots. A missing `roots` key, an empty list and a leaf's `@descendants` all
+empty roots, because the bundle otherwise hides that the stage selected no rules
+at all. A missing `roots` key, an empty list and a leaf's `@descendants` all
 resolve to no roots; the
 [real-lookup scenarios](../../../tests/integration/context/test_no_roots.py)
 show how those cases and the stage's selection affect the warning. The bundle is
