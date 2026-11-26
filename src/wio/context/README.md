@@ -38,7 +38,8 @@ The docstrings of [the package](__init__.py),
 root before rule selection can treat the request as an empty bundle. It reads
 expanded Work roots through the [roots port](ports.pyi), only when the stage
 selects them; a stage that lists roots without `@work` is independent of the
-Work's roots.
+Work's roots. A stage's own roots are checked by the config, so only Work roots
+can introduce an unknown root here.
 The [acceptance scenarios](../../../tests/acceptance/context/test_inputs.py)
 show the errors at the command boundary.
 
