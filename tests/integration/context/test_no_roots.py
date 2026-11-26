@@ -15,6 +15,7 @@ from wio.context import Services as ContextServices
 from wio.context.inputs import KnownInputs
 from wio.context.no_roots import NoRootsWarning
 from wio.contracts import WorkLookup
+from wio.env.adapters import ProcessDirectories
 
 if TYPE_CHECKING:
     from tests.sandbox import Sandbox
@@ -83,7 +84,12 @@ def _command(
         KnownInputs(project.settings, works),
         NoRootsWarning(project.settings, works),
     )
-    services = ContextServices(project.repository, project.files, project.environment)
+    services = ContextServices(
+        project.repository,
+        project.files,
+        project.environment,
+        ProcessDirectories(project.environment),
+    )
     return (
         ContextCommand(services, Compiler(_Composer(), checks).compile),
         io.StringIO(),

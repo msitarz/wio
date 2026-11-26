@@ -8,7 +8,7 @@ import pytest
 
 from tests.fakes import FakeEnvironment, value_or_raise
 from tests.unit.cli.fakes import run_main
-from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
+from tests.unit.fakes import ROOT, FakeDirectories, FakeRepository, MemoryFileSystem
 from wio.cli.table import COMMANDS, Entry
 from wio.context import (
     Compiled,
@@ -70,7 +70,12 @@ def _command(
             asked.append((work_id, action, stage))
         return value_or_raise(result)
 
-    services = Services(FakeRepository(), MemoryFileSystem(), FakeEnvironment(ROOT))
+    services = Services(
+        FakeRepository(),
+        MemoryFileSystem(),
+        FakeEnvironment(ROOT),
+        FakeDirectories(ROOT),
+    )
     return ContextCommand(services, compiler)
 
 
@@ -204,3 +209,44 @@ def test_only_a_run_wires_the_command_and_wires_it_once() -> None:
 
     # Then the help did not call `wire` and the run called it once
     assert (after_help, len(wired)) == (0, 1)
+
+
+def test_file_output_reaches_delivery_with_the_compiled_bundle(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The command hands file delivery the bundle and prints its answer."""
+    # Given a fixed delivery boundary and a compiled bundle
+    calls: list[tuple[CompiledBundle, str | None]] = []
+
+    def deliver(
+        bundle: CompiledBundle,
+        path: str | None,
+        _repository: object,
+        _files: object,
+        _directories: object,
+    ) -> tuple[str, tuple[str, ...]]:
+        """Record the request and return a displayed path and warning.
+
+        Args:
+            bundle: The bundle to deliver.
+            path: The requested path.
+            _repository: The repository port.
+            _files: The filesystem port.
+            _directories: The directories port.
+
+        Returns:
+            The displayed path and one warning.
+        """
+        calls.append((bundle, path))
+        return "chosen.md", ("inside worktree",)
+
+    monkeypatch.setattr("wio.context.delivery.write_bundle", deliver)
+    entry = _entry(lambda: _command(_compiled()))
+
+    # When file output is requested
+    code, out, err = run_main([*_ARGV, "--output", "chosen.md"], [entry])
+
+    # Then the boundary receives the bundle and its output is reported
+    assert (code, out) == (0, "chosen.md\n")
+    assert calls == [(_compiled().bundle, "chosen.md")]
+    assert err.endswith("warning: inside worktree\n")

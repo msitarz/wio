@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The `wio context` command: what a run writes."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -52,5 +52,19 @@ class ContextCommand:
         """
         compiled = self._compiler(args.work, args.action, args.stage)
         stdio.stderr.writelines(f"warning: {text}\n" for text in compiled.warnings)
-        stdio.stdout.write(compiled.bundle.text)
+        output = getattr(args, "output", False)
+        if output is False:
+            stdio.stdout.write(compiled.bundle.text)
+        else:
+            from wio.context.delivery import write_bundle
+
+            path, warnings = write_bundle(
+                compiled.bundle,
+                cast("str | None", output),
+                self._services.repository,
+                self._services.files,
+                self._services.directories,
+            )
+            stdio.stderr.writelines(f"warning: {text}\n" for text in warnings)
+            stdio.stdout.write(f"{path}\n")
         return 0

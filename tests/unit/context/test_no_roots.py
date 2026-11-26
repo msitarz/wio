@@ -86,6 +86,7 @@ def test_selected_empty_roots_warn_and_still_print_bundle(
         unit_fakes.FakeRepository(),
         unit_fakes.MemoryFileSystem(),
         FakeEnvironment(unit_fakes.ROOT),
+        unit_fakes.FakeDirectories(unit_fakes.ROOT),
     )
     compiler = context.Compiler(_Composer(), (check,))
     command = context.ContextCommand(services, compiler.compile)
