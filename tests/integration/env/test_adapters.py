@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from tests.sandbox import unreadable
 from wio.env import adapters
 
 if TYPE_CHECKING:
@@ -273,4 +274,23 @@ def test_an_unusable_system_temporary_directory_raises(
     # When the system directory is requested
     # Then it fails instead of returning an unusable path
     with pytest.raises(OSError):  # noqa: PT011 - the port promises any OSError
+        directories.temp_dir()
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="temp_dir pending")
+def test_an_unwritable_system_directory_is_not_usable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An existing system directory is unusable if a probe cannot be created."""
+    # Given an existing system directory that cannot be written
+    directory = tmp_path / "closed"
+    directory.mkdir()
+    monkeypatch.delenv("TMPDIR", raising=False)
+    directories = adapters.ProcessDirectories(
+        adapters.ProcessEnvironment(), "linux", directory, directory
+    )
+
+    # When it is chosen as the default temporary directory
+    # Then the failed probe raises an OSError
+    with unreadable(directory), pytest.raises(OSError):  # noqa: PT011 - port contract
         directories.temp_dir()
