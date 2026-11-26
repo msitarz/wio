@@ -2104,7 +2104,8 @@ Properties that matter:
   matching rules is valid, and the header says so. A stage that is not in the
   pipeline of the given action for this Work is only a warning, because the
   driver decides. wio checks the pair: `deliver` with the stage `define` warns
-  even though `define` is one of the Work's stages.
+  even though `define` is one of the Work's stages. A Work with no pipeline for
+  the action is a warning too.
 - **Explainable**: `wio rules list --explain` lists why each rule was included
   or excluded, without changing the bundle.
 - **Sized**: harnesses truncate long command output, and a truncated bundle

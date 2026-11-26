@@ -1,0 +1,21 @@
+[works.defaults.actions]
+define = ["architecture"]
+deliver = ["implementation"]
+[templates.kinds]
+feature = "feature.leaf"
+[actions.define]
+description = "Define"
+[actions.deliver]
+description = "Deliver"
+[roots.api]
+paths = []
+[stage_presets]
+typed-boundary = ["architecture"]
+[stages.architecture]
+goal = "Design"
+[stages.wiring]
+goal = "Join"
+[stages.implementation]
+goal = "Build"
+[stages.define]
+goal = "Define"

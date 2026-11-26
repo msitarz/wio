@@ -32,6 +32,7 @@ def test_context_run_does_not_load_unrelated_commands(sandbox: Sandbox) -> None:
     config = sandbox.root / ".agents/wio/config.toml"
     config.parent.mkdir(parents=True)
     config.write_text(
+        '[works.defaults.actions]\ndeliver = ["goal"]\n'
         '[actions.deliver]\ndescription = "Deliver"\n'
         "[roots.api]\npaths = []\n"
         '[stages.goal]\ngoal = "Read the contract."\n'

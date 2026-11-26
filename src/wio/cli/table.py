@@ -15,6 +15,7 @@ lazy from wio.context import Compiler, Composition, ContextCommand
 lazy from wio.context import Services as ContextServices
 lazy from wio.context.inputs import KnownInputs
 lazy from wio.context.no_roots import NoRootsWarning
+lazy from wio.context.pipeline import PipelineWarning
 lazy from wio.contracts import ContractsCommand, ContractViews, Services, WorkLookup
 lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
@@ -181,7 +182,12 @@ def _context() -> Command:
     return ContextCommand(
         services,
         Compiler(
-            composer, (KnownInputs(settings, works), NoRootsWarning(settings, works))
+            composer,
+            (
+                KnownInputs(settings, works),
+                PipelineWarning(works),
+                NoRootsWarning(settings, works),
+            ),
         ).compile,
     )
 

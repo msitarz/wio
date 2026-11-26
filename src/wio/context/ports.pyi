@@ -5,6 +5,7 @@ Provisional: the architecture review may rename them. The component that
 satisfies each is wired in by `wio.cli`; `wio.context` never imports it.
 """
 
+from collections.abc import Sequence
 from typing import Protocol
 
 from wio.models.bundle import CompiledBundle
@@ -145,6 +146,28 @@ class WorkRoots(Protocol):
 
         Returns:
             The sorted, distinct roots, or None if the Work is unknown.
+
+        Raises:
+            ConfigurationError: The settings cannot be loaded.
+        """
+        ...
+
+class Pipelines(Protocol):
+    """The effective pipelines of a Work."""
+
+    def pipeline(self, work_id: str, action: str) -> Sequence[str] | None:
+        """Find the expanded stages of a Work's action.
+
+        The Work's actions override its template, or the config defaults for a
+        Work without a template. A stage preset is expanded from the config.
+
+        Args:
+            work_id: The Work's id.
+            action: The requested action.
+
+        Returns:
+            The stages in order, or None if the Work or action is absent, the
+            action was removed, or its preset is undeclared.
 
         Raises:
             ConfigurationError: The settings cannot be loaded.
