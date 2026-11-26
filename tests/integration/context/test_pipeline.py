@@ -10,7 +10,7 @@ import pytest
 from tests.integration.context.support import command, project, run
 from wio.context.inputs import KnownInputs
 from wio.context.no_roots import NoRootsWarning
-from wio.context.pipeline import PipelineWarning, _PipelineNotImplementedError
+from wio.context.pipeline import PipelineWarning
 
 if TYPE_CHECKING:
     from tests.sandbox import Sandbox
@@ -19,7 +19,6 @@ _FIXTURE = Path(__file__).resolve().parents[2] / "fixtures/context/pipeline"
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(strict=True, raises=_PipelineNotImplementedError)
 @pytest.mark.parametrize(
     ("work", "stage", "expected_pipeline", "warning"),
     [
@@ -73,7 +72,6 @@ def test_effective_pipelines_with_fixed_composer(
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(strict=True, raises=_PipelineNotImplementedError)
 def test_pipeline_warning_precedes_no_roots_warning(
     sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch
 ) -> None:

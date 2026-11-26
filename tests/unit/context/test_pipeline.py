@@ -4,14 +4,10 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-import pytest
-
-from wio.context.pipeline import PipelineWarning, _PipelineNotImplementedError
+from wio.context.pipeline import PipelineWarning
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-pytestmark = pytest.mark.xfail(strict=True, raises=_PipelineNotImplementedError)
 
 
 @dataclass
@@ -62,12 +58,27 @@ def test_missing_pipeline_uses_the_trailers_warning() -> None:
 
 
 def test_inside_stage_has_no_warning() -> None:
-    """AC-2: a stage in the effective pipeline needs no warning."""
-    # Given a pipeline that includes the requested stage
+    """AC-2: a stage anywhere in the effective pipeline needs no warning."""
+    # Given a pipeline whose second stage is requested
     works = _Pipelines(["architecture", "wiring"])
 
     # When that stage is checked
-    warnings = PipelineWarning(works)("a1b2c3", "deliver", "architecture")
+    warnings = PipelineWarning(works)("a1b2c3", "deliver", "wiring")
 
     # Then no warning is returned
     assert not warnings
+
+
+def test_the_requested_action_decides_the_pipeline() -> None:
+    """AC-1: the pipeline and the warning are those of the requested action."""
+    # Given an effective pipeline without the requested stage
+    works = _Pipelines(["define"])
+
+    # When a stage of an action other than deliver is checked
+    warnings = PipelineWarning(works)("a1b2c3", "define", "wiring")
+
+    # Then that action's pipeline is looked up and named
+    assert works.calls == [("a1b2c3", "define")]
+    assert warnings == (
+        "The stage `wiring` is not in the `define` pipeline of `a1b2c3`.",
+    )

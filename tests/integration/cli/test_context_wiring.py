@@ -8,10 +8,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.acceptance.drivers.stub_pipeline import (
-    PipelineStubReachedError,
-    identify_pipeline_stub,
-)
 from tests.support import enter, git
 from wio.cli import main
 from wio.cli.table import _context
@@ -73,9 +69,6 @@ def test_context_reads_the_project_through_the_adapters() -> None:
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(
-    strict=True, raises=PipelineStubReachedError, reason="Pipeline warning is stubbed"
-)
 def test_a_run_composes_the_project_work_skill_and_rule(
     sandbox: Sandbox,
     monkeypatch: pytest.MonkeyPatch,
@@ -101,7 +94,6 @@ def test_a_run_composes_the_project_work_skill_and_rule(
     out, err = capsys.readouterr()
 
     # Then the bundle includes the Work, the skill location and the rule
-    identify_pipeline_stub(code, out, err)
     assert (code, err) == (0, "")
     assert "work: k3m9xq (Demo)" in out
     assert "rules: 1" in out

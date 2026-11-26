@@ -6,19 +6,12 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tests.acceptance.channels import Channel
-from tests.acceptance.drivers.stub_pipeline import (
-    PipelineStubReachedError,
-    identify_pipeline_stub,
-)
 
 if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(
-    strict=True, raises=PipelineStubReachedError, reason="Pipeline warning is stubbed"
-)
 @pytest.mark.parametrize(
     ("work", "stage", "kind"),
     [
@@ -47,7 +40,6 @@ def test_outside_or_missing_effective_pipeline_warns(
     result = wio.run(["context", work, "deliver", stage])
 
     # Then the bundle prints and one warning names the relevant request
-    identify_pipeline_stub(result.exit_code, result.stdout, result.stderr)
     assert result.exit_code == 0
     assert result.stdout.startswith("bundle: ")
     assert len(result.stderr.splitlines()) == 1
@@ -60,9 +52,6 @@ def test_outside_or_missing_effective_pipeline_warns(
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(
-    strict=True, raises=PipelineStubReachedError, reason="Pipeline warning is stubbed"
-)
 @pytest.mark.parametrize(
     ("work", "stage"),
     [
@@ -83,15 +72,11 @@ def test_stage_in_effective_pipeline_does_not_warn(
     result = wio.run(["context", work, "deliver", stage])
 
     # Then the bundle prints without a warning
-    identify_pipeline_stub(result.exit_code, result.stdout, result.stderr)
     assert (result.exit_code, result.stderr) == (0, "")
     assert result.stdout.startswith("bundle: ")
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(
-    strict=True, raises=PipelineStubReachedError, reason="Pipeline warning is stubbed"
-)
 def test_pipeline_warning_precedes_empty_roots_warning(wio: Wio) -> None:
     """The parent's two warnings appear once each, in order."""
     # Given a Work with no roots and a stage outside its action's pipeline
@@ -103,7 +88,6 @@ def test_pipeline_warning_precedes_empty_roots_warning(wio: Wio) -> None:
     result = wio.run(["context", "a1b2c3", "deliver", "define"])
 
     # Then the bundle prints and the pipeline warning precedes the roots warning
-    identify_pipeline_stub(result.exit_code, result.stdout, result.stderr)
     assert result.exit_code == 0
     assert result.stdout.startswith("bundle: ")
     lines = result.stderr.splitlines()

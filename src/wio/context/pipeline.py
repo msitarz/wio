@@ -10,10 +10,6 @@ if TYPE_CHECKING:
     from wio.context.ports import Pipelines
 
 
-class _PipelineNotImplementedError(NotImplementedError):
-    """The pipeline warning boundary is not implemented yet."""
-
-
 @dataclass(frozen=True)
 class PipelineWarning:
     """Check a stage against the Work's effective, expanded pipeline.
@@ -44,5 +40,11 @@ class PipelineWarning:
         Raises:
             ConfigurationError: The settings cannot be loaded.
         """
-        del work_id, action, stage
-        raise _PipelineNotImplementedError
+        match self.works.pipeline(work_id, action):
+            case None:
+                return (f"The Work `{work_id}` has no action `{action}`.",)
+            case stages if stage not in stages:
+                outside = f"The stage `{stage}` is not in the `{action}` pipeline"
+                return (f"{outside} of `{work_id}`.",)
+            case _:
+                return ()
