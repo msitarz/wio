@@ -84,22 +84,22 @@ The diagram is drawn from commit `8edc675` of the branch `main`, which gives the
 before. Before, no part of a bundle is built. After, the design is: each part is
 built by one Work, and the assembly builds the body first, then the header from
 its size, then the id from the header and the body, and last the metadata that
-holds the id.
+holds the id. At `9480404` on `main`, assembly gives the identity the header
+and body together, so the skill's files hash reaches the id through the header.
 
 ```mermaid
 flowchart LR
     skill["skill lookup: directory and files hash"] --> guide["stage guidance"]
-    skill --> head["header"]
+    skill -->|"directory and files hash"| head["header"]
     guide --> asm["assembly"]
     contract["contract section"] --> asm
     rules["rules section"] --> asm
     asm -->|"body size"| head
     head -->|"header"| asm
     asm -->|"header and body"| ident["bundle identity"]
-    skill -->|"files hash"| ident
     ident -->|"id"| meta["metadata"]
     meta --> bundle["the bundle: metadata, header, body"]
-        asm --> bundle
+    asm --> bundle
     compose["compose the bundle: calls each part, one selection, hashes"] --> bundle
 ```
 
