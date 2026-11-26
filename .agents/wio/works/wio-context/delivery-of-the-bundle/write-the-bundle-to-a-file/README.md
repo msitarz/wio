@@ -156,7 +156,7 @@ there.
 
 When no temporary directory can be used, or the file cannot be written, the
 command exits 2, says what to do, and writes no bundle on standard output;
-after a file-write failure, the destination may be absent, partial or truncated.
+after a file-write failure, the destination's state is unspecified.
 
 #### Four failures
 
