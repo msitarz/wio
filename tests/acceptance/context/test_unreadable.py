@@ -190,32 +190,3 @@ def test_a_fault_in_the_rules_is_refused(
     # Then it names what is at fault with the diagnostics of `wio rules`
     _refused(result, named)
     assert result.stderr == listed.stderr
-
-
-@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-def test_an_unknown_work_is_judged_before_the_names(wio: Wio) -> None:
-    """The parent's order: the Work comes before the action."""
-    # Given a complete tree
-    wio.fixture("context/unreadable")
-
-    # When both the Work and the action are unknown
-    result = wio.run(["context", "nope11", "delivr", "implementation"])
-
-    # Then the refusal is that of the Work
-    _refused(result, "No Work has the id `nope11`.")
-    assert "delivr" not in result.stderr
-
-
-@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-def test_an_incomplete_tree_is_judged_before_the_names(wio: Wio) -> None:
-    """The parent's order: the tree comes before the action."""
-    # Given a marked file with no id
-    wio.fixture("context/unreadable")
-    wio.put(f"{_WORKS}/anonymous/README.md", b"<!-- wio\n-->\n\n# Anonymous\n")
-
-    # When the action is unknown too
-    result = wio.run(["context", "k3m9xq", "delivr", "implementation"])
-
-    # Then the refusal is that of the tree
-    _refused(result, "anonymous/README.md")
-    assert "delivr" not in result.stderr

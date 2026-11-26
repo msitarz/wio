@@ -62,6 +62,13 @@ tree and of the rules is left to `wio contracts check` and `wio rules check`.
 The [acceptance scenarios](../../../tests/acceptance/context/test_unreadable.py)
 show each refusal and the faults that do not stop a run.
 
+When several inputs are at fault, the first refusal wins: config, tree, Work,
+action, stage, selected Work root, then rules. Once the checks pass, the
+pipeline warning precedes the warning about empty Work roots; both are reported
+when both apply. The
+[system scenarios](../../../tests/acceptance/context/test_check_inputs.py)
+exercise that ordering through the command.
+
 ## Checking input names
 
 [The input check](inputs.py) refuses an unknown action, stage or selected Work
