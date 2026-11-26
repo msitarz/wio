@@ -6,9 +6,8 @@ before it starts a stage of a Work.
 what a [bundle](../../../GLOSSARY.md) holds and which properties it keeps.
 
 [`wio.cli`](../cli/README.md#the-table-of-commands) wires the command
-to compose and print a bundle from the working tree. The compiler currently
-runs composition directly. The [repository glossary](../../../GLOSSARY.md)
-defines the terms used here.
+to check inputs, compose and print a bundle from the working tree. The
+[repository glossary](../../../GLOSSARY.md) defines the terms used here.
 
 ## The shell of the command
 
@@ -32,6 +31,17 @@ The docstrings of [the package](__init__.py),
   composition port names it, and the
   [rule for port stubs](../../../tests/tooling/test_ports.py) lets none of them
   import from its own package.
+
+## Checking input names
+
+[The input check](inputs.py) refuses an unknown action, stage or selected Work
+root before rule selection can treat the request as an empty bundle. It reads
+expanded Work roots through the [roots port](ports.pyi), only when the stage
+selects them; a stage that lists roots without `@work` is independent of the
+Work's roots. A stage's own roots are checked by the config, so only Work roots
+can introduce an unknown root here.
+The [acceptance scenarios](../../../tests/acceptance/context/test_inputs.py)
+show the errors at the command boundary.
 
 ## Bundle composition
 
