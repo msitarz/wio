@@ -184,6 +184,7 @@ path = "tests.integration"
 depends_on = [
     "wio.cli",
     "wio.config",
+    "wio.context",
     "wio.contracts",
     "wio.env",
     "wio.env.adapters",
