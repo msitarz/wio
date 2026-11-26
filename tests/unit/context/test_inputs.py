@@ -1,11 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 """The check of declared action, stage and selected Work roots."""
 
+import io
+from argparse import Namespace
 from dataclasses import dataclass
 
 import pytest
 
+from tests.fakes import FakeEnvironment
+from tests.unit.cli.fakes import FakeStdio
 from tests.unit.context.fakes import SettingsStub
+from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
+from wio.context import CompiledBundle, Compiler, ContextCommand, Services
 from wio.context.inputs import KnownInputs
 from wio.errors import WioError
 from wio.models.config import Action, Config, Root, Stage
@@ -31,6 +37,24 @@ class _Roots:
         assert work_id == "k3m9xq"
         self.calls += 1
         return self.roots
+
+
+class _ComposerStub:
+    """Supply the fixed bundle after the real check passes."""
+
+    def compose(self, work_id: str, action: str, stage: str) -> CompiledBundle:
+        """Give the fixed bundle for the request.
+
+        Args:
+            work_id: The Work's id.
+            action: The action.
+            stage: The stage.
+
+        Returns:
+            The fixed bundle.
+        """
+        assert (work_id, action, stage) == ("k3m9xq", "deliver", "implementation")
+        return CompiledBundle("fixed bundle\n", "123456789abc", 0, {})
 
 
 def _check(roots: tuple[str, ...] | None = None) -> tuple[KnownInputs, _Roots]:
@@ -158,34 +182,9 @@ def test_unknown_names_are_refused_in_order() -> None:
 def test_unselected_work_root_allows_the_fixed_bundle() -> None:
     """AC-4: the real check lets the command print a faked composition."""
     # Given a Work with an unknown root, a stage's own roots and a fixed composer
-    import io
-    from argparse import Namespace
-
-    from tests.fakes import FakeEnvironment
-    from tests.unit.cli.fakes import FakeStdio
-    from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
-    from wio.context import CompiledBundle, Compiler, ContextCommand, Services
-
-    class ComposerStub:
-        """Supply the fixed bundle after the real check passes."""
-
-        def compose(self, work_id: str, action: str, stage: str) -> CompiledBundle:
-            """Give the fixed bundle for the request.
-
-            Args:
-                work_id: The Work's id.
-                action: The action.
-                stage: The stage.
-
-            Returns:
-                The fixed bundle.
-            """
-            assert (work_id, action, stage) == ("k3m9xq", "deliver", "implementation")
-            return CompiledBundle("fixed bundle\n", "123456789abc", 0, {})
-
     check, _ = _check(("contract",))
     services = Services(FakeRepository(), MemoryFileSystem(), FakeEnvironment(ROOT))
-    command = ContextCommand(services, Compiler(ComposerStub(), (check,)).compile)
+    command = ContextCommand(services, Compiler(_ComposerStub(), (check,)).compile)
     out, err = io.StringIO(), io.StringIO()
 
     # When the command runs the stage

@@ -46,7 +46,7 @@ def test_unknown_stage_is_refused(wio: Wio) -> None:
     assert (result.exit_code, result.stdout) == (2, "")
     assert all(
         name in result.stderr
-        for name in ("no-such-stage", "implementation", "explicit", "own")
+        for name in ("`no-such-stage`", "`implementation`", "`explicit`", "`own`")
     )
 
 
