@@ -1,0 +1,6 @@
+[roots.api]
+paths = []
+[stages.goal]
+goal = "Read the café contract."
+[stages.skill]
+skill = "example"

@@ -113,7 +113,7 @@ class Gates:
 
 @dataclass(frozen=True)
 class Bundle:
-    """The settings of a context bundle."""
+    """Settings for rule-section rendering and bundle size warnings."""
 
     separator: str = field(
         default="\n\n",
