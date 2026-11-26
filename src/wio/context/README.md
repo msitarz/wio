@@ -37,7 +37,8 @@ The docstrings of [the package](__init__.py),
 [The input check](inputs.py) refuses an unknown action, stage or selected Work
 root before rule selection can treat the request as an empty bundle. It reads
 expanded Work roots through the [roots port](ports.pyi), only when the stage
-selects them; a stage with its own roots is independent of the Work's roots.
+selects them; a stage that lists roots without `@work` is independent of the
+Work's roots.
 The [acceptance scenarios](../../../tests/acceptance/context/test_inputs.py)
 show the errors at the command boundary.
 
