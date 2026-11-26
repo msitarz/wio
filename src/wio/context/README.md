@@ -43,6 +43,23 @@ can introduce an unknown root here.
 The [acceptance scenarios](../../../tests/acceptance/context/test_inputs.py)
 show the errors at the command boundary.
 
+## Warning about the pipeline
+
+[The pipeline check](pipeline.py) tells the driver when the stage is not one the
+Work's action lists, because a mistaken pair, such as `deliver` with `define`,
+is easy to type and would otherwise go unnoticed. It warns and never refuses:
+the driver names the stage, so the driver decides.
+
+It asks for the pipeline through a [port](ports.pyi) that the
+[Work lookup](../contracts/README.md#looking-up-a-work-for-a-record) satisfies,
+as it does for `wio trailers`, so the two commands cannot disagree about where a
+pipeline comes from. A Work with no pipeline for the action therefore gets the
+warning that `wio trailers` gives, including when it names a stage preset the
+config does not declare. Reporting that preset, and judging whether a pipeline
+is well formed, is left to `wio contracts check`. The
+[acceptance scenarios](../../../tests/acceptance/context/test_pipeline.py) show
+which pipeline decides in each case.
+
 ## Warning about missing Work roots
 
 [The warning check](no_roots.py) tells the driver when a stage selects a Work's
