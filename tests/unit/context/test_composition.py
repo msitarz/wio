@@ -36,8 +36,6 @@ if TYPE_CHECKING:
     from wio.context.ports import Composer
     from wio.models.rules import Selection
 
-pytestmark = pytest.mark.xfail(strict=True, raises=NotImplementedError)
-
 _WORK = Work("k3m9xq", "Demo", Path("work.md"), None, ("api",), (), freeze({}))
 _CONTRACT = ResolvedContract(_WORK, "# Démo\n\nContract text.", ())
 _VIEW = "# Inherited constraints\n\nRègles.\n\n" + _CONTRACT.own
@@ -322,17 +320,23 @@ def test_header_names_the_work_and_states_the_stage_settings() -> None:
     assert "session: fresh" in lines
 
 
-def test_missing_skill_names_the_skill_in_the_refusal() -> None:
-    """Refuse to compose a bundle when a configured skill cannot be found.
+@pytest.mark.parametrize(
+    "result", [None, PermissionError("denied")], ids=["missing", "unreadable"]
+)
+def test_unavailable_skill_names_the_skill_in_the_refusal(
+    result: OSError | None,
+) -> None:
+    """Refuse to compose a bundle when a configured skill is unavailable.
 
-    The refusal identifies the skill the reader needs to restore.
+    Args:
+        result: The missing skill or the failure reading it.
     """
-    # Given a stage configured for a skill that the lookup cannot find
-    composer = _wire(SelectionFake({}), Stage(skill="missing-demo"))
+    # Given a stage configured for a skill that the lookup cannot supply
+    composer = _wire(SelectionFake({}), Stage(skill="demo"), skills=SkillsFake(result))
 
     # When the bundle is composed
     with pytest.raises(WioError) as error:
         composer.compose("k3m9xq", "deliver", "review")
 
     # Then the refusal names the missing skill
-    assert "missing-demo" in str(error.value)
+    assert "demo" in str(error.value)

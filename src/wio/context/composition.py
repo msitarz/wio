@@ -8,10 +8,17 @@ composition.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.context import assembly, guidance, heading, identity, section
+from wio.errors import WioError
+from wio.formats import rule_hash
+from wio.models.bundle import CompiledBundle
+
 if TYPE_CHECKING:
     from wio.context.ports import Contracts, RuleSelection, SkillLookup, Topics
     from wio.io.ports import FileSystem, Repository
-    from wio.models.bundle import CompiledBundle
+    from wio.models.config import Config
+    from wio.models.rules import Selection
+    from wio.models.skill import FoundSkill
     from wio.ports import Settings
 
 
@@ -55,6 +62,131 @@ class Composition:
         Raises:
             DiagnosticsError: Rule discovery reports a fault.
             WioError: A printed rule file cannot be read or the configured
-                skill cannot be found.
+                skill cannot be found or read.
         """
-        raise NotImplementedError
+        resolved = self.contracts.resolved(work_id)
+        view = self.contracts.view(resolved)
+        selection = self.selection.select(resolved, stage)
+        config = self.settings.load()
+        stage_settings = config.stages[stage]
+        settings = _BundleSettings(config)
+        name = stage_settings.skill
+        skill = self._find_skill(name)
+        stage_text = guidance.stage_guidance(settings, stage, skill)
+        rules = section.rules_section(selection, settings, self.topics)
+        heading_skill = (
+            (name, skill.directory, skill.files_hash)
+            if name is not None and skill is not None
+            else None
+        )
+        body_size = 0
+
+        def header_for(size: int, lines: int) -> str:
+            """Keep the body's size and build the header from the request.
+
+            Args:
+                size: The number of UTF-8 bytes in the body.
+                lines: The number of newlines in the body.
+
+            Returns:
+                The header for the body assembly measured.
+            """
+            nonlocal body_size
+            body_size = size
+            return heading.header(
+                resolved.work.id,
+                resolved.work.title,
+                action,
+                stage,
+                stage_settings,
+                len(rules.codes),
+                size,
+                lines,
+                heading_skill,
+            )
+
+        text = assembly.assemble(stage_text, view, rules.text, header_for)
+        _, _, payload = text.partition("\n\n")
+        return CompiledBundle(
+            text,
+            identity.bundle_id(payload),
+            body_size,
+            self._rule_hashes(selection, rules.codes),
+        )
+
+    def _find_skill(self, name: str | None) -> FoundSkill | None:
+        """Find the configured skill or refuse with its name.
+
+        Args:
+            name: The configured skill name, or None for a stage with a goal.
+
+        Returns:
+            The result of one lookup, or None when no name was supplied.
+
+        Raises:
+            WioError: The configured skill is missing or cannot be read.
+        """
+        if name is None:
+            return None
+        try:
+            skill = self.skills.find_skill(name)
+        except OSError as error:
+            message = f"The skill `{name}` cannot be read: {error}"
+            raise WioError(message) from error
+        if skill is None:
+            message = f"The skill `{name}` was not found."
+            raise WioError(message)
+        return skill
+
+    def _rule_hashes(
+        self, selection: Selection, codes: tuple[str, ...]
+    ) -> dict[str, str]:
+        """Hash the stored bytes of each printed rule in print order.
+
+        Args:
+            selection: The selection that produced the rules section.
+            codes: Qualified codes in the order the section prints them.
+
+        Returns:
+            A mapping in print order, empty when the section prints no rule.
+
+        Raises:
+            WioError: The file of a printed rule cannot be read.
+        """
+        if not codes:
+            return {}
+        paths = {
+            rule.qualified: rule.path
+            for rule, decision in selection.items()
+            if decision.included
+        }
+        root = self.repository.root()
+        hashes: dict[str, str] = {}
+        for code in codes:
+            path = paths[code]
+            try:
+                data = self.files.read_bytes(root / path)
+            except OSError as error:
+                message = f"The rule file {path} cannot be read: {error}"
+                raise WioError(message) from error
+            hashes[code] = rule_hash(data)
+        return hashes
+
+
+@dataclass(frozen=True)
+class _BundleSettings:
+    """Share the config read by composition with its part builders.
+
+    Attributes:
+        config: The config from which composition took the stage settings.
+    """
+
+    config: Config
+
+    def load(self) -> Config:
+        """Supply the settings already read for this bundle.
+
+        Returns:
+            The configuration shared by the header and the part builders.
+        """
+        return self.config

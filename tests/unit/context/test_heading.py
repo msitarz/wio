@@ -94,12 +94,17 @@ def test_the_gate_and_session_lines(stage: Stage, gate: str, session: str) -> No
     assert lines[3:5] == [gate, session]
 
 
-def test_a_work_with_no_title_is_named_by_its_id_alone() -> None:
-    """AC-1: no empty parentheses."""
-    # Given a Work with no title
+@pytest.mark.parametrize("title", [None, ""], ids=["absent", "empty"])
+def test_a_work_with_no_title_is_named_by_its_id_alone(title: str | None) -> None:
+    """Show the Work's id alone when there is no title text.
+
+    Args:
+        title: An absent title or an empty heading from the contract.
+    """
+    # Given a Work with no title text
 
     # When the header is built
-    lines = _header(Stage(goal="Do."), title=None).split("\n")
+    lines = _header(Stage(goal="Do."), title=title).split("\n")
 
     # Then the first line holds the id alone
     assert lines[0] == "work: k3m9xq"

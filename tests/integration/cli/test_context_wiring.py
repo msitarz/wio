@@ -65,7 +65,6 @@ def test_context_reads_the_project_through_the_adapters() -> None:
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Composition is stubbed")
 def test_a_run_composes_the_project_work_skill_and_rule(
     sandbox: Sandbox,
     monkeypatch: pytest.MonkeyPatch,

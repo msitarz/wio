@@ -90,11 +90,11 @@ class SkillsFake:
     """Give the prepared skill and record the names requested.
 
     Attributes:
-        result: The prepared lookup result.
+        result: The prepared lookup result or read failure.
         calls: The configured names passed to the lookup.
     """
 
-    result: FoundSkill | None
+    result: FoundSkill | OSError | None
     calls: list[str] = field(default_factory=list)
 
     def find_skill(self, name: str) -> FoundSkill | None:
@@ -105,9 +105,12 @@ class SkillsFake:
 
         Returns:
             The prepared result, including None for a missing skill.
+
+        Raises:
+            OSError: The configured read failure.
         """
         self.calls.append(name)
-        return self.result
+        return value_or_raise(self.result)
 
 
 @dataclass(frozen=True)

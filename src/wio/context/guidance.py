@@ -15,6 +15,18 @@ if TYPE_CHECKING:
 _SKILL_ESCAPES: Final = str.maketrans({"\n": r"\n", "\r": r"\r", "\\": r"\\"})
 
 
+def escape_skill_field(text: str) -> str:
+    """Keep a skill name or directory on one displayed line.
+
+    Args:
+        text: The original skill name or directory.
+
+    Returns:
+        The text with backslashes, line feeds and carriage returns escaped.
+    """
+    return text.translate(_SKILL_ESCAPES)
+
+
 def stage_guidance(
     settings: Settings, stage_name: str, skill: FoundSkill | None
 ) -> str:
@@ -46,8 +58,8 @@ def stage_guidance(
     if stage.skill is None or skill is None:
         message = f"Stage `{stage_name}` requires a configured and resolved skill."
         raise ValueError(message)
-    name = stage.skill.translate(_SKILL_ESCAPES)
-    directory = skill.directory.translate(_SKILL_ESCAPES)
+    name = escape_skill_field(stage.skill)
+    directory = escape_skill_field(skill.directory)
     return (
         f"This stage's procedure is the skill `{name}`. Read "
         f"`{directory}/SKILL.md` and follow it; "

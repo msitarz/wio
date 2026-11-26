@@ -3,6 +3,8 @@
 
 from typing import TYPE_CHECKING
 
+from wio.context.guidance import escape_skill_field
+
 if TYPE_CHECKING:
     from wio.models.config import Stage
 
@@ -27,7 +29,8 @@ def header(
     the command that gives this bundle again and, for a stage with a skill,
     where the skill was found. The command names the Work, the action and the
     stage and no option that only changes where the bundle goes. The header
-    states what it is given and looks nothing up.
+    states what it is given and looks nothing up. It escapes the displayed
+    skill name and directory in the same way as stage guidance.
 
     Args:
         work_id: The Work's id.
@@ -46,7 +49,7 @@ def header(
         The lines joined by newlines, with no blank line and no newline at the
         end.
     """
-    named = work_id if title is None else f"{work_id} ({title})"
+    named = f"{work_id} ({title})" if title else work_id
     lines = [
         f"work: {named}",
         f"action: {action}",
@@ -59,7 +62,9 @@ def header(
     ]
     if skill is not None:
         name, directory, files = skill
-        lines.append(f"skill: {name} ({directory}, files {files})")
+        shown_name = escape_skill_field(name)
+        shown_directory = escape_skill_field(directory)
+        lines.append(f"skill: {shown_name} ({shown_directory}, files {files})")
     return "\n".join(lines)
 
 
