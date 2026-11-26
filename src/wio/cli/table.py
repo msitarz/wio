@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Final, Literal
 lazy from wio.config import ConfigCommand, ConfigSettings, RepositorySkills
 lazy from wio.context import Compiler, Composition, ContextCommand
 lazy from wio.context import Services as ContextServices
+lazy from wio.context.inputs import KnownInputs
 lazy from wio.contracts import ContractsCommand, ContractViews, Services, WorkLookup
 lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
@@ -157,8 +158,7 @@ def _context() -> Command:
     """Wire `wio context` to the project's ports.
 
     Returns:
-        The command, with bundle composition over the project adapters. Its
-        compiler runs composition directly until input checks are installed.
+        The command, with input checks and composition over project adapters.
     """
     contracts = _contracts_services()
     settings, repository, files = (
@@ -177,7 +177,9 @@ def _context() -> Command:
         files,
     )
     services = ContextServices(repository, files, contracts.environment)
-    return ContextCommand(services, Compiler(composer).compile)
+    return ContextCommand(
+        services, Compiler(composer, (KnownInputs(settings, works),)).compile
+    )
 
 
 def trailers_command(events: EventSink | None = None) -> Command:

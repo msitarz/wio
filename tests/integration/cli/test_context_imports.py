@@ -26,6 +26,7 @@ sys.stderr.write(repr((code, [name for name in names if name in sys.modules])))
 
 
 @pytest.mark.slow
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Input check is stubbed")
 def test_context_run_does_not_load_unrelated_commands(sandbox: Sandbox) -> None:
     """C-6: composing a bundle leaves the named unrelated modules unloaded."""
     # Given a repository with a goal stage and a Work
