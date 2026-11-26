@@ -11,9 +11,10 @@ from unittest import mock
 
 from tests.acceptance.drivers.base import RunResult, SandboxedDriver
 from wio import cli
+from wio.models.bundle import CompiledBundle
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterator, Sequence
     from pathlib import Path
 
 
@@ -139,3 +140,18 @@ class InProcessDriver(SandboxedDriver):
             NotImplementedError: Always; run the scenario on the CLI channel.
         """
         raise NotImplementedError(str(args))
+
+
+@contextlib.contextmanager
+def fixed_composition(text: str) -> Iterator[None]:
+    """Replace bundle composition while keeping the command's checks real.
+
+    Args:
+        text: The bundle text the composition returns.
+
+    Yields:
+        Control while the fixed composition is installed.
+    """
+    bundle = CompiledBundle(text=text, id="fixed", size=0, rules={})
+    with mock.patch("wio.context.Composition.compose", return_value=bundle):
+        yield

@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """System scenarios for the order of context input checks."""
 
-from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -58,32 +57,27 @@ def test_refusals_are_judged_in_order(wio: Wio) -> None:
         ("ghost",),
         ("demo/ERR001-undeclared.md",),
     ]
-    for result, names in zip(results, expected, strict=True):
+    for index, (result, names) in enumerate(zip(results, expected, strict=True)):
+        later = [name for group in expected[index + 1 :] for name in group]
         assert (result.exit_code, result.stdout) == (2, "")
         assert all(name in result.stderr for name in names)
+        assert not any(name in result.stderr for name in later)
 
 
 def test_both_warnings_are_reported_with_a_fixed_bundle(
-    wio: Wio, monkeypatch: pytest.MonkeyPatch
+    wio: Wio, fixed_bundle: str
 ) -> None:
     """AC-2: real checks report both warnings before a fixed bundle."""
     # Given a fixed composition and a Work with no roots outside its pipeline
     wio.fixture("context/pipeline")
     path = ".agents/wio/works/list/README.md"
     wio.put(path, wio.read(path).replace(b'roots = ["api"]', b"roots = []"))
-    bundle = SimpleNamespace(text="fixed bundle\n", id="fixed", size=0, rules={})
-
-    def compose(*_args: object) -> SimpleNamespace:
-        """Return the fixed bundle for any request."""
-        return bundle
-
-    monkeypatch.setattr("wio.context.Composition.compose", compose)
 
     # When the stage runs through the real checks
     result = wio.run(["context", "a1b2c3", "deliver", "define"])
 
     # Then the fixed bundle and both warnings appear once, in order
-    assert (result.exit_code, result.stdout) == (0, "fixed bundle\n")
+    assert (result.exit_code, result.stdout) == (0, fixed_bundle)
     lines = result.stderr.splitlines()
     assert len(lines) == 2
     assert "`define`" in lines[0]

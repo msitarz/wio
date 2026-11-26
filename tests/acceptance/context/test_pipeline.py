@@ -111,24 +111,3 @@ def test_stage_in_effective_pipeline_does_not_warn(
     # Then the bundle prints without a warning
     assert (result.exit_code, result.stderr) == (0, "")
     assert result.stdout.startswith("bundle: ")
-
-
-@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-def test_pipeline_warning_precedes_empty_roots_warning(wio: Wio) -> None:
-    """The parent's two warnings appear once each, in order."""
-    # Given a Work with no roots and a stage outside its action's pipeline
-    wio.fixture("context/pipeline")
-    path = ".agents/wio/works/list/README.md"
-    wio.put(path, wio.read(path).replace(b'roots = ["api"]', b"roots = []"))
-
-    # When the stage runs through the command's real wiring
-    result = wio.run(["context", "a1b2c3", "deliver", "define"])
-
-    # Then the bundle prints and the pipeline warning precedes the roots warning
-    assert result.exit_code == 0
-    assert result.stdout.startswith("bundle: ")
-    lines = result.stderr.splitlines()
-    assert len(lines) == 2
-    assert "`define`" in lines[0]
-    assert "pipeline" in lines[0]
-    assert "no roots" in lines[1]

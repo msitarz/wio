@@ -7,10 +7,12 @@ import pytest
 
 from tests.acceptance.channels import Channel
 from tests.acceptance.drivers.cli import CliDriver
-from tests.acceptance.drivers.in_process import InProcessDriver
+from tests.acceptance.drivers.in_process import InProcessDriver, fixed_composition
 from tests.acceptance.dsl.wio import Wio
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from tests.acceptance.drivers.base import WioDriver
     from tests.sandbox import Sandbox
 
@@ -76,3 +78,15 @@ def wio(channel: Channel, sandbox: Sandbox) -> Wio:
         A facade over the sandbox.
     """
     return Wio(driver_for(channel, sandbox))
+
+
+@pytest.fixture
+def fixed_bundle() -> Iterator[str]:
+    """Give an in-process scenario a fixed bundle behind the real checks.
+
+    Yields:
+        The text returned by the fixed composition.
+    """
+    text = "fixed bundle\n"
+    with fixed_composition(text):
+        yield text
