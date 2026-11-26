@@ -15,26 +15,9 @@ if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
 
 
-class _PipelineWarningMissingError(Exception):
-    """A valid bundle was printed without the required pipeline warning."""
-
-
-def _warning(stderr: str) -> None:
-    """Require a warning after a successfully printed bundle.
-
-    Args:
-        stderr: The command's standard error.
-
-    Raises:
-        _PipelineWarningMissingError: The new warning has not been wired yet.
-    """
-    if not stderr:
-        raise _PipelineWarningMissingError
-
-
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 @pytest.mark.xfail(
-    strict=True, raises=(PipelineStubReachedError, _PipelineWarningMissingError)
+    strict=True, raises=PipelineStubReachedError, reason="Pipeline warning is stubbed"
 )
 @pytest.mark.parametrize(
     ("work", "stage", "kind"),
@@ -67,7 +50,6 @@ def test_outside_or_missing_effective_pipeline_warns(
     identify_pipeline_stub(result.exit_code, result.stdout, result.stderr)
     assert result.exit_code == 0
     assert result.stdout.startswith("bundle: ")
-    _warning(result.stderr)
     assert len(result.stderr.splitlines()) == 1
     assert f"`{work}`" in result.stderr
     assert "`deliver`" in result.stderr
@@ -108,7 +90,7 @@ def test_stage_in_effective_pipeline_does_not_warn(
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
 @pytest.mark.xfail(
-    strict=True, raises=(PipelineStubReachedError, _PipelineWarningMissingError)
+    strict=True, raises=PipelineStubReachedError, reason="Pipeline warning is stubbed"
 )
 def test_pipeline_warning_precedes_empty_roots_warning(wio: Wio) -> None:
     """The parent's two warnings appear once each, in order."""
@@ -125,23 +107,7 @@ def test_pipeline_warning_precedes_empty_roots_warning(wio: Wio) -> None:
     assert result.exit_code == 0
     assert result.stdout.startswith("bundle: ")
     lines = result.stderr.splitlines()
-    if lines == ["warning: The Work `a1b2c3` has no roots."]:
-        raise _PipelineWarningMissingError
     assert len(lines) == 2
     assert "`define`" in lines[0]
     assert "pipeline" in lines[0]
     assert "no roots" in lines[1]
-
-
-@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-def test_pipeline_check_is_wired_before_bundle_composition(wio: Wio) -> None:
-    """A valid request reaches the temporary pipeline warning stub."""
-    # Given a Work with a declared pipeline
-    wio.fixture("context/pipeline")
-
-    # When the context command runs
-    result = wio.run(["context", "a1b2c3", "deliver", "architecture"])
-
-    # Then the stub is reached before any bundle can be printed
-    assert (result.exit_code, result.stdout) == (70, "")
-    assert result.stderr.endswith("wio.context.pipeline._PipelineNotImplementedError\n")
