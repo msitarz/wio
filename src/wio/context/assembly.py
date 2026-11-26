@@ -5,7 +5,12 @@ Assembly defines the boundaries used to measure the body and identify the
 bundle.
 """
 
+from typing import Final
 lazy from collections.abc import Callable
+
+from wio.context.identity import bundle_id
+
+_CLOSING: Final = "If your context was compacted, run the command in the header again."
 
 
 def assemble(
@@ -29,4 +34,14 @@ def assemble(
     Returns:
         The complete bundle with its id in the first line.
     """
-    raise NotImplementedError
+    parts: list[str] = []
+    for label, part in (("stage", stage), ("contract", contract), ("rules", rules)):
+        trimmed = part.rstrip("\n")
+        if trimmed:
+            parts.append(f"--- {label} ---\n\n{trimmed}")
+    parts.append(_CLOSING)
+
+    body = "\n\n".join(parts) + "\n"
+    header = header_for(len(body.encode("utf-8")), body.count("\n"))
+    text = f"{header}\n\n{body}"
+    return f"bundle: {bundle_id(text)}\n\n{text}"

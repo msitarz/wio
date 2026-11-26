@@ -21,7 +21,6 @@ _BODY = (
 )
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_bundle_sections_and_parts_come_in_order() -> None:
     """Keep the exact layout and id of a bundle with all its parts.
 
@@ -37,7 +36,6 @@ def test_bundle_sections_and_parts_come_in_order() -> None:
     assert bundle == f"bundle: 7a2383bc4098\n\n{_HEADER}\n\n{_BODY}"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 @pytest.mark.parametrize(("goal", "size"), [("GOAL", 139), ("GÓAL", 140)])
 def test_header_measures_the_body_and_id_names_the_text_after_metadata(
     goal: str, size: int
@@ -64,7 +62,6 @@ def test_header_measures_the_body_and_id_names_the_text_after_metadata(
         assert metadata == f"bundle: {bundle_id(text)}"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_assembly_removes_only_trailing_newlines() -> None:
     """Preserve the whitespace within parts and end the bundle once.
 
@@ -82,7 +79,6 @@ def test_assembly_removes_only_trailing_newlines() -> None:
     assert text == f"{_HEADER}\n\n" + _BODY.replace("GOAL", "\n GOAL ")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 @pytest.mark.parametrize(
     ("stage", "contract", "rules", "parts"),
     [
