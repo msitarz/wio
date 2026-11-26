@@ -28,13 +28,14 @@ def test_output_option_accepts_the_two_explicit_path_forms(wio: Wio) -> None:
     # When a bare option precedes the arguments, or is followed by a path
     missing = wio.run(["context", "--output", *args])
     named = wio.run(["context", "--output", "b.md", *args])
-    equals = wio.run(["context", "--output=b.md", *args])
+    equals = wio.run(["context", "--output=c.md", *args])
 
     # Then only the form without a path is a usage error
     assert (missing.exit_code, missing.stdout) == (2, "")
     assert (named.exit_code, equals.exit_code) == (0, 0)
-    assert (named.stdout, equals.stdout) == ("b.md\n", "b.md\n")
+    assert (named.stdout, equals.stdout) == ("b.md\n", "c.md\n")
     assert wio.read("b.md").startswith(b"bundle: ")
+    assert wio.read("c.md").startswith(b"bundle: ")
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -119,10 +120,16 @@ def test_invalid_output_paths_are_refused(wio: Wio, sandbox: Sandbox) -> None:
     )
     assert "$TMPDIR" in default.stderr
     assert "--output" in default.stderr
-    assert str(blocker / "tmp") in default.stderr
+    bundle = wio.run(args)
+    bundle_id = bundle.stdout.splitlines()[0].removeprefix("bundle: ")
+    identity = sandbox.root.resolve() / ".git"
+    digest = hashlib.sha256(os.fsencode(identity)).hexdigest()[:12]
+    failed_path = blocker / "tmp" / "wio" / f"repo-{digest}" / f"{bundle_id}.md"
+    assert str(failed_path) in default.stderr
     assert str(sandbox.root) in directory.stderr
     assert "$TMPDIR" not in directory.stderr
     assert "--output" not in directory.stderr
+    assert "usage:" in empty.stderr
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
@@ -163,6 +170,7 @@ def test_a_given_output_path_receives_the_bundle(wio: Wio) -> None:
     # When the bundle is written to the path twice
     first = wio.run([*args, "--output", "out/b.md"])
     assert first.exit_code == 0
+    assert wio.read("out/b.md").decode() == bundle.stdout
     wio.put("out/b.md", b"old text")
     second = wio.run([*args, "--output", "out/b.md"])
 
@@ -173,3 +181,21 @@ def test_a_given_output_path_receives_the_bundle(wio: Wio) -> None:
         0,
     )
     assert wio.read("out/b.md").decode() == bundle.stdout
+
+
+@pytest.mark.usefixtures("unavailable_temp")
+@pytest.mark.xfail(
+    strict=True, raises=AssertionError, reason="system temp error pending"
+)
+def test_unusable_system_temp_is_reported_by_the_command(wio: Wio) -> None:
+    """AC-5: an unavailable system directory is a user-facing error."""
+    # Given a Work and an unavailable system temporary directory
+    wio.fixture("context/unreadable")
+
+    # When the command requests its default output
+    result = wio.run([*_CONTEXT_ARGS, "--output"])
+
+    # Then it refuses without output and explains both alternatives
+    assert (result.exit_code, result.stdout) == (2, "")
+    assert "$TMPDIR" in result.stderr
+    assert "--output <path>" in result.stderr
