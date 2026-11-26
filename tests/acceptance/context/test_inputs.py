@@ -17,6 +17,10 @@ def test_unknown_action_is_refused(wio: Wio) -> None:
     """AC-1: the refusal names the action and the declared actions."""
     # Given a Work and two declared actions
     wio.fixture("context/inputs")
+    wio.put(
+        ".agents/wio/works/demo/README.md",
+        b'<!-- wio\nid = "k3m9xq"\nroots = ["api"]\n-->\n\n# Demo\n',
+    )
 
     # When the action is misspelled
     result = wio.run(["context", "k3m9xq", "delivr", "implementation"])
@@ -32,6 +36,10 @@ def test_unknown_stage_is_refused(wio: Wio) -> None:
     """AC-2: the refusal names the stage and the declared stages."""
     # Given a Work and declared stages
     wio.fixture("context/inputs")
+    wio.put(
+        ".agents/wio/works/demo/README.md",
+        b'<!-- wio\nid = "k3m9xq"\nroots = ["api"]\n-->\n\n# Demo\n',
+    )
 
     # When a stage is unknown
     result = wio.run(["context", "k3m9xq", "deliver", "no-such-stage"])

@@ -132,10 +132,11 @@ def test_selected_known_or_empty_work_roots_pass(roots: tuple[str, ...]) -> None
 def test_unknown_names_are_refused_in_order() -> None:
     """The action precedes the stage, which precedes the Work roots."""
     # Given an unknown action, stage and Work root
-    check, _ = _check()
+    check, works = _check()
 
     # When each earlier fault is corrected
     messages = []
+    calls = []
     for action, stage in (
         ("bad-action", "bad-stage"),
         ("deliver", "bad-stage"),
@@ -144,8 +145,13 @@ def test_unknown_names_are_refused_in_order() -> None:
         with pytest.raises(WioError) as error:
             check("k3m9xq", action, stage)
         messages.append(str(error.value))
+        calls.append(works.calls)
 
     # Then the refusals follow the required order
     assert "bad-action" in messages[0]
+    assert "bad-stage" not in messages[0]
+    assert "ghost" not in messages[0]
     assert "bad-stage" in messages[1]
+    assert "ghost" not in messages[1]
     assert "ghost" in messages[2]
+    assert calls == [0, 0, 1]
