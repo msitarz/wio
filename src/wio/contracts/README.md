@@ -513,13 +513,14 @@ what inherits and why.
 
 `WorkLookup` in [`lookup.py`](lookup.py) finds the item ids and the pipeline of
 the Work that a record names, for the commands of `wio trailers`, and the roots
-of a Work, for `wio.rules`. [`wio.context`](../context/README.md) reads the
-pipeline and the roots through it too. It satisfies the `Contracts` port of
+of a Work, for `wio.rules`. It satisfies the `Contracts` port of
 [`wio.trailers`](../trailers/ports.pyi) and the `WorkRoots` port of
 [`wio.rules`](../rules/ports.pyi) without importing either. `wio.cli` wires it
 to `wio.trailers`, as it does the template catalog, and the wiring to
-`wio.rules` comes with the commands of `wio rules` that use it. Its
-docstrings say what each member takes, returns and raises, and its
+`wio.rules` comes with the commands of `wio rules` that use it.
+[`wio.context`](../context/README.md) reads the pipeline and the roots from it
+too, through ports of its own. The docstrings of `WorkLookup` say what each
+member takes, returns and raises, and its
 [tests](../../../tests/integration/contracts/test_lookup.py) say how each case
 reads.
 

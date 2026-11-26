@@ -53,8 +53,8 @@ the driver names the stage, so the driver decides.
 It asks for the pipeline through a [port](ports.pyi) that the
 [Work lookup](../contracts/README.md#looking-up-a-work-for-a-record) satisfies,
 as it does for `wio trailers`, so the two commands cannot disagree about where a
-pipeline comes from. A Work with no pipeline for the action therefore gets the
-warning that `wio trailers` gives, including when it names a stage preset the
+pipeline comes from. A Work with no pipeline for the action gets the same
+warning as from `wio trailers`, including when it names a stage preset the
 config does not declare. Reporting that preset, and judging whether a pipeline
 is well formed, is left to `wio contracts check`. The
 [acceptance scenarios](../../../tests/acceptance/context/test_pipeline.py) show
