@@ -41,7 +41,8 @@ agree on which rules it contains. The hashes describe the stored file bytes
 at the time they are read for hashing. A file can change between discovery and
 that read. One skill lookup supplies the directory and files hash, and stage
 guidance and the header use the same display escaping for the skill name and
-directory.
+directory. A configured skill can disappear after `wio config check` accepts
+it, so composition reports a missing skill as an error the user can fix.
 
 The [composition tests](../../../tests/unit/context/test_composition.py)
 cover the bundle's text, measurements, identities, and refusals. The
