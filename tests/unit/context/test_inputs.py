@@ -11,8 +11,6 @@ from wio.errors import WioError
 from wio.models.config import Action, Config, Root, Stage
 from wio.models.frozen import freeze
 
-pytestmark = pytest.mark.xfail(strict=True, raises=NotImplementedError)
-
 
 @dataclass
 class _Roots:
@@ -155,3 +153,46 @@ def test_unknown_names_are_refused_in_order() -> None:
     assert "ghost" not in messages[1]
     assert "ghost" in messages[2]
     assert calls == [0, 0, 1]
+
+
+def test_unselected_work_root_allows_the_fixed_bundle() -> None:
+    """AC-4: the real check lets the command print a faked composition."""
+    # Given a Work with an unknown root, a stage's own roots and a fixed composer
+    import io
+    from argparse import Namespace
+
+    from tests.fakes import FakeEnvironment
+    from tests.unit.cli.fakes import FakeStdio
+    from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
+    from wio.context import CompiledBundle, Compiler, ContextCommand, Services
+
+    class ComposerStub:
+        """Supply the fixed bundle after the real check passes."""
+
+        def compose(self, work_id: str, action: str, stage: str) -> CompiledBundle:
+            """Give the fixed bundle for the request.
+
+            Args:
+                work_id: The Work's id.
+                action: The action.
+                stage: The stage.
+
+            Returns:
+                The fixed bundle.
+            """
+            assert (work_id, action, stage) == ("k3m9xq", "deliver", "implementation")
+            return CompiledBundle("fixed bundle\n", "123456789abc", 0, {})
+
+    check, _ = _check(("contract",))
+    services = Services(FakeRepository(), MemoryFileSystem(), FakeEnvironment(ROOT))
+    command = ContextCommand(services, Compiler(ComposerStub(), (check,)).compile)
+    out, err = io.StringIO(), io.StringIO()
+
+    # When the command runs the stage
+    code = command.run(
+        Namespace(work="k3m9xq", action="deliver", stage="implementation"),
+        FakeStdio(stdout=out, stderr=err),
+    )
+
+    # Then it prints the fixed bundle and succeeds
+    assert (code, out.getvalue(), err.getvalue()) == (0, "fixed bundle\n", "")

@@ -12,7 +12,6 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=AssertionError)
 def test_unknown_action_is_refused(wio: Wio) -> None:
     """AC-1: the refusal names the action and the declared actions."""
     # Given a Work and two declared actions
@@ -31,7 +30,6 @@ def test_unknown_action_is_refused(wio: Wio) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=AssertionError)
 def test_unknown_stage_is_refused(wio: Wio) -> None:
     """AC-2: the refusal names the stage and the declared stages."""
     # Given a Work and declared stages
@@ -53,7 +51,6 @@ def test_unknown_stage_is_refused(wio: Wio) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=AssertionError)
 def test_unknown_selected_work_root_is_refused(wio: Wio) -> None:
     """AC-3: implicit and explicit Work roots are checked."""
     # Given a Work with an undeclared root
@@ -73,7 +70,6 @@ def test_unknown_selected_work_root_is_refused(wio: Wio) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Input check is stubbed")
 def test_unselected_work_root_does_not_block_bundle(wio: Wio) -> None:
     """AC-4: a stage selecting its own roots gets a bundle."""
     # Given a Work with an unknown root and a stage selecting its own roots
