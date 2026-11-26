@@ -3,14 +3,9 @@
 
 from pathlib import Path
 
-import pytest
-
 from wio.log.locate import log_directory
 
 
-@pytest.mark.xfail(
-    strict=True, raises=ModuleNotFoundError, reason="key extraction pending"
-)
 def test_repository_key_preserves_the_log_key() -> None:
     """A-2: the shared key keeps the existing name and identity digest."""
     # Given the identity from the contract and other clone identities

@@ -2,6 +2,7 @@
 """Tests of the adapters of `wio.env` against the real process."""
 
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -11,6 +12,8 @@ from tests.sandbox import unreadable
 from wio.env import adapters
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from wio.env.ports import Clock, Directories, Environment
 
 
@@ -209,7 +212,6 @@ def test_a_user_home_that_is_missing_or_relative_is_an_oserror(
         directories.wio_home()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="temp_dir pending")
 def test_the_named_temporary_directory_is_returned_without_testing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -227,7 +229,6 @@ def test_the_named_temporary_directory_is_returned_without_testing(
 
 @pytest.mark.parametrize("platform", ["darwin", "linux"])
 @pytest.mark.parametrize("value", [None, "", "/tmp/t"])
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="temp_dir pending")
 def test_temporary_directory_uses_the_platform_default(
     platform: str, value: str | None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -257,7 +258,6 @@ def test_temporary_directory_uses_the_platform_default(
 
 @pytest.mark.parametrize("platform", ["darwin", "linux"])
 @pytest.mark.parametrize("kind", ["missing", "file"])
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="temp_dir pending")
 def test_an_unusable_system_temporary_directory_raises(
     platform: str, kind: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -277,7 +277,6 @@ def test_an_unusable_system_temporary_directory_raises(
         directories.temp_dir()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="temp_dir pending")
 def test_an_unwritable_system_directory_is_not_usable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -293,4 +292,36 @@ def test_an_unwritable_system_directory_is_not_usable(
     # When it is chosen as the default temporary directory
     # Then the failed probe raises an OSError
     with unreadable(directory), pytest.raises(OSError):  # noqa: PT011 - port contract
+        directories.temp_dir()
+
+
+def test_temporary_probe_removal_failure_is_reported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Failure to remove the temporary probe makes the directory unusable."""
+    # Given an unset TMPDIR and a probe that fails while it is removed
+    monkeypatch.delenv("TMPDIR", raising=False)
+
+    @contextmanager
+    def failing_probe(**_kwargs: object) -> Iterator[None]:
+        """Simulate a successful probe creation and failed removal.
+
+        Yields:
+            Control as the open probe.
+
+        Raises:
+            OSError: When the probe is removed.
+        """
+        yield
+        message = "probe removal failed"
+        raise OSError(message)
+
+    monkeypatch.setattr(adapters.tempfile, "NamedTemporaryFile", failing_probe)
+    directories = adapters.ProcessDirectories(
+        adapters.ProcessEnvironment(), "linux", tmp_path, tmp_path
+    )
+
+    # When the platform temporary directory is requested
+    # Then the removal failure propagates as an OSError
+    with pytest.raises(OSError, match="probe removal failed"):
         directories.temp_dir()

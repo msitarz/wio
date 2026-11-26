@@ -19,7 +19,6 @@ _CONTEXT_ARGS = ["context", "k3m9xq", "deliver", "implementation"]
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="output option pending")
 def test_output_option_accepts_the_two_explicit_path_forms(wio: Wio) -> None:
     """AC-6: a bare option consumes the next argument as its path."""
     # Given a Work and its action and stage
@@ -40,7 +39,6 @@ def test_output_option_accepts_the_two_explicit_path_forms(wio: Wio) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="default output pending")
 def test_default_output_is_in_the_temporary_directory(
     wio: Wio, sandbox: Sandbox
 ) -> None:
@@ -67,7 +65,6 @@ def test_default_output_is_in_the_temporary_directory(
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="output warnings pending")
 def test_output_inside_the_worktree_warns(wio: Wio, sandbox: Sandbox) -> None:
     """AC-3: resolved paths inside the worktree warn, including a link."""
     # Given inside paths, a link into the worktree and an outside path
@@ -99,7 +96,6 @@ def test_output_inside_the_worktree_warns(wio: Wio, sandbox: Sandbox) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="output errors pending")
 def test_invalid_output_paths_are_refused(wio: Wio, sandbox: Sandbox) -> None:
     """AC-5: an unwritable default, directory path, and empty path are refused."""
     # Given a Work and an existing unwritable temporary directory
@@ -135,7 +131,6 @@ def test_invalid_output_paths_are_refused(wio: Wio, sandbox: Sandbox) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="output details pending")
 def test_output_keeps_the_last_option_and_does_not_expand_tilde(
     wio: Wio, sandbox: Sandbox
 ) -> None:
@@ -161,7 +156,6 @@ def test_output_keeps_the_last_option_and_does_not_expand_tilde(
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="file delivery pending")
 def test_a_given_output_path_receives_the_bundle(wio: Wio) -> None:
     """AC-2: the named file is created and then replaced with the bundle."""
     # Given a Work and a path whose parent directory does not exist
@@ -186,9 +180,6 @@ def test_a_given_output_path_receives_the_bundle(wio: Wio) -> None:
 
 
 @pytest.mark.usefixtures("unavailable_temp")
-@pytest.mark.xfail(
-    strict=True, raises=AssertionError, reason="system temp error pending"
-)
 def test_unusable_system_temp_is_reported_by_the_command(wio: Wio) -> None:
     """AC-5: an unavailable system directory is a user-facing error."""
     # Given a Work and an unavailable system temporary directory

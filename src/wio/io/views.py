@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from wio.io.paths import PathResolution
 from wio.io.walk import walk_markdown
 
 if TYPE_CHECKING:
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     from wio.io.ports import FileSystem, History, Repository
 
 
-class ReadOnlyFiles(ABC):
+class ReadOnlyFiles(PathResolution, ABC):
     """What the views share: a `FileSystem` over a set of files that is read-only.
 
     A subclass says which files the view holds and what each contains, and this
@@ -75,17 +76,6 @@ class ReadOnlyFiles(ABC):
         if text is None:
             raise FileNotFoundError(path)
         return text
-
-    def resolve(self, path: Path) -> Path:
-        """Refuse path resolution for this revision view.
-
-        Args:
-            path: The path to resolve.
-
-        Raises:
-            NotImplementedError: Until path resolution is implemented.
-        """
-        raise NotImplementedError(str(path))
 
     def read_bytes(self, path: Path) -> bytes:
         """Read a file as the bytes of its text.

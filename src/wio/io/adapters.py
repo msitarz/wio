@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from wio.io.paths import PathResolution
 from wio.models.commits import Commit
 
 if TYPE_CHECKING:
@@ -33,7 +34,7 @@ class SystemStdio:
         self.stderr = sys.stderr
 
 
-class LocalFileSystem:
+class LocalFileSystem(PathResolution):
     """The local disk, as the `FileSystem` port.
 
     Paths are absolute or relative to the working directory, and a failure to
@@ -54,17 +55,6 @@ class LocalFileSystem:
             UnicodeDecodeError: If the file is not valid UTF-8.
         """
         return path.read_bytes().decode("utf-8")
-
-    def resolve(self, path: Path) -> Path:
-        """Resolve a local path, including a path that does not yet exist.
-
-        Args:
-            path: The path to resolve.
-
-        Returns:
-            The absolute path with symbolic links followed.
-        """
-        return path.resolve()
 
     def read_bytes(self, path: Path) -> bytes:
         """Read a file as it is stored.
