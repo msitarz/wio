@@ -2,7 +2,7 @@
 """Tests of the shell of `wio context`, with a fake compiler."""
 
 from dataclasses import replace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 import pytest
 
@@ -21,6 +21,7 @@ from wio.errors import WioError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
 
     from wio.cli.ports import Command
 
@@ -266,3 +267,52 @@ def test_file_output_reaches_delivery_with_the_compiled_bundle(
     assert files is command.services.files
     assert directories is command.services.directories
     assert err.endswith("warning: inside worktree\n")
+
+
+class _PartialWriteFiles(MemoryFileSystem):
+    """A filesystem whose bundle write fails after writing a prefix."""
+
+    @override
+    def write_text(self, path: Path, text: str) -> None:
+        """Write a prefix, then simulate a filesystem failure.
+
+        Args:
+            path: The destination.
+            text: The bundle text.
+
+        Raises:
+            OSError: After a partial write.
+        """
+        super().write_text(path, text[:3])
+        message = "write failed"
+        raise OSError(28, message)
+
+
+@pytest.mark.parametrize("options", [["--output"], ["--output", "out.md"]])
+def test_partial_write_failure_is_reported_without_bundle_output(
+    options: list[str],
+) -> None:
+    """AC-5: a file-write error is reported even after writing starts."""
+    # Given a compiler and a filesystem whose write fails after a prefix
+    services = Services(
+        FakeRepository(),
+        _PartialWriteFiles(),
+        FakeEnvironment(ROOT),
+        FakeDirectories(ROOT),
+    )
+    command = ContextCommand(services, lambda *_args: _compiled())
+    entry = _entry(lambda: command)
+
+    # When a default or named bundle file is requested
+    code, out, err = run_main([*_ARGV, *options], [entry])
+
+    # Then the error names the destination, gives applicable hints, and prints no bundle
+    assert (code, out) == (2, "")
+    if len(options) == 1:
+        assert "4f3a9c01b2d7.md" in err
+        assert "$TMPDIR" in err
+        assert "--output <path>" in err
+    else:
+        assert "out.md" in err
+        assert "$TMPDIR" not in err
+        assert "--output <path>" not in err
