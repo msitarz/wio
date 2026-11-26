@@ -19,6 +19,7 @@ class _Roots:
     """Give fixed expanded roots and record lookups."""
 
     calls: int = 0
+    roots: tuple[str, ...] = ("api", "ghost")
 
     def roots_of(self, work_id: str) -> tuple[str, ...] | None:
         """Give the prepared Work roots.
@@ -31,7 +32,7 @@ class _Roots:
         """
         assert work_id == "k3m9xq"
         self.calls += 1
-        return ("api", "ghost")
+        return self.roots
 
 
 def _check(roots: tuple[str, ...] | None = None) -> tuple[KnownInputs, _Roots]:
@@ -112,3 +113,39 @@ def test_unselected_work_roots_do_not_block_the_run() -> None:
     # Then it passes without looking up the Work roots
     assert not warnings
     assert works.calls == 0
+
+
+@pytest.mark.parametrize("roots", [("api",), ()])
+def test_selected_known_or_empty_work_roots_pass(roots: tuple[str, ...]) -> None:
+    """Known and empty Work roots are not unknown roots."""
+    # Given a Work with only known roots or none
+    check, works = _check()
+    works.roots = roots
+
+    # When the stage selects its roots
+    warnings = check("k3m9xq", "deliver", "implementation")
+
+    # Then the check passes
+    assert not warnings
+
+
+def test_unknown_names_are_refused_in_order() -> None:
+    """The action precedes the stage, which precedes the Work roots."""
+    # Given an unknown action, stage and Work root
+    check, _ = _check()
+
+    # When each earlier fault is corrected
+    messages = []
+    for action, stage in (
+        ("bad-action", "bad-stage"),
+        ("deliver", "bad-stage"),
+        ("deliver", "implementation"),
+    ):
+        with pytest.raises(WioError) as error:
+            check("k3m9xq", action, stage)
+        messages.append(str(error.value))
+
+    # Then the refusals follow the required order
+    assert "bad-action" in messages[0]
+    assert "bad-stage" in messages[1]
+    assert "ghost" in messages[2]
