@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tests.acceptance.channels import Channel
+from tests.sandbox import unreadable
 
 if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
@@ -101,15 +102,16 @@ def test_output_inside_the_worktree_warns(wio: Wio, sandbox: Sandbox) -> None:
 @pytest.mark.xfail(strict=True, raises=AssertionError, reason="output errors pending")
 def test_invalid_output_paths_are_refused(wio: Wio, sandbox: Sandbox) -> None:
     """AC-5: an unwritable default, directory path, and empty path are refused."""
-    # Given a Work and a temporary directory below a file
+    # Given a Work and an existing unwritable temporary directory
     wio.fixture("context/unreadable")
-    blocker = sandbox.root.parent / "blocker"
-    blocker.write_text("file", encoding="utf-8")
-    sandbox.env["TMPDIR"] = str(blocker / "tmp")
+    temporary = sandbox.root.parent / "closed-temp"
+    temporary.mkdir()
+    sandbox.env["TMPDIR"] = str(temporary)
     args = _CONTEXT_ARGS
 
     # When the default file, a directory, and an empty path are requested
-    default = wio.run([*args, "--output"])
+    with unreadable(temporary):
+        default = wio.run([*args, "--output"])
     directory = wio.run([*args, "--output", str(sandbox.root)])
     empty = wio.run([*args, "--output="])
 
@@ -119,12 +121,12 @@ def test_invalid_output_paths_are_refused(wio: Wio, sandbox: Sandbox) -> None:
         for result in (default, directory, empty)
     )
     assert "$TMPDIR" in default.stderr
-    assert "--output" in default.stderr
+    assert "--output <path>" in default.stderr
     bundle = wio.run(args)
     bundle_id = bundle.stdout.splitlines()[0].removeprefix("bundle: ")
     identity = sandbox.root.resolve() / ".git"
     digest = hashlib.sha256(os.fsencode(identity)).hexdigest()[:12]
-    failed_path = blocker / "tmp" / "wio" / f"repo-{digest}" / f"{bundle_id}.md"
+    failed_path = temporary / "wio" / f"repo-{digest}" / f"{bundle_id}.md"
     assert str(failed_path) in default.stderr
     assert str(sandbox.root) in directory.stderr
     assert "$TMPDIR" not in directory.stderr
