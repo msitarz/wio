@@ -6,21 +6,12 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tests.acceptance.channels import Channel
-from tests.acceptance.drivers.stub_warning import (
-    WarningStubReachedError,
-    identify_warning_stub,
-)
 
 if TYPE_CHECKING:
     from tests.acceptance.dsl.wio import Wio
 
 
-class _WarningNotWiredError(Exception):
-    """The bundle is valid, but the warning is not wired yet."""
-
-
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(strict=True, raises=(WarningStubReachedError, _WarningNotWiredError))
 def test_empty_work_roots_warn_for_both_selection_forms(wio: Wio) -> None:
     """AC-1: empty, absent and descendant roots warn with a bundle."""
     # Given a Work and stages selecting its roots implicitly or with @work
@@ -38,11 +29,8 @@ def test_empty_work_roots_warn_for_both_selection_forms(wio: Wio) -> None:
 
     # Then every run prints a bundle and one warning naming the Work
     for result in results:
-        identify_warning_stub(result.exit_code, result.stdout, result.stderr)
         assert result.exit_code == 0
         assert result.stdout.startswith("bundle: ")
-    if all(not result.stderr for result in results):
-        raise _WarningNotWiredError
     for result in results:
         assert len(result.stderr.splitlines()) == 1
         assert "warning:" in result.stderr
@@ -51,9 +39,6 @@ def test_empty_work_roots_warn_for_both_selection_forms(wio: Wio) -> None:
 
 
 @pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
-@pytest.mark.xfail(
-    strict=True, raises=WarningStubReachedError, reason="Warning is stubbed"
-)
 def test_no_warning_when_work_roots_exist_or_are_not_selected(wio: Wio) -> None:
     """AC-2: present roots and stages with their own roots need no warning."""
     # Given a Work with roots and stages selecting or excluding them
@@ -75,7 +60,6 @@ def test_no_warning_when_work_roots_exist_or_are_not_selected(wio: Wio) -> None:
 
     # Then every run succeeds without a warning
     for result in (present, *unselected):
-        identify_warning_stub(result.exit_code, result.stdout, result.stderr)
         assert result.exit_code == 0
         assert result.stdout.startswith("bundle: ")
         assert result.stderr == ""

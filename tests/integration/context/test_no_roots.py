@@ -13,7 +13,7 @@ from wio.cli.table import _contracts_services
 from wio.context import CompiledBundle, Compiler, ContextCommand
 from wio.context import Services as ContextServices
 from wio.context.inputs import KnownInputs
-from wio.context.no_roots import NoRootsWarning, _WarningNotImplementedError
+from wio.context.no_roots import NoRootsWarning
 from wio.contracts import WorkLookup
 
 if TYPE_CHECKING:
@@ -109,7 +109,6 @@ def _run(command: ContextCommand, out: io.StringIO, err: io.StringIO) -> int:
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(strict=True, raises=_WarningNotImplementedError)
 @pytest.mark.parametrize("roots", ["roots = []\n", "", 'roots = ["@descendants"]\n'])
 @pytest.mark.parametrize("selection", ["", 'roots = ["contract", "@work"]\n'])
 def test_empty_expanded_work_roots_warn_with_fixed_composer(
@@ -131,7 +130,6 @@ def test_empty_expanded_work_roots_warn_with_fixed_composer(
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(strict=True, raises=_WarningNotImplementedError)
 @pytest.mark.parametrize(
     ("roots", "selection"),
     [

@@ -8,10 +8,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.acceptance.drivers.stub_warning import (
-    WarningStubReachedError,
-    identify_warning_stub,
-)
 from tests.support import enter, git
 from wio.cli import main
 from wio.cli.table import _context
@@ -53,21 +49,6 @@ Keep ports typed.
 }
 
 
-def _install_project(sandbox: Sandbox, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Create and enter the project for a command run.
-
-    Args:
-        sandbox: The isolated project repository.
-        monkeypatch: Enters the repository.
-    """
-    for name, contents in _PROJECT.items():
-        path = sandbox.root / name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(contents, encoding="utf-8")
-    git(sandbox, "init", "-q", check=True)
-    enter(sandbox, monkeypatch)
-
-
 def test_context_reads_the_project_through_the_adapters() -> None:
     """The entry wires the shell over the adapters of `wio.io` and `wio.env`."""
     # Given no setup
@@ -86,9 +67,6 @@ def test_context_reads_the_project_through_the_adapters() -> None:
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(
-    strict=True, raises=WarningStubReachedError, reason="Warning is stubbed"
-)
 def test_a_run_composes_the_project_work_skill_and_rule(
     sandbox: Sandbox,
     monkeypatch: pytest.MonkeyPatch,
@@ -102,14 +80,18 @@ def test_a_run_composes_the_project_work_skill_and_rule(
         capsys: Captures the command's output.
     """
     # Given a repository with a Work, a skill stage and one rule
-    _install_project(sandbox, monkeypatch)
+    for name, contents in _PROJECT.items():
+        path = sandbox.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(contents, encoding="utf-8")
+    git(sandbox, "init", "-q", check=True)
+    enter(sandbox, monkeypatch)
 
     # When the command is run for the Work and stage
     code = main(["context", "k3m9xq", "deliver", "architecture"], SystemStdio())
     out, err = capsys.readouterr()
 
     # Then the bundle includes the Work, the skill location and the rule
-    identify_warning_stub(code, out, err)
     assert (code, err) == (0, "")
     assert "work: k3m9xq (Demo)" in out
     assert "rules: 1" in out
@@ -117,28 +99,3 @@ def test_a_run_composes_the_project_work_skill_and_rule(
     assert "--- contract ---\n\n# Demo" in out
     assert "demo: Architecture (ARC)" in out
     assert "demo.ARC001 use-ports\nKeep ports typed." in out
-
-
-@pytest.mark.slow
-def test_the_warning_check_runs_before_composition(
-    sandbox: Sandbox,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """The wired warning stub is reached for a valid project request.
-
-    Args:
-        sandbox: The isolated project repository.
-        monkeypatch: Enters that repository.
-        capsys: Captures the command's output.
-    """
-    # Given a valid project whose check is still a stub
-    _install_project(sandbox, monkeypatch)
-
-    # When the context command runs
-    code = main(["context", "k3m9xq", "deliver", "architecture"], SystemStdio())
-    out, err = capsys.readouterr()
-
-    # Then the stub is reached before a bundle is composed
-    assert (code, out) == (70, "")
-    assert "_WarningNotImplementedError" in err

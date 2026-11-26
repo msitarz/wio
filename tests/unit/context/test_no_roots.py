@@ -12,11 +12,9 @@ from tests.unit import fakes as unit_fakes
 from tests.unit.cli.fakes import FakeStdio
 from tests.unit.context.fakes import SettingsStub
 from wio import context
-from wio.context.no_roots import NoRootsWarning, _WarningNotImplementedError
+from wio.context.no_roots import NoRootsWarning
 from wio.models.config import Config, Stage
 from wio.models.frozen import freeze
-
-pytestmark = pytest.mark.xfail(strict=True, raises=_WarningNotImplementedError)
 
 
 @dataclass
