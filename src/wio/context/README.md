@@ -32,6 +32,33 @@ The docstrings of [the package](__init__.py),
   [rule for port stubs](../../../tests/tooling/test_ports.py) lets none of them
   import from its own package.
 
+## Refusing what cannot be trusted
+
+A session needs its guidance even while the tree has faults of its own, but
+never a bundle that looks complete when it may not be. So a run is refused for a
+config with an error, for a Work tree that may not hold every Work, for an
+unknown Work and for a fault in the rules, while a fault that leaves the tree
+complete, in the metadata, the graph or a template, does not stop it. Reporting
+those faults is left to `wio contracts check` and `wio rules check`.
+
+- **The Work is judged by [a check of its own](known_work.py),** which runs
+  before the others. The composition would refuse the same Work, but only after
+  the names of the request had been judged and answered in its place.
+- **It resolves the Work as the composition does,** through the same
+  [port](ports.pyi), so what is refused, and in which words, is what
+  [`wio contracts show`](../contracts/README.md) refuses. A shared id therefore
+  refuses only the lookup of that id.
+- **A Work is named by its id and never by a path,** which only
+  `wio contracts show` accepts, so a path is an id that no Work has.
+- **A fault in the rules is left to the rule selection,** which refuses with the
+  diagnostics of `wio rules`, after the names are judged. A fault that loading
+  the config already reports, such as a ruleset directory with no
+  `ruleset.toml`, is a config error instead and comes before every other
+  refusal.
+
+The [acceptance scenarios](../../../tests/acceptance/context/test_unreadable.py)
+show each refusal and the faults that do not stop a run.
+
 ## Checking input names
 
 [The input check](inputs.py) refuses an unknown action, stage or selected Work
