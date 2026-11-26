@@ -37,17 +37,19 @@ The docstrings of [the package](__init__.py),
 A session needs its guidance even while the tree has faults of its own, but
 never a bundle that looks complete when it may not be. So a run is refused for a
 config with an error, for a Work tree that may not hold every Work, for an
-unknown Work and for a fault in the rules, while a fault that leaves the tree
-complete, in the metadata, the graph or a template, does not stop it. Reporting
-those faults is left to `wio contracts check` and `wio rules check`.
+unknown Work and for a fault in the rules. A fault that leaves the tree
+complete, in the metadata, the graph or a template, does not stop it, except
+that a root the stage selects from the Work must be declared, as
+[Checking input names](#checking-input-names) says. Reporting the faults of the
+tree and of the rules is left to `wio contracts check` and `wio rules check`.
 
 - **The Work is judged by [a check of its own](known_work.py),** which runs
   before the others. The composition would refuse the same Work, but only after
   the names of the request had been judged and answered in its place.
 - **It resolves the Work as the composition does,** through the same
   [port](ports.pyi), so what is refused, and in which words, is what
-  [`wio contracts show`](../contracts/README.md) refuses. A shared id therefore
-  refuses only the lookup of that id.
+  [`wio contracts show`](../contracts/README.md#showing-a-work) refuses. A
+  shared id therefore refuses only the lookup of that id.
 - **A Work is named by its id and never by a path,** which only
   `wio contracts show` accepts, so a path is an id that no Work has.
 - **A fault in the rules is left to the rule selection,** which refuses with the
