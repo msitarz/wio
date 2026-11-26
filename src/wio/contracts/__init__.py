@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Final
 
 lazy from wio.contracts.checking import run_check
 lazy from wio.contracts.command import ContractsCommand
+lazy from wio.contracts.context_view import ContractViews as ContractViews
 lazy from wio.contracts.creation import run_new
 lazy from wio.contracts.discovery import (
     WorkDiscovery,
@@ -290,6 +291,7 @@ def describe(table: Sequence[Subcommand] = SUBCOMMANDS) -> ContractsSpec:
 
 __all__ = [
     "SUBCOMMANDS",
+    "ContractViews",
     "ContractsCommand",
     "ContractsError",
     "ContractsSpec",

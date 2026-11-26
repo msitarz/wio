@@ -7,6 +7,7 @@ lazy from wio.config.checks import CHECKS, Check, CheckInputs
 lazy from wio.config.command import ConfigCommand
 lazy from wio.config.loader import Loaded, load_config
 lazy from wio.config.settings import ConfigSettings
+lazy from wio.config.skills import RepositorySkills
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser
@@ -80,6 +81,7 @@ __all__ = [
     "ConfigCommand",
     "ConfigSettings",
     "Loaded",
+    "RepositorySkills",
     "describe",
     "load_config",
 ]

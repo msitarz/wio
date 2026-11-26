@@ -5,11 +5,10 @@ before it starts a stage of a Work.
 [The context compiler](../../../docs/concepts.md#11-the-context-compiler) says
 what a [bundle](../../../GLOSSARY.md) holds and which properties it keeps.
 
-Today the directory holds the shell of the command, the builders for the parts
-of a bundle, and assembly. It has no check of its inputs and no composition of
-the bundle, so a run is refused, as
-[`wio.cli`](../cli/README.md#the-table-of-commands) describes. Its terms are
-those of the [repository glossary](../../../GLOSSARY.md).
+[`wio.cli`](../cli/README.md#the-table-of-commands) wires the command
+to compose and print a bundle from the working tree. The compiler currently
+runs composition directly. The [repository glossary](../../../GLOSSARY.md)
+defines the terms used here.
 
 ## The shell of the command
 
@@ -33,6 +32,22 @@ The docstrings of [the package](__init__.py),
   composition port names it, and the
   [rule for port stubs](../../../tests/tooling/test_ports.py) lets none of them
   import from its own package.
+
+## Bundle composition
+
+[Composition](composition.py) shares one selection across rendering, the
+header's rule count, and the ordered rule hashes, so the bundle and its record
+agree on which rules it contains. The hashes describe the stored file bytes
+at the time they are read for hashing. A file can change between discovery and
+that read. One skill lookup supplies the directory and files hash, and stage
+guidance and the header use the same display escaping for the skill name and
+directory. A configured skill can disappear after `wio config check` accepts
+it, so composition reports a missing skill as an error the user can fix.
+
+The [composition tests](../../../tests/unit/context/test_composition.py)
+cover the bundle's text, measurements, identities, and refusals. The
+[wiring test](../../../tests/integration/cli/test_context_wiring.py) shows the
+command composing a bundle with project adapters.
 
 ## Finding a skill
 
@@ -87,10 +102,10 @@ needs to find the file. [Guidance builder](guidance.py) and
 ## The contract section
 
 A session needs the same contract and inherited sections as a person running
-`wio contracts show`. The `Contracts` port gives composition the resolved
-contract for both rule selection and rendering, so the two operations see the
-same contract. [Port](ports.pyi) and
-[provider](../contracts/context_view.py).
+`wio contracts show`. The [port](ports.pyi) gives composition one resolved
+contract to render and pass to rule selection. The
+[provider](../contracts/context_view.py) shares the contract command's lookup
+and rendering behavior.
 
 ## The rules section
 
