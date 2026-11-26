@@ -5,9 +5,9 @@ before it starts a stage of a Work.
 [The context compiler](../../../docs/concepts.md#11-the-context-compiler) says
 what a [bundle](../../../GLOSSARY.md) holds and which properties it keeps.
 
-Today the directory holds the shell of the command and parts of a bundle, each
-in a section below. It has no check of its inputs and no composition of the
-bundle, so a run is refused, as
+Today the directory holds the shell of the command, the builders for the parts
+of a bundle, and assembly. It has no check of its inputs and no composition of
+the bundle, so a run is refused, as
 [`wio.cli`](../cli/README.md#the-table-of-commands) describes. Its terms are
 those of the [repository glossary](../../../GLOSSARY.md).
 
@@ -52,6 +52,14 @@ for skills to check the config. The text of `SKILL.md` never enters a bundle.
   a hash of them in the header.
 - **The id has one length for every stage** and is kept short, as
   [the concepts](../../../docs/concepts.md#11-the-context-compiler) ask.
+
+## Bundle assembly
+
+[Assembly](assembly.py) joins the rendered parts. It builds the body before
+asking for the header, then adds the metadata after computing the id. This
+lets a reader check the size and id against the text each describes. The
+[assembly tests](../../../tests/unit/context/test_assembly.py) show the layout
+with every part present or omitted.
 
 ## The header
 
