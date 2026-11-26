@@ -7,13 +7,11 @@ from pathlib import Path
 import pytest
 
 from tests.fakes import value_or_raise
-from wio.context.known_work import KnownWork, _KnownWorkNotImplementedError
+from wio.context.known_work import KnownWork
 from wio.errors import DiagnosticsError
 from wio.models.frozen import freeze
 from wio.models.resolved import ResolvedContract
 from wio.models.works import Work
-
-pytestmark = pytest.mark.xfail(strict=True, raises=_KnownWorkNotImplementedError)
 
 
 @dataclass

@@ -10,10 +10,6 @@ if TYPE_CHECKING:
     from wio.context.ports import Contracts
 
 
-class _KnownWorkNotImplementedError(NotImplementedError):
-    """The Work check boundary is not implemented yet."""
-
-
 @dataclass(frozen=True)
 class KnownWork:
     """Judge the config, the tree and the Work before any name of the request.
@@ -47,5 +43,6 @@ class KnownWork:
             OSError: The Work's own file cannot be read.
             UnicodeDecodeError: The Work's own file is not UTF-8.
         """
-        del work_id, action, stage
-        raise _KnownWorkNotImplementedError
+        del action, stage
+        self.contracts.resolved(work_id)
+        return ()

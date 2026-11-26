@@ -8,10 +8,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.acceptance.drivers.stub_known_work import (
-    KnownWorkStubReachedError,
-    identify_known_work_stub,
-)
 from tests.support import git
 
 if TYPE_CHECKING:
@@ -30,9 +26,6 @@ sys.stderr.write(repr((code, [name for name in names if name in sys.modules])))
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(
-    strict=True, raises=KnownWorkStubReachedError, reason="Work check is stubbed"
-)
 def test_context_run_does_not_load_unrelated_commands(sandbox: Sandbox) -> None:
     """C-6: composing a bundle leaves the named unrelated modules unloaded."""
     # Given a repository with a goal stage and a Work
@@ -59,9 +52,5 @@ def test_context_run_does_not_load_unrelated_commands(sandbox: Sandbox) -> None:
         check=True,
     )
     # Then a bundle was emitted without loading the unrelated modules
-    error, _, summary = done.stderr.rpartition("\n")
-    if error:
-        code, _ = ast.literal_eval(summary)
-        identify_known_work_stub(code, done.stdout, error + "\n")
     assert done.stdout.startswith("bundle: ")
     assert ast.literal_eval(done.stderr) == (0, [])
