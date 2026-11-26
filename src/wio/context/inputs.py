@@ -4,6 +4,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.context.roots import selects_work_roots
 from wio.errors import WioError
 
 if TYPE_CHECKING:
@@ -49,7 +50,7 @@ class KnownInputs:
         _known("action", action, config.actions)
         _known("stage", stage, config.stages)
         selected = config.stages[stage].roots
-        if selected is None or "@work" in selected:
+        if selects_work_roots(selected):
             _known_roots(work_id, self.works, config)
         return ()
 

@@ -4,6 +4,8 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from wio.context.roots import selects_work_roots
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -44,7 +46,7 @@ class NoRootsWarning:
         """
         del action
         selected = self.settings.load().stages[stage].roots
-        if selected is not None and "@work" not in selected:
+        if not selects_work_roots(selected):
             return ()
         roots = self.works.roots_of(work_id)
         if roots == ():
