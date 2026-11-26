@@ -1,0 +1,19 @@
+[actions.define]
+description = "Define"
+[actions.deliver]
+description = "Deliver"
+[roots.api]
+paths = []
+[roots.contract]
+paths = []
+[stages.implementation]
+goal = "Build"
+[stages.explicit]
+goal = "Build"
+roots = ["contract", "@work"]
+[stages.own]
+goal = "Build"
+roots = ["contract"]
+[stages.empty]
+goal = "Build"
+roots = []
