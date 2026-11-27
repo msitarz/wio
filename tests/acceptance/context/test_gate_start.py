@@ -2,13 +2,12 @@
 """Acceptance scenarios for recording where a gate review starts."""
 
 from typing import TYPE_CHECKING
-from unittest import mock
 
 import pytest
 
 from tests.acceptance.channels import Channel
 from tests.acceptance.context.test_stage_entry import read_events
-from tests.acceptance.drivers.in_process import fixed_compiler
+from tests.acceptance.drivers.in_process import fixed_compiler, gate_port_states
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -186,39 +185,24 @@ def test_a_failed_read_drops_only_what_failed(
     # When history fails, then repository fails with RuntimeError and ValueError
     with (
         fixed_compiler("bundle\n", 7),
-        mock.patch(
-            "wio.cli.table._ContextReviewedCommit.find",
-            side_effect=ValueError("bad history"),
-        ),
-        mock.patch(
-            "tests.acceptance.drivers.in_process.SandboxRepository.is_dirty",
-            return_value=True,
-        ),
+        gate_port_states(commits=ValueError("bad history"), dirty=True),
     ):
         bad_history = wio.run(_GATE_ARGS)
 
     with (
         fixed_compiler("bundle\n", 7),
-        mock.patch(
-            "wio.cli.table._ContextReviewedCommit.find",
-            return_value="a" * 40,
-        ),
-        mock.patch(
-            "tests.acceptance.drivers.in_process.SandboxRepository.is_dirty",
-            side_effect=RuntimeError("no repo"),
+        gate_port_states(
+            commits=[("a" * 40, "feat: base\n\nWio-Work: none")],
+            dirty=RuntimeError("no repo"),
         ),
     ):
         bad_repo_rt = wio.run(_GATE_ARGS)
 
     with (
         fixed_compiler("bundle\n", 7),
-        mock.patch(
-            "wio.cli.table._ContextReviewedCommit.find",
-            return_value="b" * 40,
-        ),
-        mock.patch(
-            "tests.acceptance.drivers.in_process.SandboxRepository.is_dirty",
-            side_effect=ValueError("status failed"),
+        gate_port_states(
+            commits=[("b" * 40, "feat: base\n\nWio-Work: none")],
+            dirty=ValueError("status failed"),
         ),
     ):
         bad_repo_val = wio.run(_GATE_ARGS)
@@ -235,9 +219,18 @@ def test_a_failed_read_drops_only_what_failed(
         "bundle\n",
         "bundle\n",
     )
-    assert "start" in bad_history.stderr
-    assert "dirty" in bad_repo_rt.stderr
-    assert "dirty" in bad_repo_val.stderr
+    assert any(
+        line.startswith("warning: ") and "start" in line
+        for line in bad_history.stderr.splitlines()
+    )
+    assert any(
+        line.startswith("warning: ") and "dirty" in line
+        for line in bad_repo_rt.stderr.splitlines()
+    )
+    assert any(
+        line.startswith("warning: ") and "dirty" in line
+        for line in bad_repo_val.stderr.splitlines()
+    )
     ev_hist, ev_rt, ev_val = read_events(log_home)
     assert "start" not in ev_hist
     assert ev_hist["dirty"] is True

@@ -36,10 +36,14 @@ class ContextCommand:
         """Deliver the bundle, report its warnings, and record the stage entry.
 
         Compilation warnings come first, followed by any size warning, before
-        delivery, so a delivery error does not hide them. Standard output holds
-        the bundle or the requested file path and a newline. Each warning is one
-        line on standard error that begins `warning: `. After delivery succeeds,
-        one `context` event is written through `services.events`.
+        delivery, so a delivery error does not hide them. For a gate stage, the
+        starting commit and dirty flag are read before delivery so a bundle
+        written inside the worktree is not counted; any gate-read warnings are
+        reported after delivery succeeds and are omitted if delivery fails.
+        Standard output holds the bundle or the requested file path and a
+        newline. Each warning is one line on standard error that begins
+        `warning: `. After delivery succeeds, one `context` event is written
+        through `services.events`.
 
         Args:
             args: The parsed `work`, `action`, `stage` and optional `output`.
