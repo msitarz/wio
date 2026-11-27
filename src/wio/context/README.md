@@ -35,10 +35,14 @@ The docstrings of [the package](__init__.py),
 ## Warning about bundle size
 
 [The size warning](size_warning.py) compares the compiler's body size with the
-optional threshold, both in UTF-8 bytes. The command reports it before delivery
-so a failed file write cannot hide it. The
+optional threshold, both in UTF-8 bytes. The command reports it identically for
+standard output and file delivery, after compilation warnings and before
+delivery and any worktree-path warning, so a failed file write cannot hide it.
+The
 [acceptance scenarios](../../../tests/acceptance/context/test_size_warning.py)
-cover the threshold boundaries and the failed-delivery case.
+cover the threshold boundaries and the failed-delivery case, and the
+[delivery scenarios](../../../tests/acceptance/context/test_delivery.py) verify
+destination consistency, failed-write ordering, and the full warning order.
 
 ## Writing a bundle to a file
 
