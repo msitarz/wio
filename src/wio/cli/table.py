@@ -50,7 +50,14 @@ if TYPE_CHECKING:
     from wio.ports import EventSink, Settings
 
 type Component = Literal[
-    "config", "contracts", "templates", "rules", "trailers", "log", "context"
+    "config",
+    "contracts",
+    "describe",
+    "templates",
+    "rules",
+    "trailers",
+    "log",
+    "context",
 ]
 """The components of wio, so the type checker rejects any other package name."""
 
