@@ -49,7 +49,6 @@ class _FakeHistory:
         return None
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_empty_history_returns_empty_tuple() -> None:
     """Empty first-parent history yields no effective records."""
     # Given an empty git history

@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from wio.io.ports import History
+    from wio.models.commits import Commit
     from wio.models.config import Reader
 
 
@@ -55,4 +58,38 @@ def read_effective_records(
         Effective records in oldest-to-newest commit order, preserving
         in-commit record order, or `()` when history is empty.
     """
+    commits = tuple(reversed(history.first_parents("HEAD")))
+    if not commits:
+        return ()
+    active = _active_commits(commits)
+    return tuple(
+        record for commit in active for record in _commit_records(commit, reader)
+    )
+
+
+def _active_commits(commits: Sequence[Commit]) -> tuple[Commit, ...]:
+    """Filter out commits reverted by a later commit, honoring revert-of-revert.
+
+    Args:
+        commits: First-parent commits in oldest-to-newest order.
+
+    Returns:
+        The subset of commits whose changes remain active, in oldest-to-newest
+        order.
+    """
+    del commits
+    raise NotImplementedError
+
+
+def _commit_records(commit: Commit, reader: Reader) -> tuple[EffectiveRecord, ...]:
+    """Parse valid non-`none` `Wio-*` records from one commit message.
+
+    Args:
+        commit: The commit whose message is parsed.
+        reader: Configured `trailers.reader` (`"scan"` or `"git"`).
+
+    Returns:
+        Effective records from `commit` in message order.
+    """
+    del commit, reader
     raise NotImplementedError
