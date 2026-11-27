@@ -4,7 +4,7 @@
 import re
 from typing import TYPE_CHECKING, cast
 
-from wio.formats.markdown import parse
+from wio.formats.markdown import parse_blocks
 from wio.models.heading import Heading, HeadingLevel
 
 if TYPE_CHECKING:
@@ -33,7 +33,7 @@ def read_outline(body: str, start_line: int) -> tuple[Heading, ...]:
         The headings in the order they appear, empty for a body without one.
     """
     lines = _LINE_END.split(body)
-    tokens = parse(body)
+    tokens = parse_blocks(body)
     return tuple(
         _heading(tokens[index + 1], token, lines, start_line)
         for index, token in enumerate(tokens)

@@ -21,6 +21,17 @@ def _parser() -> MarkdownIt:
     return MarkdownIt("commonmark")
 
 
+@cache
+def _block_parser() -> MarkdownIt:
+    """Build a block-only Markdown parser, once.
+
+    Returns:
+        A CommonMark parser with the inline rule disabled, for callers that
+        inspect only block tokens and raw inline content.
+    """
+    return MarkdownIt("commonmark").disable("inline")
+
+
 def parse(body: str) -> list[Token]:
     """Parse a Markdown body into tokens.
 
@@ -35,3 +46,20 @@ def parse(body: str) -> list[Token]:
         The tokens of the body in order, each block with its line range.
     """
     return _parser().parse(body)
+
+
+def parse_blocks(body: str) -> list[Token]:
+    """Parse a Markdown body into block tokens without inline tokenization.
+
+    The parser is imported on the first call, not when `wio.formats` is
+    imported. It reads a CRLF, a CR and an LF as one line end, so the `map` of a
+    token counts the same lines for each. Inline tokens still carry their raw
+    `content`, while `children` is left empty.
+
+    Args:
+        body: The Markdown to parse.
+
+    Returns:
+        The block tokens of the body in order, each block with its line range.
+    """
+    return _block_parser().parse(body)
