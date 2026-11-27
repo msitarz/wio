@@ -33,13 +33,13 @@ class ContextCommand:
         return self._services
 
     def run(self, args: Namespace, stdio: Stdio) -> int:
-        """Print the bundle and report the warnings of its compilation.
+        """Deliver the bundle and report the warnings of its compilation.
 
-        Standard output holds the bundle's text and nothing else. Each warning is
-        one line on standard error that begins `warning: `.
+        Standard output holds the bundle or the requested file path and a newline.
+        Each warning is one line on standard error that begins `warning: `.
 
         Args:
-            args: The parsed arguments `work`, `action` and `stage`.
+            args: The parsed `work`, `action`, `stage` and optional `output`.
             stdio: The streams to write to.
 
         Returns:

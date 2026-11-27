@@ -72,11 +72,11 @@ class ContextSpec:
     help = "Print what an agent session reads for a stage of a Work."
 
     def configure(self, parser: ArgumentParser) -> None:
-        """Add the Work, the action and the stage, in that order.
+        """Add the Work, action, stage and optional file delivery.
 
         It does no I/O and loads no module of the package. The parsed arguments
-        carry them as `work`, `action` and `stage`. There is no `--json`: the
-        command prints raw text for a session to read.
+        carry them as `work`, `action`, `stage` and `output`. There is no
+        `--json`: the command delivers raw text for a session to read.
 
         Args:
             parser: The subparser that `wio.cli` created for `context`.

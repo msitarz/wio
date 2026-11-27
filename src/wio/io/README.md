@@ -76,5 +76,8 @@ call git themselves.
 - **A file that is not UTF-8 text is held and fails when it is read.** One such
   file below the directory therefore leaves every other file listed, and the
   reader that meets it decides, as it does for a file of the working tree.
-- **A view reads its listing once.** Every member answers from one listing, so a
-  caller that needs to see a later change builds a new view.
+- **A view reads its listing once.** Its file and directory queries answer from
+  one listing, so a caller that needs to see a later change builds a new view.
+  Path resolution instead uses the [local filesystem](paths.py), as the shared
+  filesystem port requires, and follows links without requiring the target to
+  exist.
