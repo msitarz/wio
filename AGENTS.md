@@ -1,102 +1,41 @@
 # AGENTS.md
 
-wio (work-it-out) is a configurable, stage-gated workflow engine for AI
-agents. Use the terms defined in [GLOSSARY.md](GLOSSARY.md) in code, docs and
-commit messages. A `GLOSSARY.md` in a directory binds its terms to that
-directory and its descendants, and the nearest one wins. A `README.md` covers
-its directory and its descendants too, but a nearer one adds to a farther one
-and never overrides it; `src/wio/README.md` is the architecture. See `README.md`
-for the overview, `docs/README.md` for the design and `tests/README.md` for the
-test strategy.
+wio (work-it-out) is a configurable, stage-gated workflow engine for AI agents.
+Use the terms in [GLOSSARY.md](GLOSSARY.md) (nearest `GLOSSARY.md` wins;
+nearer `README.md` adds to farther ones). See [README.md](README.md) for the
+overview, [docs/workflow.md](docs/workflow.md) for this repo's workflow,
+[src/wio/README.md](src/wio/README.md) for the architecture, and
+[tests/README.md](tests/README.md) for the test strategy.
+
+## Starting a session
+
+- For a Work stage, run `wio context <work> <action> <stage>` first and again
+  after compaction; it delivers the contract, stage goal/skill, and rules.
+- For small changes with no design decisions (no Work contract), run
+  `wio rules list` (or `--path <file>`) to see the applicable coding and
+  writing rules.
 
 ## Commands
 
-Use `make` for whole-project work (`make help` lists the targets) and `uv run`
-for single tools. The checks are defined in `prek.toml` (hooks) and
-`pyproject.toml` (tool settings), and the `make` targets only call them.
+Use `make` (`make help` lists all targets) and `uv run` for single tools:
 
-- `make install`: sync the environment (`uv sync --locked`) and install the git
-  hooks (pre-commit and commit-msg). Run it once per clone.
-- `make check`: run every hook and the fast tests on all files. Run it before
+- `make install`: sync the environment (`uv sync --locked`) and install git
+  hooks.
+- `make check`: run every hook (`ruff`, `pyrefly`, `complexipy`, `tach`,
+  `jscpd`, `rumdl`, `typos`) and the fast tests (95% coverage gate). Run before
   declaring work done.
-- `make lint`: every hook except pytest.
-- `make test`: the fast tests, with the coverage gate (95%).
-- `make build`: the slow packaging tests, which build the wheel and sdist and
-  verify them.
-- `make slow`: every slow test, the packaging tests included. A test is slow
-  when it spawns a subprocess (git, the CLI) or builds the package. CI runs
-  this target.
-- `make secrets`: scan the full git history with gitleaks.
-- `make audit`: check the locked dependencies for known vulnerabilities (needs
-  network; uv's `audit` command is experimental).
+- `make slow`: slow subprocess and packaging tests (CI runs this).
+- `uv add [--dev] <package>`: change dependencies; never edit `uv.lock` by hand.
 
-Single tools, for quick feedback:
+## Git and pull requests
 
-- `uv run pytest`: the fast tests in random order. Add `-p no:randomly` to
-  debug, `-k name` to select, `-m slow` to run the slow tests instead, and
-  `-m unit`, `-m integration` or `-m tooling` to run one group of tests (see
-  [tests/README.md](tests/README.md)).
-- `uv run ruff check --fix` and `uv run ruff format`: lint and format Python.
-- `uv run pyrefly check`: strict type check of `scripts`, `src` and `tests`.
-- `uv run complexipy src tests`: cognitive complexity.
-- `uv run tach check`: check the dependency direction between the packages of
-  `src/wio`, and between `scripts` and the groups of `tests` (`tach.toml`),
-  counting `TYPE_CHECKING` imports.
-- `uv run jscpd src tests`: duplicate code.
-- `uv run rumdl check --fix`: lint and format Markdown, and check that every
-  Mermaid block renders (`scripts/check_mermaid.py`). A diagram that renders
-  can still be wrong.
-- `uv add <package>` or `uv add --dev <package>`: change dependencies. Never
-  edit `uv.lock` by hand.
-
-## Code conventions
-
-Automated checks in `make check` (`ruff`, `pyrefly`, `complexipy`, `tach`,
-`jscpd`, `rumdl`) enforce formatting, SPDX headers, type annotations,
-complexity, line lengths (88 for Python, 80 for Markdown) and `sys.stdout`.
-The non-linter coding and writing rules live in `.agents/wio/rules/` (run
-`wio rules list` to view them).
-
-## Workflow
-
-- When creating a new git worktree, put it in `.claude/worktrees` directory.
-- Commit messages follow Conventional Commits. The commitizen hook checks them.
-- End every commit message with a record: a paragraph of `Wio-*` trailers that
-  says which Work and stage the commit belongs to (see "Records" in
-  [docs/concepts.md](docs/concepts.md#records)). Write `Wio-Work: none` when it
-  belongs to no Work. When a commit serves several Works with the same action,
-  stage, item ids, result and judge, list their ids in one `Wio-Work`, such as
-  `Wio-Work: k3m9xq, a7b2c4` (a comma and one space, dependencies and children
-  first); if anything else differs, write a paragraph per Work. Once
-  `wio trailers` exists, append its output instead of writing the record by
-  hand. The commit-msg hook checks the record.
-
-  ```text
-  Wio-Work: k3m9xq
-  Wio-Action: deliver
-  Wio-Stage: architecture
-  Wio-Items: AC-1, AC-3
-  ```
-
-  | Trailer | Meaning |
-  | --- | --- |
-  | `Wio-Work` | The Work's id, a comma-separated list of ids, or `none`. |
-  | `Wio-Action` | The action, such as `define` or `deliver`. |
-  | `Wio-Stage` | The stage the commit works on. |
-  | `Wio-Items` | Optional: the item ids this commit addresses, such as `AC-1`. |
-  | `Wio-Result` | Only for a gate (a review stage): `pass`, `fail` or `unknown`. |
-  | `Wio-Judge` | For a gate: `agent`, or `human` when the driver judged. |
-
-- Never skip hooks (`--no-verify`).
-- Commit when a step is done and checks pass. Keep commits small, one concern
-  each.
-- Changes with no design decisions need no Work contract. When in doubt, ask.
-- Push and open pull requests only when asked. Never push to `main`: work on a
-  branch, run `make check`, push the branch and use `gh pr create`.
-- The pull request title is a Conventional Commit. Squash merging makes it the
-  commit on `main`, and CI checks it.
-- Fill in `.github/PULL_REQUEST_TEMPLATE.md` and delete every HTML comment
-  from the body. Do not add records to the body: the Records workflow copies
-  them from the commits to its end, so they survive the squash merge. A pull
-  request from a fork is the exception, because the workflow cannot edit it:
-  the job then fails and its summary shows the paragraphs to paste.
+- Put new git worktrees in `.claude/worktrees/`.
+- Follow Conventional Commits and end every commit with `wio trailers` output
+  (`Wio-Work: none` when a commit belongs to no Work). Never skip hooks
+  (`--no-verify`).
+- Keep commits small, one concern each, and commit once checks pass.
+- Never push to `main`: branch, run `make check`, push, and use `gh pr create`
+  with a Conventional Commit title.
+- Fill in `.github/PULL_REQUEST_TEMPLATE.md`, delete every HTML comment, and do
+  not add `Wio-*` records to the PR body (the Records workflow copies them from
+  commits).
