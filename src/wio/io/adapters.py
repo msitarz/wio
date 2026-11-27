@@ -268,13 +268,28 @@ class GitRepository(_InWorkingDirectory):
     environment reports, never in one it finds itself, so a test can fix it.
     """
 
+    def __init__(self, environment: Environment) -> None:
+        """Remember the environment and initialize the root cache.
+
+        Args:
+            environment: Reports the working directory git runs in.
+        """
+        super().__init__(environment)
+        self._roots: dict[Path, Path] = {}
+
     def root(self) -> Path:
-        """Find the top of the working tree.
+        """Find the top of the working tree, cached per working directory.
 
         Returns:
             The absolute path of the repository root.
         """
-        return _git_path(self._environment, "--show-toplevel")
+        cwd = self._environment.working_directory()
+        cached = self._roots.get(cwd)
+        if cached is not None:
+            return cached
+        resolved = _git_path(self._environment, "--show-toplevel")
+        self._roots[cwd] = resolved
+        return resolved
 
     def identity(self) -> Path:
         """Find the path that identifies the clone.
