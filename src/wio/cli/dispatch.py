@@ -4,9 +4,9 @@
 import argparse
 import contextlib
 import sys
-import traceback
 from typing import TYPE_CHECKING, override
 lazy import importlib.metadata
+lazy import traceback
 
 from wio.errors import DiagnosticsError, WioError
 
