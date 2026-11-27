@@ -33,12 +33,13 @@ class ContextCommand:
         return self._services
 
     def run(self, args: Namespace, stdio: Stdio) -> int:
-        """Deliver the bundle and report its warnings.
+        """Deliver the bundle, report its warnings, and record the stage entry.
 
         Compilation warnings come first, followed by any size warning, before
         delivery, so a delivery error does not hide them. Standard output holds
         the bundle or the requested file path and a newline. Each warning is one
-        line on standard error that begins `warning: `.
+        line on standard error that begins `warning: `. After delivery succeeds,
+        one `context` event is written through `services.events`.
 
         Args:
             args: The parsed `work`, `action`, `stage` and optional `output`.
@@ -75,4 +76,13 @@ class ContextCommand:
             )
             stdio.stderr.writelines(f"warning: {text}\n" for text in warnings)
             stdio.stdout.write(f"{path}\n")
+        from wio.context.entry import record_entry
+
+        record_entry(
+            args.work,
+            args.action,
+            args.stage,
+            compiled.bundle,
+            self._services.events,
+        )
         return 0

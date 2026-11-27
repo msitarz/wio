@@ -65,6 +65,21 @@ judge whether it lies in the worktree. That warning helps prevent committing an
 unintended bundle. A failed write is an error; the destination's state after a
 write failure is unspecified.
 
+## Recording a stage entry
+
+After delivery succeeds, [stage-entry recording](entry.py) writes one
+[`ContextEvent`](../models/events.py) through the shared
+[`EventSink` port](../ports.pyi). The event carries the Work, action, stage,
+bundle id, body size in UTF-8 bytes, and the `rule_hash` of each included rule
+in bundle order, with `start` and `dirty` omitted (`None`).
+
+A failed delivery writes no event, because the session received no bundle.
+Repeated runs and runs with warnings each write their own event. Recording
+failures and `WIO_LOG=off` are handled by `wio.log`, so a log problem warns
+without blocking delivery. The
+[stage-entry scenarios](../../../tests/acceptance/context/test_stage_entry.py)
+cover these cases.
+
 ## Refusing what cannot be trusted
 
 A session needs its guidance even while the tree has faults of its own, but

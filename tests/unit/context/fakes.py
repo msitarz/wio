@@ -7,7 +7,7 @@ Each fake supplies the configured result directly to the composition.
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, override
 
-from tests.fakes import value_or_raise
+from tests.fakes import EventSinkFake, value_or_raise
 from tests.unit.fakes import MemoryFileSystem
 lazy from wio.errors import DiagnosticsError
 lazy from wio.models.config import Config
@@ -179,3 +179,14 @@ class RuleFiles(MemoryFileSystem):
         """
         self.calls.append(("read_bytes", path))
         return value_or_raise(self.data.get(path, FileNotFoundError(path)))
+
+
+__all__ = [
+    "ContractStub",
+    "EventSinkFake",
+    "RuleFiles",
+    "SelectionFake",
+    "SettingsStub",
+    "SkillsFake",
+    "TopicsStub",
+]

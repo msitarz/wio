@@ -6,6 +6,7 @@ and `component_entry` are required as written.
 """
 
 import importlib
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Literal
@@ -36,8 +37,10 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from wio.cli.ports import Command, CommandSpec
-    from wio.io.ports import Repository
-    from wio.ports import EventSink
+    from wio.env.ports import Directories, Environment
+    from wio.io.ports import FileSystem, Repository
+    from wio.models.events import Event
+    from wio.ports import EventSink, Settings
 
 type Component = Literal[
     "config", "contracts", "templates", "rules", "trailers", "log", "context"
@@ -157,6 +160,48 @@ def _rules() -> Command:
     return RulesCommand(RulesServices(settings, repository, files, environment, works))
 
 
+@dataclass(frozen=True)
+class _ContextEventSink:
+    """Defer `LogSink` construction until `wio context` delivers a bundle.
+
+    Wiring `wio context` does no I/O, so the log settings are read only when a
+    delivered run records its event.
+    """
+
+    environment: Environment
+    directories: Directories
+    repository: Repository
+    files: FileSystem
+    settings: Settings
+
+    def write(self, event: Event) -> None:
+        """Forward the event to `LogSink` using the current project's log config.
+
+        Any failure while loading settings or constructing the sink is reported
+        as a warning and never raised, matching the `EventSink` port contract.
+
+        Args:
+            event: The `context` event to record.
+        """
+        try:
+            sink = LogSink(
+                self.environment,
+                env.SystemClock(),
+                self.directories,
+                self.repository,
+                self.files,
+                io.SystemStdio(),
+                self.settings.load().log,
+            )
+        except Exception as error:  # noqa: BLE001 - EventSink never raises
+            with suppress(Exception):
+                io.SystemStdio().stderr.write(
+                    f"warning: the event log could not be written: {error}\n"
+                )
+            return
+        sink.write(event)
+
+
 def _context() -> Command:
     """Wire `wio context` to the project's ports.
 
@@ -180,12 +225,17 @@ def _context() -> Command:
         repository,
         files,
     )
+    directories = env.ProcessDirectories(contracts.environment)
+    events = _ContextEventSink(
+        contracts.environment, directories, repository, files, settings
+    )
     services = ContextServices(
         repository,
         files,
         contracts.environment,
-        env.ProcessDirectories(contracts.environment),
+        directories,
         settings,
+        events,
     )
     return ContextCommand(
         services,

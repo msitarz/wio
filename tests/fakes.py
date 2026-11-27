@@ -81,3 +81,22 @@ def value_or_raise[T](result: T | Exception) -> T:
     if isinstance(result, Exception):
         raise result
     return result
+
+
+@dataclass
+class EventSinkFake:
+    """Record written events in memory without touching the log on disk.
+
+    Attributes:
+        recorded: Every event passed to `write`, in the order written.
+    """
+
+    recorded: list[object] = field(default_factory=list)
+
+    def write(self, event: object) -> None:
+        """Append the event to the in-memory list.
+
+        Args:
+            event: The event to record.
+        """
+        self.recorded.append(event)
