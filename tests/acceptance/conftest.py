@@ -7,7 +7,11 @@ import pytest
 
 from tests.acceptance.channels import Channel
 from tests.acceptance.drivers.cli import CliDriver
-from tests.acceptance.drivers.in_process import InProcessDriver, fixed_composition
+from tests.acceptance.drivers.in_process import (
+    InProcessDriver,
+    fixed_composition,
+    unavailable_temporary_directory,
+)
 from tests.acceptance.dsl.wio import Wio
 
 if TYPE_CHECKING:
@@ -90,3 +94,14 @@ def fixed_bundle() -> Iterator[str]:
     text = "fixed bundle\n"
     with fixed_composition(text):
         yield text
+
+
+@pytest.fixture
+def unavailable_temp() -> Iterator[None]:
+    """Make system temporary-directory discovery fail in the in-process channel.
+
+    Yields:
+        Control while directory discovery fails.
+    """
+    with unavailable_temporary_directory():
+        yield

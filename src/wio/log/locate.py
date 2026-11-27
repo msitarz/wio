@@ -7,10 +7,9 @@ clone, and by no other clone. Nothing here creates a file or a directory; the
 first write does.
 """
 
-import hashlib
-import os
-import re
 from typing import TYPE_CHECKING
+
+from wio.formats.repository_key import repository_key
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -22,29 +21,7 @@ if TYPE_CHECKING:
 EVENTS_FILE = "events.jsonl"
 """The one file the sink appends to."""
 
-_DIGEST_LENGTH = 12
-_SLUG_LENGTH = 40
-_FALLBACK_NAME = "repo"
-_GIT_DIRECTORY = ".git"
 _LOG_SUFFIX = ".jsonl"
-
-
-def _name(identity: Path) -> str:
-    """Make the name of a log, for a person, from the identity of its clone.
-
-    Args:
-        identity: What `Repository.identity` gives.
-
-    Returns:
-        The slug of the last component, or of the one before it when that is
-        `.git`, without a trailing `.git`; `repo` when nothing is left.
-    """
-    component = (
-        identity.parent.name if identity.name == _GIT_DIRECTORY else identity.name
-    )
-    component = component.removesuffix(_GIT_DIRECTORY)
-    slug = re.sub(r"[^a-z0-9]+", "-", component.lower())[:_SLUG_LENGTH].strip("-")
-    return slug or _FALLBACK_NAME
 
 
 def log_directory(identity: Path, home: Path) -> Path:
@@ -65,8 +42,7 @@ def log_directory(identity: Path, home: Path) -> Path:
     Returns:
         The directory, which may not exist.
     """
-    digest = hashlib.sha256(os.fsencode(identity)).hexdigest()[:_DIGEST_LENGTH]
-    return home / "log" / f"{_name(identity)}-{digest}"
+    return home / "log" / repository_key(identity)
 
 
 def locate_log(repository: Repository, directories: Directories) -> Path:

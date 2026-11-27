@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from wio.io.paths import PathResolution
 from wio.models.commits import Commit
 
 if TYPE_CHECKING:
@@ -33,7 +34,7 @@ class SystemStdio:
         self.stderr = sys.stderr
 
 
-class LocalFileSystem:
+class LocalFileSystem(PathResolution):
     """The local disk, as the `FileSystem` port.
 
     Paths are absolute or relative to the working directory, and a failure to

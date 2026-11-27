@@ -2,13 +2,13 @@
 """Tests of the shell of `wio context`, with a fake compiler."""
 
 from dataclasses import replace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 import pytest
 
 from tests.fakes import FakeEnvironment, value_or_raise
 from tests.unit.cli.fakes import run_main
-from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
+from tests.unit.fakes import ROOT, FakeDirectories, FakeRepository, MemoryFileSystem
 from wio.cli.table import COMMANDS, Entry
 from wio.context import (
     Compiled,
@@ -21,6 +21,7 @@ from wio.errors import WioError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
 
     from wio.cli.ports import Command
 
@@ -41,7 +42,7 @@ def _compiled() -> Compiled:
 
 def _command(
     result: Compiled | Exception, asked: list[tuple[str, str, str]] | None = None
-) -> Command:
+) -> ContextCommand:
     """Build the command over fakes.
 
     Args:
@@ -70,7 +71,12 @@ def _command(
             asked.append((work_id, action, stage))
         return value_or_raise(result)
 
-    services = Services(FakeRepository(), MemoryFileSystem(), FakeEnvironment(ROOT))
+    services = Services(
+        FakeRepository(),
+        MemoryFileSystem(),
+        FakeEnvironment(ROOT),
+        FakeDirectories(ROOT),
+    )
     return ContextCommand(services, compiler)
 
 
@@ -204,3 +210,109 @@ def test_only_a_run_wires_the_command_and_wires_it_once() -> None:
 
     # Then the help did not call `wire` and the run called it once
     assert (after_help, len(wired)) == (0, 1)
+
+
+@pytest.mark.parametrize(
+    ("options", "expected"),
+    [
+        (["--output", "chosen.md"], "chosen.md"),
+        (["--output"], None),
+        (["--output=old.md", "--output"], None),
+    ],
+)
+def test_file_output_reaches_delivery_with_the_compiled_bundle(
+    monkeypatch: pytest.MonkeyPatch,
+    options: list[str],
+    expected: str | None,
+) -> None:
+    """The command hands file delivery the bundle and prints its answer."""
+    # Given a fixed delivery boundary and a compiled bundle
+    calls: list[tuple[CompiledBundle, str | None, object, object, object]] = []
+
+    def deliver(
+        bundle: CompiledBundle,
+        path: str | None,
+        _repository: object,
+        _files: object,
+        _directories: object,
+    ) -> tuple[str, tuple[str, ...]]:
+        """Record the request and return a displayed path and warning.
+
+        Args:
+            bundle: The bundle to deliver.
+            path: The requested path.
+            _repository: The repository port.
+            _files: The filesystem port.
+            _directories: The directories port.
+
+        Returns:
+            The displayed path and one warning.
+        """
+        calls.append((bundle, path, _repository, _files, _directories))
+        return "chosen.md", ("inside worktree",)
+
+    monkeypatch.setattr("wio.context.delivery.write_bundle", deliver)
+    command = _command(_compiled())
+    entry = _entry(lambda: command)
+
+    # When file output is requested
+    code, out, err = run_main([*_ARGV, *options], [entry])
+
+    # Then the boundary receives the bundle and its output is reported
+    assert (code, out) == (0, "chosen.md\n")
+    assert len(calls) == 1
+    bundle, path, repository, files, directories = calls[0]
+    assert (bundle, path) == (_compiled().bundle, expected)
+    assert repository is command.services.repository
+    assert files is command.services.files
+    assert directories is command.services.directories
+    assert err.endswith("warning: inside worktree\n")
+
+
+class _PartialWriteFiles(MemoryFileSystem):
+    """A filesystem whose bundle write fails after writing a prefix."""
+
+    @override
+    def write_text(self, path: Path, text: str) -> None:
+        """Write a prefix, then simulate a filesystem failure.
+
+        Args:
+            path: The destination.
+            text: The bundle text.
+
+        Raises:
+            OSError: After a partial write.
+        """
+        super().write_text(path, text[:3])
+        message = "write failed"
+        raise OSError(28, message)
+
+
+@pytest.mark.parametrize("options", [["--output"], ["--output", "out.md"]])
+def test_partial_write_failure_is_reported_without_bundle_output(
+    options: list[str],
+) -> None:
+    """AC-5: a file-write error is reported even after writing starts."""
+    # Given a compiler and a filesystem whose write fails after a prefix
+    services = Services(
+        FakeRepository(),
+        _PartialWriteFiles(),
+        FakeEnvironment(ROOT),
+        FakeDirectories(ROOT),
+    )
+    command = ContextCommand(services, lambda *_args: _compiled())
+    entry = _entry(lambda: command)
+
+    # When a default or named bundle file is requested
+    code, out, err = run_main([*_ARGV, *options], [entry])
+
+    # Then the error names the destination, gives applicable hints, and prints no bundle
+    assert (code, out) == (2, "")
+    if len(options) == 1:
+        assert "4f3a9c01b2d7.md" in err
+        assert "$TMPDIR" in err
+        assert "--output <path>" in err
+    else:
+        assert "out.md" in err
+        assert "$TMPDIR" not in err
+        assert "--output <path>" not in err

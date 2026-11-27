@@ -155,3 +155,17 @@ def fixed_composition(text: str) -> Iterator[None]:
     bundle = CompiledBundle(text=text, id="fixed", size=0, rules={})
     with mock.patch("wio.context.Composition.compose", return_value=bundle):
         yield
+
+
+@contextlib.contextmanager
+def unavailable_temporary_directory() -> Iterator[None]:
+    """Make the system temporary directory unavailable to the command.
+
+    Yields:
+        Control while temporary-directory discovery fails.
+    """
+    with mock.patch(
+        "wio.env.adapters.ProcessDirectories.temp_dir",
+        side_effect=OSError("unavailable"),
+    ):
+        yield

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser
     from collections.abc import Callable, Sequence
 
-    from wio.env.ports import Environment
+    from wio.env.ports import Directories, Environment
     from wio.io.ports import FileSystem, Repository
 
 type Check = Callable[[str, str, str], Sequence[str]]
@@ -43,11 +43,13 @@ class Services:
         repository: Finds the repository.
         files: Reads and writes files.
         environment: Gives the environment variables and the working directory.
+        directories: Finds the temporary directory for default file delivery.
     """
 
     repository: Repository
     files: FileSystem
     environment: Environment
+    directories: Directories
 
 
 @dataclass(frozen=True)
@@ -70,11 +72,11 @@ class ContextSpec:
     help = "Print what an agent session reads for a stage of a Work."
 
     def configure(self, parser: ArgumentParser) -> None:
-        """Add the Work, the action and the stage, in that order.
+        """Add the Work, action, stage and optional file delivery.
 
         It does no I/O and loads no module of the package. The parsed arguments
-        carry them as `work`, `action` and `stage`. There is no `--json`: the
-        command prints raw text for a session to read.
+        carry them as `work`, `action`, `stage` and `output`. There is no
+        `--json`: the command delivers raw text for a session to read.
 
         Args:
             parser: The subparser that `wio.cli` created for `context`.
@@ -82,6 +84,35 @@ class ContextSpec:
         parser.add_argument("work", metavar="<work>", help="The id of the Work.")
         parser.add_argument("action", metavar="<action>", help="The action.")
         parser.add_argument("stage", metavar="<stage>", help="The stage.")
+        parser.add_argument(
+            "--output",
+            nargs="?",
+            const=None,
+            default=False,
+            type=_output_path,
+            metavar="<path>",
+            help="Write the bundle to a file and print its path.",
+        )
+
+
+def _output_path(value: str) -> str:
+    """Accept a non-empty file path for the output option.
+
+    Args:
+        value: The path as supplied on the command line.
+
+    Returns:
+        The path unchanged.
+
+    Raises:
+        ArgumentTypeError: If the path is empty.
+    """
+    if not value:
+        from argparse import ArgumentTypeError
+
+        message = "output path cannot be empty"
+        raise ArgumentTypeError(message)
+    return value
 
 
 def describe() -> ContextSpec:

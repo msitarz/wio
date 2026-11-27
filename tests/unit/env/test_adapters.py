@@ -29,15 +29,18 @@ def test_the_module_holds_the_adapters_of_the_ports() -> None:
     ]
 
 
-def test_the_temporary_directory_names_itself_when_it_is_asked_for() -> None:
-    """AC-4: `temp_dir` raises `NotImplementedError` and its message holds the name."""
-    # Given a ProcessDirectories
-    directories = adapters.ProcessDirectories(FakeEnvironment(Path()))
+def test_the_named_temporary_directory_is_given_without_a_probe() -> None:
+    """A non-empty TMPDIR is returned without checking its existence."""
+    # Given an environment naming a temporary path
+    environment = FakeEnvironment(Path(), {"TMPDIR": "relative/missing"})
+    directories = adapters.ProcessDirectories(environment)
 
     # When the temporary directory is asked for
-    # Then it raises NotImplementedError whose message holds temp_dir
-    with pytest.raises(NotImplementedError, match="temp_dir"):
-        directories.temp_dir()
+    found = directories.temp_dir()
+
+    # Then the named path is returned and the variable is read once
+    assert found == Path("relative/missing")
+    assert environment.reads == ["TMPDIR"]
 
 
 def test_the_entropy_gives_exactly_the_bytes_asked_for() -> None:

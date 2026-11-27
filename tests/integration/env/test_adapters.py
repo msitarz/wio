@@ -2,14 +2,18 @@
 """Tests of the adapters of `wio.env` against the real process."""
 
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
+from tests.sandbox import unreadable
 from wio.env import adapters
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from wio.env.ports import Clock, Directories, Environment
 
 
@@ -206,3 +210,118 @@ def test_a_user_home_that_is_missing_or_relative_is_an_oserror(
     # Then it raises an OSError
     with pytest.raises(OSError, match="home"):
         directories.wio_home()
+
+
+def test_the_named_temporary_directory_is_returned_without_testing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-empty TMPDIR is returned as given, even when it is relative."""
+    # Given a relative temporary directory that need not exist
+    monkeypatch.setenv("TMPDIR", "relative/temp")
+    directories = adapters.ProcessDirectories(adapters.ProcessEnvironment())
+
+    # When the temporary directory is requested
+    found = directories.temp_dir()
+
+    # Then the named path is returned unchanged
+    assert found == Path("relative/temp")
+
+
+@pytest.mark.parametrize("platform", ["darwin", "linux"])
+@pytest.mark.parametrize("value", [None, "", "/tmp/t"])
+def test_temporary_directory_uses_the_platform_default(
+    platform: str, value: str | None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AC-4: empty and unset TMPDIR use the tested platform directory."""
+    # Given two scratch system directories and an environment value
+    darwin = tmp_path / "darwin"
+    other = tmp_path / "other"
+    darwin.mkdir()
+    other.mkdir()
+    if value is None:
+        monkeypatch.delenv("TMPDIR", raising=False)
+    else:
+        monkeypatch.setenv("TMPDIR", value)
+    directories = adapters.ProcessDirectories(
+        adapters.ProcessEnvironment(), platform, darwin, other
+    )
+
+    # When the temporary directory is requested
+    found = directories.temp_dir()
+
+    # Then the named directory or the tested platform default is returned
+    expected = Path(value) if value else (darwin if platform == "darwin" else other)
+    assert found == expected
+    assert list(darwin.iterdir()) == []
+    assert list(other.iterdir()) == []
+
+
+@pytest.mark.parametrize("platform", ["darwin", "linux"])
+@pytest.mark.parametrize("kind", ["missing", "file"])
+def test_an_unusable_system_temporary_directory_raises(
+    platform: str, kind: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The system directory is tested, but an explicit TMPDIR is not."""
+    # Given a system directory that is missing or is a regular file
+    target = tmp_path / "unusable"
+    if kind == "file":
+        target.write_text("file", encoding="utf-8")
+    monkeypatch.delenv("TMPDIR", raising=False)
+    directories = adapters.ProcessDirectories(
+        adapters.ProcessEnvironment(), platform, target, target
+    )
+
+    # When the system directory is requested
+    # Then it fails instead of returning an unusable path
+    with pytest.raises(OSError):  # noqa: PT011 - the port promises any OSError
+        directories.temp_dir()
+
+
+def test_an_unwritable_system_directory_is_not_usable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An existing system directory is unusable if a probe cannot be created."""
+    # Given an existing system directory that cannot be written
+    directory = tmp_path / "closed"
+    directory.mkdir()
+    monkeypatch.delenv("TMPDIR", raising=False)
+    directories = adapters.ProcessDirectories(
+        adapters.ProcessEnvironment(), "linux", directory, directory
+    )
+
+    # When it is chosen as the default temporary directory
+    # Then the failed probe raises an OSError
+    with unreadable(directory), pytest.raises(OSError):  # noqa: PT011 - port contract
+        directories.temp_dir()
+
+
+def test_temporary_probe_removal_failure_is_reported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Failure to remove the temporary probe makes the directory unusable."""
+    # Given an unset TMPDIR and a probe that fails while it is removed
+    monkeypatch.delenv("TMPDIR", raising=False)
+
+    @contextmanager
+    def failing_probe(**_kwargs: object) -> Iterator[None]:
+        """Simulate a successful probe creation and failed removal.
+
+        Yields:
+            Control as the open probe.
+
+        Raises:
+            OSError: When the probe is removed.
+        """
+        yield
+        message = "probe removal failed"
+        raise OSError(message)
+
+    monkeypatch.setattr(adapters.tempfile, "NamedTemporaryFile", failing_probe)
+    directories = adapters.ProcessDirectories(
+        adapters.ProcessEnvironment(), "linux", tmp_path, tmp_path
+    )
+
+    # When the platform temporary directory is requested
+    # Then the removal failure propagates as an OSError
+    with pytest.raises(OSError, match="probe removal failed"):
+        directories.temp_dir()

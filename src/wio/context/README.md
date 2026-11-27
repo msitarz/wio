@@ -22,8 +22,8 @@ The docstrings of [the package](__init__.py),
   the bundle changes one of the two.
 - **Every check runs before the composition,** so a refused input is never
   answered with a bundle, which would look like success.
-- **The warnings are reported before the bundle is written,** so a delivery
-  that fails does not hide them.
+- **The compilation warnings are reported before the bundle is written,** so a
+  delivery that fails does not hide them.
 - **The command leaves every error to the
   [dispatch of `wio.cli`](../cli/README.md#failures-and-exit-codes),** which
   already tells a mistake of the user from a bug.
@@ -31,6 +31,24 @@ The docstrings of [the package](__init__.py),
   composition port names it, and the
   [rule for port stubs](../../../tests/tooling/test_ports.py) lets none of them
   import from its own package.
+
+## Writing a bundle to a file
+
+A session can request a file when a harness might truncate printed output.
+[File delivery](delivery.py) writes the complete bundle, creates its parent
+directories and replaces any existing file. It prints only the path, followed by
+a newline. A repeated run with the same bundle id writes the same default file
+again. The [option scenarios](../../../tests/acceptance/context/test_output.py)
+cover its forms, errors and warnings, and the
+[directories adapter](../env/README.md#what-only-the-adapters-read) gives the
+temporary directory.
+
+A default path uses the clone's [shared key](../formats/repository_key.py) and
+the bundle id, so its worktrees share one location per bundle. A named path is
+printed as given, while the [filesystem port](../io/ports.pyi) resolves it to
+judge whether it lies in the worktree. That warning helps prevent committing an
+unintended bundle. A failed write is an error; the destination's state after a
+write failure is unspecified.
 
 ## Refusing what cannot be trusted
 

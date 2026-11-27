@@ -68,6 +68,17 @@ class MemoryFileSystem:
         """
         return self.read_text(path).encode("utf-8")
 
+    def resolve(self, path: Path) -> Path:
+        """Return a configured real path for a fake filesystem entry.
+
+        Args:
+            path: The already resolved path used in the fake.
+
+        Returns:
+            The path unchanged.
+        """
+        return path
+
     def write_text(self, path: Path, text: str) -> None:
         """Store a text.
 

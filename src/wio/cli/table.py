@@ -180,7 +180,12 @@ def _context() -> Command:
         repository,
         files,
     )
-    services = ContextServices(repository, files, contracts.environment)
+    services = ContextServices(
+        repository,
+        files,
+        contracts.environment,
+        env.ProcessDirectories(contracts.environment),
+    )
     return ContextCommand(
         services,
         Compiler(

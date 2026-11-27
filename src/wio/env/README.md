@@ -33,7 +33,12 @@ Two choices are made for the callers' sake:
   creates nor tests the directory, because the first write creates it and a
   failure there is a warning, not an error of reading the path.
 
-`temp_dir` is left to the Work that first needs it, and raises a
-`NotImplementedError` that names it, so a wiring that reaches it fails loudly.
+`ProcessDirectories.temp_dir` reads `$TMPDIR` without testing a non-empty
+value; otherwise it probes the system directory by creating and removing a
+small temporary file. Its [port](ports.pyi) states the selection and failure
+rules, and the [adapter tests](../../../tests/integration/env/test_adapters.py)
+cover the platform defaults and probe failures. This lets a harness name a
+directory that it permits, even when that directory does not exist yet.
+
 The terms are in the [glossary of `src/wio`](../GLOSSARY.md), and the rule for
 the Wio home is in [the design](../../../docs/concepts.md#the-wio-home).

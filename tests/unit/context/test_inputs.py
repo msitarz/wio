@@ -10,7 +10,7 @@ import pytest
 from tests.fakes import FakeEnvironment
 from tests.unit.cli.fakes import FakeStdio
 from tests.unit.context.fakes import SettingsStub
-from tests.unit.fakes import ROOT, FakeRepository, MemoryFileSystem
+from tests.unit.fakes import ROOT, FakeDirectories, FakeRepository, MemoryFileSystem
 from wio.context import CompiledBundle, Compiler, ContextCommand, Services
 from wio.context.inputs import KnownInputs
 from wio.errors import WioError
@@ -183,7 +183,12 @@ def test_unselected_work_root_allows_the_fixed_bundle() -> None:
     """AC-4: the real check lets the command print a faked composition."""
     # Given a Work with an unknown root, a stage's own roots and a fixed composer
     check, _ = _check(("contract",))
-    services = Services(FakeRepository(), MemoryFileSystem(), FakeEnvironment(ROOT))
+    services = Services(
+        FakeRepository(),
+        MemoryFileSystem(),
+        FakeEnvironment(ROOT),
+        FakeDirectories(ROOT),
+    )
     command = ContextCommand(services, Compiler(_ComposerStub(), (check,)).compile)
     out, err = io.StringIO(), io.StringIO()
 

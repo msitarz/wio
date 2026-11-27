@@ -3,6 +3,8 @@
 
 import os
 import secrets
+import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -76,20 +78,33 @@ class ProcessDirectories:
     """The well-known directories of the process's user, as the `Directories` port.
 
     Attributes:
-        environment: Where `WIO_HOME` is read, so a test can fix it.
+        environment: Where `WIO_HOME` and `TMPDIR` are read.
+        platform: The platform name used for the default temporary directory.
+        darwin_temp: The system temporary directory on macOS.
+        other_temp: The system temporary directory on other platforms.
     """
 
     environment: Environment
+    platform: str = sys.platform
+    darwin_temp: Path = Path("/private/tmp")
+    other_temp: Path = Path("/tmp")
 
     def temp_dir(self) -> Path:
-        """Find the directory for temporary files.
+        """Find a named temporary directory or test the platform default.
+
+        Returns:
+            The non-empty TMPDIR as given, or a usable platform default.
 
         Raises:
-            NotImplementedError: Always, naming `temp_dir`, until the Work that
-                first needs it gives it its meaning.
+            OSError: The system directory cannot create or remove a probe.
         """
-        message = "temp_dir is implemented by the Work that first needs it"
-        raise NotImplementedError(message)
+        named = self.environment.get("TMPDIR")
+        if named:
+            return Path(named)
+        directory = self.darwin_temp if self.platform == "darwin" else self.other_temp
+        with tempfile.NamedTemporaryFile(dir=directory):
+            pass
+        return directory
 
     def wio_home(self) -> Path:
         """Find the Wio home by the rule of `Directories.wio_home`.
