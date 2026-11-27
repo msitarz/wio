@@ -1,0 +1,6 @@
+# Python coding conventions that linters and type-checkers cannot enforce.
+# The `wio` root selects the whole ruleset.
+description = "Python code, stub, docstring and test conventions."
+
+[families]
+PYT = "Python"

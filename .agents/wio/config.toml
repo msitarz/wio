@@ -69,7 +69,7 @@ rule_presets = ["contracts.authoring", "writing.all"]
 
 [roots.wio]
 paths = ["src", "tests", "scripts"]
-rule_presets = ["contract-upkeep.all"]
+rule_presets = ["contract-upkeep.all", "python.all"]
 
 # Everything else in the repository: docs, CI, the Makefile, skills. It
 # overlaps the other roots, which is allowed: roots select rules by name.

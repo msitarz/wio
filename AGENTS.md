@@ -51,34 +51,11 @@ Single tools, for quick feedback:
 
 ## Code conventions
 
-- Start every Python file with `# SPDX-License-Identifier: Apache-2.0` as the
-  first line (second after a shebang). Ruff enforces it (`CPY001`).
-- Annotate everything, tests included. Run `pyrefly` before declaring done.
-- Give every test `# Given`, `# When` and `# Then` comments, in that order, each
-  describing its section (see `tests/README.md`).
-- Write a Google-style docstring for every module, class and function, private
-  helpers too. Ruff enforces it only for public names. Describe what a caller
-  or maintainer needs to know: purpose, observable guarantees, important
-  boundaries and failures. Keep details needed to preserve those guarantees,
-  but omit a walkthrough of the implementation and facts evident from the
-  signature; refer to a helper for its own guarantees rather than repeating
-  them. This keeps the contract useful to people and agents as code changes.
-- A `.pyi` stub carries a docstring for each item. Stubs are the architecture
-  spec, so say what each item guarantees.
-- Write output with `sys.stdout`, not `print`.
-- Keep functions small: McCabe complexity 10, cognitive complexity 7, 20
-  statements, 3 boolean operands per `if`. Prefer `match` with named guards over
-  long `if` chains, and model variants as algebraic data types.
-- Python lines are 88 columns. Markdown lines are 80.
-- Repository files state intent: what holds and why. They never record
-  verification, such as the runs, counts or revisions something was checked
-  against: CI and prek verify. Report a manual check to the driver or in a
-  commit message. A contract's criteria, which say how a reviewer judges them,
-  are an exception, and so is the baseline of a diagram in a contract's Visuals:
-  the short SHA of the commit, and the branch, that the diagram was drawn from
-  is not a record of verification.
-- Fix the cause when a check fails. Never weaken a test or loosen a rule to get
-  green. If a rule seems wrong, say so and propose a config change.
+Automated checks in `make check` (`ruff`, `pyrefly`, `complexipy`, `tach`,
+`jscpd`, `rumdl`) enforce formatting, SPDX headers, type annotations,
+complexity, line lengths (88 for Python, 80 for Markdown) and `sys.stdout`.
+The non-linter coding and writing rules live in `.agents/wio/rules/` (run
+`wio rules list` to view them).
 
 ## Workflow
 
