@@ -31,6 +31,7 @@ flowchart LR
     subgraph components
         config
         contracts
+        describe
         templates
         rules
         trailers
