@@ -9,13 +9,15 @@ from tests.acceptance.channels import Channel
 from tests.acceptance.drivers.cli import CliDriver
 from tests.acceptance.drivers.in_process import (
     InProcessDriver,
+    fixed_compiler,
     fixed_composition,
     unavailable_temporary_directory,
 )
 from tests.acceptance.dsl.wio import Wio
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
+    from contextlib import AbstractContextManager
 
     from tests.acceptance.drivers.base import WioDriver
     from tests.sandbox import Sandbox
@@ -105,3 +107,13 @@ def unavailable_temp() -> Iterator[None]:
     """
     with unavailable_temporary_directory():
         yield
+
+
+@pytest.fixture
+def prepared_compiler() -> Callable[[str, int], AbstractContextManager[None]]:
+    """Provide fixed bundle results while the in-process command runs.
+
+    Returns:
+        A context manager factory accepting the bundle text and body size.
+    """
+    return fixed_compiler

@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
     from wio.env.ports import Directories, Environment
     from wio.io.ports import FileSystem, Repository
+    from wio.ports import Settings
 
 type Check = Callable[[str, str, str], Sequence[str]]
 """A check of the inputs, run before the bundle is composed.
@@ -44,12 +45,14 @@ class Services:
         files: Reads and writes files.
         environment: Gives the environment variables and the working directory.
         directories: Finds the temporary directory for default file delivery.
+        settings: Gives the configured bundle size threshold.
     """
 
     repository: Repository
     files: FileSystem
     environment: Environment
     directories: Directories
+    settings: Settings
 
 
 @dataclass(frozen=True)

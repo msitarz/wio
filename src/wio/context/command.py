@@ -33,10 +33,12 @@ class ContextCommand:
         return self._services
 
     def run(self, args: Namespace, stdio: Stdio) -> int:
-        """Deliver the bundle and report the warnings of its compilation.
+        """Deliver the bundle and report its warnings.
 
-        Standard output holds the bundle or the requested file path and a newline.
-        Each warning is one line on standard error that begins `warning: `.
+        Compilation warnings come first, followed by any size warning, before
+        delivery, so a delivery error does not hide them. Standard output holds
+        the bundle or the requested file path and a newline. Each warning is one
+        line on standard error that begins `warning: `.
 
         Args:
             args: The parsed `work`, `action`, `stage` and optional `output`.
@@ -52,6 +54,12 @@ class ContextCommand:
         """
         compiled = self._compiler(args.work, args.action, args.stage)
         stdio.stderr.writelines(f"warning: {text}\n" for text in compiled.warnings)
+        from wio.context.size_warning import size_warning
+
+        threshold = self._services.settings.load().bundle.size_threshold
+        warning = size_warning(compiled.bundle.size, threshold)
+        if warning is not None:
+            stdio.stderr.write(f"warning: {warning}\n")
         output = getattr(args, "output", False)
         if output is False:
             stdio.stdout.write(compiled.bundle.text)

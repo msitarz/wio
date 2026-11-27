@@ -32,6 +32,14 @@ The docstrings of [the package](__init__.py),
   [rule for port stubs](../../../tests/tooling/test_ports.py) lets none of them
   import from its own package.
 
+## Warning about bundle size
+
+[The size warning](size_warning.py) compares the compiler's body size with the
+optional threshold, both in UTF-8 bytes. The command reports it before delivery
+so a failed file write cannot hide it. The
+[acceptance scenarios](../../../tests/acceptance/context/test_size_warning.py)
+cover the threshold boundaries and the failed-delivery case.
+
 ## Writing a bundle to a file
 
 A session can request a file when a harness might truncate printed output.

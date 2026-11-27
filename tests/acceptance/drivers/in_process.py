@@ -11,6 +11,7 @@ from unittest import mock
 
 from tests.acceptance.drivers.base import RunResult, SandboxedDriver
 from wio import cli
+from wio.context import Compiled
 from wio.models.bundle import CompiledBundle
 
 if TYPE_CHECKING:
@@ -168,4 +169,20 @@ def unavailable_temporary_directory() -> Iterator[None]:
         "wio.env.adapters.ProcessDirectories.temp_dir",
         side_effect=OSError("unavailable"),
     ):
+        yield
+
+
+@contextlib.contextmanager
+def fixed_compiler(text: str, size: int) -> Iterator[None]:
+    """Supply a fixed compiler result to the command in this channel.
+
+    Args:
+        text: The bundle delivered by the command.
+        size: The body size reported by the compiler.
+
+    Yields:
+        Control while the compiler returns the fixed result.
+    """
+    bundle = CompiledBundle(text=text, id="fixed", size=size, rules={})
+    with mock.patch("wio.context.Compiler.compile", return_value=Compiled(bundle, ())):
         yield

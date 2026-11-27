@@ -188,6 +188,7 @@ def test_unselected_work_root_allows_the_fixed_bundle() -> None:
         MemoryFileSystem(),
         FakeEnvironment(ROOT),
         FakeDirectories(ROOT),
+        SettingsStub(Config()),
     )
     command = ContextCommand(services, Compiler(_ComposerStub(), (check,)).compile)
     out, err = io.StringIO(), io.StringIO()

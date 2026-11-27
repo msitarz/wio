@@ -2112,17 +2112,17 @@ Properties that matter:
 - **Explainable**: `wio rules list --explain` lists why each rule was included
   or excluded, without changing the bundle.
 - **Sized**: harnesses truncate long command output, and a truncated bundle
-  looks complete. The header states the size, an optional threshold in the
-  config turns an oversized bundle into a warning, and `--output` writes the
-  bundle to a file that the agent reads with its file tools. Without a path it
-  writes `wio/<repo>/<bundle-id>.md` in the temporary directory and prints that
-  path. The temporary directory is `$TMPDIR` when that is set to a non-empty
-  value, used as it is without a test: harnesses set it to a directory their
-  sandbox lets the session write, which a configured path might not be. When
-  `$TMPDIR` is unset or empty it is `/tmp` on Linux or `/private/tmp` on macOS,
-  if a small test file can be written there; otherwise the command fails and
-  says to set `$TMPDIR` or to pass a path. `--output <path>` writes where it is
-  told, and a path inside the worktree gets a warning, because an uncommitted
+  looks complete. The header states the body size in UTF-8 bytes; an optional
+  threshold in the same unit warns when that size is greater, and `--output`
+  writes the bundle to a file that the agent reads with its file tools. Without
+  a path it writes `wio/<repo>/<bundle-id>.md` in the temporary directory and
+  prints that path. The temporary directory is `$TMPDIR` when that is set to a
+  non-empty value, used as it is without a test: harnesses set it to a directory
+  their sandbox lets the session write, which a configured path might not be.
+  When `$TMPDIR` is unset or empty it is `/tmp` on Linux or `/private/tmp` on
+  macOS, if a small test file can be written there; otherwise the command fails
+  and says to set `$TMPDIR` or to pass a path. `--output <path>` writes where it
+  is told, and a path inside the worktree gets a warning, because an uncommitted
   bundle can be committed by mistake and marks the tree as changed.
 - **Once per session, and again when needed**: the bundle is injected at session
   start. If the harness compacts the context, the session runs the command

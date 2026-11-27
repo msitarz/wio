@@ -8,6 +8,7 @@ import pytest
 
 from tests.fakes import FakeEnvironment, value_or_raise
 from tests.unit.cli.fakes import run_main
+from tests.unit.context.fakes import SettingsStub
 from tests.unit.fakes import ROOT, FakeDirectories, FakeRepository, MemoryFileSystem
 from wio.cli.table import COMMANDS, Entry
 from wio.context import (
@@ -18,6 +19,7 @@ from wio.context import (
     describe,
 )
 from wio.errors import WioError
+from wio.models.config import Bundle, Config
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -76,6 +78,7 @@ def _command(
         MemoryFileSystem(),
         FakeEnvironment(ROOT),
         FakeDirectories(ROOT),
+        SettingsStub(Config()),
     )
     return ContextCommand(services, compiler)
 
@@ -299,6 +302,7 @@ def test_partial_write_failure_is_reported_without_bundle_output(
         _PartialWriteFiles(),
         FakeEnvironment(ROOT),
         FakeDirectories(ROOT),
+        SettingsStub(Config()),
     )
     command = ContextCommand(services, lambda *_args: _compiled())
     entry = _entry(lambda: command)
@@ -316,3 +320,43 @@ def test_partial_write_failure_is_reported_without_bundle_output(
         assert "out.md" in err
         assert "$TMPDIR" not in err
         assert "--output <path>" not in err
+
+
+def test_the_size_boundary_receives_the_compiled_size_and_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The command reports the size boundary's warning before delivery."""
+    # Given a size boundary that records its inputs and a failed delivery
+    calls: list[tuple[int, int | None]] = []
+
+    def warn(size: int, threshold: int | None) -> str | None:
+        """Record the inputs and give a warning.
+
+        Args:
+            size: The compiler's body size.
+            threshold: The configured threshold.
+
+        Returns:
+            A fixed warning.
+        """
+        calls.append((size, threshold))
+        return "fixed size warning"
+
+    monkeypatch.setattr("wio.context.size_warning.size_warning", warn)
+    services = Services(
+        FakeRepository(),
+        _PartialWriteFiles(),
+        FakeEnvironment(ROOT),
+        FakeDirectories(ROOT),
+        SettingsStub(Config(bundle=Bundle(size_threshold=9))),
+    )
+    command = ContextCommand(services, lambda *_args: _compiled())
+
+    # When file delivery fails after compilation
+    code, out, err = run_main([*_ARGV, "--output", "out.md"], [_entry(lambda: command)])
+
+    # Then the compiled body size and configured threshold were judged first
+    assert calls == [(12, 9)]
+    assert (code, out) == (2, "")
+    assert "warning: fixed size warning\n" in err
+    assert err.index("warning: fixed size warning") < err.index("error:")

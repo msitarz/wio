@@ -141,7 +141,7 @@ depends_on = ["tests.acceptance.drivers"]
 
 [[modules]]
 path = "tests.acceptance.drivers"
-depends_on = ["tests.sandbox", "wio.cli", "wio.io", "wio.models"]
+depends_on = ["tests.sandbox", "wio.cli", "wio.context", "wio.io", "wio.models"]
 
 [[modules]]
 path = "tests.packaging"
