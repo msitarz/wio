@@ -98,10 +98,10 @@ _COMMANDS: dict[str, CommandDescription] = {
         summary="Print what an agent session reads for a stage of a Work.",
         forms=(
             CommandForm(
-                "wio context <work> <action> <stage> [--json]",
+                "wio context <work> <action> <stage> [--output [<path>]]",
                 (
                     "Compile the contract, stage goal, skill and applicable rules "
-                    "into a bundle."
+                    "into a bundle (or write it to a file with `--output`)."
                 ),
             ),
         ),
@@ -119,8 +119,12 @@ _COMMANDS: dict[str, CommandDescription] = {
         summary="Create, list, check and show the Work contracts of the project.",
         forms=(
             CommandForm(
-                "wio contracts new <template> --title <title> [--parent <id>]",
-                "Create a new contract from a template with a fresh 6-character id.",
+                (
+                    "wio contracts new [<kind>] [--template <name>] "
+                    "[--title <text> | --slug <slug> | --path <path>] "
+                    "[--parent <id>] [--root <name>] [--json]"
+                ),
+                "Create a new contract from a kind or template with a fresh id.",
             ),
             CommandForm(
                 "wio contracts list [--json]",
@@ -130,11 +134,15 @@ _COMMANDS: dict[str, CommandDescription] = {
                 ),
             ),
             CommandForm(
-                "wio contracts show <work> [--resolved] [--json]",
+                "wio contracts show <id-or-path> [--json]",
                 (
-                    "Show a contract's metadata and content, optionally with "
-                    "inherited sections."
+                    "Show a contract's facts, actions, dependents and resolved "
+                    "view with inherited sections."
                 ),
+            ),
+            CommandForm(
+                "wio contracts skeleton <work> <template> [--keep roots|actions]",
+                "Print a template skeleton pre-populated for an existing Work.",
             ),
             CommandForm(
                 "wio contracts check [--json]",
@@ -185,7 +193,10 @@ _COMMANDS: dict[str, CommandDescription] = {
                 "Show recorded stage context and gate review events.",
             ),
             CommandForm(
-                "wio log review <work> <action> <stage> <result>",
+                (
+                    "wio log review <work> <action> <stage> --result <r> "
+                    "[--judge <j>] [--cite <items>] [--reviewed <sha>]"
+                ),
                 "Record a gate review result in the clone event log.",
             ),
         ),
@@ -211,8 +222,11 @@ _COMMANDS: dict[str, CommandDescription] = {
                 "Validate all ruleset files and report diagnostics.",
             ),
             CommandForm(
-                "wio rules new <ruleset> <name>",
-                "Scaffold a new rule file in a ruleset.",
+                (
+                    "wio rules new <ruleset> <family> --name <name> "
+                    "[--description <text>] [--json]"
+                ),
+                "Create the next rule of a family in a ruleset.",
             ),
         ),
         invariants=(
@@ -225,20 +239,20 @@ _COMMANDS: dict[str, CommandDescription] = {
         summary="List, show, check and explain the project's templates.",
         forms=(
             CommandForm(
-                "wio templates list [--json]",
-                "List available contract templates.",
+                "wio templates list [--kind <kind>] [--json]",
+                "List available contract templates grouped by kind.",
             ),
             CommandForm(
-                "wio templates show <name> [--json]",
-                "Show a template's sections and directives.",
+                "wio templates show <name>",
+                "Print a template prepared as a contract skeleton.",
             ),
             CommandForm(
                 "wio templates check [--json]",
                 "Validate all templates under `[templates] dir`.",
             ),
             CommandForm(
-                "wio templates explain [--json]",
-                "Explain the `<!-- wio: ... -->` heading directive grammar.",
+                "wio templates directives [--json]",
+                "Print the `<!-- wio: ... -->` heading directive grammar.",
             ),
         ),
         invariants=(
@@ -254,12 +268,20 @@ _COMMANDS: dict[str, CommandDescription] = {
         summary="Print, check and fold the Wio records of commits.",
         forms=(
             CommandForm(
-                "wio trailers [<work> <action> <stage>] [--result <r>] [--judge <j>]",
+                (
+                    "wio trailers <work> <action> <stage> [--items <ids>] "
+                    "[--result <r>] [--judge <j>] [--cite <items>] "
+                    "[--reviewed <sha>]"
+                ),
                 "Print `Wio-*` trailers for a commit message.",
             ),
             CommandForm(
-                "wio trailers check <commit-msg-file>",
-                "Validate `Wio-*` trailers in a commit message.",
+                "wio trailers none",
+                "Print the `Wio-Work: none` record for a commit outside any Work.",
+            ),
+            CommandForm(
+                "wio trailers check [--require] [<file> | --body <file> | --range <r>]",
+                "Validate `Wio-*` trailers in a commit message, body or range.",
             ),
             CommandForm(
                 "wio trailers fold <range>",
