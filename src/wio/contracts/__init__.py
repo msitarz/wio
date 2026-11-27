@@ -11,6 +11,7 @@ lazy from wio.contracts.context_view import ContractViews as ContractViews
 lazy from wio.contracts.creation import run_new
 lazy from wio.contracts.discovery import (
     WorkDiscovery,
+    cached_discover,
     discover_works,
     explain_not_a_work,
     find_work,
@@ -304,6 +305,7 @@ __all__ = [
     "WorkDiscovery",
     "WorkLookup",
     "build_hierarchy",
+    "cached_discover",
     "choose_slug",
     "decide_place",
     "describe",

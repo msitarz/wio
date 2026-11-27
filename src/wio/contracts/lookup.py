@@ -21,12 +21,13 @@ from wio.formats.errors import MetadataBlockError
 from wio.models.works import Work
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
     from pathlib import Path
 
     from wio.contracts.ports import TemplateCatalog
     from wio.io.ports import FileSystem, Repository
     from wio.models.config import Config
+    from wio.models.config import Works as WorksSettings
     from wio.ports import Settings
 
 
@@ -96,6 +97,9 @@ class WorkLookup:
     catalog: TemplateCatalog
     templates: FileSystem
     views: Sequence[FileSystem]
+    discover: Callable[[Path, WorksSettings, FileSystem], WorkDiscovery] = (
+        discover_works
+    )
     _discoveries: dict[int, WorkDiscovery] = field(
         default_factory=dict, init=False, repr=False, compare=False
     )
@@ -188,7 +192,7 @@ class WorkLookup:
         cached = self._discoveries.get(key)
         if cached is not None:
             return cached
-        discovery = discover_works(
+        discovery = self.discover(
             self.repository.root(), self.settings.load().works, view
         )
         self._discoveries[key] = discovery
