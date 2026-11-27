@@ -86,8 +86,10 @@ A failed delivery writes no event, because the session received no bundle.
 Repeated runs and runs with warnings each write their own event. Recording
 failures and `WIO_LOG=off` are handled by `wio.log`, so a log problem warns
 without blocking delivery. The
-[stage-entry scenarios](../../../tests/acceptance/context/test_stage_entry.py)
-and [gate-start scenarios](../../../tests/acceptance/context/test_gate_start.py)
+[stage-entry scenarios](../../../tests/acceptance/context/test_stage_entry.py),
+[gate-start scenarios](../../../tests/acceptance/context/test_gate_start.py),
+and
+[combined gate-event scenario](../../../tests/acceptance/context/test_stage_entry_event.py)
 cover these cases.
 
 ## Refusing what cannot be trusted
