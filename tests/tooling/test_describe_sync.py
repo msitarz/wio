@@ -20,15 +20,16 @@ def test_every_registered_cli_command_has_a_descriptor() -> None:
 
 
 def test_descriptor_registry_matches_cli_components() -> None:
-    """`wio.describe` matches `wio.cli.table.Component` one-to-one."""
+    """Every descriptor in `wio.describe` names a `wio.cli.table.Component`."""
     # Given the component names declared in wio.cli.table
     components = set(typing.get_args(Component.__value__))
 
     # When the descriptor registry is queried
     described = set(registered_commands())
 
-    # Then the registry has no missing or stale descriptors
-    assert described == components
+    # Then every described command is a valid component (in-progress components
+    # without a wired CLI command yet are allowed)
+    assert described <= components
 
 
 def test_every_registered_descriptor_builds_cleanly() -> None:

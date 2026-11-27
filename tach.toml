@@ -92,6 +92,10 @@ path = "wio.describe"
 depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
 
 [[modules]]
+path = "wio.next"
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
+
+[[modules]]
 path = "wio.cli"
 depends_on = [
     "wio.errors",
@@ -177,6 +181,7 @@ depends_on = [
     "wio.io.adapters",
     "wio.io.views",
     "wio.log",
+    "wio.next",
     "wio.ports",
     "wio.rules",
     "wio.templates",
