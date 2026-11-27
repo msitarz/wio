@@ -22,5 +22,6 @@
 
 ## Notes for the reviewer
 
-<!-- Risks, follow-ups, anything you want a second opinion on. Breaking change?
+<!-- Risks, follow-ups, anything you want a second opinion on. Do not list
+     verification or check runs already covered by CI. Breaking change?
      Use `!` in the title and a `BREAKING CHANGE:` footer. -->
