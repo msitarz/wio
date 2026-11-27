@@ -173,3 +173,23 @@ class Pipelines(Protocol):
             ConfigurationError: The settings cannot be loaded.
         """
         ...
+
+class ReviewedCommit(Protocol):
+    """The commit a gate's review starts from."""
+
+    def find(self, action: str, stage: str) -> str | None:
+        """Find the first commit from `HEAD` down that is not a pure gate commit.
+
+        Args:
+            action: The action of the gate.
+            stage: The stage of the gate.
+
+        Returns:
+            The full commit id, or `None` when every commit is a pure gate
+            commit or the repository has no commit.
+
+        Raises:
+            RuntimeError: If the working directory is not inside a repository.
+            ValueError: If the history rejects the revision.
+        """
+        ...

@@ -214,6 +214,9 @@ class Repository(Protocol):
         Returns:
             True when a tracked file differs from `HEAD` or the index, or when
             an untracked file that is not ignored exists.
+
+        Raises:
+            ValueError: If git status fails.
         """
         ...
 
@@ -249,11 +252,15 @@ class History(Protocol):
     def first_parents(self, revision: str) -> Sequence[Commit]:
         """List a revision's ancestors along first parents.
 
+        For `HEAD` in a repository with no commit (an unborn branch), returns
+        an empty sequence.
+
         Args:
             revision: The revision to start from, such as `HEAD`.
 
         Returns:
-            The commits newest first, starting with the revision's own.
+            The commits newest first, starting with the revision's own, or an
+            empty sequence for an unborn `HEAD`.
         """
         ...
 
