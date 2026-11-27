@@ -71,13 +71,23 @@ After delivery succeeds, [stage-entry recording](entry.py) writes one
 [`ContextEvent`](../models/events.py) through the shared
 [`EventSink` port](../ports.pyi). The event carries the Work, action, stage,
 bundle id, body size in UTF-8 bytes, and the `rule_hash` of each included rule
-in bundle order, with `start` and `dirty` omitted (`None`).
+in bundle order. For a stage without `gate = true`, `start` and `dirty` are
+omitted (`None`).
+
+For a gate stage, [gate-start reading](gate_start.py) reads the starting commit
+(through the provisional [`ReviewedCommit` port](ports.pyi), wired to
+`wio.trailers.reviewed.reviewed_commit`) and `Repository.is_dirty` before
+delivery, so a bundle written inside the worktree is not counted as dirty. A
+history with no reviewed commit omits `start` without warning; a `ValueError`
+or `RuntimeError` from either port drops only that field and warns after
+delivery.
 
 A failed delivery writes no event, because the session received no bundle.
 Repeated runs and runs with warnings each write their own event. Recording
 failures and `WIO_LOG=off` are handled by `wio.log`, so a log problem warns
 without blocking delivery. The
 [stage-entry scenarios](../../../tests/acceptance/context/test_stage_entry.py)
+and [gate-start scenarios](../../../tests/acceptance/context/test_gate_start.py)
 cover these cases.
 
 ## Refusing what cannot be trusted

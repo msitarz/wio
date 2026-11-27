@@ -48,7 +48,9 @@ the tree goes through these ports and never calls git itself.
   must not change it.
 - **The order is the history's.** `history` gives parents before children,
   oldest first, and `first_parents` gives the walk along first parents, newest
-  first, so a commit that a merge brought in is not in it.
+  first, so a commit that a merge brought in is not in it. For `HEAD` on an
+  unborn branch (a repository with no commit), `first_parents("HEAD")` returns
+  an empty sequence; every other rejected revision still raises `ValueError`.
 
 ## The views of the index and of a revision
 
