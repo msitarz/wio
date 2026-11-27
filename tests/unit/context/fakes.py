@@ -18,6 +18,8 @@ lazy from wio.models.skill import FoundSkill
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from wio.models.events import Event
+
 
 @dataclass
 class ContractStub:
@@ -179,3 +181,22 @@ class RuleFiles(MemoryFileSystem):
         """
         self.calls.append(("read_bytes", path))
         return value_or_raise(self.data.get(path, FileNotFoundError(path)))
+
+
+@dataclass
+class EventSinkFake:
+    """Record written events in memory without touching the log on disk.
+
+    Attributes:
+        recorded: Every event passed to `write`, in the order written.
+    """
+
+    recorded: list[Event] = field(default_factory=list)
+
+    def write(self, event: Event) -> None:
+        """Append the event to the in-memory list.
+
+        Args:
+            event: The event to record.
+        """
+        self.recorded.append(event)

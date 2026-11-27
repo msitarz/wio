@@ -23,7 +23,7 @@ class ContextEvent:
         action: The action that contains the stage.
         stage: The stage the session entered.
         bundle: The opaque id of the context bundle.
-        size: The length of the bundle in bytes.
+        size: The size of the bundle's body in UTF-8 bytes.
         rules: The hash of each rule file, keyed by qualified rule code in
             bundle order.
         start: The starting commit of a gate session, or `None` for other stages.
