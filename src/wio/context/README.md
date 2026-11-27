@@ -8,6 +8,11 @@ what a [bundle](../../../GLOSSARY.md) holds and which properties it keeps.
 [`wio.cli`](../cli/README.md#the-table-of-commands) wires the command
 to check inputs, compose and print a bundle from the working tree. The
 [repository glossary](../../../GLOSSARY.md) defines the terms used here.
+End-to-end scenarios live in
+[test_context.py](../../../tests/acceptance/context/test_context.py) with its
+[golden bundle](../../../tests/golden/context/bundle.txt), and
+[test_context_imports.py](../../../tests/integration/cli/test_context_imports.py)
+verifies lazy module loading in a fresh interpreter.
 
 ## The shell of the command
 
