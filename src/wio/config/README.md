@@ -1,291 +1,39 @@
 # `wio.config`
 
-The component that reads the project's settings. The terms Setting,
-Action cycle, Normalized path and Reference are defined in the
-[glossary of this component](GLOSSARY.md), and Config, Diagnostic, Source,
-Shape, Key path, Check, Check run and Repository in the
-[repository glossary](../../../GLOSSARY.md).
-The keys the shape covers are listed in the
-[config](../../../docs/concepts.md#the-config).
+The component behind `wio config` (`list`, `show`, `check`) and the
+`Settings` loader consumed by every other command. Local terms are in
+[GLOSSARY.md](GLOSSARY.md).
 
-## Where it sits
+## Package invariants
 
-Every other component reads the config through the `Settings` port of
-`wio.ports`, which `ConfigSettings` implements, so none of them knows the file
-or the loader. The component reaches the file and the repository only through
-the ports of `wio.io`, whose adapters `wio.cli` wires, so a test replaces them.
+- **One validated `Config`.** [`loader.py`](loader.py) reads
+  `.agents/wio/config.toml`, applies defaults, and runs [`checks.py`](checks.py)
+  so every command either receives a valid `Config` or exits with a `WioError`.
+- **Unknown keys are errors.** [`shape.py`](shape.py) rejects any key the
+  schema does not declare, catching typos at `wio config check`.
+- **Config-only checks.** Checks that need rule files or template files belong
+  to `wio rules check` and `wio templates check`, not here.
 
-```mermaid
-flowchart LR
-    cli["wio.cli"] --> config["wio.config"]
-    cli --> adapters["wio.io.adapters: LocalFileSystem, GitRepository"]
-    cli --> envadapters["wio.env.adapters: ProcessEnvironment"]
-    config --> models["wio.models: Config, Diagnostic"]
-    config --> formats["wio.formats: decode_toml, render"]
-    config -- "ports" --> io["wio.io: FileSystem, Repository, History"]
-    adapters --> io
-    adapters -- "ports" --> env["wio.env: Environment"]
-    envadapters --> env
-    other["other components"] -- "ports" --> settings["wio.ports: Settings"]
-    config -. "implements" .-> settings
-    config --> errors["wio.errors: ConfigurationError"]
-```
+## Log settings
 
-## The loader
-
-[`loader.py`](loader.py) turns one file into a `Loaded`: its docstrings say what
-it returns and what it raises. It exists so that a command receives the settings
-read from one file, checked for shape and handed over complete, or is refused
-with every problem at once. [`settings.py`](settings.py) adapts it to the
-`Settings` port.
-
-```mermaid
-flowchart LR
-    file["config.toml"] --> decode["decode_toml"]
-    decode --> walk["walk of the schema"]
-    walk --> loaded["(config or None, diagnostics, sources)"]
-    loaded --> load["Settings.load: Config, or ConfigurationError"]
-    loaded --> check["config check, list, show"]
-```
-
-- **One file.** The config is `<root>/.agents/wio/config.toml`, where the root
-  is the one `Repository.root` finds for the working directory, so a command run
-  from a subdirectory finds the same file. There is no walk up the directories,
-  no per-directory override and no variable that points at another file: one
-  file keeps every command reading the same settings.
-- **Absence is an error.** No repository, no file and an unreadable file are
-  refused, and none of the messages mentions `wio init`, which does not exist
-  before v0.2. A key the file omits keeps the default of its field, so an empty
-  file is valid and a file need set only what differs from the defaults. The
-  component never reads the working directory itself: the `Repository` adapter
-  is given it by an `Environment`, so every component reaches the environment
-  through a port, and the loader passes the adapter's message on unchanged.
-- **A syntax error is one diagnostic and no `Config`,** because nothing can be
-  checked in text that is not a document.
-- **`Loaded.sources` says `file` for a key that the file sets to its own
-  default.** A table entry such as `stages.define` has no key of its own, and
-  its keys are `file` when set and `default` when not.
-
-## The shape
-
-`read_shape` in [`shape.py`](shape.py) walks a schema derived once from the
-annotations of the `Config` dataclasses, so the value, the diagnostics and the
-sources cannot drift from the fields.
-
-- **The `Config` is best effort,** so the checks run on it also when the shape
-  has errors, and a check that looks an entry up finds it instead of repeating
-  the shape's problem. A stage with both or neither of `goal` and `skill` is
-  kept as written.
-- **Nothing is coerced.** An integer where a string belongs is an error, and a
-  TOML date or time is never a setting, because no key of the schema holds one.
-- **A message tells how to fix the edit,** so an agent that edits the file
-  corrects every problem in one turn.
-- **A run that finds no problem imports neither `difflib`, `json` nor
-  `tomlkit`,** so a valid config costs nothing for its diagnostics.
-
-## The checks
-
-[`checks.py`](checks.py) keeps the checks in `CHECKS`, one ordered tuple that
-the loader runs after the shape, so a Work that adds a check appends it there.
-Its docstrings say which names are required and which are provisional.
-
-`load_config` and `ConfigSettings` bind `CHECKS` as the default of their
-`checks` argument when they are defined. A command that must see a replaced
-tuple, as a test of `wio config check` does, reads `wio.config.CHECKS` when it
-runs and passes it.
-
-Every check joins one check run behind the loader, and its diagnostics come out
-sorted:
-
-```mermaid
-flowchart LR
-    shape["shape of the file (loader)"] --> pipelines["pipelines"]
-    shape --> rules["rule selection"]
-    shape --> paths["paths and skills"]
-    shape --> log["log settings"]
-    shape --> out["diagnostics, sorted"]
-    pipelines --> out
-    rules --> out
-    paths --> out
-    log --> out
-    out --> check["wio config check"]
-    out --> load["Settings.load: errors only"]
-```
-
-- **A check never stops the others,** so one run reports every problem and an
-  agent corrects all of them in one edit.
-- **A check is cheap and local,** because `Settings.load` runs the whole check
-  run for every command. A check reads the config, paths, names, directory
-  listings and whether a file exists, and parses neither a template nor a rule:
-  the Works that read those check them.
-- **Warnings and notes appear only in `wio config check`.** Every other command
-  refuses a config on an error alone, and a warning that each command printed
-  would be noise on every run.
-- **An error stops every command with the error lines that `check` prints,**
-  because the message of the refusal is those diagnostics rendered, and the
-  command line writes such a refusal as it is.
-
-### The pipeline checks
-
-[`pipelines.py`](pipelines.py) judges the names that stages, stage presets,
-actions, roots and `gates.results` use for one another. Its docstrings say what
-each check reports and where.
-
-- **A cycle is one error for the group of actions that reach one another,** at
-  the least name, so an agent breaks the loop once and is not told about each
-  action on it.
-- **`after` has no `@` form,** so such an entry is an undeclared action. A form
-  is added with the Work that needs it, while `invalidated_by` keeps a note for
-  the forms that v0.2 reserves
-  ([the actions](../../../docs/concepts.md#6-actions)).
-- **An unused stage, preset or action, and an empty stage preset, are not
-  reported.** Whether a template's or a contract's pipeline resolves, and what
-  nothing uses, belong to the Works that read templates and contracts, with the
-  pipelines they resolve.
-
-### The path checks
-
-[`paths.py`](paths.py) judges the paths, skills and templates that the config
-names, as text first, and asks the disk only whether a path exists. Its
-docstrings say what each check reports and where.
-
-- **An empty path is an error wherever the config names a path.** It would read
-  as no place at all, while `.` is the whole repository.
-- **A repeat is reported instead of its fault.** Deleting the entry fixes both,
-  and a path repeats an earlier one by its normalized form, so fixing the first
-  does not reveal a repeat on the next run.
-- **A skill path with a fault is left out of the search,** also when only its
-  form is wrong, so a skill is never found through a path that the config
-  refuses.
-- **Only `exists` is asked.** A root path may be a file or a directory, and a
-  `SKILL.md` that exists makes its parent a directory, so no criterion needs
-  `is_dir`.
-- **Only a root path is asked whether it exists.** Whether the Works, templates
-  or skills directories exist is for the commands that read them.
-- **The user's home is not searched,** so a config means the same on every
-  machine. Other harnesses' directories are added through `[skills] paths`
-  ([the stage](../../../docs/concepts.md#7-stage)).
-
-### The rule selection checks
-
-[`selection.py`](selection.py) judges the references that the config makes to
-rulesets and rule presets, and the ruleset directories next to the `[rulesets]`
-table. Its docstrings say what each check reports and where, and
-[the rules](../../../docs/concepts.md#checking-rules) list the checks that
-belong to the rules Work. The grammar of a reference and the wording of a key
-path or a list of names are in
-[`wio.formats`](../formats/README.md#the-grammar-of-a-reference-and-the-wording-of-messages),
-which the rules Work shares.
-
-- **A reference gets one error, the first problem it has:** its form, then what
-  its field takes, then whether it resolves. A later problem would be noise or
-  would contradict the first, such as an unknown ruleset in a reference whose
-  ruleset part is not a name.
-- **Whether the item after the dot exists is not checked here.** It needs the
-  rule files, which the rules Work reads, so a reference to `docs.DOC999` passes
-  until then.
-- **A directory is a known ruleset, a name that no reference could use is not
-  offered, and a table without a directory is an error.** A directory without a
-  `ruleset.toml` is one error and not a cascade of unknown rulesets, while a
-  directory with a name of the wrong form is left out of what the messages
-  list. The alias of a table without a directory is not known, because the
-  ruleset is not.
-- **A bare name in `rules_include` or in `rules_exclude` that is a config rule
-  preset makes a cycle edge,** as in a manifest, because the expansion reads an
-  exclude as a list to know what it removes, and cannot expand one that closes a
-  cycle: it would drop the exclude and say nothing. A qualified name is no edge.
-- **A cycle is one error for the group of rule presets that reach one another,**
-  as for actions, so an agent breaks the loop once. It is at the first member's
-  `rules_include`, or at its `rules_exclude` when none of its includes names a
-  member.
-- **An alias equal to its own ruleset's name is not a clash,** since it names
-  the same ruleset and harms nothing.
-
-### Log settings
-
-A project can describe a harness through the environment variables it sets.
-This lets new harnesses use the same settings and check run as the built-ins.
-The [config model](../models/config.py#L271) declares the built-ins and the
-defaults for additional variables. Some harnesses expose an identifier in
-`AI_AGENT`, so projects can request it without adding it to their config.
-
-Whole-entry replacement lets a project clear a built-in parent lookup by
-omitting that list from its definition. The [shape reader](shape.py) documents
-how it assembles the effective table and its sources.
-
-[Session identification](../log/README.md#harness-session) uses the effective
-mappings and extra variable names. The [log settings check](log_settings.py)
-reserves the harness name `none` so `WIO_PREFER_HARNESS` can use it to clear
-the preference for a run.
-
-[Acceptance tests](../../../tests/acceptance/config/test_log_settings.py)
-specify the values and sources a caller sees, the key paths of diagnostics,
-and how a command that needs the config refuses invalid settings.
-
-## The command
-
-`wio config` lets a person or an agent see the effective settings, where each
-value comes from and what each setting is for, and check them. The package's
-`describe()` returns the spec of the command, and `ConfigCommand` runs it. The
-spec is made in the `__init__` of the package, and everything else the package
-exports, `ConfigCommand` among it, is bound there with a `lazy from` import, so
-describing the command loads no other module of `wio.config`. Every run of `wio`
-describes every command, and a run that does not choose `config` must not pay
-for it.
-
-- **Bare `wio config` reads no config file,** so it works in a project whose
-  config is broken.
-- **`list` shortens and `show` does not.** `list` fits a line to 80 columns
-  where it can, so a person scans every setting, and `show` and `--json` give a
-  value in full. The formats are in [`listing.py`](listing.py).
-- **`list` and `show` call `load_config`,** because they read `Loaded.sources`,
-  which `Settings` does not return. They raise the errors themselves through
-  `config_or_raise`, the one place that `ConfigSettings.load` shares.
-- **`check` prints the errors of a config instead of refusing it,** because
-  whoever edits the config needs the findings, while `list` and `show` need a
-  valid one.
-- **A clean text run says so,** so that success is told apart from a command
-  that did nothing, while `--json` stays a document.
-- **Hooks run the check after every change of the config.** The recipe is in
-  [the workflow](../../../docs/workflow.md#7-checking-the-config-the-templates-and-the-contracts-after-every-edit).
-- **`list` and `show` do not list the names of a table or the templates.** The
-  keys of a table are in `wio config show <table> --json`, and templates belong
-  to `wio templates`.
-- **`resolve` judges a key path by the fields of the `Config` alone,** so a
-  table without entries is told from an unknown key.
+[`log_settings.py`](log_settings.py) validates `[log]` settings, including the
+environment variables by which
+[session identification](../log/README.md#harness-session) recognizes a
+harness.
 
 ## Finding a skill
 
-[`RepositorySkills`](skills.py) satisfies the
-[`SkillLookup` port](../context/ports.pyi) of `wio context`, which asks for the
-directory of a stage's skill and a hash of its files. The port says what is
-found, the class says what is hashed, and the
-[unit](../../../tests/unit/config/test_skills.py) and
-[disk](../../../tests/integration/config/test_skills.py) tests show each case.
+[`skills.py`](skills.py) resolves a stage's skill directory across configured
+`[skills] paths`, `.agents/skills`, and `.claude/skills` (never the user's
+home), shared by `wio config check` and `wio context`.
 
-- **The check and the lookup share one search,** in [`paths.py`](paths.py), so
-  in a config that loads the skill of every stage that names one is found.
-- **A config with an error gets no answer,** because the lookup reads its
-  [settings](settings.py) first and they refuse such a config, as for every
-  command that reads them. So a missing skill or a faulty skill path ends every
-  lookup with that error.
-- **Every regular file counts,** because a skill's references and scripts are
-  part of its procedure. So a skill's directory should hold only the skill's own
-  files: a stray one gives the same commit another hash on that machine.
-- **A symbolic link below the directory counts for nothing,** also a `SKILL.md`
-  that is one: such a skill is found, as the check accepts it, and the link is
-  left out of its hash.
+## Modules
 
-## What is not here
-
-- The checks that parse a template or a rule file: a template's kind and
-  directives, a ruleset's manifest, codes, families and presets, whether a
-  qualified reference resolves to a rule, and whether a root reaches a
-  root-independent ruleset. The Works that read them join the check run through
-  `CHECKS`.
-- Suppressing a diagnostic and giving one a stable code: a diagnostic is found
-  by its key path and its message, and nothing silences it.
-- Reporting a stage, root or preset that nothing uses, because templates and
-  contracts name them too, which the config cannot see.
-- Reading `continuable`: the field exists so that people and agents can read
-  it, and no component acts on it.
+- Loading & schema: [`loader.py`](loader.py), [`settings.py`](settings.py),
+  [`schema.py`](schema.py), [`shape.py`](shape.py), [`keypath.py`](keypath.py).
+- Checks: [`checks.py`](checks.py), [`pipelines.py`](pipelines.py),
+  [`paths.py`](paths.py), [`selection.py`](selection.py),
+  [`log_settings.py`](log_settings.py), [`skills.py`](skills.py),
+  [`messages.py`](messages.py).
+- Command & tests: [`command.py`](command.py), [`listing.py`](listing.py),
+  [`report.py`](report.py), [unit tests](../../../tests/unit/config/).
