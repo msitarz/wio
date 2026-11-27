@@ -15,8 +15,8 @@ def test_every_registered_cli_command_has_a_descriptor() -> None:
     # When the descriptor registry is queried
     described = set(registered_commands())
 
-    # Then every CLI command has a matching descriptor
-    assert cli_commands <= described
+    # Then the CLI table and descriptor registry match one-to-one
+    assert cli_commands == described
 
 
 def test_descriptor_registry_matches_cli_components() -> None:

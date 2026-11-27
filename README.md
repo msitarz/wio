@@ -38,7 +38,7 @@ what each one produces. [wio's own workflow](docs/workflow.md) is one example.
 **Not only for code.** Documentation, research, an investigation, a data
 analysis: any agentic work that git tracks fits the same shape.
 
-**Status: v0.1 (alpha).** The engine is implemented and tested, with all seven
+**Status: v0.1 (alpha).** The engine is implemented and tested, with all eight
 subcommands working. It ships no built-in stages, stage presets or rulesets:
 your project defines them in `.agents/wio/config.toml`.
 
@@ -187,12 +187,13 @@ this repository runs on it in [docs/workflow.md](docs/workflow.md).
 ## Status and v0.1
 
 v0.1 is the engine only: no shipped stages, stage presets or rulesets. All
-seven subcommands are implemented:
+eight subcommands are implemented:
 
 | Piece | Purpose |
 | --- | --- |
 | `wio config` | Read, show and validate `.agents/wio/config.toml` |
 | `wio contracts` | Create, list, check, show and print skeletons for Work contracts |
+| `wio describe` | Describe the engine or one subcommand offline as text or JSON |
 | `wio templates` | List, show, check and explain the templates that contracts follow |
 | `wio rules` | Create, check, list and show rule files, also for a given path |
 | `wio context` | Compile the contract, the stage's goal or skill, and the rules for a stage |
