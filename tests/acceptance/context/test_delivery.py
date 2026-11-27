@@ -80,10 +80,10 @@ def test_warnings_are_reported_in_order(wio: Wio) -> None:
         ["context", "a1b2c3", "deliver", "define", "--output", "inside.md"]
     )
 
-    # Then all three warnings appear in order and the file holds the bundle
+    # Then all three warnings appear in order, naming the size of the written body
     assert (result.exit_code, result.stdout) == (0, "inside.md\n")
     text = wio.read("inside.md").decode("utf-8")
-    _, body = text.split("\n\n", 2)[1:]
+    body = text.split("\n\n", 2)[2]
     body_size = len(body.encode("utf-8"))
     assert result.stderr.splitlines() == [
         "warning: The stage `define` is not in the `deliver` pipeline of `a1b2c3`.",

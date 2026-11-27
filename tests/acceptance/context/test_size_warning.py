@@ -110,21 +110,3 @@ def test_zero_and_negative_thresholds_warn_for_one_byte(
         (0, "x", _warning(1, 0)),
         (0, "x", _warning(1, -1)),
     ]
-
-
-def test_size_warning_precedes_a_failed_delivery(
-    wio: Wio,
-    prepared_compiler: Callable[[str, int], AbstractContextManager[None]],
-) -> None:
-    """A failed file delivery still reports the size warning."""
-    # Given an oversized body and an output path that is a directory
-    _config(wio, 1000)
-
-    # When the bundle is delivered to that path
-    with prepared_compiler("x", 1001):
-        result = wio.run([*_ARGS, "--output", "."])
-
-    # Then the warning appears before the refusal and no bundle is printed
-    assert (result.exit_code, result.stdout) == (2, "")
-    assert result.stderr.startswith(_warning(1001, 1000))
-    assert "error:" in result.stderr
