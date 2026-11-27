@@ -90,8 +90,6 @@ rule_presets = ["contract-upkeep.all", "docs.all", "writing.all"]
 # the rules for its own work.
 
 [stages.define]
-# The wio-define skill takes over this goal once it exists; until then the goal
-# carries its steps, so this config passes its own check.
 goal = """\
 Interview the driver until the intent is clear, using the draft's Purpose and \
 Intent as working space. Decide whether the Work is a leaf or a parent, print \

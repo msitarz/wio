@@ -1269,8 +1269,7 @@ the Works in one batch can run in parallel, for example
 
 Stages of different Works do not interleave. A boundary that several leaves
 share is extracted as a leaf of its own and delivered first, and the other
-leaves depend on it. The [split exercises](split-exercises.md) walk through
-this.
+leaves depend on it.
 
 ### Invariants wio checks
 

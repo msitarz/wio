@@ -114,8 +114,7 @@ decomposition?
 The children of a split start as drafts and are defined in turn. A parent is
 defined before its children, and delivered after them. A boundary that several
 leaves share is extracted as a leaf of its own and delivered first, and the
-other leaves depend on it. The [split exercises](split-exercises.md) walk
-through four splits.
+other leaves depend on it.
 
 ### The contract gate
 

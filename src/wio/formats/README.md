@@ -1,374 +1,63 @@
 # `wio.formats`
 
-The pure codecs between text and the shared types. A codec reads or writes text
-without file access. A codec that raises a public exception for invalid text
-uses a `WioError`. The
-[v0.1 scope](../../../docs/v0.1-scope.md#wioformats-internal) lists what the
-package holds.
+The single home for file-format parsing, validation, and deterministic
+rendering across all `wio` commands.
 
-## The JSON encoder
+## Package invariants
 
-`encode_json` in [`diagnostics.py`](diagnostics.py) is the one JSON encoder. It
-keeps the standard library behind this package and loads it only when JSON is
-needed.
-
-## Event log lines
-
-The [event log](../../../docs/concepts.md#the-event-log) shares one
-[JSON line codec](event_lines.py) for both event types. The
-[event models](../models/events.py) describe what the event and its envelope
-carry. Producers supply complete events. For context events, the producer
-computes the bundle id and rule hashes and supplies the starting commit for
-a gate. The codec serializes those values independently of log storage.
-
-Version 1 can gain optional fields. Keeping existing field names and
-meanings lets a reader use older entries and ignore fields added by a
-newer writer. Removing a field or changing its meaning requires a new
-version.
-
-Omitting absent optional fields keeps each line compact. Bundle size uses
-bytes to express its length for harness truncation.
-
-A partial write can leave a damaged line. `decode_lines` counts rejected lines
-in its result and continues, keeping surrounding entries usable. JSON that
-exceeds the parser's nesting capacity also counts as an unreadable line.
-Oversized integers in unknown fields can be ignored without lifting Python's
-integer conversion limit.
-
-Millisecond timestamps keep enough precision for one person's event log.
-The encoder and [log report](../log/README.md#showing-recorded-events) share
-`format_event_time` so the time has the same representation in both places.
-`encode_line` raises `ValueError` if the caller supplies a timestamp outside
-its supported range, including a negative or nonfinite value.
-The codec's docstrings specify the supported UTC time representation, and
-the [tests](../../../tests/unit/formats/test_event_lines.py) cover the wire
-fields, ordering, malformed lines, and rounding boundary.
+- **Library boundary.** `tomllib`, `tomlkit`, `markdown-it-py`, and `difflib`
+  are imported only inside this package (enforced by `tach.toml` and tooling
+  tests).
+- **Deterministic output.** Every renderer sorts its keys and items and emits
+  no timestamps (except event log lines).
 
 ## The TOML decoder
 
-`decode_toml` in [`toml.py`](toml.py) is the one door for TOML: every file wio
-reads goes through it, so a person or an agent learns where a syntax error is
-without searching. It reads TOML and does not judge the data: whether a value is
-a date or a string is the caller's. Its docstring and that of
-[`TomlSyntaxError`](errors.py) say what it returns and raises.
+[`toml.py`](toml.py) wraps `tomllib` so every caller gets uniform line/column
+diagnostics instead of raw `TOMLDecodeError` exceptions.
 
-`encode_toml` in [`writer.py`](writer.py) is the one writer. So only this
-package imports `tomllib` and `tomlkit`, and ruff's `banned-api` reports an
-import of either anywhere else.
+## Event log lines
 
-## The metadata block reader
-
-`read_metadata_block` in [`block.py`](block.py) is the one reader of the
-metadata block that opens a file, so no command has its own idea of where a
-block starts and ends. Its docstring, that of
-[`MetadataBlock`](../models/block.py) and that of
-[`MetadataBlockError`](errors.py) say what it reads, returns and raises, and its
-[tests](../../../tests/unit/formats/test_block.py) say how each case reads.
-
-- The reader judges the shape of the block and never its keys, which belong to
-  the template and the contract, and it reads no file and names none in an
-  error, so the caller does both.
-- Whether a text is wio's is decided by the marker, so `+++` front matter that
-  has no `wio =` in it belongs to another tool and gives nothing, while a block
-  that does carry the marker and cannot be read is an error and is never
-  skipped.
-- A text with no block never loads `tomllib`, which the decoder loads on its
-  first call, so reading an unmarked file stays cheap.
-
-### What the reader accepts
-
-- **Delimiters.** The block is on the first line of the text, after an optional
-  leading U+FEFF: a `<!-- wio` comment that ends at the first `-->`, or `+++`
-  front matter that ends at the next line that is `+++`. CRLF and LF read alike.
-- **The marker.** The key `wio`, whose only value is the integer 1. A comment
-  may leave it out, and its version is then 1. Front matter needs it, and no
-  other value is accepted.
-- **What it returns.** The form, the version, the data without the marker, and
-  the body from its start line on, byte for byte.
-- **What gives nothing.** A text with no block on its first line, and `+++`
-  front matter with no `wio =` in it, closed or not.
-- **What raises.** A block that has the marker or the comment opening and does
-  not close, whose TOML does not parse, or whose marker is not 1. The error
-  names the line of the text.
+[`event_lines.py`](event_lines.py) encodes and decodes versioned JSON-lines
+events shared by `wio context`, `wio trailers --result`, and `wio log`.
 
 ## The directive grammar
 
-`read_directive_heading` in [`directives.py`](directives.py) reads one heading
-line into its text, its level and its directives, so a template's sections say
-what they must hold in one grammar that the checks and
-`wio templates directives` share. The table `DIRECTIVES` beside it lists every
-directive with its syntax, its meaning and its examples, `COMBINING` says how
-several directives share one comment, the parser's docstring
-and [`DirectiveSyntaxError`](errors.py) say what it reads and raises, and the
-[concepts](../../../docs/concepts.md#directives) say what each directive means.
-
-- A plain pattern runs to the next comma and a quoted one holds commas, because
-  wio has no escape of its own. A literal `"` or `>` is written `\x22` or
-  `\x3e`, which `re` reads, so `-->` never occurs inside a list.
-- The parser returns the level and does not restrict it. The checks that use it
-  allow directives on level-2 headings only.
-- A heading too long for the line limit of Markdown is shortened, or has the
-  limit suppressed by `<!-- rumdl-disable-next-line MD013 -->` on the line above
-  it, because a list closes on its heading's line.
-
-## The outline
-
-`read_outline` in [`outline.py`](outline.py) finds the real headings of a
-Markdown body, so the skeleton, the check of a template and `wio contracts`
-agree on which lines are section headings. Its docstring and
-[`Heading`](../models/heading.py) say what it takes and returns, and its
-[tests](../../../tests/unit/formats/test_outline.py) say how each case reads.
-
-- **A real heading is an ATX heading at the top level of the body.** A heading
-  inside code, an HTML comment, a blockquote or a list item, and a setext
-  heading, only looks like one, because the check and `wio contracts` treat a
-  section heading as a heading of the body itself.
-- **A heading carries four fields:** its level from 1 to 6, its text without the
-  marks and spaces around it, its raw line as written, and its line in the file,
-  counted from the start line of the body that the caller passes.
-- **Headings are the only structure it returns.** What lies between them, the
-  extent of a section and its items, is found by
-  [`find_items`](#the-items-of-a-section).
-- **The parser is `markdown-it-py`,** whose CommonMark rules are the definition
-  of a heading, a fence and a comment block, so wio has no grammar of its own to
-  keep in step with Markdown. [`markdown.py`](markdown.py) builds it once for
-  the outline and the items. Only `wio.formats` imports it, and it loads on the
-  first reading, so a command that reads no body never pays for it.
-
-## The closest key and the rendering of a check
-
-`closest_key` in [`closest.py`](closest.py) and `render_check` in
-[`diagnostics.py`](diagnostics.py) are what the `check` commands share. Their
-docstrings say what each takes and returns, and the
-[tests](../../../tests/unit/formats/test_closest.py) say how each case reads.
-
-- **One place suggests a key.** `wio config`, `wio templates` and
-  `wio contracts` tell a person who mistypes a key which key they likely meant,
-  and only this package imports `difflib`, so the three agree on what is close,
-  and ruff reports an import of it anywhere else. Each command keeps its own
-  wording and only the matching is shared.
-- **`difflib` loads when a key is first mistyped.** A check that finds no
-  mistyped key never pays for it, and importing the package does not load it.
-- **A check says it passed in its own words.** `render_check` takes the sentence
-  for an empty result, so each command keeps its sentence, and it prints in the
-  order given, because each command orders its findings by its own rule. It
-  imports `json` only for JSON.
+[`directives.py`](directives.py) owns the directive table and parser used by
+`wio templates directives`, `wio templates check`, and `wio contracts check`.
 
 ## The grammar of a reference and the wording of messages
 
-`parse_reference`, `parse_own_item` and `item_kind` in
-[`grammar.py`](grammar.py) are the one reading of a reference and of the forms
-of the names it is made of, and `join_path`, `item_path`, `quoted`, `declared`
-and `and_list` in [`wording.py`](wording.py) are the one writing of a key path
-and of a list of names in a message. Their docstrings say what each takes and
-returns, and their [tests](../../../tests/unit/formats/test_grammar.py) say how
-each case reads, in
-[`test_wording.py`](../../../tests/unit/formats/test_wording.py) for the
-wording.
-
-- **`wio.config` and `wio.rules` import them and keep no copy.** `wio.rules` may
-  not import `wio.config`, and a second copy would disagree with
-  `wio config check` about what a reference is, where a fault is and how a list
-  of names reads. `tach` and `jscpd` hold this.
-- **A reference is judged as text alone.** Whether its ruleset or its item
-  exists needs the directories or the rule files, which the caller has.
-- **A bare upper-case name is malformed in the config and bare in a
-  manifest.** The config's bare name is a rule preset, so `ARC001` there is
-  almost certainly a family or a code that lost its ruleset, and the message
-  says so. A manifest names only its own items, so `parse_own_item` accepts a
-  family, a code or a rule preset name without a dot, and returns a qualified
-  name as `Qualified` for the caller to report.
-- **A code that looks like a rule preset name is a code.** `item_kind` checks a
-  family, then a code, then a rule preset name, so the form that is more
-  specific wins; `arc001` has the form of a rule preset name only.
-- **A key is quoted as TOML quotes it.** A key of letters, digits, `_` and `-`
-  is written as it is, and any other is a basic string, so a name with a dot
-  stays one key in the path. `quote_string` is the same quoting for a value.
-
-## The cycles of a graph of names
-
-[`find_cycles`](cycles.py) finds the cycles of a graph that maps each name to
-the names it comes after, includes or names. Its docstring says what it takes
-and returns, and its [tests](../../../tests/unit/formats/test_cycles.py) say how
-each case reads.
-
-- **`wio.config` and `wio.rules` import it and keep no copy.** The config finds
-  the cycles of `after` and of its rule presets, and `wio.rules` those of a
-  manifest's, and neither may import the other, so a second copy could disagree
-  about what a cycle is. `tach` and `jscpd` hold this.
-- **What the two share about rule presets is here too.** `rule_preset_cycles`
-  takes the bare names in `rules_include` and in `rules_exclude` that are rule
-  presets as edges, `cycle_key` says which list the error is at, and
-  `cycle_message` words it, so the config and a manifest report the same cycle
-  alike.
-- **A cycle is reported once, by its members.** A strongly connected group of
-  names is one tuple of sorted names however many names lead into it, and a name
-  that only reaches a cycle is not part of it, so a caller reports one error at
-  the least name.
+[`grammar.py`](grammar.py) and [`wording.py`](wording.py) parse rule and preset
+references (`ruleset`, `ruleset.FAM`, `ruleset.FAM001`, `ruleset.preset`) and
+own their error wording.
 
 ## The items of a section
 
-`find_items` and `judge_items` in [`items.py`](items.py) are the one rule for
-what an item of a contract's section is, which id it carries and whether a
-contract's items are sound, so every reader of a contract finds the same items.
-Their docstrings say what each takes and returns, the types are in
-[`item.py`](../models/item.py), and their
-[tests](../../../tests/unit/formats/test_items.py) say how each case reads. The
-[concepts](../../../docs/concepts.md#item-ids) say what an id is for.
-
-- **Only `wio.formats` finds items.** No other package derives them from the
-  Markdown again, because two readers would disagree about an edge case and a
-  record would cite an id that one of them cannot see. A test reads the syntax
-  trees of the sources to hold this, and ruff bans the parser outside the
-  package.
-- **A section's items are its subheadings, or else its list items.** This
-  repository's criteria are `###` subheadings, and its assumptions and goals are
-  lists, so both shapes count and the subheadings win. A list that comes after a
-  deeper heading belongs to that part of the section and is not an item, and a
-  list item is one item with everything nested in it.
-- **Only the body's own content counts.** A comment, a code block and a quote
-  hold no items, so the authoring example of a template is never counted as the
-  contract's own.
-- **The id is exactly what the pattern matches at the start of the text.** It
-  skips the markup that a writer puts around an id, such as `**AC-1**`, and
-  never trims or changes it, so what a record cites is what the contract shows.
-  A pattern that must begin with `*`, `_` or a backtick never matches, because
-  those characters are skipped before the match starts.
-  An item without a match has no id, and so does an empty match, because an id
-  that is empty cites nothing.
-- **A finding has a fixed place.** The judge reports a section's shortfall at
-  its heading and an item's fault at the item, and a repeated id once, at its
-  first use, so a person fixes one place and an editor can jump to it. It
-  returns them in the order of `sort_diagnostics`, as the other checks do.
-- **The block reader and the directive parser are not its business.** It takes
-  the sections and their directives from the caller, so it never reads a
-  template, and matching a contract's sections to a template's is for
-  `wio contracts`.
-
-## The skeleton
-
-`prepare_skeleton` in [`skeleton.py`](skeleton.py) prepares a template as the
-text of a contract that follows it, so that `wio contracts new` starts from what
-`wio templates show` prints. The new command also applies the requested id,
-roots and title. Its docstring says what it takes, returns and raises, and its
-[tests](../../../tests/unit/formats/test_skeleton.py) say how each case reads.
-
-- **It keeps what the author wrote for the agent and drops what is for wio.**
-  The skeleton holds `template` and the keys and tables of the template's
-  `[contract]` table in the order the template wrote them, and the body with the
-  directive list taken off each real heading. The template's own keys, the
-  comments of its metadata and any `id` are dropped, and wio writes no `id`.
-- **The block form is the template's.** A comment block gives a comment block,
-  and `+++` front matter gives `+++` front matter with the marker `wio = 1` as
-  its first key.
-- **The same template always gives the same skeleton,** so the output of
-  `wio templates show` is stable.
-- **The writer loads on first use.** `encode_toml` in [`writer.py`](writer.py)
-  is the one writer of TOML, and `tomlkit` is imported when it is first called,
-  so reading a block or a template never loads it.
+[`items.py`](items.py) extracts item ids from contract sections so
+`wio contracts check` and `wio trailers` agree on what counts as an item id.
 
 ## Editing contract metadata
 
-`set_block_keys` in [`setkeys.py`](setkeys.py) is the shared editor for a
-contract's metadata block. Its docstring specifies what the rewrite keeps and
-discards, and its [tests](../../../tests/unit/formats/test_setkeys.py) cover
-both block forms and TOML value round trips. It reads values through the common
-metadata reader and writes them through the common TOML writer, so creation and
-the skeleton of an existing Work use one interpretation of the block. The
-comment-form writer escapes the closing delimiter inside TOML strings, so a
-value cannot end the block before the metadata reader reaches its delimiter.
+[`skeleton.py`](skeleton.py) and [`setkeys.py`](setkeys.py) prepare template
+skeletons and edit metadata blocks with `tomlkit` without disturbing the body.
 
 ## The records of a message
 
-`read` and `check_shape` in [`records.py`](records.py) are the one reader and
-the one judge of the `Wio-*` records of a message, so every `wio trailers`
-command agrees on what a record is and when it is well formed, and no command
-keeps a copy that could drift. Their docstrings say what each takes and returns,
-the types are in [`records.py`](../models/records.py), and their
-[tests](../../../tests/unit/formats/test_records.py) say how each case reads.
-The [concepts](../../../docs/concepts.md#reading-records) define the two readers
-and what a record holds.
-
-- **The configured reader decides what a record is.** `read` takes the reader as
-  an argument and reads nothing from the config, a file or git. The `Wio-` lines
-  that the reader would take for a record but does not are kept in the reading,
-  never dropped, because a record that no reader sees is a fault to report and
-  not to ignore. Under `scan`, a line in a fenced code block or one that starts
-  with `#` is not a candidate, so it is not kept.
-- **A record is judged by its own form.** The shape check looks at the keys, the
-  value of each key and the ids of each list, and at nothing outside the
-  message. A Work id is any value without whitespace or commas that is not
-  `none`, and a list of ids is separated by a comma and one space, as the
-  [concepts](../../../docs/concepts.md#identity-and-location) say of an id a
-  person writes. An action, a stage and a result are lowercase names of letters,
-  digits and hyphens that start with a letter or a digit.
-- **A record's keys are judged as a set.** `Wio-Work` is required, and so are
-  `Wio-Action` and `Wio-Stage` unless the Work is `none`, which allows no other
-  key. A key is never repeated, a `Wio-Judge` needs a `Wio-Result`, and `none`
-  never sits in a list of Works or an id twice. A `Wio-` key the engine does not
-  define is a finding of its own kind, `unknown-key`, and not a malformed
-  record.
-- **The vocabulary of the config and the Works of the tree are not its
-  business.** A stage the config does not list, or a result outside
-  `gates.results`, passes the shape check, because the commit-time mode checks
-  the config and the afterwards mode tolerates what the config no longer has.
-- **A message with no record has no finding.** Requiring a record, and the
-  subjects that git writes for a merge, a revert or a squash, belong to the
-  modes.
-- **A finding has no severity.** A `Finding` carries its kind, the key, the line
-  as written, its 1-based number in the message and a sentence that says what is
-  wrong, and each mode decides whether it fails the check or warns, turning the
-  finding into a [diagnostic](../../../GLOSSARY.md) as it does so. A problem of
-  a whole record, such as a missing key, is at the first line of the record, and
-  the findings come in the order of the message.
-
-## Rendering a record
-
-`render` in [`rendering.py`](rendering.py) is the one renderer of the `Wio-*`
-records of a message, as the reader above is the one parser, so the commands
-that print a record never lay one out on their own. Its docstring says what it
-takes, returns and raises, and its
-[tests](../../../tests/unit/formats/test_render.py) say how each case reads.
-
-- **The order of the keys is the renderer's, not the caller's.** The six lines
-  come in the order that a record lists them whatever the order of the mapping
-  given, and a key that is not given has no line, so the optional fields of a
-  record cost the caller nothing.
-- **A key outside the six is refused by name.** A caller that mistypes a key
-  learns which, and no record is printed with a line that no reader would take
-  for a record.
-- **It lays out and judges nothing.** A value is written as it is, so a value
-  with a line end is the caller's to refuse, and whether a field holds is the
-  business of the shape check and of the validator of `wio.trailers`.
-- **The list of keys is shared.** `KEYS` is the one list that the renderer lays
-  out and the reader takes as known, so a key cannot be one that a record prints
-  and the shape check calls unknown.
+[`records.py`](records.py) implements both the `scan` and `git` trailer readers
+and the record renderer.
 
 ## The hash of a rule file
 
-[`rule_hash`](digest.py) is the SHA-256 of the bytes of a rule file as stored,
-written as 64 lower-case hexadecimal digits. The event models carry a rule's
-hash as an opaque string, the log already hashes with SHA-256, and a hash of the
-bytes changes when any part of the file does, a line ending included, which a
-hash of decoded text would not. One function gives it to every producer, so that
-the hash that `wio trailers` receives is the one that a `context` event will
-record. Its docstring says what it takes and returns, and its
-[test](../../../tests/unit/formats/test_hashing.py) pins two known digests.
+[`digest.py`](digest.py) computes the deterministic SHA-256 content hash of a
+rule file for `context` and `review` events.
 
 ## The layout of blocks
 
-[`render_blocks`](blocks.py) lays out the indented blocks of a listing, which
-`wio contracts list` and `wio rules list` both print, so the two cannot drift
-apart. Its docstring says what it takes and returns, and its
-[tests](../../../tests/unit/formats/test_blocks.py) say how each case reads.
+[`blocks.py`](blocks.py) formats indented multi-line text blocks shared by
+`wio contracts list` and `wio rules list`.
 
-- **The first line pads every key to the widest of all the blocks,** so the
-  titles line up across the whole listing, whatever the depth of a block.
-- **A block is indented by two spaces for each depth, and its details are
-  indented to the title.** The caller gives each block its depth, so the
-  hierarchy of a listing is its own and this layout knows none.
-- **A listing can put a blank line between its blocks,** with `spaced`, so that
-  blocks with long details, which `wio rules list` has, can be told apart.
-  `wio contracts list` does not, and no blank line follows the last block.
-- **Nothing is cut or wrapped.** A detail is written as given, so a long line
-  stays one line.
+## Modules
+
+See [`src/wio/formats/`](.) and
+[unit tests](../../../tests/unit/formats/) for per-module docstrings and cases.
