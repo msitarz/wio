@@ -15,7 +15,13 @@ from wio.contracts.resolve import render_resolved, resolve_work
 from wio.contracts.showing import find_by_id
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
     from wio.contracts import Services
+    from wio.contracts.discovery import WorkDiscovery
+    from wio.io.ports import FileSystem
+    from wio.models.config import Works as WorksSettings
     from wio.models.resolved import ResolvedContract
 
 
@@ -25,9 +31,13 @@ class ContractViews:
 
     Attributes:
         services: The services used to find the Work and read its contract.
+        discover: Walks the Works directory; defaults to `discover_works`.
     """
 
     services: Services
+    discover: Callable[[Path, WorksSettings, FileSystem], WorkDiscovery] = (
+        discover_works
+    )
     _resolved: dict[str, ResolvedContract] = field(
         default_factory=dict, init=False, repr=False, compare=False
     )
@@ -56,7 +66,7 @@ class ContractViews:
         settings = self.services.settings.load().works
         root = self.services.repository.root()
         files = self.services.files
-        discovery = discover_works(root, settings, files)
+        discovery = self.discover(root, settings, files)
         refuse_tree(discovery, shared=False)
         work = find_by_id(discovery, work_id)
         hierarchy = build_hierarchy(discovery.works, settings.hierarchy)

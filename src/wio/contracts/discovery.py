@@ -13,10 +13,10 @@ from wio.io.walk import refuse_directory, walk_markdown
 from wio.models.diagnostics import Diagnostic, order_diagnostics
 from wio.models.frozen import freeze
 from wio.models.works import Work
-lazy from wio.formats import read_metadata_block, read_outline
+lazy from wio.formats import read_metadata_block, read_title
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Mapping, Sequence
+    from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 
     from wio.io.ports import FileSystem
     from wio.models.block import MetadataBlock
@@ -74,6 +74,40 @@ class WorkDiscovery:
     diagnostics: tuple[Diagnostic, ...]
     incomplete: tuple[Diagnostic, ...]
     ambiguous: tuple[Diagnostic, ...]
+
+
+def cached_discover() -> Callable[[Path, WorksSettings, FileSystem], WorkDiscovery]:
+    """Return a `discover_works` wrapper that caches results per view.
+
+    Returns:
+        A callable with the signature of `discover_works` that remembers each
+        `(root, settings.dir, settings.hierarchy, id(files))` result for its
+        lifetime so cooperating readers share one tree walk.
+    """
+    cache: dict[tuple[Path, str, str, int], WorkDiscovery] = {}
+
+    def _discover(
+        root: Path, settings: WorksSettings, files: FileSystem
+    ) -> WorkDiscovery:
+        """Discover Works once per `(root, settings, files)` key.
+
+        Args:
+            root: The repository root.
+            settings: The `[works]` table of the config.
+            files: The file system view to walk.
+
+        Returns:
+            The cached or freshly discovered `WorkDiscovery`.
+        """
+        key = (root, settings.dir, settings.hierarchy, id(files))
+        cached = cache.get(key)
+        if cached is not None:
+            return cached
+        result = discover_works(root, settings, files)
+        cache[key] = result
+        return result
+
+    return _discover
 
 
 def discover_works(
@@ -361,10 +395,9 @@ def _read_block(relative: Path, place: str, block: MetadataBlock) -> _Read:
     if isinstance(identity, Diagnostic):
         return _unidentified(relative, marked=True, problem=identity)
     fields = _optional_fields(place, block.data)
-    headings = read_outline(block.body, block.body_start_line)
     work = Work(
         id=identity,
-        title=headings[0].text if headings else None,
+        title=read_title(block.body),
         path=relative,
         template=fields.template,
         roots=fields.roots,

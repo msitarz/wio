@@ -18,7 +18,13 @@ lazy from wio.context.inputs import KnownInputs
 lazy from wio.context.known_work import KnownWork
 lazy from wio.context.no_roots import NoRootsWarning
 lazy from wio.context.pipeline import PipelineWarning
-lazy from wio.contracts import ContractsCommand, ContractViews, Services, WorkLookup
+lazy from wio.contracts import (
+    ContractsCommand,
+    ContractViews,
+    Services,
+    WorkLookup,
+    cached_discover,
+)
 lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
 lazy from wio.io import views
@@ -237,8 +243,11 @@ def _context() -> Command:
         contracts.repository,
         contracts.files,
     )
-    works = WorkLookup(settings, repository, contracts.catalog, files, [files])
-    views = ContractViews(contracts)
+    discover = cached_discover()
+    works = WorkLookup(
+        settings, repository, contracts.catalog, files, [files], discover=discover
+    )
+    views = ContractViews(contracts, discover=discover)
     composer = Composition(
         views,
         RuleSelector(settings, repository, files, works),

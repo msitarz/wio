@@ -33,9 +33,10 @@ class ConfigSettings:
         self._repository = repository
         self._files = files
         self._checks = checks
+        self._cached: Config | None = None
 
     def load(self) -> Config:
-        """Load the settings, or refuse with every error at once.
+        """Load the settings once and cache the result, or refuse with every error.
 
         Returns:
             The `Config`, when no diagnostic of the check run is an error;
@@ -46,4 +47,8 @@ class ConfigSettings:
                 found or read. It carries every error and its message renders
                 them.
         """
-        return config_or_raise(load_config(self._repository, self._files, self._checks))
+        if self._cached is None:
+            self._cached = config_or_raise(
+                load_config(self._repository, self._files, self._checks)
+            )
+        return self._cached

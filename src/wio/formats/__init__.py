@@ -46,7 +46,7 @@ lazy from wio.formats.grammar import (
     parse_reference,
 )
 lazy from wio.formats.items import find_items, judge_items
-lazy from wio.formats.outline import read_outline
+lazy from wio.formats.outline import read_outline, read_title
 lazy from wio.formats.records import check_shape, read
 lazy from wio.formats.rendering import render
 lazy from wio.formats.setkeys import set_block_keys
@@ -109,6 +109,7 @@ __all__ = [
     "read_directive_heading",
     "read_metadata_block",
     "read_outline",
+    "read_title",
     "remove_directive_list",
     "render",
     "render_blocks",
