@@ -11,6 +11,30 @@ if TYPE_CHECKING:
     from markdown_it.token import Token
 
 _LINE_END = re.compile(r"\r\n|\r|\n")
+_ATX_SIMPLE = re.compile(r"^ {0,3}#{1,6}(?:[ \t]+([^#\\]*?))?[ \t]*$")
+
+
+def read_title(body: str) -> str | None:
+    """Find the text of the first real heading of a Markdown body.
+
+    Takes a fast path when the first non-blank line is a plain ATX heading
+    without `#` or a backslash in its text, and falls back to `read_outline`
+    other body so CommonMark rules hold identically.
+
+    Args:
+        body: The body of a file, as the block reader returns it.
+
+    Returns:
+        The text of the first real heading, or `None` when the body has none.
+    """
+    first = next((line for line in _LINE_END.split(body) if line.strip(" \t")), None)
+    if first is None:
+        return None
+    match = _ATX_SIMPLE.match(first)
+    if match is not None:
+        return match.group(1) or ""
+    headings = read_outline(body, 1)
+    return headings[0].text if headings else None
 
 
 def read_outline(body: str, start_line: int) -> tuple[Heading, ...]:
