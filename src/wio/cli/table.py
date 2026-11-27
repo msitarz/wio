@@ -25,6 +25,7 @@ lazy from wio.contracts import (
     WorkLookup,
     cached_discover,
 )
+lazy from wio.describe import DescribeCommand
 lazy from wio.env import adapters as env
 lazy from wio.io import adapters as io
 lazy from wio.io import views
@@ -335,10 +336,16 @@ def _root(repository: Repository) -> Path:
         raise TrailersError(str(error)) from error
 
 
+def _describe() -> Command:
+    """Wire `wio describe` with no external adapters."""
+    return DescribeCommand()
+
+
 COMMANDS: Final[Sequence[Entry]] = (
     component_entry("config", _config),
     component_entry("context", _context),
     component_entry("contracts", _contracts),
+    component_entry("describe", _describe),
     component_entry("log", _log),
     component_entry("rules", _rules),
     component_entry("templates", _templates),
