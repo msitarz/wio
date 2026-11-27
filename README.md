@@ -38,8 +38,9 @@ what each one produces. [wio's own workflow](docs/workflow.md) is one example.
 **Not only for code.** Documentation, research, an investigation, a data
 analysis: any agentic work that git tracks fits the same shape.
 
-**Status: pre-alpha.** The design is settled and the engine is being built.
-Nothing is usable or released yet.
+**Status: v0.1 (alpha).** The engine is implemented and tested, with all seven
+subcommands working. It ships no built-in stages, stage presets or rulesets:
+your project defines them in `.agents/wio/config.toml`.
 
 ## Why
 
@@ -62,8 +63,7 @@ none of them is a lack of skill:
 ## How it works
 
 One Work in [wio's own workflow](docs/workflow.md), from its contract to a
-reviewed stage. The commands are planned, and the output below is
-illustrative: the bundle's exact format is not fixed yet.
+reviewed stage.
 
 **1. Write down what is wanted.** `wio contracts new feature --title "Read
 config.toml"` creates a Work: a contract in a directory of its own, started
@@ -75,28 +75,41 @@ names the Work, the action and the stage:
 
 ```text
 $ wio context k3m9xq deliver implementation
-Work k3m9xq "Read config.toml" · action deliver · stage implementation
-Session: may continue the previous stage's session
-Rules: 2 · 4,812 bytes, 96 lines · bundle 7f3a9c2e
+bundle: 7f3a9c2e
 
-Goal: Implement the stubbed leaves until the tests and checks pass.
+work: k3m9xq (Read config.toml)
+action: deliver
+stage: implementation
+gate: no
+session: continue
+rules: 2
+size: 4812 bytes, 96 lines (body)
+command: wio context k3m9xq deliver implementation
+
+--- stage ---
+
+Implement the stubbed leaves until the tests and checks pass.
+
+--- contract ---
 
 # Read config.toml
 ...the contract, with the sections it inherits from its parents...
 
+--- rules ---
+
 Rules for root wio (src, tests, scripts):
 
-UPK001 false-assumption-amends-the-contract
+contract-upkeep.UPK001 false-assumption-amends-the-contract
 When an assumption proves false, stop and ask the driver to amend the contract
 through the amend action, instead of working around it in the code.
 
 Why: A workaround hides the changed intent from every reader of the contract,
 and the next stage builds on the wrong premise.
 
-UPK002 correct-diagrams-to-the-implementation
+contract-upkeep.UPK002 correct-diagrams-to-the-implementation
 ...
 
-If this session's context was compacted, run the command in the header again.
+If your context was compacted, run the command in the header again.
 ```
 
 **3. Commit with a record.** Every commit of the stage says what it is:
@@ -173,20 +186,27 @@ this repository runs on it in [docs/workflow.md](docs/workflow.md).
 
 ## Status and v0.1
 
-Pre-alpha. The v0.1 design is settled and the engine is being built. Nothing
-here is usable yet and nothing is released, so the commands in this README are
-planned, not working. The first release is the engine only: no shipped
-stages, stage presets or rulesets.
+v0.1 is the engine only: no shipped stages, stage presets or rulesets. All
+seven subcommands are implemented:
 
 | Piece | Purpose |
 | --- | --- |
 | `wio config` | Read, show and validate `.agents/wio/config.toml` |
-| `wio contracts` | Create, list, check and show Work contracts |
+| `wio contracts` | Create, list, check, show and print skeletons for Work contracts |
 | `wio templates` | List, show, check and explain the templates that contracts follow |
-| `wio rules` | Create, check and list rule files, also for a given path |
+| `wio rules` | Create, check, list and show rule files, also for a given path |
 | `wio context` | Compile the contract, the stage's goal or skill, and the rules for a stage |
-| `wio trailers` | Write and check the records that tie commits to stages |
-| `wio log` | Record context and review events |
+| `wio trailers` | Write, check and fold the records that tie commits to stages |
+| `wio log` | Record and show context and review events |
+
+## Quick start
+
+Requires Python 3.15+. Run from a checkout with
+[uv](https://docs.astral.sh/uv/):
+
+```sh
+uv run wio --help
+```
 
 ## Development
 
