@@ -15,4 +15,4 @@ def size_warning(size: int, threshold: int | None) -> str | None:
     """
     if threshold is None or size <= threshold:
         return None
-    return f"Bundle body is {size} bytes; threshold is {threshold} bytes."
+    return f"Bundle body size (bytes): {size}; threshold (bytes): {threshold}."

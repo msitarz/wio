@@ -36,7 +36,9 @@ def _warning(size: int, threshold: int) -> str:
     Returns:
         The full warning line.
     """
-    return f"warning: Bundle body is {size} bytes; threshold is {threshold} bytes.\n"
+    return (
+        f"warning: Bundle body size (bytes): {size}; threshold (bytes): {threshold}.\n"
+    )
 
 
 def test_body_size_above_but_not_equal_to_threshold_warns(
