@@ -3,8 +3,6 @@
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 if TYPE_CHECKING:
     from collections.abc import Callable
     from contextlib import AbstractContextManager
@@ -41,7 +39,6 @@ def _warning(size: int, threshold: int) -> str:
     return f"warning: Bundle body is {size} bytes; threshold is {threshold} bytes.\n"
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="size warning pending")
 def test_body_size_above_but_not_equal_to_threshold_warns(
     wio: Wio,
     prepared_compiler: Callable[[str, int], AbstractContextManager[None]],
@@ -82,7 +79,6 @@ def test_no_threshold_never_warns_about_the_body_size(
     assert (result.exit_code, result.stdout, result.stderr) == (0, "fixed", "")
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="size warning pending")
 def test_zero_and_negative_thresholds_warn_for_one_byte(
     wio: Wio,
     prepared_compiler: Callable[[str, int], AbstractContextManager[None]],
@@ -114,7 +110,6 @@ def test_zero_and_negative_thresholds_warn_for_one_byte(
     ]
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="size warning pending")
 def test_size_warning_precedes_a_failed_delivery(
     wio: Wio,
     prepared_compiler: Callable[[str, int], AbstractContextManager[None]],

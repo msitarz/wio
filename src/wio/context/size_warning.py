@@ -10,7 +10,9 @@ def size_warning(size: int, threshold: int | None) -> str | None:
         threshold: The configured threshold in bytes, or None when unset.
 
     Returns:
-        No warning until the comparison is implemented.
+        A warning naming both values when size exceeds the threshold,
+        or None when the threshold is unset or not exceeded.
     """
-    del size, threshold
-    return None
+    if threshold is None or size <= threshold:
+        return None
+    return f"Bundle body is {size} bytes; threshold is {threshold} bytes."
