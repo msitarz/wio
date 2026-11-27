@@ -88,7 +88,7 @@ def refuse_on_errors(discovery: Discovery) -> None:
     if not has_error(discovery.diagnostics):
         return
     errors = tuple(d for d in discovery.diagnostics if d.severity == "error")
-    raise DiagnosticsError(render_text(errors, keep_order=True), errors)
+    raise DiagnosticsError(render_text(errors), errors)
 
 
 def _place(root: Path, path: Path) -> str:

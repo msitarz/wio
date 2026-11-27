@@ -44,9 +44,9 @@ def test_the_findings_come_back_in_the_order_of_sort_diagnostics(
     # When the items are judged
     found = module.judge_items("c.md", [SectionItems(SECTION, (), ())])
 
-    # Then they come back by place, as strings, so line 10 comes before line 2
+    # Then they come back by place in natural order, so line 2 precedes line 10
     assert [finding.where for finding in found] == [
         "c.md:1",
-        "c.md:10",
         "c.md:2",
+        "c.md:10",
     ]
