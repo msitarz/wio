@@ -49,10 +49,6 @@ class RuleTopics:
 
     @cached_property
     def _families(self) -> Mapping[str, Mapping[str, str]]:
-        """The topics of the families of each ruleset that was loaded.
-
-        Returns:
-            The families that each ruleset's manifest declares, by ruleset.
-        """
+        """The topics of the families of each ruleset that was loaded."""
         discovery = discover(self.repository.root(), self.files)
         return {r.name: r.manifest.families for r in discovery.rulesets}

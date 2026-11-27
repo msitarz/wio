@@ -119,13 +119,7 @@ class _Reader:
     def _unknown(
         self, data: Mapping[str, object], parent: str, known: tuple[str, ...]
     ) -> None:
-        """Warn of the keys of a table that it does not know.
-
-        Args:
-            data: The table.
-            parent: Its key path, empty at the top.
-            known: The keys it knows.
-        """
+        """Warn of the keys of a table that it does not know."""
         for key in data:
             if key in known:
                 continue
@@ -137,14 +131,7 @@ class _Reader:
             self.found.append(Diagnostic("warning", where, message))
 
     def _families(self, value: object) -> Iterator[tuple[str, str]]:
-        """Judge the `families` table.
-
-        Args:
-            value: What the manifest holds under `families`, if anything.
-
-        Yields:
-            Each family with its topic, for those that are valid.
-        """
+        """Judge the `families` table."""
         if value is None:
             return
         if not isinstance(value, dict):
@@ -162,14 +149,7 @@ class _Reader:
                 yield family, topic
 
     def _presets(self, value: object) -> Iterator[tuple[str, RulePreset]]:
-        """Judge the `rule_presets` table.
-
-        Args:
-            value: What the manifest holds under `rule_presets`, if anything.
-
-        Yields:
-            Each rule preset with its name, for those that are valid.
-        """
+        """Judge the `rule_presets` table."""
         if value is None:
             return
         if not isinstance(value, dict):
@@ -185,15 +165,7 @@ class _Reader:
                 yield name, self._preset(where, table)
 
     def _preset(self, where: str, table: Mapping[str, object]) -> RulePreset:
-        """Judge one rule preset.
-
-        Args:
-            where: The key path of the preset.
-            table: Its decoded table.
-
-        Returns:
-            The preset, with the lists that are valid and none for the others.
-        """
+        """Judge one rule preset."""
         self._unknown(table, where, _PRESET_KEYS)
         include = self._list(
             join_path(where, "rules_include"), table.get("rules_include")
@@ -204,15 +176,7 @@ class _Reader:
         return RulePreset(include, exclude)
 
     def _list(self, where: str, value: object) -> tuple[str, ...]:
-        """Judge a list of strings.
-
-        Args:
-            where: The key path of the list.
-            value: What the manifest holds there, if anything.
-
-        Returns:
-            The strings, none when the list is absent or at fault.
-        """
+        """Judge a list of strings."""
         if value is None:
             return ()
         if not isinstance(value, list):

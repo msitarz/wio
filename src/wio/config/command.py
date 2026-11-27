@@ -64,21 +64,6 @@ class ConfigCommand:
     def run(self, args: Namespace, stdio: Stdio) -> int:
         """Run the chosen view.
 
-        Args:
-            args: The parsed arguments, with the attributes of `Arguments`.
-            stdio: The streams to write to.
-
-        Returns:
-            The exit code: 0, or for `check` the code that `report` gives, 1 when
-            any diagnostic is an error. Bare `wio config` writes its help and
-            reads no config file. `list` and `show` write to `stdio.stdout` only,
-            one line per setting. A single setting shown by `show` is followed by
-            a line that holds its description.
-
-            `check` writes every diagnostic that `report` renders, a warning as
-            well as an error, to `stdio.stdout` after running the checks that
-            `wio.config.CHECKS` holds when `run` is called.
-
         Raises:
             ConfigurationError: For `list` and `show`, the config has an error:
                 it carries every error and renders them as its message, as
@@ -108,15 +93,7 @@ class ConfigCommand:
         return 0
 
     def _check(self, stdio: Stdio, *, as_json: bool) -> int:
-        """Run `check`: print every diagnostic and say whether one is an error.
-
-        Args:
-            stdio: The streams to write to.
-            as_json: Whether to write the diagnostics as a JSON array.
-
-        Returns:
-            The exit code that `report` gives.
-        """
+        """Run `check`: print every diagnostic and say whether one is an error."""
         # Read when it runs, so that a test can replace `wio.config.CHECKS`.
         loaded = load_config(self._repository, self._files, package.CHECKS)
         text, code = report(loaded, as_json=as_json)
@@ -125,31 +102,14 @@ class ConfigCommand:
 
 
 def _list(settings: tuple[Setting, ...], *, as_json: bool) -> str:
-    """Write every setting, shortened to a line each, or in full as JSON.
-
-    Args:
-        settings: The settings, sorted by key path.
-        as_json: Whether to write the JSON object.
-
-    Returns:
-        The text to print.
-    """
+    """Write every setting, shortened to a line each, or in full as JSON."""
     if as_json:
         return _as_json(settings)
     return "".join(f"{short_line(item)}\n" for item in settings)
 
 
 def _show(settings: tuple[Setting, ...], *, single: bool, as_json: bool) -> str:
-    """Write settings in full, with the description of a single setting.
-
-    Args:
-        settings: The settings to show, sorted by key path.
-        single: Whether they are one setting asked for by its key path.
-        as_json: Whether to write the JSON object.
-
-    Returns:
-        The text to print; empty for a table without settings.
-    """
+    """Write settings in full, with the description of a single setting."""
     if as_json:
         return _as_json(settings)
     text = "".join(f"{full_line(item)}\n" for item in settings)
@@ -159,12 +119,5 @@ def _show(settings: tuple[Setting, ...], *, single: bool, as_json: bool) -> str:
 
 
 def _as_json(settings: tuple[Setting, ...]) -> str:
-    """Write settings as one JSON object keyed by key path.
-
-    Args:
-        settings: The settings, sorted by key path.
-
-    Returns:
-        The object that `as_object` describes, serialized.
-    """
+    """Write settings as one JSON object keyed by key path."""
     return encode_json(as_object(settings), indent=2, ensure_ascii=False) + "\n"

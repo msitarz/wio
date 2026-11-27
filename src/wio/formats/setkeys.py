@@ -59,16 +59,7 @@ def set_block_keys(
 
 
 def _block_end(text: str, start: int, form: str) -> int:
-    """Find the closing delimiter after a validated opening.
-
-    Args:
-        text: The complete text.
-        start: The first position inside the block.
-        form: The metadata block form.
-
-    Returns:
-        The closing delimiter's position.
-    """
+    """Find the closing delimiter after a validated opening."""
     if form == "comment":
         return text.index("-->", start)
     close = re.search(r"(?m)^\+\+\+[ \t]*\r?$", text[start:])

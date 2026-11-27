@@ -43,17 +43,7 @@ class TemplatesSpec:
 
 
 def _subcommand(views: _SubParsers, view: str, short: str, long: str) -> ArgumentParser:
-    """Add a subcommand of `templates` and name its view.
-
-    Args:
-        views: The subcommands that `wio.cli` created for `templates`.
-        view: The subcommand's name, which `templates_view` holds when chosen.
-        short: The line that `wio templates --help` shows for it.
-        long: The description that its own `--help` shows.
-
-    Returns:
-        The subparser, for its arguments.
-    """
+    """Add a subcommand of `templates` and name its view."""
     parser = views.add_parser(view, help=short, description=long)
     parser.set_defaults(templates_view=view)
     return parser

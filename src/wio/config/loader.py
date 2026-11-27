@@ -103,19 +103,7 @@ def config_or_raise(loaded: Loaded) -> Config:
 
 
 def _root(repository: Repository) -> Path:
-    """Find the root of the repository that holds the working directory.
-
-    Args:
-        repository: The port that finds it.
-
-    Returns:
-        The absolute root.
-
-    Raises:
-        ConfigurationError: There is no repository or it cannot be found; the
-            message is the adapter's own, which says what is wrong and what to
-            do, and the loader adds nothing to it.
-    """
+    """Find the root of the repository that holds the working directory."""
     try:
         return repository.root()
     except RuntimeError as error:
@@ -123,20 +111,7 @@ def _root(repository: Repository) -> Path:
 
 
 def _read(files: FileSystem, path: Path) -> str:
-    """Read the config file.
-
-    Args:
-        files: The port that reads it.
-        path: The absolute path of the file.
-
-    Returns:
-        The text of the file.
-
-    Raises:
-        ConfigurationError: The file is missing or cannot be read. The message
-            names the path once, says in words what is wrong and what to do, and
-            carries no Python-style error text.
-    """
+    """Read the config file."""
     try:
         return files.read_text(path)
     except FileNotFoundError as error:
@@ -147,16 +122,7 @@ def _read(files: FileSystem, path: Path) -> str:
 
 
 def _unreadable(path: Path, error: OSError | UnicodeDecodeError) -> str:
-    """Say why the config file cannot be read, and what to do.
-
-    Args:
-        path: The absolute path of the file.
-        error: What reading it raised.
-
-    Returns:
-        A sentence that names the path once, says what is wrong in words and
-        says what to do next.
-    """
+    """Say why the config file cannot be read, and what to do."""
     match error:
         case PermissionError():
             return (
@@ -181,13 +147,6 @@ def _unreadable(path: Path, error: OSError | UnicodeDecodeError) -> str:
 
 
 def _syntax(error: TomlSyntaxError) -> Diagnostic:
-    """Turn a syntax error into the one diagnostic of an invalid file.
-
-    Args:
-        error: What the decoder raised.
-
-    Returns:
-        An error at `<file>:<line>:<column>`, the file relative to the root.
-    """
+    """Turn a syntax error into the one diagnostic of an invalid file."""
     where = f"{CONFIG_PATH.as_posix()}:{error.line}:{error.column}"
     return Diagnostic("error", where, error.message)

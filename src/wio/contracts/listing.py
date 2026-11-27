@@ -21,42 +21,7 @@ if TYPE_CHECKING:
 
 
 def render_list(found: Hierarchy, *, as_json: bool) -> str:
-    """Render the Works with their hierarchy for a person or for a program.
-
-    It reads nothing and writes nothing. It imports `json` only for the JSON
-    form.
-
-    The human form has one block for each Work. Under `nesting` a Work comes
-    before its children, each child is indented two spaces more than its parent,
-    and siblings are in the order of their paths; under `flat` every Work is at
-    the same indent, in the order of the paths. A block's first line is the id,
-    padded to the widest id of the output, two spaces, the title or
-    `(no title)`, and the template in brackets after two more spaces when the
-    Work names one. The detail lines are indented to the title and each is
-    written only when it has something to say: the path with `/`, always, then
-    `roots:` as written and joined by `, `, then one `after: <id> <title>` for
-    each dependency in the order listed, with `(no title)` for a Work that has
-    none and `(not found)` for an id that no Work has, and `actions:` with each
-    `name = value` of the Work's own `[actions]` in the order written, a stage
-    preset bare, a list of stages in brackets joined by `, `, an empty list as
-    `none`, the entries joined by `, `. Nothing is cut or wrapped.
-
-    The JSON form is `json.dumps` of one array with its default separators, on
-    one line, sorted by path alone, each object with `id`, `title`, `path`,
-    `template`, `roots`, `depends_on`, `actions` and `parent` in that order:
-    roots and dependencies as written, `title` and `template` `null` when there
-    is none, `parent` the id of the parent or `null`, `actions` an object whose
-    values are a string or an array, and `{}` when there is none.
-
-    Args:
-        found: The hierarchy of the Works, which has them sorted by path and the
-            parent and children of each. The ids of its Works are not shared.
-        as_json: Whether to render the array instead of the text.
-
-    Returns:
-        The text for standard output, ending in a newline, and empty for no Work
-        in the human form, and `[]` and a newline in the JSON form.
-    """
+    """Render the Works with their hierarchy for a person or for a program."""
     if as_json:
         return encode_json([_as_object(work, found) for work in found.works]) + "\n"
     titles = {work.id: work.title for work in found.works}
@@ -66,16 +31,7 @@ def render_list(found: Hierarchy, *, as_json: bool) -> str:
 
 
 def _text_order(found: Hierarchy) -> list[tuple[Work, int]]:
-    """Put the Works in the order of the text, each with its depth.
-
-    Args:
-        found: The hierarchy.
-
-    Returns:
-        Each Work after its parent and before the next sibling of its parent,
-        siblings in the order of their paths, with the number of its ancestors.
-        Under `flat` it is the Works in the order of their paths, all at 0.
-    """
+    """Put the Works in the order of the text, each with its depth."""
     order: list[tuple[Work, int]] = []
     pending = [
         (work, 0) for work in reversed(found.works) if not found.ancestors[work.path]
@@ -88,18 +44,7 @@ def _text_order(found: Hierarchy) -> list[tuple[Work, int]]:
 
 
 def _block(work: Work, depth: int, titles: Mapping[str, str | None]) -> Block:
-    """Describe one Work as a block of the listing.
-
-    Args:
-        work: The Work.
-        depth: How many ancestors it has, each of which indents by two spaces.
-        titles: The title of each Work by id, `None` for a Work with no title,
-            and no key for an id that no Work has.
-
-    Returns:
-        The block, whose key is the id, whose suffix is the template in brackets
-        and whose details are the lines the Work has something to say about.
-    """
+    """Describe one Work as a block of the listing."""
     details = [work.path.as_posix()]
     if work.roots:
         details.append("roots: " + ", ".join(work.roots))
@@ -112,47 +57,21 @@ def _block(work: Work, depth: int, titles: Mapping[str, str | None]) -> Block:
 
 
 def _dependency(work_id: str, titles: Mapping[str, str | None]) -> str:
-    """Write a dependency with the title of the Work it names.
-
-    Args:
-        work_id: The id as listed.
-        titles: The title of each Work by id.
-
-    Returns:
-        The id and its title, `(no title)` for a Work with none, and `(not found)`
-        for an id that no Work has.
-    """
+    """Write a dependency with the title of the Work it names."""
     if work_id not in titles:
         return f"{work_id} (not found)"
     return f"{work_id} {titles[work_id] or _NO_TITLE}"
 
 
 def _value(value: str | tuple[str, ...]) -> str:
-    """Write what an `[actions]` entry says.
-
-    Args:
-        value: A stage preset, or the stages of an action.
-
-    Returns:
-        The preset bare, the stages in brackets joined by `, `, and `none` for no
-        stage.
-    """
+    """Write what an `[actions]` entry says."""
     if isinstance(value, str):
         return value
     return "[" + ", ".join(value) + "]" if value else "none"
 
 
 def _as_object(work: Work, found: Hierarchy) -> dict[str, object]:
-    """Describe a Work as plain data for JSON.
-
-    Args:
-        work: The Work.
-        found: The hierarchy, for its parent.
-
-    Returns:
-        The fields in the order `render_list` gives, with the path written with
-        `/`.
-    """
+    """Describe a Work as plain data for JSON."""
     parent = found.parent[work.path]
     return {
         "id": work.id,
@@ -171,21 +90,6 @@ def _as_object(work: Work, found: Hierarchy) -> dict[str, object]:
 
 def run_list(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Run `wio contracts list`.
-
-    It finds the Works, refuses a tree that is incomplete and prints them. It
-    reads through `services` and writes only to `stdio.stdout`. A tree with an
-    error that leaves it incomplete or ambiguous, a Work left out, a shared id, a
-    collision or a Works directory that cannot be walked, lists nothing in either
-    form. A wrong type of an optional key, an undeclared root, an unknown
-    dependency and a cycle do not stop it.
-
-    Args:
-        services: What the command reads the project through.
-        args: What the parser read: `json`, whether to write the array.
-        stdio: Where the output goes.
-
-    Returns:
-        0 after the listing, which is empty for a tree with no Work.
 
     Raises:
         ContractsError: The tree is incomplete or ambiguous. It carries those

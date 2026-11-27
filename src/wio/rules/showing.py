@@ -91,23 +91,6 @@ def render_rule(rule: Rule, *, as_json: bool) -> str:
 def run_show(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Run `wio rules show`: discover, resolve the alias, find and print a rule.
 
-    It runs the discovery and refuses an error of it anywhere in the repository
-    before it looks at the reference, resolves the ruleset part of the reference,
-    which may be an alias, to the canonical name where the reference has one that
-    names a ruleset, and leaves the text as it is otherwise, so that `show_rule`
-    judges every malformed or unknown reference and words its refusal. It then
-    finds the rule with `show_rule` and writes it with `render_rule`. A warning
-    of the discovery refuses nothing. It writes nothing to the repository, and
-    nothing to standard output for a request that is refused.
-
-    Args:
-        services: What the command reads the project through.
-        args: The parsed arguments: `reference` and `json`.
-        stdio: Where the rule goes.
-
-    Returns:
-        0 after the rule was printed.
-
     Raises:
         WioError: The reference does not name one rule. It names the cause, so
             the command exits 2.
@@ -124,16 +107,7 @@ def run_show(services: Services, args: Namespace, stdio: Stdio) -> int:
 
 
 def _canonical(reference: str, catalog: RuleCatalog) -> str:
-    """Replace an alias in a reference with the ruleset's canonical name.
-
-    Args:
-        reference: The reference as typed.
-        catalog: The rulesets and the aliases.
-
-    Returns:
-        The reference with the canonical ruleset, or the text unchanged when it
-        has no ruleset part or the part names no ruleset.
-    """
+    """Replace an alias in a reference with the ruleset's canonical name."""
     match parse_reference(reference):
         case Qualified(ruleset, item) if found := resolve_ruleset(ruleset, catalog):
             return f"{found}.{item}"
@@ -142,15 +116,7 @@ def _canonical(reference: str, catalog: RuleCatalog) -> str:
 
 
 def _as_object(rule: Rule) -> dict[str, object]:
-    """Describe a rule as plain data for JSON.
-
-    Args:
-        rule: The rule.
-
-    Returns:
-        `code`, which is qualified, `name`, `description`, `summary`, `body` and
-        `path`, in that order.
-    """
+    """Describe a rule as plain data for JSON."""
     return {
         "code": rule.qualified,
         "name": rule.name,
@@ -162,15 +128,7 @@ def _as_object(rule: Rule) -> dict[str, object]:
 
 
 def _unqualified(reference: str) -> str:
-    """Say why a reference without a usable ruleset and item is refused.
-
-    Args:
-        reference: The text, which `parse_reference` did not take as qualified.
-
-    Returns:
-        A sentence for a bare name, which has no ruleset, or for text that is not
-        a reference, with the sentence of the grammar that says what is wrong.
-    """
+    """Say why a reference without a usable ruleset and item is refused."""
     match parse_own_item(reference):
         case Bare(name):
             return f"`{name}` has no ruleset; `show` takes `<ruleset>.<code>`."
@@ -181,20 +139,7 @@ def _unqualified(reference: str) -> str:
 
 
 def _find(ruleset: str, item: str, discovery: Discovery) -> Rule:
-    """Find a rule once the form of the reference is known to be qualified.
-
-    Args:
-        ruleset: The canonical name of the ruleset as written.
-        item: The family, code or rule preset name after the dot.
-        discovery: What the walk found.
-
-    Returns:
-        The rule.
-
-    Raises:
-        WioError: The item is not a code, the ruleset was not read, or it holds
-            no such rule.
-    """
+    """Find a rule once the form of the reference is known to be qualified."""
     loaded = next((r for r in discovery.rulesets if r.name == ruleset), None)
     _require_code(ruleset, item, loaded)
     found = _ruleset(ruleset, discovery, loaded)
@@ -202,15 +147,7 @@ def _find(ruleset: str, item: str, discovery: Discovery) -> Rule:
 
 
 def _missing(ruleset: LoadedRuleset, item: str) -> Rule:
-    """Refuse a code that a ruleset does not hold.
-
-    Args:
-        ruleset: The ruleset.
-        item: The code asked for.
-
-    Raises:
-        WioError: It names the ruleset's codes, or says that it holds none.
-    """
+    """Refuse a code that a ruleset does not hold."""
     codes = [f"`{r.code}`" for r in ruleset.rules]
     held = and_list(codes) if codes else "no rule"
     message = f"`{ruleset.name}` holds {held} and not `{item}`."
@@ -220,20 +157,7 @@ def _missing(ruleset: LoadedRuleset, item: str) -> Rule:
 def _ruleset(
     name: str, discovery: Discovery, loaded: LoadedRuleset | None
 ) -> LoadedRuleset:
-    """Require the ruleset that a reference names.
-
-    Args:
-        name: The ruleset as written.
-        discovery: What the walk found.
-        loaded: The ruleset of that name, or `None` when none was read.
-
-    Returns:
-        `loaded`.
-
-    Raises:
-        WioError: No ruleset that was read has the name; it lists those that
-            were.
-    """
+    """Require the ruleset that a reference names."""
     if loaded is not None:
         return loaded
     names = quoted([r.name for r in discovery.rulesets])
@@ -244,17 +168,7 @@ def _ruleset(
 
 
 def _require_code(ruleset: str, item: str, loaded: LoadedRuleset | None) -> None:
-    """Refuse an item that does not have the form of a code.
-
-    Args:
-        ruleset: The ruleset as written.
-        item: The item after the dot.
-        loaded: The ruleset, or `None` when none was read.
-
-    Raises:
-        WioError: The item is a family, a rule preset, `all`, or has the form of
-            a rule preset name and not of a code.
-    """
+    """Refuse an item that does not have the form of a code."""
     text = f"`{ruleset}.{item}`"
     match item_kind(item):
         case "family":
@@ -270,13 +184,5 @@ def _require_code(ruleset: str, item: str, loaded: LoadedRuleset | None) -> None
 
 
 def _is_preset(loaded: LoadedRuleset | None, item: str) -> bool:
-    """Tell whether a ruleset declares a rule preset.
-
-    Args:
-        loaded: The ruleset, or `None`.
-        item: The name.
-
-    Returns:
-        Whether the manifest of the ruleset declares it.
-    """
+    """Tell whether a ruleset declares a rule preset."""
     return loaded is not None and item in loaded.manifest.rule_presets

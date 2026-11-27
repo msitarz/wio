@@ -20,32 +20,7 @@ def main(
     stdio: Stdio,
     commands: Sequence[Entry] = COMMANDS,
 ) -> int:
-    """Run `wio` with the given arguments and streams.
-
-    This is the testable core of the command: it writes its output through
-    `stdio`, so a test can give it in-memory streams. It describes every entry
-    of `commands` to build the usage, wires only the entry whose subcommand was
-    chosen, and returns that command's exit code. Bare `wio` and `--help` print
-    the package's summary and the subcommands in order of name,
-    `wio <subcommand> --help` lists that command's options without wiring it,
-    `--version` prints `wio <version>`, and a usage mistake exits 2 with
-    argparse's message on standard error. A `WioError` raised while the
-    commands are described, configured, wired or run is reported as `error:` and
-    its message on standard error. Any other exception, or an exit code that is
-    neither 0 nor 1, is a bug, reported with its traceback or the code on
-    standard error. `main` writes only to `stdio`.
-
-    Args:
-        argv: The arguments after the program name.
-        stdio: The standard streams to use.
-        commands: The entries of the subcommands, the table of commands by
-            default.
-
-    Returns:
-        The exit code: 0 for the summary, the help and the version, the chosen
-        command's own exit code, 0 or 1, 2 for a usage mistake or a `WioError`,
-        and 70 for a bug.
-    """
+    """Run `wio` with the given arguments and streams."""
     return run(argv, stdio, commands)
 
 

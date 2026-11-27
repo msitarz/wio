@@ -16,15 +16,7 @@ _GIT_DIRECTORY = ".git"
 
 
 def _name(identity: Path) -> str:
-    """Make the name of a log, for a person, from the identity of its clone.
-
-    Args:
-        identity: What `Repository.identity` gives.
-
-    Returns:
-        The slug of the last component, or of the one before it when that is
-        `.git`, without a trailing `.git`; `repo` when nothing is left.
-    """
+    """Make the name of a log, for a person, from the identity of its clone."""
     component = (
         identity.parent.name if identity.name == _GIT_DIRECTORY else identity.name
     )

@@ -61,12 +61,7 @@ class Rule:
         return f"{self.ruleset}.{self.code}"
 
     def _parts(self) -> tuple[str, str]:
-        """Split the code into its family and its digits.
-
-        Returns:
-            The family and the digits; a rule read from a file always has a code
-            of that form.
-        """
+        """Split the code into its family and its digits."""
         found = _FAMILY_AND_NUMBER.fullmatch(self.code)
         if found is None:
             message = f"`{self.code}` is not a family and digits"

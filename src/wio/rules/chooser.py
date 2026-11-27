@@ -134,18 +134,7 @@ class RuleSelector:
         }
 
     def _bytes_of(self, root: Path, rule: Rule) -> bytes:
-        """Read the bytes of a rule's file.
-
-        Args:
-            root: The root of the repository.
-            rule: The rule, whose path is relative to the root.
-
-        Returns:
-            The bytes as stored.
-
-        Raises:
-            WioError: The file cannot be read, naming its path.
-        """
+        """Read the bytes of a rule's file."""
         try:
             return self.files.read_bytes(root / rule.path)
         except OSError as error:
@@ -154,14 +143,7 @@ class RuleSelector:
 
 
 def _all_out(selection: Selection) -> Selection:
-    """Turn every decision of a selection into one that leaves the rule out.
-
-    Args:
-        selection: The selection whose rules and order are kept.
-
-    Returns:
-        The same rules, each out as `not-selected` with no roots and no effect.
-    """
+    """Turn every decision of a selection into one that leaves the rule out."""
     out = Reason("not-selected", None)
     return {
         rule: replace(decision, included=False, roots=(), effects=(), reason=out)
@@ -170,22 +152,11 @@ def _all_out(selection: Selection) -> Selection:
 
 
 class _UnknownStageError(KeyError):
-    """The stage that was asked for is not in the config.
-
-    It is a `KeyError`, as the port says, and tells a stage from a Work or a root
-    by what it is and not by the name it carries, which a Work may share.
-    """
+    """The stage that was asked for is not in the config."""
 
 
 def _unknown(error: KeyError) -> str:
-    """Say which name was not known.
-
-    Args:
-        error: The `KeyError` of the selection, which carries the name.
-
-    Returns:
-        A sentence that names the stage, or the Work or root, that is unknown.
-    """
+    """Say which name was not known."""
     name = error.args[0]
     if isinstance(error, _UnknownStageError):
         return f"The config has no stage `{name}`."

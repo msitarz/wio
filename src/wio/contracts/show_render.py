@@ -24,89 +24,29 @@ _SOURCE_TEXT: Final[dict[ShownSource, str]] = {
 
 
 def render_show(shown: ShownWork, *, as_json: bool) -> str:
-    r"""Render a Work for a person or for a program.
+    """Render a Work as human-readable text or one-line JSON.
 
-    It reads nothing and writes nothing, and imports `json` only for the JSON
-    form. The text and the JSON say the same facts, and the text ends in one line
-    ending, at the `----` line when the view is empty.
+    Pure formatter (no I/O); output always ends with a single newline.
 
     Args:
-        shown: The Work with what `gather_work` found.
-        as_json: Whether to render the object instead of the text.
-
-    Returns:
-        The text for standard output, or the JSON object on one line, ending in
-        one line ending.
+        shown: The Work gathered by `gather_work`.
+        as_json: Render a single-line JSON object instead of text.
 
     Example:
-        A Work with a parent and a dependency, whose actions are one from its
-        template, one of its own and one that it removed:
+        Text output layout::
 
             Work w4k7mn  Cache
-              Path         .agents/wio/works/search/cache/README.md
-              Template     feature.leaf
-              Parent       q8d3zt  Search
-              Roots        wio
-              After        r2v6hc  Index
+              Path      .agents/wio/works/search/cache/README.md
+              Template  feature.leaf
+              Roots     wio
 
             Actions
-              plan      plan-feature  (from the template)
-                          plan, review-plan
-              release   (from the contract)
-                          tag, publish
-              rollback  removed (by the contract)
+              plan  plan-feature  (from the template)
+                      plan, review-plan
 
             ----
 
             # Cache
-
-            ## Purpose
-
-            Keep what was read.
-
-        A fact with nothing to say is left out, a second value goes on its own
-        line in the column of the first, and `@descendants` shows what it
-        resolves to, or `none`:
-
-              Roots        e2e, @descendants → api, e2e
-              After        r2v6hc  Twin
-                           n5p7qr  (no title)
-                           y4k2mq  (not found)
-              Needed by    k3m9xq  Child
-
-        An on-demand action, and a preset that the config does not declare, which
-        has no stages line:
-
-            Actions
-              amend   amend-contract  (on demand, from the config defaults)
-                        amend, review-amendment
-              ratify  unknown  (from the config defaults)
-
-        A Work that resolves to no action:
-
-            Actions
-              none
-
-        The JSON of the first Work is one line with these fields in this order,
-        `null` where there is none, and a removed action with its source and no
-        preset or stages:
-
-            {
-              "id": "w4k7mn",
-              "title": "Cache",
-              "path": ".agents/wio/works/search/cache/README.md",
-              "template": "feature.leaf",
-              "parent": "q8d3zt",
-              "roots": ["wio"],
-              "resolved_roots": ["wio"],
-              "depends_on": ["r2v6hc"],
-              "dependents": [],
-              "actions": [
-                {"name": "rollback", "source": "contract", "on_demand": false,
-                 "preset": null, "stages": []}
-              ],
-              "view": "# Cache\n\n## Purpose\n\nKeep what was read.\n"
-            }
     """
     if as_json:
         return f"{encode_json(_as_object(shown))}\n"
@@ -124,28 +64,13 @@ def render_show(shown: ShownWork, *, as_json: bool) -> str:
 
 
 def _first_line(shown: ShownWork) -> str:
-    """Write the first line of the text.
-
-    Args:
-        shown: The Work.
-
-    Returns:
-        `Work <id>  <title>`, with `(no title)` for a Work with none.
-    """
+    """Write the first line of the text."""
     work = shown.work
     return f"Work {work.id}  {_NO_TITLE if work.title is None else work.title}"
 
 
 def _fact_lines(shown: ShownWork) -> list[str]:
-    """Write the fact lines of the text.
-
-    Args:
-        shown: The Work.
-
-    Returns:
-        The lines of the facts that have something to say, as the example of
-        `render_show` shows them.
-    """
+    """Write the fact lines of the text."""
     work = shown.work
     facts: list[tuple[str, list[str]]] = [
         ("Path", [work.path.as_posix()]),
@@ -159,15 +84,7 @@ def _fact_lines(shown: ShownWork) -> list[str]:
 
 
 def _rows(label: str, values: Sequence[str]) -> list[str]:
-    """Lay out the values of one fact under its label.
-
-    Args:
-        label: The fact's label.
-        values: Its values, none for a fact with nothing to say.
-
-    Returns:
-        A line for each value, the label on the first only.
-    """
+    """Lay out the values of one fact under its label."""
     return [
         f"  {label if index == 0 else '':<{_LABEL_WIDTH}}{value}"
         for index, value in enumerate(values)
@@ -175,31 +92,14 @@ def _rows(label: str, values: Sequence[str]) -> list[str]:
 
 
 def _related(related: Related) -> str:
-    """Write a related Work as `<id>  <title>`.
-
-    Args:
-        related: The Work, or the id that no Work has.
-
-    Returns:
-        The id and the title, or the marker for a Work with none or for an id
-        no Work has.
-    """
+    """Write a related Work as `<id> <title>`."""
     if not related.found:
         return f"{related.id}  {_NOT_FOUND}"
     return f"{related.id}  {_NO_TITLE if related.title is None else related.title}"
 
 
 def _roots(shown: ShownWork) -> list[str]:
-    """Write the roots of a Work.
-
-    Args:
-        shown: The Work.
-
-    Returns:
-        Nothing for a Work with no roots, otherwise one value: the Work's own
-        roots as written, and what they resolve to only when it lists
-        `@descendants`.
-    """
+    """Write the roots of a Work."""
     roots = shown.work.roots
     if not roots:
         return []
@@ -210,14 +110,7 @@ def _roots(shown: ShownWork) -> list[str]:
 
 
 def _action_lines(actions: Sequence[ShownAction]) -> list[str]:
-    """Write the lines of the actions block.
-
-    Args:
-        actions: The Work's actions in order.
-
-    Returns:
-        The lines of each action, or the one line `  none` when there is none.
-    """
+    """Write the lines of the actions block."""
     if not actions:
         return ["  none"]
     width = max(len(action.name) for action in actions) + 2
@@ -225,15 +118,7 @@ def _action_lines(actions: Sequence[ShownAction]) -> list[str]:
 
 
 def _action(action: ShownAction, width: int) -> list[str]:
-    """Write one action and its stages.
-
-    Args:
-        action: The action.
-        width: The width of the name column.
-
-    Returns:
-        The line of the action and the line of its stages, if it has any.
-    """
+    """Write one action and its stages."""
     head = f"  {action.name:<{width}}"
     if action.removed:
         return [f"{head}removed (by the contract)"]
@@ -246,16 +131,7 @@ def _action(action: ShownAction, width: int) -> list[str]:
 
 
 def _as_object(shown: ShownWork) -> dict[str, object]:
-    """Describe a Work as plain data for JSON.
-
-    Args:
-        shown: The Work.
-
-    Returns:
-        The fields in the order of the example of `render_show`. `resolved_roots`
-        is the hierarchy's value, so it may differ from `roots` in order and
-        repeats.
-    """
+    """Describe a Work as plain data for JSON."""
     work = shown.work
     return {
         "id": work.id,

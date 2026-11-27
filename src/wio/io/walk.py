@@ -43,15 +43,7 @@ def walk_markdown(directory: Path, files: FileSystem) -> Iterator[Path]:
 
 
 def _walk_visible(directory: Path, files: FileSystem) -> Iterator[Path]:
-    """Walk a directory below the one being walked unless it is hidden.
-
-    Args:
-        directory: The directory.
-        files: The port that lists directories.
-
-    Yields:
-        The files below it, none when its name starts with `.`.
-    """
+    """Walk a directory below the one being walked unless it is hidden."""
     if not directory.name.startswith("."):
         yield from walk_markdown(directory, files)
 

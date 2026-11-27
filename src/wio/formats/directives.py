@@ -147,15 +147,7 @@ def remove_directive_list(line: str) -> str:
 
 
 def _check_tail(line: str, start: int) -> None:
-    """Check that nothing but whitespace follows the list.
-
-    Args:
-        line: The heading's line.
-        start: The index just after the closing `-->`.
-
-    Raises:
-        DirectiveSyntaxError: Text or a second list follows the list.
-    """
+    """Check that nothing but whitespace follows the list."""
     tail = line[start:]
     text = tail.lstrip()
     if text:
@@ -164,15 +156,7 @@ def _check_tail(line: str, start: int) -> None:
 
 
 def _unknown(name: str) -> str:
-    """Word the error for a name that is not a directive.
-
-    Args:
-        name: The name as written.
-
-    Returns:
-        A message that lists the directives, and says that names are lowercase
-        when only the case is wrong.
-    """
+    """Word the error for a name that is not a directive."""
     known = ", ".join(f"`{known}`" for known in _NAMES)
     message = f"Unknown directive `{name}`; the directives are {known}"
     if name.lower() in _NAMES:
@@ -181,14 +165,7 @@ def _unknown(name: str) -> str:
 
 
 class _Reader:
-    """A cursor over the text between the opener and the closing `-->`.
-
-    Attributes:
-        content: The text of the list.
-        base: The index of the text in the heading's line, so that a column
-            is counted on the line.
-        pos: The index of the next character to read in the text.
-    """
+    """A cursor over the text between the opener and the closing `-->`."""
 
     content: str
     base: int

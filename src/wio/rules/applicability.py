@@ -30,38 +30,6 @@ def select(
 ) -> Selection:
     """Decide every rule of every ruleset for the roots and the stage.
 
-    It applies the layers with `apply_layers` and then decides each rule. The
-    roots are applied when `roots` is not `None`, an empty tuple included; then
-    a selected rule is included when its ruleset is root-independent or reached
-    by a selected root, with those roots in the order of their names, and is out
-    as `cut-by-roots` otherwise. When the roots are not applied, no rule is cut,
-    and a rule that is not root-independent lists the roots of the config that
-    reach its ruleset, in the order of their names. A rule of a root-independent
-    ruleset applies to every root, so it has no roots and `root_independent`
-    true, whether or not a root also reaches its ruleset. A rule that the layers
-    did not select is out with the reason of the last layer that removed it:
-    `excluded` for a root or the stage, including the exclude of a rule preset
-    that an entry of that layer names, `vetoed` for the always excludes, and
-    `not-selected` when no layer touched it. The exclude of a rule preset inside
-    an entry of the always includes took nothing out of the set, so it gives no
-    reason: a rule that only it removed is `not-selected`. A rule that a layer
-    removed is never reported as cut by the roots.
-
-    It does no input or output, and the result does not depend on the order of
-    the tables of the config, of the entries of its lists or of `roots`.
-
-    Args:
-        roots: The roots to apply, which `None` leaves unapplied.
-        stage: The stage to apply, or `None` for no stage.
-        config: The settings: the roots, the stages, the always fields and what
-            each ruleset is set to.
-        rulesets: Every ruleset of the repository by its canonical name, in the
-            form that `ruleset_map` gives.
-
-    Returns:
-        One decision for each rule of every ruleset, in the order of C-2 of
-        `wio rules`.
-
     Raises:
         KeyError: A name of `roots` or `stage` is not in the config, as
             `apply_layers` raises it.
@@ -85,20 +53,7 @@ def _decide(
     *,
     applied: Collection[str] | None,
 ) -> Decision:
-    """Decide one rule.
-
-    Args:
-        rule: The rule.
-        layers: What the layers did to it.
-        config: The settings, whose ruleset table says what is root-independent.
-        reach: The rulesets that each root of the config reaches.
-        candidates: The roots to look among, in the order of their names: the
-            selected roots, or every root of the config when none are applied.
-        applied: The selected roots, or `None` when the roots are not applied.
-
-    Returns:
-        Included with its roots, or out with its reason.
-    """
+    """Decide one rule."""
     table = config.rulesets.get(rule.ruleset)
     independent = table is not None and table.root_independent
     effects = layers.effects
@@ -124,32 +79,12 @@ def _decide(
 def _reaching(
     rule: Rule, reach: Mapping[str, frozenset[str]], candidates: list[str]
 ) -> tuple[str, ...]:
-    """List the roots among the candidates that reach a rule's ruleset.
-
-    Args:
-        rule: The rule.
-        reach: The rulesets that each root of the config reaches.
-        candidates: The roots to look among, in the order of their names.
-
-    Returns:
-        The roots that reach the ruleset, in the order of the candidates.
-    """
+    """List the roots among the candidates that reach a rule's ruleset."""
     return tuple(name for name in candidates if rule.ruleset in reach[name])
 
 
 def _removal(effects: tuple[LayerEffect, ...]) -> Reason:
-    """Give the reason that a rule the layers did not select is out.
-
-    Args:
-        effects: What the layers did to the rule, in the order they applied.
-
-    Returns:
-        The reason of the last layer that removed it: `vetoed` for an always
-        exclude, `excluded` with the layer for a root or the stage, and
-        `not-selected` when no layer removed it. The exclude of a rule preset
-        inside an always include is skipped, because it took nothing out of the
-        set.
-    """
+    """Give the reason that a rule the layers did not select is out."""
     for effect in reversed(effects):
         if effect.action != "removes":
             continue

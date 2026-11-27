@@ -140,16 +140,7 @@ def _write_checked(
     events: EventSink,
     stdio: Stdio,
 ) -> int:
-    """Emit the diagnostics, accepted event and record in that order.
-
-    Args:
-        checked: The checked record and its outcome, or the refusal.
-        events: Receives the event of an accepted review.
-        stdio: Receives diagnostics and the printed record.
-
-    Returns:
-        Zero for a printed record, or one when the checks refused it.
-    """
+    """Emit the diagnostics, accepted event and record in that order."""
     if isinstance(checked, Refusal):
         stdio.stderr.writelines(line + "\n" for line in checked.lines)
         return 1
@@ -165,16 +156,7 @@ def _write_checked(
 def _check_fields(
     services: Services, fields: list[tuple[str, str]], config: Config
 ) -> tuple[str, tuple[str, ...]] | Refusal:
-    """Validate the arguments, record syntax and effective fields in order.
-
-    Args:
-        services: Supplies Work metadata for validating the fields.
-        fields: The requested fields in their printing order.
-        config: The effective config for record shape and validation.
-
-    Returns:
-        The rendered record and warnings, or the ordered refusal lines.
-    """
+    """Validate the arguments, record syntax and effective fields in order."""
     refused = _refused_arguments(fields)
     record = "" if refused else render(dict(fields))
     findings = refused or check_shape(record, config.trailers.reader)
@@ -196,18 +178,7 @@ def _check_review(
     cites: Sequence[str],
     config: Config,
 ) -> tuple[str, Accepted] | Refusal:
-    """Check both review forms before either caller writes an event.
-
-    Args:
-        services: The readers of the Work, rules and commit history.
-        fields: The record fields in their printing order.
-        cites: The review citations.
-        config: The effective config for the field checks.
-
-    Returns:
-        The rendered record and accepted review, or the combined refusal.
-        Field warnings precede citation and history diagnostics.
-    """
+    """Check both review forms before either caller writes an event."""
     checked = _check_fields(services, fields, config)
     if isinstance(checked, Refusal):
         return checked
@@ -219,16 +190,7 @@ def _check_review(
 
 
 def _fields(args: Namespace) -> list[tuple[str, str]]:
-    """Build the fields of the record from the arguments.
-
-    Args:
-        args: The arguments that `configure_write` parsed.
-
-    Returns:
-        The key and the value of each field that the arguments give, in the order of
-        the keys of a record, with the items joined by a comma and one space and the
-        judge `agent` when a result is given and no judge is.
-    """
+    """Build the fields of the record from the arguments."""
     fields = [
         ("Wio-Work", args.work),
         ("Wio-Action", args.action),
@@ -245,15 +207,7 @@ def _fields(args: Namespace) -> list[tuple[str, str]]:
 
 
 def _one_work(work: str) -> None:
-    """Refuse a Work that this form does not write.
-
-    Args:
-        work: The Work argument as given.
-
-    Raises:
-        TrailersError: If it holds a comma, which makes it a list of Works. `none`
-            never reaches this form, because the command gives it a form of its own.
-    """
+    """Refuse a Work that this form does not write."""
     if "," in work:
         message = (
             f"`{work}` is a list of Works, which `wio trailers` does not write for "
@@ -263,19 +217,7 @@ def _one_work(work: str) -> None:
 
 
 def _refused_arguments(fields: list[tuple[str, str]]) -> list[Finding]:
-    """Refuse the arguments that cannot be rendered into one line of a record.
-
-    Args:
-        fields: The key and the value of each field.
-
-    Returns:
-        A `malformed` finding for each value that is empty or holds a line end, and
-        one for a `Wio-Judge` without a `Wio-Result`, each at its own field, in the
-        order of the fields, and one at most for a field, the empty or line-end
-        one first. The `line` of a finding is the field as it would be
-        written, with each line end of the value shown as an escaped newline, so that
-        it is one line and an argument cannot add one to the output either.
-    """
+    """Refuse the arguments that cannot be rendered into one line of a record."""
     keys = {key for key, _ in fields}
     reasons = [(key, value, _reason(key, value, keys)) for key, value in fields]
     return [
@@ -286,18 +228,7 @@ def _refused_arguments(fields: list[tuple[str, str]]) -> list[Finding]:
 
 
 def _reason(key: str, value: str, keys: set[str]) -> str | None:
-    """Say why an argument cannot be rendered, if it cannot.
-
-    Args:
-        key: The key of the field.
-        value: The value of the field.
-        keys: The keys of every field of the record.
-
-    Returns:
-        The message for a value that is empty or holds a line end, or for a
-        `Wio-Judge` without a `Wio-Result`, the former first, and `None` for a
-        value that can be rendered.
-    """
+    """Say why an argument cannot be rendered, if it cannot."""
     if not value or "\n" in value or "\r" in value:
         return f"`{key}` must be one line and not empty."
     if key == "Wio-Judge" and "Wio-Result" not in keys:
@@ -306,27 +237,12 @@ def _reason(key: str, value: str, keys: set[str]) -> str | None:
 
 
 def _shown(key: str, value: str) -> str:
-    """Show a field on one line, with each line end of the value escaped.
-
-    Args:
-        key: The key of the field.
-        value: The value of the field.
-
-    Returns:
-        `Key: value` with a carriage return or a line feed written as an escape.
-    """
+    """Show a field on one line, with each line end of the value escaped."""
     return f"{key}: {value}".replace("\r", "\\r").replace("\n", "\\n")
 
 
 def _finding_lines(findings: list[Finding]) -> tuple[str, ...]:
-    """Give syntax diagnostics with each offending line just after its error.
-
-    Args:
-        findings: The findings of the argument or record shape check.
-
-    Returns:
-        The lines to write to standard error, in order, without terminators.
-    """
+    """Give syntax diagnostics with each offending line just after its error."""
     return tuple(
         line
         for finding in findings

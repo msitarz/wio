@@ -79,43 +79,7 @@ class Folded:
 
 
 def fold_commits(commits: Sequence[Commit], reader: Reader) -> Folded:
-    """Fold the records of a range of commits.
-
-    The reverts are settled first. The id on a line `This reverts commit <id>.` names
-    a commit of the range when it is a prefix of the commit's id, so an abbreviated
-    id counts, and a revert is a commit that has such a line. A revert is taken back
-    by a later revert that names it, and a commit that an untaken revert names is
-    taken back too, and the commits taken back and the reverts are dropped, whatever
-    records their messages hold, before anything is folded, so that the neighbors of
-    a dropped commit become consecutive. A revert of a commit outside the range is
-    kept in `reverts` as the id was written, unless a later revert in the range takes
-    that revert back.
-
-    Then the records of each remaining commit are read with `reader`, a list of
-    Works is expanded to one record for each Work in the order written, and a
-    `Wio-Work: none` record is dropped. The fold takes two steps, in this order.
-    Consecutive records of the same Work, action and stage, with no other record
-    between them, become one at the later position, with the items united in order
-    of appearance and the result and the judge of the later record, or the earlier
-    one's when the later has none. Then consecutive records that differ only in the
-    Work, which have the same action, stage, items, result and judge, become one
-    record for a list of Works, unless the list already names the Work, which starts
-    the next record, because a list names no Work twice. Records that are not
-    consecutive stay apart, because a record between two others can make the earlier
-    one stale.
-
-    The fold is a function of the commits, so folding the same range again gives
-    the same value. It judges no record: a record that the check would refuse has
-    no defined fold.
-
-    Args:
-        commits: The commits of the range, oldest first, as the `History` port
-            gives them.
-        reader: The reader of the config, which finds the records of a message.
-
-    Returns:
-        The folded records and the reverts of work outside the range.
-    """
+    """Fold the records of a range of commits."""
     kept, reverts = _apply_reverts(commits)
     expanded = [record for commit in kept for record in _expand(commit, reader)]
     return Folded(reverts, tuple(_merge(expanded)))
@@ -226,18 +190,7 @@ def run_fold(services: Services, args: Namespace, stdio: Stdio) -> int:
 
 
 def _commits(history: History, revision_range: str) -> Sequence[Commit]:
-    """Read the commits of a range from the history.
-
-    Args:
-        history: The port that lists the commits of a range.
-        revision_range: The range as written.
-
-    Returns:
-        The commits oldest first.
-
-    Raises:
-        TrailersError: If the port refuses the range, with the port's message.
-    """
+    """Read the commits of a range from the history."""
     try:
         return history.history(revision_range)
     except ValueError as error:
@@ -246,29 +199,13 @@ def _commits(history: History, revision_range: str) -> Sequence[Commit]:
 
 
 def _position(pair: tuple[int, str]) -> int:
-    """Give the position that orders a revert of work outside the range.
-
-    Args:
-        pair: The position and the written id.
-
-    Returns:
-        The position.
-    """
+    """Give the position that orders a revert of work outside the range."""
     return pair[0]
 
 
 @dataclass
 class _Settled:
-    """What the reverts of a range have settled so far.
-
-    Attributes:
-        dropped: The positions of the commits that carry no record: the reverts and
-            the commits that an effective revert took back.
-        neutral: The positions of the reverts that a later revert took back, which
-            take nothing back themselves.
-        outside: The position and the written id of each revert of a commit that is
-            not in the range.
-    """
+    """What the reverts of a range have settled so far."""
 
     dropped: set[int]
     neutral: set[int]
@@ -318,15 +255,7 @@ class _Settled:
 
 
 def _apply_reverts(commits: Sequence[Commit]) -> tuple[list[Commit], tuple[str, ...]]:
-    """Settle the reverts of a range.
-
-    Args:
-        commits: The commits of the range, oldest first.
-
-    Returns:
-        The commits that are neither taken back nor reverts, in order, and the ids of
-        the reverts of commits outside the range as they were written.
-    """
+    """Settle the reverts of a range."""
     reverts = _reverts_of(commits)
     state = _Settled(set(reverts), set(), [])
     for index in sorted(reverts, reverse=True):
@@ -336,58 +265,24 @@ def _apply_reverts(commits: Sequence[Commit]) -> tuple[list[Commit], tuple[str, 
 
 
 def _reverts_of(commits: Sequence[Commit]) -> dict[int, tuple[str, ...]]:
-    """Find the reverts among the commits of a range.
-
-    Args:
-        commits: The commits of the range, oldest first.
-
-    Returns:
-        The ids that each revert names, as written, by the position of the revert.
-    """
+    """Find the reverts among the commits of a range."""
     found = {i: _written(commit) for i, commit in enumerate(commits)}
     return {i: ids for i, ids in found.items() if ids}
 
 
 def _written(commit: Commit) -> tuple[str, ...]:
-    """Find the ids that a commit says it reverts.
-
-    Args:
-        commit: A commit.
-
-    Returns:
-        The ids on its lines `This reverts commit <id>.`, as written.
-    """
+    """Find the ids that a commit says it reverts."""
     return tuple(_REVERT.findall(commit.message))
 
 
 def _resolve(commits: Sequence[Commit], index: int, written: str) -> int | None:
-    """Find the commit of the range that a revert names.
-
-    Args:
-        commits: The commits of the range, oldest first.
-        index: The position of the revert.
-        written: The id as the revert wrote it, which may be abbreviated.
-
-    Returns:
-        The position of the one earlier commit whose id starts with it, or `None`
-        when no earlier commit or more than one does, which makes it a commit
-        outside the range.
-    """
+    """Find the commit of the range that a revert names."""
     found = [i for i in range(index) if commits[i].id.startswith(written.lower())]
     return found[0] if len(found) == 1 else None
 
 
 def _expand(commit: Commit, reader: Reader) -> list[FoldedRecord]:
-    """Read the records of a commit, one for each Work.
-
-    Args:
-        commit: A commit that is kept.
-        reader: The reader of the config.
-
-    Returns:
-        A record for each Work that each record of the message names, in the order
-        written, none for a `Wio-Work: none` record.
-    """
+    """Read the records of a commit, one for each Work."""
     return [
         folded
         for record in read(commit.message, reader).records
@@ -398,14 +293,7 @@ def _expand(commit: Commit, reader: Reader) -> list[FoldedRecord]:
 
 
 def _for_each_work(values: dict[str, str]) -> list[FoldedRecord]:
-    """Make a folded record for each Work that a record names.
-
-    Args:
-        values: The value of each key of one record.
-
-    Returns:
-        A record for each Work in the order written, none for `Wio-Work: none`.
-    """
+    """Make a folded record for each Work that a record names."""
     work = values.get("Wio-Work", "none")
     items = values.get("Wio-Items")
     return [
@@ -422,31 +310,12 @@ def _for_each_work(values: dict[str, str]) -> list[FoldedRecord]:
 
 
 def _merge(records: list[FoldedRecord]) -> list[FoldedRecord]:
-    """Merge the consecutive records of the fold, in its two steps.
-
-    Args:
-        records: The records in the order of the history, one for each Work.
-
-    Returns:
-        The records after the first step, which merges each run of one Work, action
-        and stage at its last position, and the second, which merges each run of
-        records that have one action, stage, items, result and judge and differ
-        only in the Work into one record for a list of Works.
-    """
+    """Merge the consecutive records of the fold, in its two steps."""
     return _by_work(_by_stage(records))
 
 
 def _by_stage(records: list[FoldedRecord]) -> list[FoldedRecord]:
-    """Merge each run of records of one Work, action and stage.
-
-    Args:
-        records: The records in the order of the history.
-
-    Returns:
-        The records, a run made one with the items united in order of appearance and
-        the result and the judge of the later record, or the earlier one's when the
-        later has none.
-    """
+    """Merge each run of records of one Work, action and stage."""
     merged: list[FoldedRecord] = []
     for record in records:
         if merged and _same_stage(merged[-1], record):
@@ -457,15 +326,7 @@ def _by_stage(records: list[FoldedRecord]) -> list[FoldedRecord]:
 
 
 def _same_stage(left: FoldedRecord, right: FoldedRecord) -> bool:
-    """Tell whether two records are of one Work, action and stage.
-
-    Args:
-        left: A folded record.
-        right: The record after it.
-
-    Returns:
-        Whether the Works, the actions and the stages are equal.
-    """
+    """Tell whether two records are of one Work, action and stage."""
     return (left.works, left.action, left.stage) == (
         right.works,
         right.action,
@@ -474,16 +335,7 @@ def _same_stage(left: FoldedRecord, right: FoldedRecord) -> bool:
 
 
 def _united(earlier: FoldedRecord, later: FoldedRecord) -> FoldedRecord:
-    """Make one record of two of one Work, action and stage.
-
-    Args:
-        earlier: The earlier record.
-        later: The record after it.
-
-    Returns:
-        The record with the items united in order of appearance and the result and
-        the judge of the later one, or the earlier one's when the later has none.
-    """
+    """Make one record of two of one Work, action and stage."""
     items = earlier.items + tuple(i for i in later.items if i not in earlier.items)
     return FoldedRecord(
         later.works,
@@ -496,17 +348,7 @@ def _united(earlier: FoldedRecord, later: FoldedRecord) -> FoldedRecord:
 
 
 def _by_work(records: list[FoldedRecord]) -> list[FoldedRecord]:
-    """Merge each run of records that differ only in the Work.
-
-    Args:
-        records: The records after `_by_stage`.
-
-    Returns:
-        The records, a run with one action, stage, items, result and judge made one
-        record for a list of the Works in the order of the history. A Work that a
-        list already names starts the next record, because a list names no Work
-        twice, so the Works `a, b, a, b` fold to the records `a, b` and `a, b`.
-    """
+    """Merge each run of records that differ only in the Work."""
     merged: list[FoldedRecord] = []
     for record in records:
         last = merged[-1] if merged else None
@@ -525,16 +367,7 @@ def _by_work(records: list[FoldedRecord]) -> list[FoldedRecord]:
 
 
 def _same_but_work(left: FoldedRecord, right: FoldedRecord) -> bool:
-    """Tell whether two records differ in nothing but the Work.
-
-    Args:
-        left: A folded record.
-        right: The record after it.
-
-    Returns:
-        Whether the action, the stage, the items, the result and the judge are
-        equal.
-    """
+    """Tell whether two records differ in nothing but the Work."""
     return (left.action, left.stage, left.items, left.result, left.judge) == (
         right.action,
         right.stage,
@@ -545,29 +378,13 @@ def _same_but_work(left: FoldedRecord, right: FoldedRecord) -> bool:
 
 
 def _paragraphs(folded: Folded) -> list[str]:
-    """Lay out each paragraph of the block.
-
-    Args:
-        folded: The fold of a range.
-
-    Returns:
-        The revert paragraphs and then the records as `render` lays them out, each
-        ending with one newline.
-    """
+    """Lay out each paragraph of the block."""
     reverts = [f"This reverts commit {commit}.\n" for commit in folded.reverts]
     return [*reverts, *(_laid_out(record) for record in folded.records)]
 
 
 def _laid_out(record: FoldedRecord) -> str:
-    """Lay out one folded record with the shared renderer.
-
-    Args:
-        record: A folded record.
-
-    Returns:
-        The paragraph, with the Works and the items joined by a comma and one space
-        and no line for a result or a judge that the record lacks.
-    """
+    """Lay out one folded record with the shared renderer."""
     fields = {
         "Wio-Work": ", ".join(record.works),
         "Wio-Action": record.action,
@@ -580,15 +397,7 @@ def _laid_out(record: FoldedRecord) -> str:
 
 
 def _split_body(body: str) -> tuple[str, str]:
-    """Cut a body into its prose and the paragraphs it ends with.
-
-    Args:
-        body: A pull request body.
-
-    Returns:
-        The prose without the whitespace after it, and the trailing record and
-        revert paragraphs laid out as `render_block` lays out a block.
-    """
+    """Cut a body into its prose and the paragraphs it ends with."""
     lines = body.splitlines(keepends=True)
     paragraphs: list[str] = []
     end = len(lines)
@@ -603,16 +412,7 @@ def _split_body(body: str) -> tuple[str, str]:
 
 
 def _last_paragraph(lines: list[str], end: int) -> tuple[int, int] | None:
-    """Find the last paragraph among the first lines of a body.
-
-    Args:
-        lines: The lines of the body, with their line ends.
-        end: The number of lines to look in.
-
-    Returns:
-        The position of its first line and the position after its last, or `None`
-        when those lines hold no text.
-    """
+    """Find the last paragraph among the first lines of a body."""
     last = end
     while last > 0 and not lines[last - 1].strip():
         last -= 1
@@ -623,15 +423,7 @@ def _last_paragraph(lines: list[str], end: int) -> tuple[int, int] | None:
 
 
 def _is_trailing(paragraph: list[str]) -> bool:
-    """Tell whether a paragraph is one that a fold puts at the end of a body.
-
-    Args:
-        paragraph: The lines of the paragraph, without their line ends.
-
-    Returns:
-        Whether it is a record paragraph, every line of which is a `Key: value`
-        trailer and one of which has a `Wio-` key, or exactly a revert line.
-    """
+    """Tell whether a paragraph is one that a fold puts at the end of a body."""
     if len(paragraph) == 1 and _REVERT_PARAGRAPH.fullmatch(paragraph[0]):
         return True
     return all(_TRAILER.fullmatch(line) for line in paragraph) and any(

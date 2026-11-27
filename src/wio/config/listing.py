@@ -60,17 +60,7 @@ def settings_of(config: Config, sources: Mapping[str, Source]) -> tuple[Setting,
 def _walk(
     node: object, path: str, description: str, sources: Mapping[str, Source]
 ) -> Iterator[Setting]:
-    """Walk a node of the config and yield the settings below it.
-
-    Args:
-        node: A table, a table of named entries or a value.
-        path: Its key path.
-        description: The description of the setting that holds it.
-        sources: The source of each key path.
-
-    Yields:
-        Each leaf setting that has a value.
-    """
+    """Walk a node of the config and yield the settings below it."""
     match node:
         case None:
             return
@@ -103,14 +93,7 @@ def quote(text: str) -> str:
 
 
 def _escape(text: str) -> str:
-    """Escape what a TOML basic string cannot hold as it is.
-
-    Args:
-        text: The string.
-
-    Returns:
-        The string without its quotes.
-    """
+    """Escape what a TOML basic string cannot hold as it is."""
     return _SPECIAL.sub(
         lambda found: _ESCAPES.get(found.group(), f"\\u{ord(found.group()):04x}"),
         text,
@@ -180,15 +163,7 @@ def short_line(setting: Setting) -> str:
 
 
 def _short(value: Value, room: int) -> str:
-    """Shorten a value to a number of columns.
-
-    Args:
-        value: The value.
-        room: The columns it may take.
-
-    Returns:
-        The value, shortened as needed, or `…` when nothing else fits.
-    """
+    """Shorten a value to a number of columns."""
     match value:
         case str():
             text = _short_string(value, room)
@@ -200,16 +175,7 @@ def _short(value: Value, room: int) -> str:
 
 
 def _short_string(value: str, room: int) -> str:
-    """Shorten a string to its first line, and to a number of columns.
-
-    Args:
-        value: The string.
-        room: The columns it may take, quotes included.
-
-    Returns:
-        The string in quotes, with `…` before the closing quote when it was
-        cut.
-    """
+    """Shorten a string to its first line, and to a number of columns."""
     first, cut, _ = value.partition("\n")
     escaped = _escape(first)
     if cut:
@@ -220,16 +186,7 @@ def _short_string(value: str, room: int) -> str:
 
 
 def _short_array(value: tuple[str, ...], room: int) -> str:
-    """Shorten an array by dropping the items from its end.
-
-    Args:
-        value: The items.
-        room: The columns it may take, brackets included.
-
-    Returns:
-        The array in full when it fits, otherwise as many leading items as fit
-        followed by `…`.
-    """
+    """Shorten an array by dropping the items from its end."""
     items = [toml_value(item) for item in value]
     for count in range(len(items), -1, -1):
         text = _array(items, count)
@@ -239,15 +196,7 @@ def _short_array(value: tuple[str, ...], room: int) -> str:
 
 
 def _array(items: list[str], count: int) -> str:
-    """Write the first items of an array, and `…` when others are left out.
-
-    Args:
-        items: The items, already in TOML syntax.
-        count: How many of them to keep.
-
-    Returns:
-        The array in brackets.
-    """
+    """Write the first items of an array, and `…` when others are left out."""
     kept = items[:count]
     if count < len(items):
         kept.append(_ELLIPSIS)

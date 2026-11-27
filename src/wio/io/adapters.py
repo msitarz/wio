@@ -156,16 +156,7 @@ _NEXT = "run wio from a directory inside the repository"
 
 
 def _check_directory(directory: Path) -> None:
-    """Check that the directory git is to run in exists and can be entered.
-
-    Args:
-        directory: The working directory the environment reported.
-
-    Raises:
-        RuntimeError: If it does not exist, is not a directory or cannot be
-            entered. The message names it, says which, and says to run wio
-            from inside the repository.
-    """
+    """Check that the directory git is to run in exists and can be entered."""
     if not directory.exists():
         message = f"the working directory {directory} does not exist; {_NEXT}"
         raise RuntimeError(message)
@@ -180,24 +171,7 @@ def _check_directory(directory: Path) -> None:
 def _run_git(
     environment: Environment, arguments: Sequence[str]
 ) -> subprocess.CompletedProcess[str]:
-    """Run git in the environment's working directory.
-
-    Args:
-        environment: Reports the working directory git runs in.
-        arguments: The arguments after `git`.
-
-    Returns:
-        The completed process, whatever its exit code, with its output decoded
-        as UTF-8 and its line endings left as git printed them, so a CRLF in a
-        file or a message is not turned into an LF.
-
-    Raises:
-        RuntimeError: If the working directory does not exist, is not a
-            directory or cannot be entered, or git cannot be run. The message
-            says what is wrong and what to do, and names the working directory
-            the environment reported, except when git cannot be run.
-        UnicodeDecodeError: If what git printed is not UTF-8 text.
-    """
+    """Run git in the environment's working directory."""
     directory = environment.working_directory()
     _check_directory(directory)
     try:
@@ -217,21 +191,7 @@ def _run_git(
 
 
 def _git_path(environment: Environment, *arguments: str) -> Path:
-    """Run `git rev-parse` in the environment's directory and read its path.
-
-    Args:
-        environment: Reports the working directory git runs in.
-        *arguments: The options after `git rev-parse`.
-
-    Returns:
-        The path git printed.
-
-    Raises:
-        RuntimeError: If the working directory does not exist, is not a
-            directory or is not inside a repository, or git cannot be run. Each
-            message says what is wrong and what to do, and names the working
-            directory the environment reported, except when git cannot be run.
-    """
+    """Run `git rev-parse` in the environment's directory and read its path."""
     done = _run_git(environment, ["rev-parse", *arguments])
     if done.returncode != 0:
         directory = environment.working_directory()
@@ -449,21 +409,7 @@ class GitHistory(_InWorkingDirectory):
 
 
 def _git_text(environment: Environment, *arguments: str) -> str:
-    """Run git in the environment's working directory and read its output.
-
-    Args:
-        environment: Reports the working directory git runs in.
-        *arguments: The arguments after `git`.
-
-    Returns:
-        What git printed, without its trailing newline.
-
-    Raises:
-        RuntimeError: If the working directory is not usable or not inside a
-            repository, or git cannot be run, as `GitRepository` says.
-        ValueError: If git rejects a revision or range among the arguments. The
-            message is git's own followed by the command, so it names them.
-    """
+    """Run git in the environment's working directory and read its output."""
     _git_path(environment, "--git-dir")
     done = _run_git(environment, arguments)
     if done.returncode != 0:
@@ -474,15 +420,7 @@ def _git_text(environment: Environment, *arguments: str) -> str:
 
 
 def _is_unborn_head(environment: Environment) -> bool:
-    """Tell whether `HEAD` is a symbolic reference to an absent branch.
-
-    Args:
-        environment: Reports the working directory git runs in.
-
-    Returns:
-        True only when `git symbolic-ref -q HEAD` prints a full reference and
-        `git show-ref --verify --quiet` exits 1 for that reference.
-    """
+    """Tell whether `HEAD` is a symbolic reference to an absent branch."""
     sym = _run_git(environment, ["symbolic-ref", "-q", "HEAD"])
     ref = sym.stdout.strip()
     if sym.returncode != 0 or not ref:
@@ -492,21 +430,7 @@ def _is_unborn_head(environment: Environment) -> bool:
 
 
 def _commits(environment: Environment, revision: str, *options: str) -> list[Commit]:
-    """Read the commits that `git log` lists for a revision or range.
-
-    Args:
-        environment: Reports the working directory git runs in.
-        revision: The revision or range.
-        *options: The `git log` options that choose the order.
-
-    Returns:
-        The commits in the order git printed them, each with its full id and its
-        message without the trailing newline.
-
-    Raises:
-        RuntimeError: As `_git_text`.
-        ValueError: As `_git_text`.
-    """
+    """Read the commits that `git log` lists for a revision or range."""
     out = _git_text(
         environment,
         "log",
@@ -521,19 +445,7 @@ def _commits(environment: Environment, revision: str, *options: str) -> list[Com
 
 
 def _paths(environment: Environment, revision: str) -> list[Path]:
-    """List the files of a revision's tree.
-
-    Args:
-        environment: Reports the working directory git runs in.
-        revision: The revision.
-
-    Returns:
-        The paths relative to the repository root, sorted by path.
-
-    Raises:
-        RuntimeError: As `_git_text`.
-        ValueError: As `_git_text`.
-    """
+    """List the files of a revision's tree."""
     out = _git_text(
         environment,
         "ls-tree",
@@ -548,20 +460,7 @@ def _paths(environment: Environment, revision: str) -> list[Path]:
 
 
 def _blob(environment: Environment, revision: str, path: Path) -> str | None:
-    """Read a file as it was at a revision.
-
-    Args:
-        environment: Reports the working directory git runs in.
-        revision: The revision.
-        path: The file, relative to the repository root.
-
-    Returns:
-        The content, or `None` when the revision has no such file.
-
-    Raises:
-        RuntimeError: As `_git_text`.
-        ValueError: As `_git_text`, and if the content is not UTF-8 text.
-    """
+    """Read a file as it was at a revision."""
     _git_text(
         environment,
         "rev-parse",
@@ -573,21 +472,7 @@ def _blob(environment: Environment, revision: str, path: Path) -> str | None:
 
 
 def _content(environment: Environment, spec: str) -> str | None:
-    """Read the object a `revision:path` or `:path` specification names.
-
-    Args:
-        environment: Reports the working directory git runs in.
-        spec: A specification such as `HEAD:a.txt`, or `:a.txt` for the index,
-            whose path is relative to the repository root.
-
-    Returns:
-        The content exactly as git stores it, or `None` when git finds no such
-        file, a directory included.
-
-    Raises:
-        RuntimeError: As `_git_text`.
-        ValueError: If the content is not UTF-8 text.
-    """
+    """Read the object a `revision:path` or `:path` specification names."""
     _git_path(environment, "--git-dir")
     done = _run_git(environment, ["cat-file", "blob", spec])
     return done.stdout if done.returncode == 0 else None

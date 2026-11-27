@@ -76,17 +76,7 @@ def resolve(config: Config, key: str) -> Target:
 
 
 def _parse(key: str) -> list[tuple[str, tuple[int, ...]]]:
-    """Split a key path into its keys and the list indices that follow them.
-
-    Args:
-        key: The key path, with TOML's quoting of a key that needs it.
-
-    Returns:
-        Each key and its indices, none for an empty key path.
-
-    Raises:
-        ConfigurationError: The key path is not made of keys joined by dots.
-    """
+    """Split a key path into its keys and the list indices that follow them."""
     if key and not _PATH.fullmatch(key):
         raise _malformed(key)
     parts = []
@@ -99,14 +89,7 @@ def _parse(key: str) -> list[tuple[str, tuple[int, ...]]]:
 
 
 def _malformed(key: str) -> ConfigurationError:
-    """Build the error of a key path that cannot be read.
-
-    Args:
-        key: The key path.
-
-    Returns:
-        An error that shows how to write one.
-    """
+    """Build the error of a key path that cannot be read."""
     return ConfigurationError(
         f"`{key}` is not a key path. Write keys joined by dots, such as "
         "`stages.define.goal`, and quote a key that holds anything but letters, "
@@ -115,29 +98,14 @@ def _malformed(key: str) -> ConfigurationError:
 
 
 def _is_table(node: object) -> bool:
-    """Tell whether a node is a table or a table of named entries.
-
-    Args:
-        node: A node of the config.
-
-    Returns:
-        True for a table and a table of named entries.
-    """
+    """Tell whether a node is a table or a table of named entries."""
     return isinstance(node, frozendict) or (
         dataclasses.is_dataclass(node) and not isinstance(node, type)
     )
 
 
 def _entries(node: object) -> dict[str, object] | None:
-    """List the keys of a table and their values.
-
-    Args:
-        node: A node of the config.
-
-    Returns:
-        The keys of a table or of a table of named entries, and `None` for a
-        value, which has no keys.
-    """
+    """List the keys of a table and their values."""
     match node:
         case frozendict():
             return {str(name): entry for name, entry in node.items()}
@@ -151,19 +119,7 @@ def _entries(node: object) -> dict[str, object] | None:
 
 
 def _child(node: object, path: str, name: str) -> object:
-    """Step from a table to one of its keys.
-
-    Args:
-        node: The node to step from.
-        path: Its key path.
-        name: The key to step to.
-
-    Returns:
-        The value of the key.
-
-    Raises:
-        ConfigurationError: The node has no such key, or is no table.
-    """
+    """Step from a table to one of its keys."""
     entries = _entries(node)
     if entries is None:
         message = f"`{path}` is a setting, so it has no key `{name}`."
@@ -174,28 +130,12 @@ def _child(node: object, path: str, name: str) -> object:
 
 
 def _refusal(message: str) -> ConfigurationError:
-    """Build the error of a key path that cannot be shown.
-
-    Args:
-        message: What is wrong and what to do.
-
-    Returns:
-        The error, which the command line reports as the user's to fix.
-    """
+    """Build the error of a key path that cannot be shown."""
     return ConfigurationError(message)
 
 
 def _unknown(path: str, name: str, names: Sequence[str]) -> ConfigurationError:
-    """Build the error of a key a table does not have.
-
-    Args:
-        path: The key path of the table.
-        name: The key asked for.
-        names: The keys the table has.
-
-    Returns:
-        An error that names the closest match, if any, and the valid keys.
-    """
+    """Build the error of a key a table does not have."""
     wanted = join_path(path, name)
     where = f"`{path}`" if path else _TOP
     message = f"no setting `{wanted}`."
@@ -212,17 +152,7 @@ def _unknown(path: str, name: str, names: Sequence[str]) -> ConfigurationError:
 
 
 def _check_value(node: object, path: str, indices: tuple[int, ...]) -> None:
-    """Refuse an optional setting that is not set, and an index into a list.
-
-    Args:
-        node: The value at the key path.
-        path: The key path.
-        indices: The list indices that followed the last key.
-
-    Raises:
-        ConfigurationError: The setting is not set, or an index follows a key
-            that holds a list or no list.
-    """
+    """Refuse an optional setting that is not set, and an index into a list."""
     if node is None:
         message = (
             f"`{path}` is an optional setting and it is not set, so there is "

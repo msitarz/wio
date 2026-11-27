@@ -66,15 +66,7 @@ def read_outline(body: str, start_line: int) -> tuple[Heading, ...]:
 
 
 def _is_real_heading(token: Token) -> bool:
-    """Tell whether a token opens a real heading.
-
-    Args:
-        token: A token of the parsed body.
-
-    Returns:
-        Whether it opens an ATX heading at the top level, so not a setext heading
-        and not one nested in a quote or a list.
-    """
+    """Tell whether a token opens a real heading."""
     return (
         token.type == "heading_open"
         and token.level == 0
@@ -85,17 +77,7 @@ def _is_real_heading(token: Token) -> bool:
 def _heading(
     inline: Token, opening: Token, lines: list[str], start_line: int
 ) -> Heading:
-    """Build the heading that a token opens.
-
-    Args:
-        inline: The token after the opening one, which holds the text.
-        opening: The token that opens the heading.
-        lines: The lines of the body, without their line endings.
-        start_line: The line of the file on which the body starts.
-
-    Returns:
-        The heading, with its line counted in the file.
-    """
+    """Build the heading that a token opens."""
     first = (opening.map or [0])[0]
     return Heading(
         level=cast("HeadingLevel", len(opening.markup)),

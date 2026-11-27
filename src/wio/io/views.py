@@ -193,16 +193,7 @@ class ReadOnlyFiles(PathResolution, ABC):
         return [path / name for name in sorted(names)]
 
     def _relative(self, path: Path) -> Path:
-        """Make a path relative to the root of the view.
-
-        Args:
-            path: An absolute path. A relative one, like one outside the root, is
-                no path of the view.
-
-        Returns:
-            The path below the root, which no file of the view has when the path
-            is outside the root.
-        """
+        """Make a path relative to the root of the view."""
         try:
             return path.relative_to(self.root)
         except ValueError:
@@ -293,16 +284,7 @@ class IndexFiles(ReadOnlyFiles):
         return self._listing
 
     def _is_staged(self, path: Path) -> bool:
-        """Tell whether the index holds a file, whatever its content is.
-
-        Args:
-            path: A candidate, relative to the root.
-
-        Returns:
-            True when the index has the file, including one that is not UTF-8
-            text, which is reported when it is read and keeps no other file from
-            being listed.
-        """
+        """Tell whether the index holds a file, whatever its content is."""
         try:
             return self.content(path) is not None
         except UnicodeDecodeError:
@@ -345,12 +327,5 @@ class IndexFiles(ReadOnlyFiles):
 
 
 def _read_only(path: Path) -> PermissionError:
-    """Make the error of a write to a view.
-
-    Args:
-        path: The path that was written to.
-
-    Returns:
-        The error to raise.
-    """
+    """Make the error of a write to a view."""
     return PermissionError(f"{path}: a view of a repository is read-only")

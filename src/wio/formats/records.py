@@ -81,18 +81,7 @@ def check_shape(message: str, reader: Reader) -> list[Finding]:
 
 
 def _paragraphs(message: str, *, last_only: bool) -> Reading:
-    """Split a message into paragraphs and take its records from them.
-
-    Args:
-        message: The whole commit message, or a pull request body.
-        last_only: Take only the trailers of the last paragraph, as the `git`
-            reader does, instead of every paragraph made only of `Wio-` lines,
-            outside fenced code blocks, as the `scan` reader does.
-
-    Returns:
-        The records, and the `Wio-` lines the reader would take for a record
-        but does not.
-    """
+    """Split a message into paragraphs and take its records from them."""
     blocks = _blocks(message, skip_quoted=not last_only)
     records: list[Record] = []
     rejected: list[Trailer] = []
@@ -107,16 +96,7 @@ def _paragraphs(message: str, *, last_only: bool) -> Reading:
 
 
 def _blocks(message: str, *, skip_quoted: bool) -> list[_Block]:
-    """Cut a message into paragraphs at its blank lines.
-
-    Args:
-        message: The whole commit message.
-        skip_quoted: Leave out the lines of fenced code blocks, which also end
-            a paragraph, and the lines that start with `#`.
-
-    Returns:
-        The non-empty paragraphs, each with the numbers of its lines.
-    """
+    """Cut a message into paragraphs at its blank lines."""
     kept = _kept(message, skip_quoted=skip_quoted)
     return [
         [line for line in g if line] for cut, g in groupby(kept, key=_is_cut) if not cut
@@ -124,29 +104,12 @@ def _blocks(message: str, *, skip_quoted: bool) -> list[_Block]:
 
 
 def _is_cut(line: tuple[int, str] | None) -> bool:
-    """Tell whether an entry of `_kept` ends a paragraph.
-
-    Args:
-        line: An entry of `_kept`.
-
-    Returns:
-        True for the separator entry `None`.
-    """
+    """Tell whether an entry of `_kept` ends a paragraph."""
     return line is None
 
 
 def _kept(message: str, *, skip_quoted: bool) -> Iterator[tuple[int, str] | None]:
-    """Walk the lines of a message, marking where paragraphs end.
-
-    Args:
-        message: The whole commit message.
-        skip_quoted: Drop the lines of fenced code blocks and the lines that
-            start with `#`, and end a paragraph at each fence.
-
-    Yields:
-        `None` at a blank line or a fence, and each other kept line with its
-        1-based number.
-    """
+    """Walk the lines of a message, marking where paragraphs end."""
     fenced = False
     for number, text in enumerate(message.splitlines(), start=1):
         opens = skip_quoted and _FENCE.match(text) is not None
@@ -158,29 +121,12 @@ def _kept(message: str, *, skip_quoted: bool) -> Iterator[tuple[int, str] | None
 
 
 def _dropped(text: str, *, fenced: bool, skip_quoted: bool) -> bool:
-    """Tell whether the `scan` reader leaves a line out.
-
-    Args:
-        text: The line.
-        fenced: Whether the line is inside a fenced code block.
-        skip_quoted: Whether the reader leaves such lines out at all.
-
-    Returns:
-        True for a line in a fenced block or one that starts with `#`.
-    """
+    """Tell whether the `scan` reader leaves a line out."""
     return skip_quoted and (fenced or text.startswith("#"))
 
 
 def _parse(number: int, text: str) -> Trailer | None:
-    """Read a line as a `Key: value` trailer.
-
-    Args:
-        number: The 1-based number of the line in the message.
-        text: The line.
-
-    Returns:
-        The trailer, or `None` when the line is not one.
-    """
+    """Read a line as a `Key: value` trailer."""
     match = _TRAILER.fullmatch(text)
     if match is None:
         return None
@@ -188,28 +134,13 @@ def _parse(number: int, text: str) -> Trailer | None:
 
 
 def _wio_lines(block: _Block) -> tuple[Trailer, ...]:
-    """Find the `Wio-` trailers among the lines of a paragraph.
-
-    Args:
-        block: A paragraph.
-
-    Returns:
-        The lines that are trailers with a `Wio-` key, in order.
-    """
+    """Find the `Wio-` trailers among the lines of a paragraph."""
     parsed = (_parse(number, text) for number, text in block)
     return tuple(t for t in parsed if t is not None and t.key.startswith("Wio-"))
 
 
 def _as_record(block: _Block) -> Record | None:
-    """Take a paragraph as a record when every line is a trailer.
-
-    Args:
-        block: A paragraph.
-
-    Returns:
-        The record of its `Wio-` lines, or `None` when a line is not a trailer
-        or no key starts with `Wio-`.
-    """
+    """Take a paragraph as a record when every line is a trailer."""
     parsed = [_parse(number, text) for number, text in block]
     if any(t is None for t in parsed):
         return None
@@ -218,15 +149,7 @@ def _as_record(block: _Block) -> Record | None:
 
 
 def _judge_record(record: Record) -> list[Finding]:
-    """Judge the keys and the values of one record.
-
-    Args:
-        record: A record as the reader gave it.
-
-    Returns:
-        The `malformed` and `unknown-key` findings of the record, in the order
-        of its lines.
-    """
+    """Judge the keys and the values of one record."""
     unique, findings = _first_of_each(record.trailers)
     findings += [_unknown(t) for t in unique.values() if t.key not in _KNOWN]
     work = unique.get("Wio-Work")
@@ -238,15 +161,7 @@ def _judge_record(record: Record) -> list[Finding]:
 def _first_of_each(
     trailers: Iterable[Trailer],
 ) -> tuple[dict[str, Trailer], list[Finding]]:
-    """Take the first trailer of each key and report the repeats.
-
-    Args:
-        trailers: The `Wio-` lines of a record.
-
-    Returns:
-        The first trailer of each key, and a `malformed` finding for each later
-        one.
-    """
+    """Take the first trailer of each key and report the repeats."""
     unique: dict[str, Trailer] = {}
     repeats: list[Finding] = []
     for trailer in trailers:
@@ -258,14 +173,7 @@ def _first_of_each(
 
 
 def _bad_values(unique: dict[str, Trailer]) -> list[Finding]:
-    """Judge the form of the value of each known key.
-
-    Args:
-        unique: The first trailer of each key of a record.
-
-    Returns:
-        A `malformed` finding for each value of the wrong form.
-    """
+    """Judge the form of the value of each known key."""
     found = []
     for key, trailer in unique.items():
         check = _VALUE_CHECKS.get(key)
@@ -276,16 +184,7 @@ def _bad_values(unique: dict[str, Trailer]) -> list[Finding]:
 
 
 def _missing(unique: dict[str, Trailer], first: Trailer) -> list[Finding]:
-    """Find the keys a record of a Work needs and does not have.
-
-    Args:
-        unique: The first trailer of each key of a record.
-        first: The first line of the record, where a missing key is reported.
-
-    Returns:
-        A `malformed` finding for each missing `Wio-Work`, `Wio-Action` or
-        `Wio-Stage`, and one for a `Wio-Judge` with no `Wio-Result`.
-    """
+    """Find the keys a record of a Work needs and does not have."""
     needed = ("Wio-Work", *(_NEEDS_WORK if "Wio-Work" in unique else ()))
     found = [
         _malformed(first, f"`{key}` is missing from the record.", key)
@@ -299,14 +198,7 @@ def _missing(unique: dict[str, Trailer], first: Trailer) -> list[Finding]:
 
 
 def _forbidden(unique: dict[str, Trailer]) -> list[Finding]:
-    """Find the keys that a `Wio-Work: none` record must not have.
-
-    Args:
-        unique: The first trailer of each key of a record.
-
-    Returns:
-        A `malformed` finding for each key besides `Wio-Work`.
-    """
+    """Find the keys that a `Wio-Work: none` record must not have."""
     return [
         _malformed(t, f"`{t.key}` is not allowed in a `Wio-Work: none` record.")
         for key, t in unique.items()
@@ -315,14 +207,7 @@ def _forbidden(unique: dict[str, Trailer]) -> list[Finding]:
 
 
 def _work_problem(value: str) -> str | None:
-    """Judge the value of `Wio-Work`.
-
-    Args:
-        value: `none`, an id or ids separated by a comma and one space.
-
-    Returns:
-        What is wrong, or `None` when the value is fine.
-    """
+    """Judge the value of `Wio-Work`."""
     if value == "none":
         return None
     ids = value.split(", ")
@@ -334,54 +219,25 @@ def _work_problem(value: str) -> str | None:
 
 
 def _bad_id(value: str) -> bool:
-    """Tell whether a value is not an id.
-
-    Args:
-        value: A candidate id.
-
-    Returns:
-        True when it is empty or holds whitespace or a comma.
-    """
+    """Tell whether a value is not an id."""
     return not value or re.search(r"[\s,]", value) is not None
 
 
 def _name_problem(value: str) -> str | None:
-    """Judge a name: an action, a stage or a result.
-
-    Args:
-        value: The value.
-
-    Returns:
-        What is wrong, or `None` for lowercase letters, digits and hyphens that
-        start with a letter or a digit.
-    """
+    """Judge a name: an action, a stage or a result."""
     ok = _NAME.fullmatch(value) is not None
     return None if ok else "must be lowercase letters, digits and hyphens"
 
 
 def _items_problem(value: str) -> str | None:
-    """Judge the value of `Wio-Items`.
-
-    Args:
-        value: Item ids separated by a comma and one space.
-
-    Returns:
-        What is wrong, or `None` when the value is fine.
-    """
+    """Judge the value of `Wio-Items`."""
     if any(_bad_id(i) for i in value.split(", ")):
         return "must be ids separated by a comma and one space"
     return None
 
 
 def _judge_problem(value: str) -> str | None:
-    """Judge the value of `Wio-Judge`.
-
-    Args:
-        value: The value.
-
-    Returns:
-        What is wrong, or `None` for `human` or `agent`.
-    """
+    """Judge the value of `Wio-Judge`."""
     return None if value in {"human", "agent"} else "must be `human` or `agent`"
 
 
@@ -401,54 +257,21 @@ def _finding(
     message: str,
     key: str | None = None,
 ) -> Finding:
-    """Make a finding at a line.
-
-    Args:
-        kind: The kind of finding.
-        trailer: The line the finding is at.
-        message: What is wrong, as a sentence.
-        key: The key at fault, when it is not the line's own.
-
-    Returns:
-        The finding.
-    """
+    """Make a finding at a line."""
     return Finding(kind, key or trailer.key, trailer.text, trailer.number, message)
 
 
 def _malformed(trailer: Trailer, message: str, key: str | None = None) -> Finding:
-    """Make a `malformed` finding at a line.
-
-    Args:
-        trailer: The line the finding is at.
-        message: What is wrong, as a sentence.
-        key: The key at fault, when it is not the line's own.
-
-    Returns:
-        The finding.
-    """
+    """Make a `malformed` finding at a line."""
     return _finding("malformed", trailer, message, key)
 
 
 def _unknown(trailer: Trailer) -> Finding:
-    """Make an `unknown-key` finding at a line.
-
-    Args:
-        trailer: The line with a `Wio-` key the engine does not define.
-
-    Returns:
-        The finding.
-    """
+    """Make an `unknown-key` finding at a line."""
     return _finding("unknown-key", trailer, f"`{trailer.key}` is not a key.")
 
 
 def _invisible(line: Trailer) -> Finding:
-    """Report a `Wio-` line that the reader rejected.
-
-    Args:
-        line: The rejected line.
-
-    Returns:
-        The `invisible` finding that says why no reader would see the line.
-    """
+    """Report a `Wio-` line that the reader rejected."""
     message = f"`{line.key}` is in no record that the configured reader reads."
     return _finding("invisible", line, message)

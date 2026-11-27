@@ -77,16 +77,7 @@ def identify(log: Log, environment: Environment, stdio: Stdio) -> SessionIdentit
 def _read_ids(
     log: Log, environment: Environment, override: str | None
 ) -> dict[str, str]:
-    """Read each configured id variable once, retaining set values in order.
-
-    Args:
-        log: The mappings and extra variable names in config order.
-        environment: The source of variable values.
-        override: The preference variable's already-read value.
-
-    Returns:
-        All set values in first occurrence order.
-    """
+    """Read each configured id variable once, retaining set values in order."""
     mapped = chain.from_iterable(
         harness.session + harness.parent for harness in log.harnesses.values()
     )
@@ -100,17 +91,7 @@ def _read_ids(
 
 
 def _preference(log: Log, override: str | None, stdio: Stdio) -> tuple[str, ...]:
-    """Choose the preference used to resolve several matches.
-
-    Args:
-        log: Config preference and known harness names.
-        override: The raw value of the preference variable.
-        stdio: The streams used to warn about unknown names.
-
-    Returns:
-        The config preference for an absent or empty override, an empty
-        preference for `none`, or the override names in listed order.
-    """
+    """Choose the preference used to resolve several matches."""
     value = (override or "").strip()
     if value == "none":
         return ()
@@ -131,15 +112,7 @@ def _preference(log: Log, override: str | None, stdio: Stdio) -> tuple[str, ...]
 def _choose_harness(
     matches: tuple[str, ...], preference: tuple[str, ...]
 ) -> str | None:
-    """Resolve the selected harness from its matches and preference.
-
-    Args:
-        matches: The matching harness names in config order.
-        preference: Harness names in preference order.
-
-    Returns:
-        The sole match, the first preferred match, or None if unresolved.
-    """
+    """Resolve the selected harness from its matches and preference."""
     if len(matches) == 1:
         return matches[0]
     return next((name for name in preference if name in matches), None)
@@ -148,15 +121,7 @@ def _choose_harness(
 def _session_fields(
     harness: Harness, ids: Mapping[str, str]
 ) -> tuple[str | None, str | None]:
-    """Derive the first set session and any distinct first set parent.
-
-    Args:
-        harness: The selected harness with ordered session and parent variables.
-        ids: Set values by variable name.
-
-    Returns:
-        The session and parent, using None for an absent or equal parent.
-    """
+    """Derive the first set session and any distinct first set parent."""
     session = next(ids[name] for name in harness.session if name in ids)
     parent = next((ids[name] for name in harness.parent if name in ids), None)
     return session, parent if parent != session else None

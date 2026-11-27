@@ -39,72 +39,18 @@ _RESERVED_ID: Final = "none"
 def check_works(
     root: Path, config: Config, files: FileSystem, catalog: TemplateCatalog
 ) -> tuple[Diagnostic, ...]:
-    """Find every problem of the Works, of their graph and of their metadata.
+    """Validate all Works, their dependency graph, metadata, and bodies.
 
-    It runs discovery and the hierarchy, and then one check for each concern of
-    each Work, and reads and writes nothing else than through `files`. A problem
-    found in one Work or by one check stops no other, and a Work with an error
-    still gets the rest. Each Work's file is read again exactly once, and the
-    block that it gives is shared by every concern, so that a file that cannot be
-    read gives one error. Each template's `[actions]` are read at most once,
-    however many Works follow it. What discovery and the hierarchy report is
-    carried through and is not found again, and a check that depends on something
-    already reported is skipped: the resolved actions of a Work whose template is
-    missing, rejected or unreadable for its `[actions]`, or whose `template` or
-    `[actions]` discovery reported as being of a wrong type, and the roots of a
-    Work whose `roots` was reported. Which fields discovery reported is told by
-    type-testing the block, which each Work's file is read for again; a file that
-    cannot be read the second time is one error at the file, `The file cannot be
-    read: <reason>`, or `The file is not valid UTF-8`, as discovery words them.
-    Each diagnostic of this function names the Work's file as its place, without a
-    line, except the error of a block that cannot be parsed the second time, which
-    names the line as discovery does. The body of each contract is checked in the
-    same call by `BodyChecker` in `body.py`, which is given the block that was
-    read and the template that was judged.
-
-    The checks of the metadata are these, each for every Work:
-
-    - An unknown key of the metadata is a warning, ``Unknown key `k` in the
-      metadata``, with ``. Did you mean `depends_on`?`` when `closest_key` finds
-      one among `id`, `template`, `roots`, `depends_on` and `actions`. The table
-      `[x]` and the key `tracks` are exempt and never suggested, a plain key `x`
-      is unknown, and the `wio` marker is not a key.
-    - An id that holds a character for which `str.isspace()` is true, or a comma,
-      is an error, ``The id `a b` holds whitespace or a comma``, and so is the id
-      `none`, ``The id `none` is reserved for commits that belong to no Work``.
-    - A template that the catalog rejects is an error, ``The template `bad` is
-      rejected by `wio templates check`; run it for the findings``, and one that
-      it does not have is ``The template `nosuch` does not exist``.
-    - A name in the Work's own `[actions]` is an error when it is not declared in
-      the config: ``The action `a` is not declared in `[actions]` of the config``,
-      ``The stage preset `p` of action `a` is not declared``, ``The stage `s` of
-      action `a` is not declared``, and a stage twice in a list of stages that the
-      Work or its template gives is ``The stage `s` appears twice in action `a```.
-      A stage preset or a config default is not judged for repeats.
-    - The actions that the Work resolves to, its template's under a named
-      template and the config defaults under none, with its own over them, are an
-      error, ``The Work resolves to no action``, when none is left.
-    - A root that the Work names and the config does not declare is an error,
-      ``The root `r` is not declared in `[roots]` of the config``, and
-      `@descendants` is not a root. `@descendants` in a leaf is a warning, ``The
-      Work has no children, so `@descendants` adds no root``. A parent whose
-      resolved roots leave out a root that its descendants' resolved roots hold
-      gets one note for each, ``Its roots leave out `r`, which a descendant
-      uses``, declared or not, and none when its own `roots` was reported.
-
-    Args:
-        root: The repository root.
-        config: The settings, which declare the actions, stage presets, stages and
-            roots, the hierarchy mode, the Works directory and the defaults.
-        files: The port that reads the Works' files and the templates' files.
-        catalog: The port that finds a template and says whether it is rejected.
+    Runs discovery, hierarchy building, metadata checks (keys, ids, templates,
+    actions, roots), and body checks via `BodyChecker`. Collects all findings
+    in one pass without short-circuiting, skipping only checks whose inputs
+    already failed discovery.
 
     Returns:
-        Every diagnostic, the errors of discovery and of the graph and the
-        findings of the checks together, in the order of `order_diagnostics`.
+        All diagnostics ordered by `order_diagnostics`.
 
     Raises:
-        ConfigurationError: The catalog could not load the config.
+        ConfigurationError: If the template catalog cannot load the config.
     """
     discovery = discover_works(root, config.works, files)
     found = build_hierarchy(discovery.works, config.works.hierarchy)
@@ -155,18 +101,7 @@ class _Templates:
 
 @dataclass(frozen=True)
 class _Run:
-    """What every check of one run reads from.
-
-    Attributes:
-        root: The repository root.
-        config: The settings.
-        files: The port that reads the Works' files and the templates' files.
-        catalog: The port that judges a template.
-        found: The hierarchy of all the Works.
-        templates: The actions of the templates, each read at most once.
-        bodies: The check of the bodies, which reads each template's sections at
-            most once.
-    """
+    """What every check of one run reads from."""
 
     root: Path
     config: Config
@@ -178,16 +113,7 @@ class _Run:
 
 
 def _check_work(work: Work, run: _Run) -> list[Diagnostic]:
-    """Run every check on one Work, none stopping another.
-
-    Args:
-        work: The Work.
-        run: What the checks read from.
-
-    Returns:
-        The findings about the Work, in any order. A file that cannot be read the
-        second time is the one error it gives.
-    """
+    """Run every check on one Work, none stopping another."""
     block = _reread(run.root, work, run.files)
     if isinstance(block, Diagnostic):
         return [block]
@@ -206,17 +132,7 @@ def _check_work(work: Work, run: _Run) -> list[Diagnostic]:
 
 
 def _reread(root: Path, work: Work, files: FileSystem) -> MetadataBlock | Diagnostic:
-    """Read a Work's block again, once.
-
-    Args:
-        root: The repository root.
-        work: The Work.
-        files: The port that reads the file.
-
-    Returns:
-        The block, or the error at the file for one that cannot be read, decoded
-        or parsed the second time.
-    """
+    """Read a Work's block again, once."""
     place = work.path.as_posix()
     try:
         block = read_metadata_block(files.read_text(root / work.path))
@@ -233,16 +149,7 @@ def _reread(root: Path, work: Work, files: FileSystem) -> MetadataBlock | Diagno
 
 
 def _key_warnings(work: Work, block: MetadataBlock) -> list[Diagnostic]:
-    """Warn of each key of the metadata that wio does not know.
-
-    Args:
-        work: The Work, for the place.
-        block: Its block.
-
-    Returns:
-        A warning for each unknown key with the closest known key when there is
-        one, none for the table `x` and the key `tracks`.
-    """
+    """Warn of each key of the metadata that wio does not know."""
     place = work.path.as_posix()
     return [
         Diagnostic("warning", place, _unknown_key(key))
@@ -252,42 +159,19 @@ def _key_warnings(work: Work, block: MetadataBlock) -> list[Diagnostic]:
 
 
 def _exempt(key: str, value: object) -> bool:
-    """Tell whether a key that wio does not read is left alone.
-
-    Args:
-        key: The key of the block.
-        value: What it holds.
-
-    Returns:
-        Whether it is `tracks`, or `x` as a table.
-    """
+    """Tell whether a key that wio does not read is left alone."""
     return key == "tracks" or (key == "x" and isinstance(value, dict))
 
 
 def _unknown_key(key: str) -> str:
-    """Word the warning for an unknown key.
-
-    Args:
-        key: The key.
-
-    Returns:
-        The message, with the closest known key when there is one.
-    """
+    """Word the warning for an unknown key."""
     message = f"Unknown key `{key}` in the metadata"
     close = closest_key(key, _KNOWN_KEYS)
     return f"{message}. Did you mean `{close}`?" if close else message
 
 
 def _id_error(work: Work) -> list[Diagnostic]:
-    """Refuse an id that would break a record.
-
-    Args:
-        work: The Work.
-
-    Returns:
-        One error for an id that holds whitespace or a comma, one for `none`, and
-        an empty list for another id.
-    """
+    """Refuse an id that would break a record."""
     place = work.path.as_posix()
     if any(char.isspace() or char == "," for char in work.id):
         message = f"The id `{work.id}` holds whitespace or a comma"
@@ -301,17 +185,7 @@ def _id_error(work: Work) -> list[Diagnostic]:
 def _template_errors(
     work: Work, catalog: TemplateCatalog
 ) -> tuple[Template | None, list[Diagnostic]]:
-    """Judge the template that a Work names.
-
-    Args:
-        work: The Work.
-        catalog: The port that finds a template and says whether it is rejected.
-
-    Returns:
-        The template when the Work names one that exists and is not rejected, and
-        `None` otherwise, with the error for a template that is missing or
-        rejected and none for a Work that names no template.
-    """
+    """Judge the template that a Work names."""
     name = work.template
     if name is None:
         return None, []
@@ -329,17 +203,7 @@ def _template_errors(
 
 
 def _named_errors(work: Work, config: Config) -> list[Diagnostic]:
-    """Check the names in a Work's own `[actions]` against the config.
-
-    Args:
-        work: The Work.
-        config: The settings, which declare the actions, stage presets and stages.
-
-    Returns:
-        An error for each action, stage preset and stage that is not declared and
-        for a stage that a list gives twice. It runs for every Work, whatever its
-        template.
-    """
+    """Check the names in a Work's own `[actions]` against the config."""
     place = work.path.as_posix()
     messages: list[str] = []
     for name, pipeline in work.actions.items():
@@ -352,17 +216,7 @@ def _named_errors(work: Work, config: Config) -> list[Diagnostic]:
 
 
 def _pipeline_problems(action: str, pipeline: Pipeline, config: Config) -> list[str]:
-    """Judge one pipeline that a Work or a template gives.
-
-    Args:
-        action: The action's name.
-        pipeline: A stage preset id, or the stages of the action.
-        config: The settings, which declare the stage presets and stages.
-
-    Returns:
-        The messages: a stage preset that is not declared, a stage that is not
-        declared, each once, and a stage that appears twice, each once.
-    """
+    """Judge one pipeline that a Work or a template gives."""
     if isinstance(pipeline, str):
         if pipeline in config.stage_presets:
             return []
@@ -381,14 +235,7 @@ def _pipeline_problems(action: str, pipeline: Pipeline, config: Config) -> list[
 
 
 def _repeated(stages: tuple[str, ...]) -> list[str]:
-    """Name each stage that a list of stages gives twice.
-
-    Args:
-        stages: The stages.
-
-    Returns:
-        Each repeated stage once, in the order of its first repeat.
-    """
+    """Name each stage that a list of stages gives twice."""
     seen: set[str] = set()
     return list(dict.fromkeys(s for s in stages if s in seen or seen.add(s)))
 
@@ -396,21 +243,7 @@ def _repeated(stages: tuple[str, ...]) -> list[str]:
 def _resolved_errors(
     work: Work, template: Template | None, wrong: frozenset[str], run: _Run
 ) -> list[Diagnostic]:
-    """Check what a Work resolves to.
-
-    Args:
-        work: The Work.
-        template: The template that `_template_errors` gave.
-        wrong: The fields that discovery reported.
-        run: What the checks read from, for the defaults and the template's
-            actions.
-
-    Returns:
-        The repeats of a stage that the Work inherits from its template, and the
-        error that the Work resolves to no action. Nothing for a Work that names a
-        template that is not usable, whose template or `[actions]` was reported, or
-        whose template's file cannot be read for its `[actions]`.
-    """
+    """Check what a Work resolves to."""
     if {"template", "actions"} & wrong or (work.template and template is None):
         return []
     inherited, source = _inherited(template, run)
@@ -425,15 +258,7 @@ def _resolved_errors(
 
 
 def _inherited_repeats(resolved: tuple[ResolvedAction, ...]) -> list[str]:
-    """Name the repeats of a stage that a Work inherits from its template.
-
-    Args:
-        resolved: The actions that the Work resolves to.
-
-    Returns:
-        A message for each stage that a template's list gives twice. A list that
-        the Work gives, and a config default, are not judged here.
-    """
+    """Name the repeats of a stage that a Work inherits from its template."""
     return [
         f"The stage `{stage}` appears twice in action `{entry.name}`"
         for entry in resolved
@@ -445,17 +270,7 @@ def _inherited_repeats(resolved: tuple[ResolvedAction, ...]) -> list[str]:
 def _inherited(
     template: Template | None, run: _Run
 ) -> tuple[Mapping[str, Pipeline] | None, Literal["template", "defaults"]]:
-    """Find the actions that a Work inherits.
-
-    Args:
-        template: The template that the Work names, or `None` for none.
-        run: What the checks read from.
-
-    Returns:
-        The template's actions, or the config defaults for a Work that names no
-        template, and which of the two they are. `None` for a template whose file
-        cannot be read for its `[actions]`.
-    """
+    """Find the actions that a Work inherits."""
     if template is None:
         return run.config.works.defaults.actions, "defaults"
     return run.templates.actions(template), "template"
@@ -464,19 +279,7 @@ def _inherited(
 def _root_errors(
     work: Work, wrong: frozenset[str], config: Config, found: Hierarchy
 ) -> list[Diagnostic]:
-    """Check the roots a Work names and the roots its descendants use.
-
-    Args:
-        work: The Work.
-        wrong: The fields that discovery reported.
-        config: The settings, which declare the roots.
-        found: The hierarchy, which resolves the roots.
-
-    Returns:
-        An error for each root that is not declared, a warning for `@descendants`
-        in a leaf, and one note for each root of the descendants that the Work's
-        resolved roots leave out, none when its `roots` was reported.
-    """
+    """Check the roots a Work names and the roots its descendants use."""
     place = work.path.as_posix()
     undeclared = [
         Diagnostic(
@@ -492,15 +295,7 @@ def _root_errors(
 
 
 def _leaf_warning(work: Work, found: Hierarchy) -> list[Diagnostic]:
-    """Warn of `@descendants` in a Work that has no children.
-
-    Args:
-        work: The Work.
-        found: The hierarchy.
-
-    Returns:
-        The warning, or an empty list.
-    """
+    """Warn of `@descendants` in a Work that has no children."""
     if DESCENDANTS not in work.roots or found.children[work.path]:
         return []
     message = "The Work has no children, so `@descendants` adds no root"
@@ -508,15 +303,7 @@ def _leaf_warning(work: Work, found: Hierarchy) -> list[Diagnostic]:
 
 
 def _omission_notes(work: Work, found: Hierarchy) -> list[Diagnostic]:
-    """Note each root of the descendants that a Work's roots leave out.
-
-    Args:
-        work: The Work.
-        found: The hierarchy.
-
-    Returns:
-        One note for each, at the Work's file.
-    """
+    """Note each root of the descendants that a Work's roots leave out."""
     place = work.path.as_posix()
     return [
         Diagnostic(
@@ -527,16 +314,7 @@ def _omission_notes(work: Work, found: Hierarchy) -> list[Diagnostic]:
 
 
 def _omitted_roots(work: Work, found: Hierarchy) -> list[str]:
-    """Find the roots of the descendants that a Work's own roots leave out.
-
-    Args:
-        work: The Work.
-        found: The hierarchy, which resolves the roots.
-
-    Returns:
-        The roots that some descendant resolves to and that the Work does not,
-        sorted, whether or not the config declares them.
-    """
+    """Find the roots of the descendants that a Work's own roots leave out."""
     used = {
         root for kid in found.descendants[work.path] for root in found.roots[kid.path]
     }

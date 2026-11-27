@@ -31,26 +31,6 @@ def group_rules(
 ) -> tuple[RuleGroup, ...]:
     """Group the included rules of a selection by their exact set of roots.
 
-    A rule that the selection leaves out is in no group, and an included rule is
-    in exactly one. The rules that need no root come first, under
-    `Rules for every root:`. The other groups follow in the order of their root
-    names compared one by one, a shorter list before a longer one that it
-    begins, so the order of the config never changes the result. Their lines are
-    `Rules for root <name> (<paths>):` for one root and
-    `Rules for roots <name>, <name> (<paths>):` for several, with the paths in
-    the order of the root names and, within a root, of the config. A root may
-    have no path and then adds none; the line of a group whose roots have no path
-    names them alone, as `Rules for root <name>:` or
-    `Rules for roots <name>, <name>:`.
-
-    Args:
-        selection: The rules with their decisions, whose included rules name the
-            roots that reach them, none for a root-independent one.
-        roots: The roots of the config by name, which gives their paths.
-
-    Returns:
-        The groups, none for a selection that includes no rule.
-
     Raises:
         KeyError: If an included rule names a root that `roots` does not hold,
             which a selection made with the same config never does.
@@ -66,16 +46,7 @@ def group_rules(
 
 
 def _line(names: tuple[str, ...], roots: Mapping[str, Root]) -> str:
-    """Write the line that introduces a group.
-
-    Args:
-        names: The names of the group's roots in their order; none for the
-            rules that need no root.
-        roots: The roots of the config by name.
-
-    Returns:
-        The group line.
-    """
+    """Write the line that introduces a group."""
     if not names:
         return "Rules for every root:"
     paths = ", ".join(path for name in names for path in roots[name].paths)

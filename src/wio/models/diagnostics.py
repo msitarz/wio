@@ -36,14 +36,7 @@ _FILE_PLACE = re.compile(
 
 
 def _key(diagnostic: Diagnostic) -> tuple[str, int, str]:
-    """Give the sort key of a diagnostic.
-
-    Args:
-        diagnostic: The finding.
-
-    Returns:
-        Its place, the rank of its severity and its message.
-    """
+    """Give the sort key of a diagnostic."""
     return (diagnostic.where, _RANK[diagnostic.severity], diagnostic.message)
 
 
@@ -82,16 +75,7 @@ def order_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ..
 
 
 def _order_key(diagnostic: Diagnostic) -> tuple[bool, str, int, int, int, str]:
-    """Give the key by which a check of files orders a diagnostic.
-
-    Args:
-        diagnostic: The finding.
-
-    Returns:
-        Whether its place is not a file, the file or the text of the place, the
-        line and the column as numbers, then the rank of the severity and the
-        message.
-    """
+    """Give the key by which a check of files orders a diagnostic."""
     match = _FILE_PLACE.match(diagnostic.where)
     place: tuple[str, int, int] = (
         (match["file"], int(match["line"] or 0), int(match["column"] or 0))

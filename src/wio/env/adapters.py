@@ -133,14 +133,7 @@ class ProcessDirectories:
 
 
 def _user_home() -> Path:
-    """Find the user's home directory.
-
-    Returns:
-        The absolute home directory of the user.
-
-    Raises:
-        OSError: If `Path.home()` cannot find it, or gives a relative path.
-    """
+    """Find the user's home directory."""
     try:
         home = Path.home()
     except RuntimeError as error:

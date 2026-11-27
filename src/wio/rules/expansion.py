@@ -130,31 +130,7 @@ def expand(
     scope: Scope,
     catalog: RuleCatalog,
 ) -> Expansion:
-    """Expand a list of includes and excludes into the rules it selects.
-
-    The includes are expanded, then the excludes are expanded and removed from
-    them. An entry is a family, a code or a rule preset, and a rule preset takes
-    its own includes and then removes its own excludes; its entries are read in
-    the scope of its own ruleset, or of the config. A ruleset has a rule preset
-    `all` that holds all its rules, whatever its manifest says of that name. A
-    family that its manifest declares and that holds no rule selects nothing and
-    is no problem. The grammar of an entry is that of `wio.formats.grammar`: a
-    bare upper-case name is malformed in the config's scope, and
-    `parse_own_item` reads the entries of a manifest.
-
-    It does no input or output and raises nothing for an entry or a cycle, and
-    the result does not depend on the order of the tables of the catalog or of
-    the entries of a list.
-
-    Args:
-        include: The references to select, as written.
-        exclude: The references to remove from what the includes select.
-        scope: What a bare name is.
-        catalog: The rulesets, aliases and rule presets to resolve them in.
-
-    Returns:
-        The expansion.
-    """
+    """Expand a list of includes and excludes into the rules it selects."""
     expander = _Expander(catalog)
     result = _run(expander.level(include, exclude, scope, (), (), named=True))
     return Expansion(
@@ -168,41 +144,21 @@ def expand(
 
 
 def _ordered(found: dict[Rule, set[Route]]) -> frozendict[Rule, Routes]:
-    """Order rules as C-2 of `wio rules` says and sort the routes of each.
-
-    Args:
-        found: The routes of each rule.
-
-    Returns:
-        The rules by ruleset name, family, number of the code and text of the
-        code, each with its routes sorted, as a frozen mapping.
-    """
+    """Order rules as C-2 of `wio rules` says and sort the routes of each."""
     order = sorted(found, key=lambda r: (r.ruleset, r.family, r.number, r.code))
     return freeze({rule: tuple(sorted(found[rule])) for rule in order})
 
 
 @dataclass
 class _Result:
-    """What expanding a list of entries selected and removed, with routes.
-
-    Attributes:
-        selected: The routes of each rule that the includes selected and the
-            excludes of the list left.
-        removed: The routes of each rule that an exclude of the list or of a rule
-            preset below it took out.
-    """
+    """What expanding a list of entries selected and removed, with routes."""
 
     selected: dict[Rule, set[Route]] = field(default_factory=dict)
     removed: dict[Rule, set[Route]] = field(default_factory=dict)
 
 
 def _merge(target: dict[Rule, set[Route]], source: dict[Rule, set[Route]]) -> None:
-    """Add the routes of some rules to those of others.
-
-    Args:
-        target: Where the routes are added.
-        source: The routes to add.
-    """
+    """Add the routes of some rules to those of others."""
     for rule, routes in source.items():
         target.setdefault(rule, set()).update(routes)
 
@@ -217,14 +173,7 @@ nested rule presets is limited by memory and never by the recursion limit.
 
 
 def _run(frame: _Frame) -> _Result:
-    """Run a step and the steps it waits for, deepest first.
-
-    Args:
-        frame: The outermost step.
-
-    Returns:
-        What the outermost step returned.
-    """
+    """Run a step and the steps it waits for, deepest first."""
     stack = [frame]
     value: _Result | None = None
     while stack:
@@ -335,15 +284,7 @@ class _Expander:
 
     @staticmethod
     def _read(text: str, scope: Scope) -> Bare | Qualified | Malformed:
-        """Read an entry with the grammar of its scope.
-
-        Args:
-            text: The entry.
-            scope: The config's scope or a manifest's.
-
-        Returns:
-            What `parse_reference` or `parse_own_item` says.
-        """
+        """Read an entry with the grammar of its scope."""
         match scope:
             case ConfigScope():
                 return parse_reference(text)
@@ -351,28 +292,11 @@ class _Expander:
                 return parse_own_item(text)
 
     def _canonical(self, name: str) -> str | None:
-        """Resolve a ruleset's name or alias.
-
-        Args:
-            name: The name or alias as written.
-
-        Returns:
-            The canonical name, or `None` when no ruleset has it. A name wins
-            over an alias.
-        """
+        """Resolve a ruleset's name or alias."""
         return resolve_ruleset(name, self.catalog)
 
     def _problem(self, kind: ProblemKind, text: str, route: Route) -> _Result:
-        """Record a problem.
-
-        Args:
-            kind: What is wrong.
-            text: The entry as written.
-            route: The rule presets it was found in.
-
-        Returns:
-            An empty result, since the entry selects nothing.
-        """
+        """Record a problem."""
         self.problems.add(Problem(kind, text, route))
         return _Result()
 
@@ -385,18 +309,7 @@ class _Expander:
         *,
         named: bool,
     ) -> _Frame:
-        """Expand a bare name of the config's scope, a rule preset of the config.
-
-        Args:
-            name: The rule preset's name.
-            text: The entry as written.
-            prefix: The rule presets the entry was found in.
-            path: The rule presets being expanded.
-            named: Whether rulesets are recorded.
-
-        Returns:
-            The rule preset's expansion, or nothing with a problem.
-        """
+        """Expand a bare name of the config's scope, a rule preset of the config."""
         preset = self.catalog.presets.get(name)
         if preset is None:
             return self._problem("unknown", text, prefix)
@@ -417,22 +330,7 @@ class _Expander:
         *,
         named: bool,
     ) -> _Frame:
-        """Expand a rule preset unless it is already being expanded.
-
-        Args:
-            key: The ruleset and name that identify the rule preset.
-            reference: Its canonical reference, which its route shows.
-            preset: Its includes and excludes.
-            scope: The scope of its own entries.
-            text: The entry that named it, as written.
-            prefix: The rule presets the entry was found in.
-            path: The rule presets being expanded.
-            named: Whether rulesets are recorded.
-
-        Returns:
-            Its expansion, or nothing with a `cycle` problem when it includes
-            itself.
-        """
+        """Expand a rule preset unless it is already being expanded."""
         route = (*prefix, reference)
         if key in path:
             return self._problem("cycle", text, route)
@@ -456,20 +354,7 @@ class _Expander:
         *,
         named: bool,
     ) -> _Frame:
-        """Expand a family, a code or a rule preset of a ruleset.
-
-        Args:
-            canonical: The ruleset's canonical name.
-            item: What follows the dot, or the bare name of a manifest.
-            text: The entry as written.
-            prefix: The rule presets the entry was found in.
-            path: The rule presets being expanded.
-            named: Whether the ruleset is recorded when the item exists.
-
-        Returns:
-            The rules it names, or nothing with an `unknown` problem when the
-            ruleset, the family, the code or the rule preset does not exist.
-        """
+        """Expand a family, a code or a rule preset of a ruleset."""
         ruleset = self.catalog.rulesets.get(canonical)
         found = None if ruleset is None else self._rules_of(ruleset, item)
         if ruleset is None or found is None:
@@ -495,16 +380,7 @@ class _Expander:
     def _rules_of(
         ruleset: LoadedRuleset, item: str
     ) -> tuple[Rule, ...] | RulePreset | None:
-        """Look an item up in a ruleset.
-
-        Args:
-            ruleset: The ruleset.
-            item: A family, a code or a rule preset name.
-
-        Returns:
-            The rules of a declared family, the rule of a code, all the rules for
-            `all`, the manifest's rule preset, or `None` when there is none.
-        """
+        """Look an item up in a ruleset."""
         match item_kind(item):
             case "family":
                 declared = item in ruleset.manifest.families

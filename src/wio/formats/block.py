@@ -53,18 +53,7 @@ def read_metadata_block(text: str) -> MetadataBlock | None:
 
 
 def _read_comment(rest: str) -> MetadataBlock:
-    """Read a comment block whose opening line was found.
-
-    Args:
-        rest: The text after the opening line, which starts on line 2.
-
-    Returns:
-        The block, whose marker is optional.
-
-    Raises:
-        MetadataBlockError: The comment does not close, is not valid TOML or
-            has a marker other than 1.
-    """
+    """Read a comment block whose opening line was found."""
     end = rest.find("-->")
     if end < 0:
         raise MetadataBlockError(_UNCLOSED_COMMENT, 1)
@@ -75,18 +64,7 @@ def _read_comment(rest: str) -> MetadataBlock:
 
 
 def _read_front_matter(rest: str) -> MetadataBlock | None:
-    """Read `+++` front matter whose opening line was found.
-
-    Args:
-        rest: The text after the opening line, which starts on line 2.
-
-    Returns:
-        The block, or `None` when the front matter has no `wio =` in it.
-
-    Raises:
-        MetadataBlockError: The front matter is wio's but does not close, is
-            not valid TOML or has a marker other than 1.
-    """
+    """Read `+++` front matter whose opening line was found."""
     close = _FRONT_MATTER_CLOSE.search(rest)
     toml_text = rest if close is None else rest[: close.start()]
     if _MARKER_KEY.search(toml_text) is None:
@@ -99,28 +77,12 @@ def _read_front_matter(rest: str) -> MetadataBlock | None:
 
 
 def _line_after(toml_text: str) -> int:
-    """Give the line that holds the closing delimiter.
-
-    Args:
-        toml_text: The text between the opening line and the delimiter.
-
-    Returns:
-        The line of the delimiter, counted from 1, as the text starts on line 2.
-    """
+    """Give the line that holds the closing delimiter."""
     return 2 + toml_text.count("\n")
 
 
 def _split_body(after: str, line: int) -> tuple[str, int]:
-    """Split off the body that follows the closing delimiter.
-
-    Args:
-        after: The text after the delimiter.
-        line: The line that holds the delimiter.
-
-    Returns:
-        The body and its start line: the next line when nothing but the line
-        ending follows the delimiter, else the same line.
-    """
+    """Split off the body that follows the closing delimiter."""
     ending = _LINE_END.match(after)
     if ending is not None:
         return after[ending.end() :], line + 1
@@ -130,19 +92,7 @@ def _split_body(after: str, line: int) -> tuple[str, int]:
 
 
 def _decode_block(toml_text: str, *, required: bool) -> tuple[dict[str, object], int]:
-    """Decode the TOML of a block and take its marker out.
-
-    Args:
-        toml_text: The text between the delimiters, which starts on line 2.
-        required: Whether the marker must be present.
-
-    Returns:
-        The data without the `wio` key, and the version.
-
-    Raises:
-        MetadataBlockError: The TOML is wrong or the marker is not 1, or
-            missing when required.
-    """
+    """Decode the TOML of a block and take its marker out."""
     try:
         data = decode_toml(toml_text)
     except TomlSyntaxError as error:
@@ -156,14 +106,7 @@ def _decode_block(toml_text: str, *, required: bool) -> tuple[dict[str, object],
 
 
 def _marker_line(toml_text: str) -> int:
-    """Find the line of the `wio` key.
-
-    Args:
-        toml_text: The text between the delimiters, which starts on line 2.
-
-    Returns:
-        The line of the key in the text, or line 1 when none is found.
-    """
+    """Find the line of the `wio` key."""
     found = _MARKER_KEY.search(toml_text)
     if found is None:
         return 1
@@ -173,16 +116,5 @@ def _marker_line(toml_text: str) -> int:
 def _block(
     form: BlockForm, version: int, data: dict[str, object], body: str, start: int
 ) -> MetadataBlock:
-    """Build the block.
-
-    Args:
-        form: The form of the block.
-        version: The wio version.
-        data: The data without the marker.
-        body: The text from the start line on.
-        start: The start line of the body.
-
-    Returns:
-        The block.
-    """
+    """Build the block."""
     return MetadataBlock(form, version, data, body, start)

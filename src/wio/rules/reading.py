@@ -82,17 +82,7 @@ def read_rule(ruleset: str, path: PurePosixPath, text: str) -> RuleReading:
 
 
 def _rule(ruleset: str, path: PurePosixPath, block: MetadataBlock) -> Rule:
-    """Build the rule of a block whose keys have no fault.
-
-    Args:
-        ruleset: The name of the ruleset.
-        path: The path of the file.
-        block: The block, whose `code` and `name` are valid strings and whose
-            `description`, when present, is a valid string.
-
-    Returns:
-        The rule, with its body cut from the text after the block.
-    """
+    """Build the rule of a block whose keys have no fault."""
     body, line = _cut_body(block.body, block.body_start_line)
     description = block.data.get("description")
     return Rule(
@@ -108,17 +98,7 @@ def _rule(ruleset: str, path: PurePosixPath, block: MetadataBlock) -> Rule:
 
 
 def _cut_body(text: str, start: int) -> tuple[str, int]:
-    """Cut the body from the text after the block.
-
-    Args:
-        text: The text after the block, from its start line on.
-        start: The line of the file on which `text` starts.
-
-    Returns:
-        The text without its leading and trailing blank lines and without a
-        final line ending, and the line on which it starts; `start` for an empty
-        body. A blank line is empty or holds only whitespace.
-    """
+    """Cut the body from the text after the block."""
     lines = text.split("\n")
     first = next((i for i, line in enumerate(lines) if line.strip()), None)
     if first is None:
@@ -130,15 +110,7 @@ def _cut_body(text: str, start: int) -> tuple[str, int]:
 
 
 def _summary(body: str) -> str:
-    """Join the lines of the first paragraph of a body.
-
-    Args:
-        body: The body, which starts with a line that is not blank.
-
-    Returns:
-        The lines before the first blank line, each stripped, joined with single
-        spaces; empty for an empty body.
-    """
+    """Join the lines of the first paragraph of a body."""
     lines: list[str] = []
     for line in body.split("\n"):
         if not line.strip():
@@ -148,16 +120,7 @@ def _summary(body: str) -> str:
 
 
 def _key_faults(data: dict[str, object], where: str) -> list[Diagnostic]:
-    """Judge the `code`, the `name` and the `description` of a block.
-
-    Args:
-        data: The decoded block.
-        where: The place of the file.
-
-    Returns:
-        An error for each key that is missing or of the wrong form or type,
-        at the file's path.
-    """
+    """Judge the `code`, the `name` and the `description` of a block."""
     faults = [
         _code_fault(data.get("code"), "code" in data),
         _name_fault(data.get("name"), "name" in data),
@@ -167,15 +130,7 @@ def _key_faults(data: dict[str, object], where: str) -> list[Diagnostic]:
 
 
 def _code_fault(value: object, present: bool) -> str | None:  # noqa: FBT001
-    """Judge the `code` key.
-
-    Args:
-        value: Its value.
-        present: Whether the block has the key.
-
-    Returns:
-        The problem, or `None`.
-    """
+    """Judge the `code` key."""
     if not present:
         return "missing key `code`; a code is upper-case letters and digits."
     if not isinstance(value, str):
@@ -187,15 +142,7 @@ def _code_fault(value: object, present: bool) -> str | None:  # noqa: FBT001
 
 
 def _name_fault(value: object, present: bool) -> str | None:  # noqa: FBT001
-    """Judge the `name` key.
-
-    Args:
-        value: Its value.
-        present: Whether the block has the key.
-
-    Returns:
-        The problem, or `None`.
-    """
+    """Judge the `name` key."""
     if not present:
         return f"missing key `name`; a name is {RULE_NAME_FORM}."
     if not isinstance(value, str):
@@ -206,14 +153,7 @@ def _name_fault(value: object, present: bool) -> str | None:  # noqa: FBT001
 
 
 def _description_fault(value: object) -> str | None:
-    """Judge the optional `description` key.
-
-    Args:
-        value: Its value, or `None` when the block has no such key.
-
-    Returns:
-        The problem, or `None`.
-    """
+    """Judge the optional `description` key."""
     if value is None:
         return None
     if not isinstance(value, str):
@@ -224,16 +164,7 @@ def _description_fault(value: object) -> str | None:
 
 
 def _unknown_keys(data: dict[str, object], where: str) -> list[Diagnostic]:
-    """Warn of each key that the block does not know.
-
-    Args:
-        data: The decoded block.
-        where: The place of the file.
-
-    Returns:
-        A warning at the file's path for each unknown key, naming the known key
-        it is close to when there is one.
-    """
+    """Warn of each key that the block does not know."""
     warnings = []
     for key in data:
         if key in _KEYS:

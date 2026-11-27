@@ -95,14 +95,7 @@ def decode_lines(text: str) -> Decoding:
 
 
 def _envelope_fields(envelope: Envelope) -> dict[str, object]:
-    """Project the shared recording context onto its wire fields.
-
-    Args:
-        envelope: The recording context with a valid time.
-
-    Returns:
-        The time, directory and applicable optional fields.
-    """
+    """Project the shared recording context onto its wire fields."""
     fields: dict[str, object] = {
         "time": format_event_time(envelope.time),
         "directory": envelope.directory,
@@ -118,14 +111,7 @@ def _envelope_fields(envelope: Envelope) -> dict[str, object]:
 
 
 def _event_fields(event: Event) -> dict[str, object]:
-    """Project the fields specific to one event onto the wire object.
-
-    Args:
-        event: The context or review event being encoded.
-
-    Returns:
-        The event's required fields and any applicable optional fields.
-    """
+    """Project the fields specific to one event onto the wire object."""
     if isinstance(event, ReviewEvent):
         return review_payload(event)
     return {
@@ -161,14 +147,7 @@ def review_payload(event: ReviewEvent) -> dict[str, object]:
 
 
 def _present(**fields: object) -> dict[str, object]:
-    """Keep explicitly supplied optional values, including false and empty strings.
-
-    Args:
-        **fields: Wire fields whose absence is represented by `None`.
-
-    Returns:
-        The fields whose values are present.
-    """
+    """Keep explicitly supplied optional values, including false and empty strings."""
     return {name: value for name, value in fields.items() if value is not None}
 
 
@@ -196,14 +175,7 @@ def format_event_time(seconds: float) -> str:
 
 
 def _decode_entry(line: str) -> Entry | None:
-    """Read one nonblank record without affecting its neighbors.
-
-    Args:
-        line: A nonblank line of event log text.
-
-    Returns:
-        The decoded entry, or `None` when the line cannot be read.
-    """
+    """Read one nonblank record without affecting its neighbors."""
     try:
         fields = json.loads(
             line, parse_int=_read_integer, parse_constant=_reject_constant
@@ -214,15 +186,7 @@ def _decode_entry(line: str) -> Entry | None:
 
 
 def _read_integer(token: str) -> int | None:
-    """Convert a JSON integer under Python's integer conversion limit.
-
-    Args:
-        token: A syntactically valid JSON integer token.
-
-    Returns:
-        The integer or `None` when conversion exceeds the limit. Integer
-        fields reject that marker. Unknown fields remain ignorable.
-    """
+    """Convert a JSON integer under Python's integer conversion limit."""
     try:
         return int(token)
     except ValueError:
@@ -230,47 +194,19 @@ def _read_integer(token: str) -> int | None:
 
 
 def _reject_constant(_token: str) -> None:
-    """Refuse a nonfinite number token outside the JSON grammar.
-
-    Args:
-        _token: The nonstandard token passed by the JSON parser.
-
-    Raises:
-        ValueError: Always, so the line reader skips the malformed object.
-    """
+    """Refuse a nonfinite number token outside the JSON grammar."""
     raise ValueError
 
 
 def _read_fields(value: object) -> Entry:
-    """Build a typed entry from a decoded JSON value.
-
-    Args:
-        value: The decoded value, before validation.
-
-    Returns:
-        The entry represented by a supported object.
-
-    Raises:
-        ValueError: The value is malformed or its version or event type is
-            unsupported.
-    """
+    """Build a typed entry from a decoded JSON value."""
     if not isinstance(value, dict) or _field(value, "v", int) != _VERSION:
         raise ValueError
     return Entry(_read_envelope(value), _read_event(value))
 
 
 def _read_envelope(row: Mapping[str, object]) -> Envelope:
-    """Read a version 1 envelope and restore omitted optional fields.
-
-    Args:
-        row: The event log object, including its envelope fields.
-
-    Returns:
-        The recorded time, directory and session details.
-
-    Raises:
-        ValueError: A supplied field or required value is invalid.
-    """
+    """Read a version 1 envelope and restore omitted optional fields."""
     return Envelope(
         time=_read_time(_field(row, "time", str)),
         directory=_field(row, "directory", str),
@@ -283,17 +219,7 @@ def _read_envelope(row: Mapping[str, object]) -> Envelope:
 
 
 def _read_event(row: Mapping[str, object]) -> Event:
-    """Select and read the payload of a supported event type.
-
-    Args:
-        row: The event log object with its event tag and fields.
-
-    Returns:
-        The context or review payload.
-
-    Raises:
-        ValueError: The event type is unknown or a payload field is invalid.
-    """
+    """Select and read the payload of a supported event type."""
     work = _field(row, "work", str)
     action = _field(row, "action", str)
     stage = _field(row, "stage", str)
@@ -325,18 +251,7 @@ def _read_event(row: Mapping[str, object]) -> Event:
 
 
 def _read_time(value: str) -> float:
-    """Read a UTC timestamp representable as nonnegative Unix time.
-
-    Args:
-        value: The timestamp from the event log object.
-
-    Returns:
-        Seconds since the Unix epoch in UTC.
-
-    Raises:
-        ValueError: The text is outside the UTC timestamp grammar or cannot be
-            represented as nonnegative Unix time.
-    """
+    """Read a UTC timestamp representable as nonnegative Unix time."""
     if not _UTC_TIMESTAMP.fullmatch(value):
         raise ValueError
     seconds = datetime.fromisoformat(value.upper()).timestamp()
@@ -346,19 +261,7 @@ def _read_time(value: str) -> float:
 
 
 def _field[T](row: Mapping[str, object], name: str, kind: type[T]) -> T:
-    """Require an exact wire type, with booleans distinct from integers.
-
-    Args:
-        row: The event log object.
-        name: The field to read.
-        kind: Its expected type after JSON parsing.
-
-    Returns:
-        The supplied value with the requested type.
-
-    Raises:
-        ValueError: The field is missing or has the wrong type.
-    """
+    """Require an exact wire type, with booleans distinct from integers."""
     value = row.get(name)
     if type(value) is not kind:
         raise ValueError
@@ -366,35 +269,12 @@ def _field[T](row: Mapping[str, object], name: str, kind: type[T]) -> T:
 
 
 def _optional[T](row: Mapping[str, object], name: str, kind: type[T]) -> T | None:
-    """Read a field whose absence is represented by omission.
-
-    Args:
-        row: The event log object.
-        name: The optional field to read.
-        kind: Its type when supplied.
-
-    Returns:
-        The supplied value, or `None` for an absent field.
-
-    Raises:
-        ValueError: The field is present with the wrong type.
-    """
+    """Read a field whose absence is represented by omission."""
     return _field(row, name, kind) if name in row else None
 
 
 def _strings_by_name(row: Mapping[str, object], name: str) -> frozendict[str, str]:
-    """Read a JSON object as an ordered, immutable string mapping.
-
-    Args:
-        row: The event log object.
-        name: The field holding the mapping.
-
-    Returns:
-        The mapping with its key order preserved.
-
-    Raises:
-        ValueError: The field is missing, not an object or has a nonstring value.
-    """
+    """Read a JSON object as an ordered, immutable string mapping."""
     mapping: dict[str, object] = _field(row, name, dict)
     if any(not isinstance(value, str) for value in mapping.values()):
         raise ValueError
@@ -402,17 +282,7 @@ def _strings_by_name(row: Mapping[str, object], name: str) -> frozendict[str, st
 
 
 def _matches(row: Mapping[str, object]) -> tuple[str, ...]:
-    """Read the harness matches in their recorded order.
-
-    Args:
-        row: The event log object containing a matches field.
-
-    Returns:
-        The matching harness names in input order.
-
-    Raises:
-        ValueError: The field is not an array or contains a nonstring value.
-    """
+    """Read the harness matches in their recorded order."""
     values: list[object] = _field(row, "matches", list)
     if any(not isinstance(value, str) for value in values):
         raise ValueError

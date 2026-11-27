@@ -102,25 +102,6 @@ def check_range(commits: Sequence[Commit], config: Config) -> list[Diagnostic]:
 def run_later(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Check a body or a range and report each diagnostic.
 
-    With `--ref-range` the commits of the range come from the `History` port,
-    oldest first, and otherwise the body is read from the file `path`, or from
-    standard input when it is `-` or absent. Each diagnostic is written to standard
-    error as `<severity>: <where>: <message>`, one to a line, in the order of
-    `check_afterwards` for a body and of `check_range` for a range, and nothing is
-    written to standard output.
-
-    Args:
-        services: The ports the form reads the config, the body and the history
-            through.
-        args: The arguments that `configure_check` parsed, of which `ref_range` and
-            `path` are read here.
-        stdio: Where the body is read when it is not in a file and where the
-            diagnostics are written.
-
-    Returns:
-        The exit code of the check: 1 for a body or a range with an error, and 0 for
-        one with only warnings or none.
-
     Raises:
         TrailersError: If both a path and a range are given, if the file cannot be
             read or decoded, or if the `History` port refuses the range with a
@@ -138,35 +119,14 @@ def run_later(services: Services, args: Namespace, stdio: Stdio) -> int:
 
 
 def _one_input(path: str | None, revision_range: str | None) -> None:
-    """Refuse a call that names two inputs.
-
-    Args:
-        path: The path argument, or `None`.
-        revision_range: The value of `--ref-range`, or `None`.
-
-    Raises:
-        TrailersError: If both are given, because a file and a range are read
-            differently.
-    """
+    """Refuse a call that names two inputs."""
     if path is not None and revision_range is not None:
         message = "a path and --ref-range read different inputs; give only one."
         raise TrailersError(message)
 
 
 def _commits_of(history: History, text: str) -> Sequence[Commit]:
-    """Ask the history for the commits that a range names.
-
-    Args:
-        history: The port that gives the commits of a range with their messages.
-        text: The revision range exactly as the person wrote it.
-
-    Returns:
-        Each commit of the range, the oldest one first.
-
-    Raises:
-        TrailersError: If the port refuses the range with a `ValueError` or cannot
-            reach a repository with a `RuntimeError`, with the port's message.
-    """
+    """Ask the history for the commits that a range names."""
     try:
         return history.history(text)
     except (ValueError, RuntimeError) as error:
@@ -176,17 +136,7 @@ def _commits_of(history: History, text: str) -> Sequence[Commit]:
 def _name_warnings(
     reading: Reading, findings: list[Finding], config: Config
 ) -> list[Diagnostic]:
-    """Warn about the names of the records that are not malformed.
-
-    Args:
-        reading: The records of the message.
-        findings: What `check_shape` found, which says which records are malformed.
-        config: The config, for the action names, the stage names and the results.
-
-    Returns:
-        A warning for each error of `validate_names` on a record that has no
-        `malformed` finding, with the line of the field as its place.
-    """
+    """Warn about the names of the records that are not malformed."""
     malformed = {f.number for f in findings if f.kind == "malformed"}
     sound = [r for r in reading.records if record_lines(r).isdisjoint(malformed)]
     return [

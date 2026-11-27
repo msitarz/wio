@@ -48,52 +48,7 @@ class Discovery:
 
 
 def discover(root: Path, files: FileSystem) -> Discovery:
-    """Walk `.agents/wio/rules` and read each ruleset.
-
-    It reads files only through `files` and writes none. A ruleset is a
-    directory directly under `.agents/wio/rules` whose name has the form of a
-    ruleset name, with a `ruleset.toml`; it holds the rules of the Markdown files
-    below it that `read_rule` takes for rules. Hidden directories are not
-    entered. The rulesets are judged against their own manifests: a rule of a
-    family the manifest does not declare, and rules that share a code or a name
-    within a ruleset, are errors and leave those rules out, while the same code
-    in two rulesets is no fault.
-
-    Faults are errors, and everything else is still read; nothing is raised for
-    a fault of the files. Each names its place, written with `/` and relative to
-    `root`:
-
-    - the file, followed by `:<line>` when the fault has a line, for a rule file
-      that cannot be read, decoded or parsed, a rule of a family that its
-      manifest does not declare, a `ruleset.toml` that is a symbolic link, one
-      below a ruleset's directory, and a marked rule file directly in
-      `.agents/wio/rules`, whose block that cannot be read is that fault, with
-      its line;
-    - the manifest followed by `#` and the key path for a key of a manifest,
-      by `:<line>` for a manifest that does not parse, and alone for one that
-      cannot be read or decoded;
-    - the two files joined by `, `, written in order, for a code or a name that
-      two rules of one ruleset share;
-    - the directory for a fault of a directory: `.agents/wio/rules` that is a
-      symbolic link, not a directory or cannot be listed, and a ruleset
-      directory that is a symbolic link, has a name of the wrong form, has no
-      `ruleset.toml` or cannot be listed.
-
-    A missing rules directory is no fault. The warnings of `read_manifest` and
-    `read_rule` are returned with the errors. A ruleset whose rules are at fault
-    is still returned without those rules, and one whose directory, manifest or
-    name is at fault is left out. A file directly in `.agents/wio/rules` is a
-    stray rule file when `read_metadata_block` finds a block in it, and is
-    ignored otherwise. The rules of a ruleset are in the order of family, then
-    the number of the code, then the text of the code.
-
-    Args:
-        root: The repository root.
-        files: The port that lists directories and reads files.
-
-    Returns:
-        The rulesets and the diagnostics.
-    """
+    """Walk `.agents/wio/rules` and read each ruleset."""
     entries, found = _list_rules_directory(root, files)
     rulesets: list[LoadedRuleset] = []
     for entry in entries:
@@ -107,17 +62,7 @@ def discover(root: Path, files: FileSystem) -> Discovery:
 def _list_rules_directory(
     root: Path, files: FileSystem
 ) -> tuple[list[Path], list[Diagnostic]]:
-    """List the entries of `.agents/wio/rules`, unless it must not be walked.
-
-    Args:
-        root: The repository root.
-        files: The port that lists directories.
-
-    Returns:
-        The entries in the order of their names, none for a rules directory that
-        is missing, which is no fault, that is a symbolic link or not a
-        directory, or that cannot be listed, the last three with one error.
-    """
+    """List the entries of `.agents/wio/rules`, unless it must not be walked."""
     directory = root / _RULES
     refusal = refuse_directory(directory, _RULES, files, noun="rules", default=_RULES)
     if refusal is not None:
@@ -147,45 +92,19 @@ def refuse_on_errors(discovery: Discovery) -> None:
 
 
 def _place(root: Path, path: Path) -> str:
-    """Write the place of a path.
-
-    Args:
-        root: The repository root.
-        path: A file or directory below it.
-
-    Returns:
-        The path relative to the root, written with `/`.
-    """
+    """Write the place of a path."""
     return path.relative_to(root).as_posix()
 
 
 def _unlistable(place: str, error: OSError) -> Diagnostic:
-    """Make the error of a directory that cannot be listed.
-
-    Args:
-        place: The directory's place.
-        error: What the port raised.
-
-    Returns:
-        The error.
-    """
+    """Make the error of a directory that cannot be listed."""
     return _error(place, f"The directory cannot be listed: {error.strerror}")
 
 
 def _read_entry(
     root: Path, entry: Path, files: FileSystem
 ) -> tuple[list[LoadedRuleset], list[Diagnostic]]:
-    """Judge one entry directly under the rules directory.
-
-    Args:
-        root: The repository root.
-        entry: The entry.
-        files: The port that reads the files.
-
-    Returns:
-        The ruleset as a list of one, none when the entry is not a ruleset or is
-        at fault, and what was found.
-    """
+    """Judge one entry directly under the rules directory."""
     place = _place(root, entry)
     if files.is_symlink(entry):
         if not files.is_dir(entry):
@@ -205,18 +124,7 @@ def _read_entry(
 
 
 def _stray(root: Path, entry: Path, files: FileSystem) -> list[Diagnostic]:
-    """Judge a file directly under the rules directory.
-
-    Args:
-        root: The repository root.
-        entry: The file.
-        files: The port that reads it.
-
-    Returns:
-        An error when it is a Markdown file that holds a metadata block, which
-        would be a rule file outside any ruleset, or whose block cannot be read;
-        none for any other file.
-    """
+    """Judge a file directly under the rules directory."""
     if not entry.name.endswith(_SUFFIX):
         return []
     place = _place(root, entry)
@@ -237,17 +145,7 @@ def _stray(root: Path, entry: Path, files: FileSystem) -> list[Diagnostic]:
 def _read_ruleset(
     root: Path, directory: Path, files: FileSystem
 ) -> tuple[LoadedRuleset | None, list[Diagnostic]]:
-    """Read the manifest and the rules of one ruleset directory.
-
-    Args:
-        root: The repository root.
-        directory: The ruleset's directory, whose name has a ruleset name's form.
-        files: The port that lists and reads.
-
-    Returns:
-        The ruleset, or `None` when its directory, its manifest or its name is at
-        fault, and everything found, warnings included.
-    """
+    """Read the manifest and the rules of one ruleset directory."""
     place = _place(root, directory)
     try:
         paths = list(_walk(directory, files))
@@ -267,21 +165,7 @@ def _read_ruleset(
 def _unlistable_ruleset(
     root: Path, directory: Path, error: OSError, files: FileSystem
 ) -> list[Diagnostic]:
-    """Report a ruleset directory, or one below it, that cannot be listed.
-
-    Args:
-        root: The repository root.
-        directory: The ruleset's directory.
-        error: What the port raised.
-        files: The port that reads the manifest.
-
-    Returns:
-        One error at the directory that could not be listed, when the port names
-        it and it is below the root, otherwise at the ruleset's directory. The
-        manifest is read, and its faults come first, only when the directory
-        that failed is a deeper one, because a manifest inside a directory that
-        cannot be listed cannot be seen, so its absence is no second fault.
-    """
+    """Report a ruleset directory, or one below it, that cannot be listed."""
     place = _place(root, directory)
     where = _failed_at(root, error, place)
     problem = _unlistable(where, error)
@@ -291,16 +175,7 @@ def _unlistable_ruleset(
 
 
 def _failed_at(root: Path, error: OSError, default: str) -> str:
-    """Find the place that an operating system error names.
-
-    Args:
-        root: The repository root.
-        error: What the port raised.
-        default: The place to give when the error names none below the root.
-
-    Returns:
-        The place of the path that failed, or `default`.
-    """
+    """Find the place that an operating system error names."""
     named = Path(str(error.filename)) if error.filename else None
     if named is None or not named.is_relative_to(root):
         return default
@@ -310,16 +185,7 @@ def _failed_at(root: Path, error: OSError, default: str) -> str:
 def _nested_manifests(
     root: Path, directory: Path, paths: list[Path]
 ) -> list[Diagnostic]:
-    """Find the manifests below a ruleset's directory, which are never read.
-
-    Args:
-        root: The repository root.
-        directory: The ruleset's directory.
-        paths: The files below it.
-
-    Returns:
-        An error for each `ruleset.toml` that is not directly in the directory.
-    """
+    """Find the manifests below a ruleset's directory, which are never read."""
     message = "A manifest is not read below a ruleset's directory"
     return [
         _error(_place(root, path), message)
@@ -331,18 +197,7 @@ def _nested_manifests(
 def _read_manifest(
     root: Path, directory: Path, files: FileSystem
 ) -> tuple[Manifest | None, list[Diagnostic]]:
-    """Read the `ruleset.toml` of a ruleset directory.
-
-    Args:
-        root: The repository root.
-        directory: The ruleset's directory.
-        files: The port that reads the file.
-
-    Returns:
-        The manifest, or `None` with an error when the file is missing, is a
-        symbolic link, cannot be read or decoded, or has an error; with the
-        warnings and errors that `read_manifest` reported.
-    """
+    """Read the `ruleset.toml` of a ruleset directory."""
     path = directory / _MANIFEST
     place = _place(root, path)
     if files.is_symlink(path):
@@ -361,19 +216,7 @@ def _read_manifest(
 
 
 def _walk(directory: Path, files: FileSystem) -> Iterator[Path]:
-    """List the files below a ruleset's directory, whatever their names.
-
-    Args:
-        directory: The directory to walk.
-        files: The port that lists directories.
-
-    Yields:
-        Each file, skipping symbolic links and directories whose names start
-        with `.` and anything below them.
-
-    Raises:
-        OSError: A directory cannot be listed.
-    """
+    """List the files below a ruleset's directory, whatever their names."""
     for entry in files.list_dir(directory):
         if files.is_symlink(entry):
             continue
@@ -386,17 +229,7 @@ def _walk(directory: Path, files: FileSystem) -> Iterator[Path]:
 def _read_rules(
     root: Path, ruleset: str, paths: list[Path], files: FileSystem
 ) -> tuple[list[Rule], list[Diagnostic]]:
-    """Read the Markdown files of a ruleset that are rules.
-
-    Args:
-        root: The repository root.
-        ruleset: The name of the ruleset.
-        paths: Its Markdown files.
-        files: The port that reads them.
-
-    Returns:
-        The rules read, and the errors and warnings of the files.
-    """
+    """Read the Markdown files of a ruleset that are rules."""
     rules: list[Rule] = []
     found: list[Diagnostic] = []
     for path in paths:
@@ -419,17 +252,7 @@ def _read_rules(
 def _relate(
     rules: list[Rule], manifest: Manifest
 ) -> tuple[list[Rule], list[Diagnostic]]:
-    """Judge the rules of one ruleset against its manifest and each other.
-
-    Args:
-        rules: The rules of the ruleset.
-        manifest: Its manifest.
-
-    Returns:
-        The rules in the order of family, number and code text, without those of
-        an undeclared family and those that share a code or a name, and one
-        error for each such fault.
-    """
+    """Judge the rules of one ruleset against its manifest and each other."""
     found: list[Diagnostic] = []
     declared: list[Rule] = []
     for rule in rules:
@@ -447,17 +270,7 @@ def _relate(
 def _unshared(
     rules: list[Rule], key: Callable[[Rule], str], noun: str
 ) -> tuple[list[Rule], list[Diagnostic]]:
-    """Set aside the rules that share a code or a name.
-
-    Args:
-        rules: The rules.
-        key: What they must not share.
-        noun: How a message calls it, such as `the code`.
-
-    Returns:
-        The rules whose key is unique, and one error for each shared key that
-        names every file with it, joined by `, `, in order.
-    """
+    """Set aside the rules that share a code or a name."""
     groups: dict[str, list[Rule]] = {}
     for rule in rules:
         groups.setdefault(key(rule), []).append(rule)

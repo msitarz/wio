@@ -114,16 +114,7 @@ _CHECK_JSON = "Write one JSON array of the findings instead of the text."
 
 
 def _check(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Run `wio rules check` through its own module.
-
-    Args:
-        services: What the subcommand reads the project through.
-        args: The parsed arguments.
-        stdio: Where the report goes.
-
-    Returns:
-        The exit code, 1 when the report holds an error.
-    """
+    """Run `wio rules check` through its own module."""
     from wio.rules.checking import run_check
 
     return run_check(services, args, stdio)
@@ -134,11 +125,7 @@ _LIST_JSON = "Write one JSON object with the header and the rules."
 
 
 def _configure_list(parser: ArgumentParser) -> None:
-    """Declare the arguments of `wio rules list`.
-
-    Args:
-        parser: The subparser.
-    """
+    """Declare the arguments of `wio rules list`."""
     views = parser.add_mutually_exclusive_group()
     views.add_argument("--root", help="The root whose rules to list.")
     views.add_argument("--path", help="A file whose roots to apply.")
@@ -166,11 +153,7 @@ _NEW_JSON = "Write one JSON object with the new rule and what selects it."
 
 
 def _configure_new(parser: ArgumentParser) -> None:
-    """Declare the arguments of `wio rules new`.
-
-    Args:
-        parser: The subparser.
-    """
+    """Declare the arguments of `wio rules new`."""
     parser.add_argument("ruleset", help="The ruleset, by its name or its alias.")
     parser.add_argument("family", help="The family, such as ARC, to add a rule to.")
     parser.add_argument("--name", required=True, help="The name of the new rule.")
@@ -179,16 +162,7 @@ def _configure_new(parser: ArgumentParser) -> None:
 
 
 def _new(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Run `wio rules new` through its own module.
-
-    Args:
-        services: What the subcommand reads and writes the project through.
-        args: The parsed arguments.
-        stdio: Where the result goes.
-
-    Returns:
-        0 after the rule was created.
-    """
+    """Run `wio rules new` through its own module."""
     from wio.rules.creating import run_new
 
     return run_new(services, args, stdio)
@@ -200,42 +174,20 @@ _SHOW_JSON = "Write one JSON object with the rule instead of the text."
 
 
 def _configure_show(parser: ArgumentParser) -> None:
-    """Declare the arguments of `wio rules show`.
-
-    Args:
-        parser: The subparser.
-    """
+    """Declare the arguments of `wio rules show`."""
     json_option(parser, help=_SHOW_JSON)
     parser.add_argument("reference", help=_SHOW_REFERENCE)
 
 
 def _show(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Run `wio rules show` through its own module.
-
-    Args:
-        services: What the subcommand reads the project through.
-        args: The parsed arguments.
-        stdio: Where the rule goes.
-
-    Returns:
-        0 after the rule was printed.
-    """
+    """Run `wio rules show` through its own module."""
     from wio.rules import showing
 
     return showing.run_show(services, args, stdio)
 
 
 def _list(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Run `wio rules list` through its own module.
-
-    Args:
-        services: What the subcommand reads the project through.
-        args: The parsed arguments.
-        stdio: Where the listing goes.
-
-    Returns:
-        0 after the listing.
-    """
+    """Run `wio rules list` through its own module."""
     from wio.rules.listing import run_list
 
     return run_list(services, args, stdio)

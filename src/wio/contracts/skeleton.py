@@ -73,28 +73,6 @@ class Skeleton:
 def run_skeleton(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Run `wio contracts skeleton`.
 
-    It writes the skeleton to `stdio.stdout` and the note to `stdio.stderr`, and
-    writes no file. A mistake is found before anything is written, so it prints
-    nothing on standard output. When several apply the first of these is
-    reported: a usage error, an incomplete tree, the Work, the template, then
-    `--keep`. The usage error is a missing `--work`, which points to
-    `wio templates show` and is refused before any file is read. Every error of
-    finding the Works but a shared id refuses the command, with the pointer to
-    `wio contracts check`, and a shared id refuses only its own lookup. The Work
-    and the template are found as `show` and `new` find theirs, so the messages
-    are the same.
-
-    Args:
-        services: What the command reads the project through.
-        args: What the parser read: `template`, the name of the template, `work`,
-            the id or `None` when it was not given, and `keep`, the keys to carry
-            in the order given.
-        stdio: Where the skeleton and the note go.
-
-    Returns:
-        0 after the skeleton is written. A note is written only when the Work
-        has keys that the skeleton does not carry.
-
     Raises:
         ContractsError: A mistake of the user, as the functions it calls say.
             The command line writes it to standard error and exits 2.
@@ -139,16 +117,7 @@ def check_keep(keep: Sequence[str], keys: Sequence[str]) -> None:
 
 
 def _no_such_key(name: str, keys: Sequence[str]) -> str:
-    """Word the refusal of a key that the Work does not have.
-
-    Args:
-        name: The key that was asked for.
-        keys: The keys of the Work, in its order.
-
-    Returns:
-        The message, which lists the keys that can be kept, or says there are
-        none.
-    """
+    """Word the refusal of a key that the Work does not have."""
     keepable = [key for key in keys if key not in CANNOT_KEEP]
     listed = ", ".join(f"`{key}`" for key in keepable)
     hint = f"; it can keep {listed}" if keepable else "; it has no key to keep"

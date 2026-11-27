@@ -74,37 +74,6 @@ def apply_layers(
 ) -> Layered:
     """Apply the four layers in their order to the rulesets.
 
-    A layer is applied only when its input is given: the root layer for the
-    roots, the stage layer for the stage, and the two always fields in every
-    call. A layer works on the set that the layers before it built. The roots
-    add together, in the order of their names; the stage adds its includes and
-    then removes what its excludes name; the always includes add over any earlier
-    exclude; and the always excludes remove last, over the always includes. An
-    exclude records an effect for every rule it names, whether or not the rule
-    was in the set. An exclude inside the rule preset that an include entry names
-    takes rules out of that entry's includes only: it records a `removes` effect
-    in the layer of the entry and unselects nothing that another entry or layer
-    added. Every reference is expanded by `expand` over the catalog that
-    `build_rule_catalog` gives, and a reference that cannot be expanded is a
-    problem of the result that selects nothing.
-
-    It does no input or output, and the result does not depend on the order of
-    the tables of the config, of the entries of a list or of `roots`. A root that
-    `roots` names more than once is applied once.
-
-    Args:
-        roots: The names of the roots that the stage selects, or `None` for none.
-        stage: The name of the stage, or `None` for none.
-        config: The settings, whose roots, stages and always fields are read.
-        rulesets: The rulesets by canonical name, as `ruleset_map` gives them.
-
-    Returns:
-        The rules with their effects, the rulesets that each root of the config
-        reaches whether or not it was given, so a call for no roots and no stage
-        still has them, and the problems of the expansions that were applied. A
-        problem that two expansions share, such as a bad entry of a rule preset
-        that two roots include, is listed once.
-
     Raises:
         KeyError: A name of `roots` is not a root of the config, or `stage` is not
             a stage of it. It names what was not found.
@@ -134,17 +103,7 @@ def apply_layers(
 def _check_names(
     roots: tuple[str, ...] | None, stage: str | None, config: Config
 ) -> None:
-    """Refuse a root or a stage that the config does not have.
-
-    Args:
-        roots: The names of the roots, or `None`.
-        stage: The name of the stage, or `None`.
-        config: The settings.
-
-    Raises:
-        KeyError: A name is not a root or a stage of the config; the first root
-            that is missing, or else the stage, is named.
-    """
+    """Refuse a root or a stage that the config does not have."""
     for name in roots or ():
         if name not in config.roots:
             raise KeyError(name)
@@ -153,28 +112,12 @@ def _check_names(
 
 
 def _expand(entries: Sequence[str], catalog: RuleCatalog) -> Expansion:
-    """Expand a list of entries as includes, in the config's scope.
-
-    Args:
-        entries: The references as written.
-        catalog: What they are resolved in.
-
-    Returns:
-        The expansion; an exclude list is expanded this way too, to know every
-        rule that its entries name.
-    """
+    """Expand a list of entries as includes, in the config's scope."""
     return expand(entries, [], ConfigScope(), catalog)
 
 
 def _ordered(rulesets: Mapping[str, LoadedRuleset]) -> list[Rule]:
-    """List every rule of every ruleset in the order of C-2 of `wio rules`.
-
-    Args:
-        rulesets: The rulesets by canonical name.
-
-    Returns:
-        The rules by ruleset name, family, number of the code and code text.
-    """
+    """List every rule of every ruleset in the order of C-2 of `wio rules`."""
     rules = [rule for ruleset in rulesets.values() for rule in ruleset.rules]
     return sorted(rules, key=lambda r: (r.ruleset, r.family, r.number, r.code))
 
@@ -188,12 +131,7 @@ class _State:
     found: set[Problem] = field(default_factory=set)
 
     def _note(self, rule: Rule, effect: LayerEffect) -> None:
-        """Record what a layer did to a rule.
-
-        Args:
-            rule: The rule.
-            effect: What was done.
-        """
+        """Record what a layer did to a rule."""
         self.effects.setdefault(rule, []).append(effect)
 
     def include(self, layer: Layer, root: str | None, found: Expansion) -> None:

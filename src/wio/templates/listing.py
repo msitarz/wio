@@ -46,14 +46,7 @@ def render_list(templates: Iterable[Template], *, as_json: bool) -> str:
 
 
 def _as_object(template: Template) -> dict[str, object]:
-    """Describe a template as plain data for JSON.
-
-    Args:
-        template: The template.
-
-    Returns:
-        Its fields, with the path written with `/`.
-    """
+    """Describe a template as plain data for JSON."""
     return {
         "name": template.name,
         "kind": template.kind,
@@ -65,16 +58,7 @@ def _as_object(template: Template) -> dict[str, object]:
 
 
 def _group(kind: str, members: list[Template]) -> str:
-    """Render the templates of one kind.
-
-    Args:
-        kind: The kind.
-        members: Its templates, sorted by name.
-
-    Returns:
-        The kind's line and a line for each template with its description, each
-        ending in a newline.
-    """
+    """Render the templates of one kind."""
     width = max(len(template.name) for template in members)
     marked = any(template.entry for template in members)
     lines = [kind]
@@ -85,18 +69,7 @@ def _group(kind: str, members: list[Template]) -> str:
 
 
 def _line(template: Template, width: int, *, marked: bool) -> str:
-    """Render one template's line.
-
-    Args:
-        template: The template.
-        width: The width of the longest name of its group.
-        marked: Whether any template of the group is an entry, which gives the
-            mark its column.
-
-    Returns:
-        The name padded to `width`, the mark column, which is 7 wide, and the
-        shape, one space apart and without trailing spaces, indented by two.
-    """
+    """Render one template's line."""
     columns = [template.name.ljust(width)]
     if marked:
         columns.append(_ENTRY if template.entry else " " * len(_ENTRY))
@@ -106,15 +79,7 @@ def _line(template: Template, width: int, *, marked: bool) -> str:
 
 
 def _description(description: str | None) -> list[str]:
-    """Lay out a description under its template.
-
-    Args:
-        description: The description as written, or `None`.
-
-    Returns:
-        Each line indented by four with the empty lines around the description
-        dropped, and an empty line kept empty inside it.
-    """
+    """Lay out a description under its template."""
     if description is None:
         return []
     text = _OUTER_EMPTY.sub("", description)

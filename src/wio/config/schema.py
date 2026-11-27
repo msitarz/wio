@@ -135,16 +135,7 @@ def tables(top: Table) -> list[Table]:
 
 
 def _table(build: type, noun: str, path: str) -> Table:
-    """Build the table of a dataclass.
-
-    Args:
-        build: The dataclass.
-        noun: How a message names the table.
-        path: The key path of the table, for naming the tables below it.
-
-    Returns:
-        The table, with a slot for each field.
-    """
+    """Build the table of a dataclass."""
     hints = typing.get_type_hints(build)
     slots = tuple(
         _slot(item, hints[item.name], f"{path}.{item.name}".lstrip("."))
@@ -154,16 +145,7 @@ def _table(build: type, noun: str, path: str) -> Table:
 
 
 def _slot(item: dataclasses.Field[Any], hint: object, path: str) -> Slot:
-    """Build the slot of one field.
-
-    Args:
-        item: The field.
-        hint: Its resolved annotation.
-        path: Its key path.
-
-    Returns:
-        The slot.
-    """
+    """Build the slot of one field."""
     spec = (
         Strings(nonempty=True) if item.metadata.get("nonempty") else _spec(hint, path)
     )
@@ -180,16 +162,7 @@ def _slot(item: dataclasses.Field[Any], hint: object, path: str) -> Slot:
 
 
 def _spec(hint: object, path: str) -> Spec:
-    """Derive what a value looks like from an annotation.
-
-    Args:
-        hint: The annotation, such as `tuple[str, ...] | None`, or a `type` alias
-            of one, which is read through to what it names.
-        path: The key path of the field, for naming a nested table.
-
-    Returns:
-        The spec of the annotation, without its `None`.
-    """
+    """Derive what a value looks like from an annotation."""
     hint = _named(hint)
     args = typing.get_args(hint)
     match typing.get_origin(hint):
@@ -206,87 +179,40 @@ def _spec(hint: object, path: str) -> Spec:
 
 
 def _named(hint: object) -> object:
-    """Read a `type` alias through to what it names.
-
-    Args:
-        hint: An annotation.
-
-    Returns:
-        What the alias names, or the annotation itself when it is no alias.
-    """
+    """Read a `type` alias through to what it names."""
     return hint.__value__ if isinstance(hint, typing.TypeAliasType) else hint
 
 
 def _plain(hint: object, path: str) -> Spec:
-    """Derive the spec of an annotation that is no generic.
-
-    Args:
-        hint: A class, such as `str` or a dataclass.
-        path: The key path of the field.
-
-    Returns:
-        A table for a dataclass, otherwise an atom of the class.
-    """
+    """Derive the spec of an annotation that is no generic."""
     if dataclasses.is_dataclass(hint) and isinstance(hint, type):
         return _table(hint, f"`[{path}]`", path)
     return Atom(hint if isinstance(hint, type) else str)
 
 
 def _union(args: list[Any], path: str) -> Spec:
-    """Derive the spec of a union without `None`.
-
-    Args:
-        args: The members of the union.
-        path: The key path of the field.
-
-    Returns:
-        The spec of the one member, or the preset-or-stages spec of a union of a
-        string and a list of strings.
-    """
+    """Derive the spec of a union without `None`."""
     if len(args) == 1:
         return _spec(args[0], path)
     return PresetOrStages()
 
 
 def _member(hint: object, path: str) -> Spec:
-    """Derive the spec of a value of an open table.
-
-    Args:
-        hint: The annotation of the value.
-        path: The key path of the open table.
-
-    Returns:
-        The spec; a dataclass is a table named after its class, such as `a root`.
-    """
+    """Derive the spec of a value of an open table."""
     if dataclasses.is_dataclass(hint) and isinstance(hint, type):
         return _table(hint, _noun(hint.__name__), f"{path}.<name>")
     return _spec(hint, path)
 
 
 def _noun(name: str) -> str:
-    """Name a table after its class.
-
-    Args:
-        name: A class name such as `RulePreset`.
-
-    Returns:
-        The words of the name with an article, such as `a rule preset`.
-    """
+    """Name a table after its class."""
     words = re.sub(r"(?<!^)(?=[A-Z])", " ", name).lower()
     article = "an" if words[0] in "aeiou" else "a"
     return f"{article} {words}"
 
 
 def _empty(spec: Spec) -> object:
-    """Give the value that stands for a required key that is not usable.
-
-    Args:
-        spec: What a value of the key looks like.
-
-    Returns:
-        An empty string for a string, an empty tuple for a list, and `None` for
-        anything else.
-    """
+    """Give the value that stands for a required key that is not usable."""
     match spec:
         case Atom(kind):
             return kind()
