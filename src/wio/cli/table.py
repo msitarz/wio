@@ -54,6 +54,7 @@ type Component = Literal[
     "config",
     "contracts",
     "describe",
+    "next",
     "templates",
     "rules",
     "trailers",
