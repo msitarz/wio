@@ -40,13 +40,7 @@ _CLOSING_MARKS: Final = re.compile(r"\s+#+\s*$")
 
 @dataclass(frozen=True)
 class _Section:
-    """A section of a template: its text as written and its directives.
-
-    Attributes:
-        text: The heading's text before a directive list, as the template writes
-            it, which a message names it by.
-        directives: The directives of the list on the heading.
-    """
+    """A section of a template: its text as written and its directives."""
 
     text: str
     directives: tuple[Directive, ...]
@@ -54,13 +48,7 @@ class _Section:
 
 @dataclass(frozen=True)
 class _Source:
-    """What a template says about the body of a contract that follows it.
-
-    Attributes:
-        name: The template's name.
-        sections: Its `##` sections, each under the key that sections are matched
-            by, the first of a repeated text only, in the order of the template.
-    """
+    """What a template says about the body of a contract that follows it."""
 
     name: str
     sections: Mapping[str, _Section]
@@ -68,13 +56,7 @@ class _Source:
 
 @dataclass(frozen=True)
 class _Headings:
-    """The `##` headings of a contract, by the section each one is.
-
-    Attributes:
-        firsts: The first heading of each text, under the key that sections are
-            matched by, in the order of the body.
-        repeats: Each later heading of a text, with the line of the first.
-    """
+    """The `##` headings of a contract, by the section each one is."""
 
     firsts: Mapping[str, Heading]
     repeats: Sequence[tuple[Heading, int]]
@@ -82,15 +64,7 @@ class _Headings:
 
 @dataclass(frozen=True)
 class _Directives:
-    """The directives that apply to the sections of a contract, and the problems.
-
-    Attributes:
-        by_key: The directives of each section that the contract has, under the
-            key that sections are matched by: the template's, or the contract's
-            own when it names no template.
-        problems: The errors of the contract's own lists that the parser refuses
-            or that are on a heading that is not level 2, empty with a template.
-    """
+    """The directives that apply to the sections of a contract, and the problems."""
 
     by_key: Mapping[str, tuple[Directive, ...]]
     problems: list[Diagnostic]
@@ -118,81 +92,21 @@ class BodyChecker:
     def check(
         self, work: Work, block: MetadataBlock, template: Template | None
     ) -> list[Diagnostic]:
-        """Check the body of one contract.
+        """Check one contract's `##` sections, directives, and item ids.
 
-        The source of directives is the template that the contract names, and
-        only that: `work.template` names none, and then the source is the
-        contract's own `##` headings and only those, and `template` is `None`; or
-        it names one and `template` is what the catalog gave for it. A contract
-        that names a template that is missing or rejected, which is `template`
-        `None` with `work.template` set, gets no diagnostic at all, because the
-        check of the Works has reported it. A template whose file cannot be read
-        or decoded, whose block cannot be parsed or is missing, is skipped the
-        same way, because `wio templates check` reports it, and the failed read is
-        remembered so that it is not retried for the next contract. A Work whose
-        `template` discovery reported as being of a wrong type has `work.template`
-        `None` too, so it would read as one that names none: the caller, which
-        already knows the fields that discovery reported, does not call this for
-        it, and `_check_work` in `checking.py` does, with one shared checker for the
-        run. A section is a `##` heading and what follows it up to the next
-        heading of level 1 or 2, and sections deeper than level 2 are free.
-
-        A `##` heading of the contract matches one of the template by its text,
-        ignoring case, the whitespace around it and a trailing directive list,
-        and nothing else is normalized. When a `##` heading is repeated, in the
-        contract or in the template, the first is the section. A directive list is
-        anything that begins with the opener `<!-- wio:`, which the parser reads as
-        `<!--`, whitespace, `wio:` and whitespace, and the heading's text for
-        matching is what comes before it. A heading whose list the parser refuses
-        has a text too, so it is taken from the heading's line by an expression of
-        this module and not from the parser, which raises for such a line.
-
-        With a template:
-
-        - A section that the template marks `required` and the contract lacks is
-          an error at the file, ``The section `Goals` is required by the template
-          `t` ``, named as the template writes it.
-        - A directive list in the contract, on a heading of any level and whatever
-          its syntax, changes nothing and is a warning at `<file>:<line>` of the
-          heading, one for each list, ``The directive list is ignored because the
-          contract follows the template `t` ``, and the parser's errors are not
-          reported.
-        - A `##` heading that the template does not have is a warning at its line,
-          ``The section `Constraint` is not in the template `t` ``, with ``. Did
-          you mean `Constraints`?`` when `closest_key` finds one among the texts of
-          the template's sections as written.
-
-        A directive list on a repeated heading gets both the warning that it is
-        ignored and the warning that the heading is repeated. A template section
-        that is `inherit` and `required` is still required, although the sections
-        that a contract inherits are not checked.
-
-        Without a template, the directives are those of the contract's own `##`
-        headings. A list that the parser refuses is an error at
-        `<file>:<line>:<column>` with the parser's column, and a list on a heading
-        that is not level 2 is an error at the column of its opener, ``Directives
-        are read on level-2 headings only``, on a repeated heading as on any
-        other, because every list is judged.
-
-        In both cases the items of each section that has `items` or `pattern`
-        directives are found and judged with `find_items` and `judge_items`, over
-        the first section of each text only, which are counted and whose ids are
-        checked. A repeated `##` heading is a warning at its line, ``The section
-        `Goals` is repeated; the first one counts``, and carries no items. A
-        contract with no title, which is `work.title` `None`, is a warning at the
-        file, ``The contract has no title``. The sections that a contract inherits
-        are not checked.
+        Uses directives from `template` when the contract names one, or from
+        the contract's own `##` headings otherwise. Returns no diagnostics when
+        the named template is missing, rejected, or unreadable (reported by
+        `wio templates check`), and caches template reads across calls.
 
         Args:
-            work: The Work, for its file and its title.
-            block: Its metadata block, read again, whose body is checked and whose
-                `body_start_line` gives each heading its line in the file.
-            template: The template the catalog gave for `work.template`, or `None`
-                when the Work names none or names one that is missing or rejected.
+            work: The Work being checked.
+            block: Its parsed metadata block and body.
+            template: The catalog entry for `work.template`, or `None`.
 
         Returns:
-            The findings in any order, none for a contract whose template is
-            missing, rejected or unreadable.
+            Unsorted diagnostics for missing required sections, unknown or
+            repeated headings, ignored or invalid directives, and item ids.
         """
         source = None
         if work.template is not None:
@@ -237,15 +151,7 @@ class BodyChecker:
         return _pattern_ids(block, headings, by_key)
 
     def _source(self, template: Template) -> _Source | None:
-        """Give what a template says, reading its file the first time.
-
-        Args:
-            template: The template.
-
-        Returns:
-            What `_read_template` gave for it, which is `None` for a template
-            that cannot be used, the same for every contract that follows it.
-        """
+        """Give what a template says, reading its file the first time."""
         if template.name not in self._read:
             self._read[template.name] = _read_template(
                 template, self._root, self._files
@@ -254,19 +160,7 @@ class BodyChecker:
 
 
 def _read_template(template: Template, root: Path, files: FileSystem) -> _Source | None:
-    """Read the sections of a template and their directives from its file.
-
-    Args:
-        template: The template, whose `path` is relative to the root.
-        root: The repository root.
-        files: The port that reads the file.
-
-    Returns:
-        The sections of its `##` headings, the first of a repeated text only, or
-        `None` when the file cannot be read or decoded, its block cannot be
-        parsed or is missing. A list that the parser refuses gives that section no
-        directives, because `wio templates check` reports it.
-    """
+    """Read the sections of a template and their directives from its file."""
     try:
         block = read_metadata_block(files.read_text(root / template.path))
     except UnicodeDecodeError, OSError, MetadataBlockError:
@@ -282,16 +176,7 @@ def _read_template(template: Template, root: Path, files: FileSystem) -> _Source
 
 
 def _level_two(outline: Sequence[Heading]) -> _Headings:
-    """Split the `##` headings of a body into first ones and repeats.
-
-    Args:
-        outline: The real headings of the body, in order, of every level.
-
-    Returns:
-        The `##` headings by the key of their text, ignoring case, the whitespace
-        around it and a trailing directive list, with each repeat and the line of
-        the first.
-    """
+    """Split the `##` headings of a body into first ones and repeats."""
     firsts: dict[str, Heading] = {}
     repeats: list[tuple[Heading, int]] = []
     for heading in outline:
@@ -308,19 +193,7 @@ def _level_two(outline: Sequence[Heading]) -> _Headings:
 def _directives(
     place: str, outline: Sequence[Heading], headings: _Headings, source: _Source | None
 ) -> _Directives:
-    """Choose the directives of each section, and judge the contract's own lists.
-
-    Args:
-        place: The contract's file.
-        outline: The real headings of the body.
-        headings: The `##` headings.
-        source: What the template says, or `None` for a contract with none.
-
-    Returns:
-        The template's directives for each section that the contract has, or the
-        lists of the contract's own first `##` headings, and with no template the
-        parser's errors and the errors for a list on another level.
-    """
+    """Choose the directives of each section, and judge the contract's own lists."""
     if source is not None:
         by_key = {
             key: source.sections[key].directives
@@ -336,27 +209,12 @@ def _directives(
 
 
 def _key(heading: Heading) -> str:
-    """Give the key that sections are matched by.
-
-    Args:
-        heading: A heading.
-
-    Returns:
-        Its text before a directive list, without the whitespace around it, in
-        lowercase for comparison, and nothing else normalized.
-    """
+    """Give the key that sections are matched by."""
     return _text_of(heading).casefold()
 
 
 def _parsed(heading: Heading) -> tuple[Directive, ...]:
-    """Read the directives of a heading, none for a list that the parser refuses.
-
-    Args:
-        heading: A heading of a template or of a contract.
-
-    Returns:
-        The directives in the order written.
-    """
+    """Read the directives of a heading, none for a list that the parser refuses."""
     try:
         parsed = read_directive_heading(heading.raw)
     except DirectiveSyntaxError:
@@ -365,16 +223,7 @@ def _parsed(heading: Heading) -> tuple[Directive, ...]:
 
 
 def _list_problems(place: str, heading: Heading) -> list[Diagnostic]:
-    """Judge the directive list of one heading of a contract with no template.
-
-    Args:
-        place: The contract's file.
-        heading: A heading of any level.
-
-    Returns:
-        The error of a list that the parser refuses, at its line and column, or of
-        a list on a heading that is not level 2, at the column of its opener.
-    """
+    """Judge the directive list of one heading of a contract with no template."""
     where = f"{place}:{heading.line}"
     try:
         parsed = read_directive_heading(heading.raw)
@@ -389,45 +238,20 @@ def _list_problems(place: str, heading: Heading) -> list[Diagnostic]:
 
 
 def _stray(text: str, template: str, close: str | None) -> str:
-    """Word the warning for a section that the template does not have.
-
-    Args:
-        text: The section's text as written.
-        template: The template's name.
-        close: The closest section of the template, or `None`.
-
-    Returns:
-        The message, with the suggestion when there is one.
-    """
+    """Word the warning for a section that the template does not have."""
     message = f"The section `{text}` is not in the template `{template}`"
     return f"{message}. Did you mean `{close}`?" if close else message
 
 
 def _title_warning(work: Work) -> list[Diagnostic]:
-    """Warn of a contract that has no heading.
-
-    Args:
-        work: The Work, whose `title` is the text of its first heading.
-
-    Returns:
-        ``The contract has no title`` as a warning at the file, or an empty list.
-    """
+    """Warn of a contract that has no heading."""
     if work.title is not None:
         return []
     return [Diagnostic("warning", work.path.as_posix(), "The contract has no title")]
 
 
 def _repeat_warnings(place: str, headings: _Headings) -> list[Diagnostic]:
-    """Warn of each `##` heading that repeats an earlier one.
-
-    Args:
-        place: The contract's file.
-        headings: The `##` headings.
-
-    Returns:
-        One warning at each repeat's line that names the section and says that
-        the first one counts.
-    """
+    """Warn of each `##` heading that repeats an earlier one."""
     return [
         Diagnostic(
             "warning",
@@ -439,18 +263,7 @@ def _repeat_warnings(place: str, headings: _Headings) -> list[Diagnostic]:
 
 
 def _text_of(heading: Heading) -> str:
-    """Give the text of a heading before a directive list, as written.
-
-    It is taken from the line by an expression and not by the parser, which raises
-    for a list that it refuses, so a heading whose list is refused has a text too.
-
-    Args:
-        heading: The heading.
-
-    Returns:
-        The line without its `#` marks, a closing sequence of them, the spaces
-        around it, and a directive list and what follows it.
-    """
+    """Give the text of a heading before a directive list, as written."""
     opener = _OPENER.search(heading.raw)
     before = heading.raw if opener is None else heading.raw[: opener.start()]
     return _CLOSING_MARKS.sub("", _LEADING_MARKS.sub("", before.strip())).strip()
@@ -459,18 +272,7 @@ def _text_of(heading: Heading) -> str:
 def _against_template(
     place: str, outline: Sequence[Heading], headings: _Headings, source: _Source | None
 ) -> list[Diagnostic]:
-    """Judge the contract's sections and lists against its template.
-
-    Args:
-        place: The contract's file.
-        outline: The real headings of the body, whose lists are ignored.
-        headings: The `##` headings.
-        source: What the template says, or `None` for a contract with none, which
-            gives nothing.
-
-    Returns:
-        The findings about the sections and the ignored lists.
-    """
+    """Judge the contract's sections and lists against its template."""
     if source is None:
         return []
     return [
@@ -482,23 +284,7 @@ def _against_template(
 def _section_findings(
     place: str, headings: _Headings, source: _Source
 ) -> list[Diagnostic]:
-    """Judge the contract's `##` sections against the template's.
-
-    Args:
-        place: The contract's file.
-        headings: The `##` headings of the contract, of which the first of each
-            text is judged.
-        source: What the template says.
-
-    Returns:
-        An error at the file for each section that the template requires and the
-        contract lacks, ``The section `Goals` is required by the template `t` ``,
-        named as the template writes it, in the template's order, and a warning at
-        the line of each heading that the template does not have, ``The section
-        `Constraint` is not in the template `t` ``, with ``. Did you mean
-        `Constraints`?`` for the closest section by `closest_key` on the texts as
-        written.
-    """
+    """Judge the contract's `##` sections against the template's."""
     found = [
         Diagnostic(
             "error",
@@ -526,18 +312,7 @@ def _section_findings(
 def _ignored_lists(
     place: str, outline: Sequence[Heading], template: str
 ) -> list[Diagnostic]:
-    """Warn of each directive list of a contract that follows a template.
-
-    Args:
-        place: The contract's file.
-        outline: The real headings of the body, of every level.
-        template: The template's name.
-
-    Returns:
-        One warning at the line of the heading for each list, however it is
-        written, saying that it is ignored because the contract follows the
-        template.
-    """
+    """Warn of each directive list of a contract that follows a template."""
     message = (
         "The directive list is ignored because the contract follows the template "
         f"`{template}`"
@@ -555,18 +330,7 @@ def _item_errors(
     headings: _Headings,
     by_key: Mapping[str, tuple[Directive, ...]],
 ) -> list[Diagnostic]:
-    """Find and judge the items of the sections that have `items` or `pattern`.
-
-    Args:
-        place: The contract's file.
-        block: The block, whose body and first line the items are found in.
-        headings: The `##` headings, of which only the first of each text counts.
-        by_key: The directives of each section.
-
-    Returns:
-        What `judge_items` finds for the sections, over the first heading of each
-        text only.
-    """
+    """Find and judge the items of the sections that have `items` or `pattern`."""
     sections = [
         SectionItems(
             heading,
@@ -584,17 +348,7 @@ def _pattern_ids(
     headings: _Headings,
     by_key: Mapping[str, tuple[Directive, ...]],
 ) -> frozenset[str]:
-    """Find the ids of the sections that have a `pattern` directive.
-
-    Args:
-        block: The contract's block, whose body and first line the items are found
-            in.
-        headings: The `##` headings, of which only the first of each text counts.
-        by_key: The directives of each section.
-
-    Returns:
-        The ids that `find_items` matches, for the first heading of each text.
-    """
+    """Find the ids of the sections that have a `pattern` directive."""
     sections = [
         (heading, by_key[key])
         for key, heading in headings.firsts.items()
@@ -609,12 +363,5 @@ def _pattern_ids(
 
 
 def _has_pattern(directives: Sequence[Directive]) -> bool:
-    """Tell whether a section's directives give its items an id.
-
-    Args:
-        directives: The directives of a section.
-
-    Returns:
-        Whether one of them is a `pattern`.
-    """
+    """Tell whether a section's directives give its items an id."""
     return any(isinstance(d, Pattern) for d in directives)

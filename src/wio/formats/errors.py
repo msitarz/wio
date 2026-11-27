@@ -37,14 +37,7 @@ class TomlSyntaxError(WioError):
 
 
 class _PlacedError(WioError):
-    """A `WioError` whose text is the message and where it happened.
-
-    A subclass names the unit of the position in `unit` and declares the
-    attribute of that name, which holds the position.
-
-    Attributes:
-        message: What is wrong, without the position.
-    """
+    """A `WioError` whose text is the message and where it happened."""
 
     unit: ClassVar[str]
     message: str
@@ -62,14 +55,7 @@ class _PlacedError(WioError):
         setattr(self, self.unit, position)
 
     def _where(self, position: int) -> str:
-        """Word where the problem is, for the text of `str`.
-
-        Args:
-            position: The position in the unit of the subclass.
-
-        Returns:
-            The unit and the position, such as `line 3`.
-        """
+        """Word where the problem is, for the text of `str`."""
         return f"{self.unit} {position}"
 
 
@@ -140,12 +126,5 @@ class TemplateDirectiveError(DirectiveSyntaxError):
 
     @override
     def _where(self, position: int) -> str:
-        """Word where the problem is: the line of the heading and the column.
-
-        Args:
-            position: The column.
-
-        Returns:
-            The line and the column, such as `line 7, column 5`.
-        """
+        """Word where the problem is: the line of the heading and the column."""
         return f"line {self.line}, column {position}"

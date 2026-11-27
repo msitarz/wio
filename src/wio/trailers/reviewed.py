@@ -59,35 +59,12 @@ def reviewed_commit(
 
 
 def _is_gate_commit(message: str, gate: tuple[str, str], reader: Reader) -> bool:
-    """Tell whether a commit message carries only the gate's own records.
-
-    Args:
-        message: The full message of the commit.
-        gate: The action and the stage of the gate.
-        reader: The reader of the config, which decides what a record is.
-
-    Returns:
-        `True` when the message has at least one record and every record has the
-        gate's action and stage, whichever Works it is for, and `False` for a
-        message with no record, with a record of `Wio-Work: none`, or with a record
-        of another action or stage, and for a gate record that the reader cannot
-        see.
-    """
+    """Tell whether a commit message carries only the gate's own records."""
     records = read(message, reader).records
     return bool(records) and all(_belongs_to(record, gate) for record in records)
 
 
 def _belongs_to(record: Record, gate: tuple[str, str]) -> bool:
-    """Tell whether a record is the record of a gate.
-
-    Args:
-        record: A record of the message.
-        gate: The action and the stage of the gate.
-
-    Returns:
-        `True` when the record names the gate's action and stage, for any Work or
-        list of Works, and `False` for one that lacks either key, such as a record
-        of `Wio-Work: none`.
-    """
+    """Tell whether a record is the record of a gate."""
     seen = {trailer.key: trailer.value for trailer in record.trailers}
     return (seen.get("Wio-Action"), seen.get("Wio-Stage")) == gate

@@ -116,32 +116,14 @@ def check_templates(
 
 
 def _directory_refused(found: Discovery, settings: Templates) -> bool:
-    """Tell whether discovery refused the templates directory itself.
-
-    Args:
-        found: What the walk found.
-        settings: The `[templates]` table of the config.
-
-    Returns:
-        Whether the walk built nothing and reported an error whose place is the
-        directory, which is how it reports a directory that it cannot walk.
-    """
+    """Tell whether discovery refused the templates directory itself."""
     return not found.templates and any(
         diagnostic.where == settings.dir for diagnostic in found.diagnostics
     )
 
 
 def _unbuilt_names(diagnostics: Iterable[Diagnostic]) -> frozenset[str]:
-    """Name the templates whose files discovery reported an error for.
-
-    Args:
-        diagnostics: The diagnostics of discovery.
-
-    Returns:
-        The file names without `.md` of the places that end in `.md`, once the
-        `:<line>` of a place and the `, ` that joins the files of a duplicate are
-        taken off.
-    """
+    """Name the templates whose files discovery reported an error for."""
     places = (
         _POSITION.sub("", part)
         for diagnostic in diagnostics
@@ -155,17 +137,7 @@ def _unbuilt_names(diagnostics: Iterable[Diagnostic]) -> frozenset[str]:
 
 
 def _read(root: Path, template: Template, files: FileSystem) -> Reading | Diagnostic:
-    """Read a template that discovery built, a second time, for its headings.
-
-    Args:
-        root: The repository root.
-        template: The template.
-        files: The port that reads the file.
-
-    Returns:
-        The reading, or the one error for the file, worded as discovery words
-        it, when it cannot be read now.
-    """
+    """Read a template that discovery built, a second time, for its headings."""
     place = PurePosixPath(template.path).as_posix()
     try:
         block = read_metadata_block(files.read_text(root / template.path))
@@ -187,18 +159,7 @@ def _judge(
     config: Config,
     unbuilt: Collection[str],
 ) -> Iterator[Diagnostic]:
-    """Run every check on the templates that were read.
-
-    Args:
-        readings: The templates that could be read a second time.
-        templates: Every template that discovery built, whether or not it could
-            be read again, since the kinds check reads no file.
-        config: The settings the templates are judged against.
-        unbuilt: The names of the files that discovery could not build.
-
-    Yields:
-        The diagnostics of the checks, in no particular order.
-    """
+    """Run every check on the templates that were read."""
     yield from check_kinds(templates, config.templates.kinds, unbuilt)
     for reading in readings:
         yield from check_keys(reading.place, reading.data)
@@ -236,15 +197,7 @@ def check_keys(place: str, data: Mapping[str, object]) -> list[Diagnostic]:
 
 
 def _unknown_key(key: str) -> str:
-    """Build the message of a metadata key that a template cannot have.
-
-    Args:
-        key: The key as written.
-
-    Returns:
-        That the key is unknown in the metadata, and the closest key that a
-        template may have when there is one.
-    """
+    """Build the message of a metadata key that a template cannot have."""
     message = f"Unknown key `{key}` in the metadata"
     close = closest_key(key, sorted(_KEYS))
     return f"{message}. Did you mean `{close}`?" if close else message
@@ -353,17 +306,7 @@ def check_kinds(
 def _directive_problems(
     place: str, heading: Heading, level: HeadingLevel
 ) -> list[Diagnostic]:
-    """Judge the directive list of one heading.
-
-    Args:
-        place: The template's file.
-        heading: The heading.
-        level: The one level on which directives are read.
-
-    Returns:
-        The error of a list the parser refuses, or of a list on another level,
-        or nothing.
-    """
+    """Judge the directive list of one heading."""
     where = f"{place}:{heading.line}"
     try:
         parsed = read_directive_heading(heading.raw)
@@ -380,17 +323,7 @@ def _directive_problems(
 def _repeat_problems(
     place: str, heading: Heading, seen: dict[str, int]
 ) -> list[Diagnostic]:
-    """Judge whether a heading repeats an earlier one of the same template.
-
-    Args:
-        place: The template's file.
-        heading: A heading of the level that is checked for repeats.
-        seen: The line of the first heading with each text so far; this adds
-            the heading when it is the first.
-
-    Returns:
-        A warning when an earlier heading has the same text, otherwise nothing.
-    """
+    """Judge whether a heading repeats an earlier one of the same template."""
     text = _comparable(heading)
     if text not in seen:
         seen[text] = heading.line
@@ -400,15 +333,7 @@ def _repeat_problems(
 
 
 def _comparable(heading: Heading) -> str:
-    """Reduce a heading to the text that repeats are compared by.
-
-    Args:
-        heading: The heading.
-
-    Returns:
-        Its text before a directive list, without the `#` marks, the whitespace
-        around it and the case.
-    """
+    """Reduce a heading to the text that repeats are compared by."""
     opener = _OPENER.search(heading.raw)
     raw = heading.raw if opener is None else heading.raw[: opener.start()]
     text = _CLOSING_MARKS.sub("", _LEADING_MARKS.sub("", raw.strip()))
@@ -418,18 +343,7 @@ def _comparable(heading: Heading) -> str:
 def _value_problems(
     place: str, action: str, value: object, config: Config
 ) -> list[Diagnostic]:
-    """Judge the value of one entry of `[actions]`.
-
-    Args:
-        place: The template's file.
-        action: The entry's key.
-        value: Its value.
-        config: The settings that declare the stage presets and the stages.
-
-    Returns:
-        An error for a name the config does not declare, or for a value that is
-        neither a name nor a list of names.
-    """
+    """Judge the value of one entry of `[actions]`."""
     match value:
         case str():
             return _undeclared(place, "stage preset", [value], config.stage_presets)
@@ -442,17 +356,7 @@ def _value_problems(
 def _undeclared(
     place: str, noun: str, names: Iterable[str], declared: Mapping[str, object]
 ) -> list[Diagnostic]:
-    """Make an error for each name that the config does not declare.
-
-    Args:
-        place: The template's file.
-        noun: What the names are, such as `stage`.
-        names: The names to look up.
-        declared: The config's declarations of that kind, by name.
-
-    Returns:
-        An error for each name that is not a key of `declared`.
-    """
+    """Make an error for each name that the config does not declare."""
     return [
         _error(place, f"The {noun} `{name}` is not declared")
         for name in names
@@ -461,16 +365,7 @@ def _undeclared(
 
 
 def _kind_problems(template: Template, kinds: Mapping[str, str]) -> list[Diagnostic]:
-    """Judge one template's kind against the declared kinds.
-
-    Args:
-        template: The template.
-        kinds: The entry template of each declared kind.
-
-    Returns:
-        An error for a kind that is not declared, and one for an entry template
-        of another kind than the one it starts.
-    """
+    """Judge one template's kind against the declared kinds."""
     place = PurePosixPath(template.path).as_posix()
     if template.kind not in kinds:
         message = f"The kind `{template.kind}` is not declared in `[templates.kinds]`"

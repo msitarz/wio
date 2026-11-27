@@ -56,16 +56,7 @@ class KnownInputs:
 
 
 def _known_roots(work_id: str, works: WorkRoots, config: Config) -> None:
-    """Refuse an undeclared root selected from a Work.
-
-    Args:
-        work_id: The Work whose roots are selected.
-        works: Supplies the expanded roots.
-        config: Declares the roots.
-
-    Raises:
-        WioError: A Work root is unknown.
-    """
+    """Refuse an undeclared root selected from a Work."""
     for root in works.roots_of(work_id) or ():
         if root not in config.roots:
             message = f"The Work `{work_id}` names unknown root `{root}`."
@@ -73,16 +64,7 @@ def _known_roots(work_id: str, works: WorkRoots, config: Config) -> None:
 
 
 def _known(kind: str, name: str, declared: Mapping[str, object]) -> None:
-    """Refuse an unknown name and list the declared names.
-
-    Args:
-        kind: The kind of name for the message.
-        name: The requested name.
-        declared: The declared names.
-
-    Raises:
-        WioError: The name is not declared.
-    """
+    """Refuse an unknown name and list the declared names."""
     if name not in declared:
         names = ", ".join(f"`{item}`" for item in sorted(declared)) or "none"
         message = f"Unknown {kind} `{name}`. Declared {kind}s: {names}."

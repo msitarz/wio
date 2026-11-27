@@ -57,36 +57,14 @@ def stage_roots(
 
 
 def _stage_roots_of(config: Config, stage: str | None) -> Sequence[str] | None:
-    """Read the `roots` of a stage.
-
-    Args:
-        config: The settings.
-        stage: The stage's name, or `None` for no stage.
-
-    Returns:
-        The stage's `roots`, or `None` when it sets none or no stage is given.
-
-    Raises:
-        KeyError: The stage is not one of the config.
-    """
+    """Read the `roots` of a stage."""
     if stage is None:
         return None
     return config.stages[stage].roots
 
 
 def _checked(config: Config, names: Sequence[str]) -> tuple[str, ...]:
-    """Check that roots are roots of the config.
-
-    Args:
-        config: The settings.
-        names: The names to check.
-
-    Returns:
-        The names, sorted and each once.
-
-    Raises:
-        KeyError: A name is not a root of the config; the first is named.
-    """
+    """Check that roots are roots of the config."""
     for name in names:
         if name not in config.roots:
             raise KeyError(name)
@@ -94,21 +72,7 @@ def _checked(config: Config, names: Sequence[str]) -> tuple[str, ...]:
 
 
 def _work_roots(config: Config, work_id: str, work_roots: WorkRoots) -> tuple[str, ...]:
-    """Find the roots of a Work that a stage selects.
-
-    Args:
-        config: The settings.
-        work_id: The Work's id.
-        work_roots: Gives the roots of the Work.
-
-    Returns:
-        The Work's roots, each a root of the config.
-
-    Raises:
-        KeyError: The Work is not known, or a root of it is not a root of the
-            config.
-        ValueError: The Work has no roots.
-    """
+    """Find the roots of a Work that a stage selects."""
     found = work_roots.roots_of(work_id)
     if found is None:
         raise KeyError(work_id)
@@ -119,15 +83,7 @@ def _work_roots(config: Config, work_id: str, work_roots: WorkRoots) -> tuple[st
 
 
 def _merged(own: tuple[str, ...], work: tuple[str, ...]) -> tuple[str, ...]:
-    """Join the roots of a stage with those of the Work.
-
-    Args:
-        own: The stage's own roots.
-        work: The Work's roots.
-
-    Returns:
-        The names, sorted and each once.
-    """
+    """Join the roots of a stage with those of the Work."""
     return tuple(sorted({*own, *work}))
 
 
@@ -155,15 +111,6 @@ def roots_of_path(config: Config, path: PurePosixPath) -> tuple[str, ...]:
 
 
 def _within(path: PurePosixPath, root: str) -> bool:
-    """Tell whether a path is a root's path or lies under it.
-
-    Args:
-        path: The file's path.
-        root: One path of a root, as written in the config, `.` for the
-            repository.
-
-    Returns:
-        Whether the path is the root's or below it, by whole components.
-    """
+    """Tell whether a path is a root's path or lies under it."""
     base = PurePosixPath(root)
     return path == base or base in path.parents

@@ -85,20 +85,7 @@ def _decide(
     *,
     applied: Collection[str] | None,
 ) -> Decision:
-    """Decide one rule.
-
-    Args:
-        rule: The rule.
-        layers: What the layers did to it.
-        config: The settings, whose ruleset table says what is root-independent.
-        reach: The rulesets that each root of the config reaches.
-        candidates: The roots to look among, in the order of their names: the
-            selected roots, or every root of the config when none are applied.
-        applied: The selected roots, or `None` when the roots are not applied.
-
-    Returns:
-        Included with its roots, or out with its reason.
-    """
+    """Decide one rule."""
     table = config.rulesets.get(rule.ruleset)
     independent = table is not None and table.root_independent
     effects = layers.effects
@@ -124,32 +111,12 @@ def _decide(
 def _reaching(
     rule: Rule, reach: Mapping[str, frozenset[str]], candidates: list[str]
 ) -> tuple[str, ...]:
-    """List the roots among the candidates that reach a rule's ruleset.
-
-    Args:
-        rule: The rule.
-        reach: The rulesets that each root of the config reaches.
-        candidates: The roots to look among, in the order of their names.
-
-    Returns:
-        The roots that reach the ruleset, in the order of the candidates.
-    """
+    """List the roots among the candidates that reach a rule's ruleset."""
     return tuple(name for name in candidates if rule.ruleset in reach[name])
 
 
 def _removal(effects: tuple[LayerEffect, ...]) -> Reason:
-    """Give the reason that a rule the layers did not select is out.
-
-    Args:
-        effects: What the layers did to the rule, in the order they applied.
-
-    Returns:
-        The reason of the last layer that removed it: `vetoed` for an always
-        exclude, `excluded` with the layer for a root or the stage, and
-        `not-selected` when no layer removed it. The exclude of a rule preset
-        inside an always include is skipped, because it took nothing out of the
-        set.
-    """
+    """Give the reason that a rule the layers did not select is out."""
     for effect in reversed(effects):
         if effect.action != "removes":
             continue

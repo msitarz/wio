@@ -258,14 +258,7 @@ def gather_work(
 
 
 def _is_path(argument: str) -> bool:
-    """Tell a path from an id by its form.
-
-    Args:
-        argument: What the person wrote.
-
-    Returns:
-        Whether it contains `/` or ends in `.md`.
-    """
+    """Tell a path from an id by its form."""
     return "/" in argument or argument.endswith(".md")
 
 
@@ -277,23 +270,7 @@ def _by_path(
     settings: WorksSettings,
     files: FileSystem,
 ) -> Work:
-    """Find the Work that a path names.
-
-    Args:
-        discovery: What discovery found.
-        argument: The path as written, relative to `directory` or absolute.
-        root: The repository root.
-        directory: The working directory.
-        settings: The `[works]` table of the config.
-        files: The port that reads files.
-
-    Returns:
-        The Work whose file the path is.
-
-    Raises:
-        ContractsError: The path is not a Work, with the reason that
-            `explain_not_a_work` gives.
-    """
+    """Find the Work that a path names."""
     target = Path(
         normpath(
             Path(argument) if Path(argument).is_absolute() else directory / argument
@@ -335,16 +312,7 @@ def find_by_id(discovery: WorkDiscovery, argument: str) -> Work:
 
 
 def _related_ids(ids: Sequence[str], works: Sequence[Work]) -> tuple[Related, ...]:
-    """Name the Works that some ids stand for.
-
-    Args:
-        ids: The ids in the order listed.
-        works: Every Work.
-
-    Returns:
-        One entry for each Work that has an id, so a shared id gives one for
-        each of them, and an entry that is not found for an id no Work has.
-    """
+    """Name the Works that some ids stand for."""
     owners: dict[str, list[Work]] = {}
     for work in works:
         owners.setdefault(work.id, []).append(work)
@@ -355,15 +323,7 @@ def _related_ids(ids: Sequence[str], works: Sequence[Work]) -> tuple[Related, ..
 
 
 def _named(work_id: str, owners: Sequence[Work]) -> list[Related]:
-    """Name the Works that have an id.
-
-    Args:
-        work_id: The id as listed.
-        owners: The Works that have it.
-
-    Returns:
-        An entry for each Work that has the id, or one that is not found.
-    """
+    """Name the Works that have an id."""
     if not owners:
         return [Related(work_id, None, found=False)]
     return [Related(work.id, work.title, found=True) for work in owners]
@@ -372,18 +332,7 @@ def _named(work_id: str, owners: Sequence[Work]) -> list[Related]:
 def _template_pipelines(
     name: str, catalog: TemplateCatalog, root: Path, files: FileSystem
 ) -> Mapping[str, Pipeline]:
-    """Read the actions that a template gives.
-
-    Args:
-        name: The template's name.
-        catalog: Finds the template and says whether it is rejected.
-        root: The repository root that the template's path is relative to.
-        files: The port that reads the template's file.
-
-    Returns:
-        The template's `[actions]`, empty when the catalog does not have the
-        template, rejects it or its file cannot be used.
-    """
+    """Read the actions that a template gives."""
     template = catalog.find(name)
     if template is None or catalog.is_rejected(name):
         return {}
@@ -393,16 +342,7 @@ def _template_pipelines(
 def _in_config_order(
     resolved: Sequence[ResolvedAction], config: Config, own: Sequence[str]
 ) -> tuple[ShownAction, ...]:
-    """Turn resolved actions into the actions `show` prints, in order.
-
-    Args:
-        resolved: The actions that `resolve_actions` gave, in its order.
-        config: The config, for the order, the on-demand flag and the presets.
-        own: The names in the Work's own `[actions]`, in the order written.
-
-    Returns:
-        The actions in the order that `shown_actions` gives.
-    """
+    """Turn resolved actions into the actions `show` prints, in order."""
     by_name = {action.name: action for action in resolved}
     names = _names_in_order(list(by_name), list(config.actions), own)
     return tuple(_shown(by_name[name], config) for name in names)
@@ -411,16 +351,7 @@ def _in_config_order(
 def _names_in_order(
     present: Sequence[str], declared: Sequence[str], own: Sequence[str]
 ) -> list[str]:
-    """Order the names of the actions that a Work has.
-
-    Args:
-        present: The names, in the order of the resolved actions.
-        declared: The names the config declares, in its order.
-        own: The names in the Work's own `[actions]`, in the order written.
-
-    Returns:
-        The names in the order that `shown_actions` gives.
-    """
+    """Order the names of the actions that a Work has."""
     first = [name for name in declared if name in present]
     others = [name for name in present if name not in first]
     named = [name for name in own if name in others]
@@ -428,15 +359,7 @@ def _names_in_order(
 
 
 def _shown(action: ResolvedAction, config: Config) -> ShownAction:
-    """Describe one resolved action as `show` prints it.
-
-    Args:
-        action: The resolved action.
-        config: The config, for the on-demand flag and the stages of a preset.
-
-    Returns:
-        The action as `ShownAction` describes it.
-    """
+    """Describe one resolved action as `show` prints it."""
     declared = config.actions.get(action.name)
     on_demand = declared is not None and declared.on_demand
     source = _SOURCES[action.source]

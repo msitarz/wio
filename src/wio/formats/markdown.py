@@ -12,23 +12,13 @@ if TYPE_CHECKING:
 
 @cache
 def _parser() -> MarkdownIt:
-    """Build the Markdown parser, once.
-
-    Returns:
-        A CommonMark parser, which is the definition of a heading, a list and a
-        comment block here.
-    """
+    """Build the Markdown parser, once."""
     return MarkdownIt("commonmark")
 
 
 @cache
 def _block_parser() -> MarkdownIt:
-    """Build a block-only Markdown parser, once.
-
-    Returns:
-        A CommonMark parser with the inline rule disabled, for callers that
-        inspect only block tokens and raw inline content.
-    """
+    """Build a block-only Markdown parser, once."""
     return MarkdownIt("commonmark").disable("inline")
 
 

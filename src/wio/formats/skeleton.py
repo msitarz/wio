@@ -70,29 +70,13 @@ def prepare_skeleton(name: str, text: str) -> str:
 
 
 def _first_line_ending(text: str) -> str:
-    """Find the line ending that a skeleton's block is written with.
-
-    Args:
-        text: The template's text without a byte-order mark.
-
-    Returns:
-        A CRLF when the first line ends with one, otherwise an LF.
-    """
+    """Find the line ending that a skeleton's block is written with."""
     found = _LINE_ENDING.search(text)
     return "\r\n" if found is not None and found[0] == "\r\n" else "\n"
 
 
 def _metadata(name: str, data: Mapping[str, object]) -> dict[str, object]:
-    """Pick what a contract's metadata holds out of a template's metadata.
-
-    Args:
-        name: The template's name.
-        data: The template's metadata, without the marker.
-
-    Returns:
-        `template`, then the keys and tables of `[contract]` in the order they
-        were written, without an `id` or a `template` of their own.
-    """
+    """Pick what a contract's metadata holds out of a template's metadata."""
     contract = data.get("contract")
     kept = (
         {key: value for key, value in contract.items() if key not in _DROPPED}
@@ -103,16 +87,7 @@ def _metadata(name: str, data: Mapping[str, object]) -> dict[str, object]:
 
 
 def _write_block(form: BlockForm, data: Mapping[str, object], ending: str) -> str:
-    """Write a metadata block of the given form.
-
-    Args:
-        form: `"comment"` or `"front-matter"`.
-        data: The metadata to write.
-        ending: The line ending to write the block with.
-
-    Returns:
-        The block, ending in a line ending; front matter starts with the marker.
-    """
+    """Write a metadata block of the given form."""
     if form == "comment":
         toml = encode_comment_toml(data).replace("\n", ending)
         return f"<!-- wio{ending}{toml}-->{ending}"
@@ -121,17 +96,7 @@ def _write_block(form: BlockForm, data: Mapping[str, object], ending: str) -> st
 
 
 def _strip_lists(block: MetadataBlock) -> str:
-    """Take the directive list off each real heading of a template's body.
-
-    Args:
-        block: The template's block with its body and the body's start line.
-
-    Returns:
-        The body, otherwise as it was.
-
-    Raises:
-        TemplateDirectiveError: A real heading's list is wrong.
-    """
+    """Take the directive list off each real heading of a template's body."""
     parts = _KEEPING_ENDINGS.split(block.body)
     for heading in read_outline(block.body, block.body_start_line):
         parts[2 * (heading.line - block.body_start_line)] = _without_list(heading)
@@ -139,17 +104,7 @@ def _strip_lists(block: MetadataBlock) -> str:
 
 
 def _without_list(heading: Heading) -> str:
-    """Take the list off a heading's raw line, after checking it.
-
-    Args:
-        heading: A real heading of the body.
-
-    Returns:
-        The raw line without its directive list.
-
-    Raises:
-        TemplateDirectiveError: The list is wrong.
-    """
+    """Take the list off a heading's raw line, after checking it."""
     try:
         read_directive_heading(heading.raw)
     except DirectiveSyntaxError as error:

@@ -104,17 +104,7 @@ class ContextSpec:
 
 
 def _output_path(value: str) -> str:
-    """Accept a non-empty file path for the output option.
-
-    Args:
-        value: The path as supplied on the command line.
-
-    Returns:
-        The path unchanged.
-
-    Raises:
-        ArgumentTypeError: If the path is empty.
-    """
+    """Accept a non-empty file path for the output option."""
     if not value:
         from argparse import ArgumentTypeError
 

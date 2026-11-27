@@ -66,16 +66,7 @@ def group_rules(
 
 
 def _line(names: tuple[str, ...], roots: Mapping[str, Root]) -> str:
-    """Write the line that introduces a group.
-
-    Args:
-        names: The names of the group's roots in their order; none for the
-            rules that need no root.
-        roots: The roots of the config by name.
-
-    Returns:
-        The group line.
-    """
+    """Write the line that introduces a group."""
     if not names:
         return "Rules for every root:"
     paths = ", ".join(path for name in names for path in roots[name].paths)

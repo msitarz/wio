@@ -102,34 +102,18 @@ _SKELETON_HELP = "Print a template's skeleton for an existing Work."
 
 
 def _json_option(parser: ArgumentParser, *, help: str) -> None:  # noqa: A002
-    """Add the `--json` option of a subcommand.
-
-    Args:
-        parser: The subparser.
-        help: What `--help` says of it.
-    """
+    """Add the `--json` option of a subcommand."""
     parser.add_argument("--json", action="store_true", help=help)
 
 
 def _configure_show(parser: ArgumentParser) -> None:
-    """Add the argument that names the Work to show, and `--json`.
-
-    Args:
-        parser: The subparser.
-    """
+    """Add the argument that names the Work to show, and `--json`."""
     parser.add_argument("work", help="Id of the Work, or the path of its contract.")
     _json_option(parser, help=_SHOW_JSON)
 
 
 def _configure_skeleton(parser: ArgumentParser) -> None:
-    """Add the template to print, `--work` and `--keep`.
-
-    `--work` is not marked required here, because `run_skeleton` reports its
-    absence with a pointer to `wio templates show`, which the parser cannot.
-
-    Args:
-        parser: The subparser.
-    """
+    """Add the template to print, `--work` and `--keep`."""
     parser.add_argument("template", help="Name of the template.")
     parser.add_argument("--work", help="Id of the Work whose identity to carry.")
     parser.add_argument(
@@ -138,67 +122,27 @@ def _configure_skeleton(parser: ArgumentParser) -> None:
 
 
 def _show(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Run `wio contracts show`.
-
-    Args:
-        services: What the subcommand reads the project through.
-        args: The parsed arguments.
-        stdio: Where the output goes.
-
-    Returns:
-        The exit code.
-    """
+    """Run `wio contracts show`."""
     return run_show(services, args, stdio)
 
 
 def _skeleton(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Run `wio contracts skeleton`.
-
-    Args:
-        services: What the subcommand reads the project through.
-        args: The parsed arguments.
-        stdio: Where the skeleton and the note go.
-
-    Returns:
-        The exit code.
-    """
+    """Run `wio contracts skeleton`."""
     return run_skeleton(services, args, stdio)
 
 
 def _check(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Run `wio contracts check`.
-
-    Args:
-        services: What the subcommand reads the project through.
-        args: The parsed arguments.
-        stdio: Where the output goes.
-
-    Returns:
-        The exit code, 1 when the Works have an error.
-    """
+    """Run `wio contracts check`."""
     return run_check(services, args, stdio)
 
 
 def _list(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Run `wio contracts list`.
-
-    Args:
-        services: What the subcommand reads the project through.
-        args: The parsed arguments.
-        stdio: Where the output goes.
-
-    Returns:
-        The exit code.
-    """
+    """Run `wio contracts list`."""
     return run_list(services, args, stdio)
 
 
 def _configure_new(parser: ArgumentParser) -> None:
-    """Add the options that choose and name a new Work.
-
-    Args:
-        parser: The subparser.
-    """
+    """Add the options that choose and name a new Work."""
     parser.add_argument("kind", nargs="?", help="Kind whose entry template to use.")
     parser.add_argument("--template", help="Template to use.")
     parser.add_argument("--parent", help="Id of the parent Work.")
@@ -210,16 +154,7 @@ def _configure_new(parser: ArgumentParser) -> None:
 
 
 def _new(services: Services, args: Namespace, stdio: Stdio) -> int:
-    """Run the new Work subcommand through its leaf.
-
-    Args:
-        services: What the subcommand reads the project through.
-        args: The parsed arguments.
-        stdio: Where the output goes.
-
-    Returns:
-        The exit code.
-    """
+    """Run the new Work subcommand through its leaf."""
     return run_new(services, args, stdio)
 
 

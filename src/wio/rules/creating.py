@@ -62,15 +62,7 @@ def render_created(new: NewRule, origins: tuple[Origin, ...], *, as_json: bool) 
 
 
 def _as_object(new: NewRule, chains: list[tuple[str, ...]]) -> dict[str, object]:
-    """Describe the new rule as plain data for JSON.
-
-    Args:
-        new: The rule that was written.
-        chains: The chains of labels of the origins.
-
-    Returns:
-        `code`, `name`, `path`, `selected` and `origins`, in that order.
-    """
+    """Describe the new rule as plain data for JSON."""
     return {
         "code": new.rule.qualified,
         "name": new.rule.name,

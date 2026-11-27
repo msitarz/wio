@@ -233,16 +233,7 @@ def check_works_dir(config: Config, inputs: CheckInputs) -> Iterable[Diagnostic]
 def _root_paths(
     where: str, paths: Sequence[str], inputs: CheckInputs
 ) -> Iterable[Diagnostic]:
-    """Judge the paths of one root.
-
-    Args:
-        where: The key path of the list.
-        paths: The paths as written.
-        inputs: The repository root and the port that tells whether one exists.
-
-    Returns:
-        At most one diagnostic for each path, as `check_root_paths` says.
-    """
+    """Judge the paths of one root."""
     first: dict[str, int] = {}
     for index, path in enumerate(paths):
         fault = judge_path(path)
@@ -260,14 +251,7 @@ def _root_paths(
 
 
 def _skill_path_faults(paths: Sequence[str]) -> Iterable[Diagnostic]:
-    """Judge the paths of `skills.paths`, which need not be unique.
-
-    Args:
-        paths: The paths as written.
-
-    Returns:
-        An error for each path with a fault.
-    """
+    """Judge the paths of `skills.paths`, which need not be unique."""
     sentence = "The path must stay inside the repository."
     for index, path in enumerate(paths):
         fault = judge_path(path)
@@ -276,15 +260,7 @@ def _skill_path_faults(paths: Sequence[str]) -> Iterable[Diagnostic]:
 
 
 def _resolve(path: str) -> str | None:
-    """Resolve the `.` and `..` segments of a relative path.
-
-    Args:
-        path: A relative path.
-
-    Returns:
-        The normalized form, `.` for the whole repository, or `None` when the
-        path leaves the repository.
-    """
+    """Resolve the `.` and `..` segments of a relative path."""
     kept: list[str] = []
     for part in PurePosixPath(path).parts:
         if part != "..":
@@ -297,16 +273,7 @@ def _resolve(path: str) -> str | None:
 
 
 def _form(path: str, fault: PathFault | None) -> str | None:
-    """Give the form that names the place of a path, for repeats.
-
-    Args:
-        path: The path as written.
-        fault: What `judge_path` found.
-
-    Returns:
-        The path itself without a fault, its normalized form when it has one,
-        and `None` when it has no place inside the repository.
-    """
+    """Give the form that names the place of a path, for repeats."""
     match fault:
         case None:
             return path
@@ -317,16 +284,7 @@ def _form(path: str, fault: PathFault | None) -> str | None:
 
 
 def _words(path: str, fault: PathFault) -> str:
-    """Word a fault as the module says.
-
-    Args:
-        path: The path as written.
-        fault: What is wrong with it.
-
-    Returns:
-        "`<path>` <rule>", and "; use `<normalized>`" when there is a form, as a
-        sentence.
-    """
+    """Word a fault as the module says."""
     match fault:
         case Unusable(rule):
             return f"`{path}` {rule}."
@@ -335,35 +293,14 @@ def _words(path: str, fault: PathFault) -> str:
 
 
 def _fault(where: str, path: str, fault: PathFault, sentence: str) -> Diagnostic:
-    """Build the error of a path with a fault and the sentence of its check.
-
-    Args:
-        where: The key path.
-        path: The path as written.
-        fault: What is wrong with it.
-        sentence: What the check says about the key.
-
-    Returns:
-        The diagnostic.
-    """
+    """Build the error of a path with a fault and the sentence of its check."""
     return _error(where, f"{_words(path, fault)} {sentence}")
 
 
 def _root_path(
     where: str, path: str, fault: PathFault | None, inputs: CheckInputs
 ) -> Diagnostic | None:
-    """Judge one path of a root that is not a repeat.
-
-    Args:
-        where: The key path.
-        path: The path as written.
-        fault: What `judge_path` found.
-        inputs: The repository root and the port that tells whether it exists.
-
-    Returns:
-        The error of a fault, a warning for a valid path that does not exist yet,
-        and `None` for a path that exists.
-    """
+    """Judge one path of a root that is not a repeat."""
     if fault is not None:
         return _error(where, _words(path, fault))
     if inputs.files.exists(inputs.root / path):
@@ -372,16 +309,7 @@ def _root_path(
 
 
 def _missing_skill(stage: str, skill: str, searched: Sequence[str]) -> Diagnostic:
-    """Build the error of a skill that is not found.
-
-    Args:
-        stage: The stage's name.
-        skill: The skill's name.
-        searched: The directories looked in, in order.
-
-    Returns:
-        The diagnostic, at the stage's `skill`.
-    """
+    """Build the error of a skill that is not found."""
     listed = and_list([f"`{directory}`" for directory in searched])
     message = (
         f"skill `{skill}` is not found in {listed}, searched in that order; "

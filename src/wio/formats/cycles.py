@@ -38,15 +38,7 @@ def find_cycles(after: Mapping[str, Sequence[str]]) -> tuple[tuple[str, ...], ..
 
 
 def _reachable(graph: Mapping[str, Sequence[str]], start: str) -> set[str]:
-    """Find the names that a name reaches by one edge or more.
-
-    Args:
-        graph: Each name mapped to the names it has an edge to.
-        start: The name to start from.
-
-    Returns:
-        The names reached, `start` among them only when it lies on a cycle.
-    """
+    """Find the names that a name reaches by one edge or more."""
     seen: set[str] = set()
     stack = list(graph[start])
     while stack:

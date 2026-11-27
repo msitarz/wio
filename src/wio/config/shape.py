@@ -131,13 +131,7 @@ class _Walk:
         return built
 
     def _unknown(self, spec: Table, raw: Mapping[str, object], path: str) -> None:
-        """Report each key the table does not have.
-
-        Args:
-            spec: The table's schema.
-            raw: The keys the file sets.
-            path: The key path of the table.
-        """
+        """Report each key the table does not have."""
         valid = [slot.name for slot in spec.slots]
         for key in raw:
             if key not in valid:
@@ -146,27 +140,13 @@ class _Walk:
                 self.error(join_path(path, key), text)
 
     def _goal_or_skill(self, raw: Mapping[str, object], path: str) -> None:
-        """Report a stage that sets both or neither of `goal` and `skill`.
-
-        Args:
-            raw: The keys the stage sets.
-            path: The key path of the stage.
-        """
+        """Report a stage that sets both or neither of `goal` and `skill`."""
         count = ("goal" in raw) + ("skill" in raw)
         if count != 1:
             self.error(path, messages.goal_or_skill(both=count == 2))
 
     def _slot(self, slot: Slot, raw: Mapping[str, object], path: str) -> object:
-        """Read the value of one key, or give it its default.
-
-        Args:
-            slot: The key.
-            raw: The keys the file sets in the table.
-            path: The key path of the table.
-
-        Returns:
-            The value, or what stands in for a missing or invalid one.
-        """
+        """Read the value of one key, or give it its default."""
         where = join_path(path, slot.name)
         if slot.name in raw:
             value = self.value(slot.spec, raw[slot.name], where, slot.description)
@@ -181,15 +161,7 @@ class _Walk:
         return self._fallback(slot, where)
 
     def _fallback(self, slot: Slot, where: str) -> object:
-        """Give a key its default, or an empty value when it is required.
-
-        Args:
-            slot: The key.
-            where: Its key path.
-
-        Returns:
-            The value, with its source recorded as the default.
-        """
+        """Give a key its default, or an empty value when it is required."""
         match slot.spec:
             case Table() as spec:
                 return self.table(spec, {}, where)
@@ -201,14 +173,7 @@ class _Walk:
                 return value
 
     def _note(self, slot: Slot, where: str, value: object, source: Source) -> None:
-        """Record the source of a leaf setting that has a value.
-
-        Args:
-            slot: The key.
-            where: Its key path.
-            value: What the key holds.
-            source: Whether it came from the file or is the default.
-        """
+        """Record the source of a leaf setting that has a value."""
         leaf = not isinstance(slot.spec, Table | Open)
         if leaf and value is not None:
             self.sources[where] = source
@@ -249,18 +214,7 @@ class _Walk:
     def _atom(
         self, spec: Atom, kind: type, raw: object, where: str, description: str
     ) -> object:
-        """Read a string, a boolean or an integer, which are never coerced.
-
-        Args:
-            spec: The atom.
-            kind: The exact type a value must have.
-            raw: What the file holds.
-            where: The key path.
-            description: The setting's description.
-
-        Returns:
-            The value, or `DROPPED`.
-        """
+        """Read a string, a boolean or an integer, which are never coerced."""
         if type(raw) is kind:
             return raw
         self.error(where, messages.wrong_type(raw, spec, description))
@@ -269,17 +223,7 @@ class _Walk:
     def _choice(
         self, spec: Choice, raw: object, where: str, description: str
     ) -> object:
-        """Read a string of a vocabulary.
-
-        Args:
-            spec: The vocabulary.
-            raw: What the file holds.
-            where: The key path.
-            description: The setting's description.
-
-        Returns:
-            The string, or `DROPPED`.
-        """
+        """Read a string of a vocabulary."""
         if isinstance(raw, str) and raw in spec.values:
             return raw
         if isinstance(raw, str):
@@ -289,16 +233,7 @@ class _Walk:
         return DROPPED
 
     def _strings(self, raw: object, where: str, description: str) -> object:
-        """Read a list of strings, dropping the items that are not strings.
-
-        Args:
-            raw: What the file holds.
-            where: The key path.
-            description: The setting's description.
-
-        Returns:
-            The strings as a tuple, or `DROPPED` when the value is not a list.
-        """
+        """Read a list of strings, dropping the items that are not strings."""
         if not isinstance(raw, list):
             self.error(where, messages.wrong_type(raw, Strings(), description))
             return DROPPED
@@ -309,17 +244,7 @@ class _Walk:
         return tuple(item for item in items if not isinstance(item, _Dropped))
 
     def _preset(self, spec: Spec, raw: object, where: str, description: str) -> object:
-        """Read a stage preset id or a list of stage names.
-
-        Args:
-            spec: The preset-or-stages spec.
-            raw: What the file holds.
-            where: The key path.
-            description: The setting's description.
-
-        Returns:
-            The string or the tuple, or `DROPPED`.
-        """
+        """Read a stage preset id or a list of stage names."""
         if isinstance(raw, str):
             return raw
         if isinstance(raw, list):
@@ -330,17 +255,7 @@ class _Walk:
     def _nested(
         self, spec: Table | Open, raw: object, where: str, description: str
     ) -> object:
-        """Read a table, or a table of named entries.
-
-        Args:
-            spec: The table or the open table.
-            raw: What the file holds.
-            where: The key path.
-            description: The setting's description.
-
-        Returns:
-            The built value, or `DROPPED` when the value is not a table.
-        """
+        """Read a table, or a table of named entries."""
         if not isinstance(raw, dict):
             self.error(where, messages.wrong_type(raw, spec, description))
             return DROPPED
@@ -351,17 +266,7 @@ class _Walk:
     def _entries(
         self, spec: Open, raw: Mapping[str, object], where: str, description: str
     ) -> object:
-        """Read the named entries of an open table.
-
-        Args:
-            spec: The open table.
-            raw: The entries the file sets.
-            where: The key path of the open table.
-            description: The setting's description.
-
-        Returns:
-            A frozen mapping of the entries that could be kept.
-        """
+        """Read the named entries of an open table."""
         kept: dict[str, object] = {}
         for name, entry in raw.items():
             path = join_path(where, name)
@@ -372,26 +277,13 @@ class _Walk:
         return freeze(kept)
 
     def _note_entry(self, spec: Spec, path: str) -> None:
-        """Record an entry of an open table as set by the file, if it is a leaf.
-
-        Args:
-            spec: What the entry looks like.
-            path: Its key path.
-        """
+        """Record an entry of an open table as set by the file, if it is a leaf."""
         if not isinstance(spec, Table | Open):
             self.sources[path] = "file"
 
 
 def _elsewhere(key: str, here: Table) -> list[str]:
-    """Name the other tables of the schema that have a key.
-
-    Args:
-        key: The unknown key.
-        here: The table the key was found in, left out.
-
-    Returns:
-        How a message names each other table with a key of that name.
-    """
+    """Name the other tables of the schema that have a key."""
     return [
         other.noun
         for other in tables(schema())

@@ -53,54 +53,23 @@ def render_reference(
 
 
 def _as_json(sections: Sequence[tuple[str, Sequence[DirectiveSpec]]]) -> str:
-    """Render the sections as one compact JSON object.
-
-    Args:
-        sections: The key and the entries of each section, in order.
-
-    Returns:
-        The object, with an array for each key, ending in a line ending.
-    """
+    """Render the sections as one compact JSON object."""
     found = {key: [asdict(spec) for spec in specs] for key, specs in sections}
     return encode_json(found) + "\n"
 
 
 def _as_text(sections: Sequence[tuple[str, Sequence[DirectiveSpec]]]) -> str:
-    """Render the sections as indented blocks under their headers.
-
-    Args:
-        sections: The header and the entries of each section, in order.
-
-    Returns:
-        The sections that have an entry, with an empty line between them.
-    """
+    """Render the sections as indented blocks under their headers."""
     return "\n".join(_section(header, specs) for header, specs in sections if specs)
 
 
 def _section(header: str, specs: Sequence[DirectiveSpec]) -> str:
-    """Render a section of blocks under a header.
-
-    Args:
-        header: The section's name, written with a colon.
-        specs: The entries of the section.
-
-    Returns:
-        The header line, an empty line and the blocks, each ending in a line
-        ending, with an empty line between blocks.
-    """
+    """Render a section of blocks under a header."""
     return f"{header}:\n\n" + "\n".join(_block(spec) for spec in specs)
 
 
 def _block(spec: DirectiveSpec) -> str:
-    """Render one entry as a block of lines.
-
-    Args:
-        spec: The entry.
-
-    Returns:
-        The name, its syntax, its meaning and its examples, each line ending in a
-        line ending.
-    """
+    """Render one entry as a block of lines."""
     lines = [spec.name, f"  Syntax: {spec.syntax}"]
     lines.extend(f"  {line}" if line else "" for line in spec.meaning.splitlines())
     lines.extend(f"  Example: {example}" for example in spec.examples)

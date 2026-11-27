@@ -134,17 +134,7 @@ def apply_layers(
 def _check_names(
     roots: tuple[str, ...] | None, stage: str | None, config: Config
 ) -> None:
-    """Refuse a root or a stage that the config does not have.
-
-    Args:
-        roots: The names of the roots, or `None`.
-        stage: The name of the stage, or `None`.
-        config: The settings.
-
-    Raises:
-        KeyError: A name is not a root or a stage of the config; the first root
-            that is missing, or else the stage, is named.
-    """
+    """Refuse a root or a stage that the config does not have."""
     for name in roots or ():
         if name not in config.roots:
             raise KeyError(name)
@@ -153,28 +143,12 @@ def _check_names(
 
 
 def _expand(entries: Sequence[str], catalog: RuleCatalog) -> Expansion:
-    """Expand a list of entries as includes, in the config's scope.
-
-    Args:
-        entries: The references as written.
-        catalog: What they are resolved in.
-
-    Returns:
-        The expansion; an exclude list is expanded this way too, to know every
-        rule that its entries name.
-    """
+    """Expand a list of entries as includes, in the config's scope."""
     return expand(entries, [], ConfigScope(), catalog)
 
 
 def _ordered(rulesets: Mapping[str, LoadedRuleset]) -> list[Rule]:
-    """List every rule of every ruleset in the order of C-2 of `wio rules`.
-
-    Args:
-        rulesets: The rulesets by canonical name.
-
-    Returns:
-        The rules by ruleset name, family, number of the code and code text.
-    """
+    """List every rule of every ruleset in the order of C-2 of `wio rules`."""
     rules = [rule for ruleset in rulesets.values() for rule in ruleset.rules]
     return sorted(rules, key=lambda r: (r.ruleset, r.family, r.number, r.code))
 
@@ -188,12 +162,7 @@ class _State:
     found: set[Problem] = field(default_factory=set)
 
     def _note(self, rule: Rule, effect: LayerEffect) -> None:
-        """Record what a layer did to a rule.
-
-        Args:
-            rule: The rule.
-            effect: What was done.
-        """
+        """Record what a layer did to a rule."""
         self.effects.setdefault(rule, []).append(effect)
 
     def include(self, layer: Layer, root: str | None, found: Expansion) -> None:

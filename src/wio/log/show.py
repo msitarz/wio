@@ -107,15 +107,7 @@ def read_report(
 
 
 def _rows(entries: list[Entry], work: str | None) -> Mapping[str, tuple[Row, ...]]:
-    """Select and group rows from events in file and line order.
-
-    Args:
-        entries: The usable entries of each file, with files ordered by name.
-        work: Selects a single Work when supplied.
-
-    Returns:
-        The rows by Work id, ordered by each row's latest event.
-    """
+    """Select and group rows from events in file and line order."""
     groups: dict[str, dict[tuple[str, str], list[Entry]]] = {}
     for entry in sorted(entries, key=lambda entry: entry.envelope.time):
         event = entry.event
@@ -137,15 +129,7 @@ def _rows(entries: list[Entry], work: str | None) -> Mapping[str, tuple[Row, ...
 
 
 def _row(key: tuple[str, str], history: list[Entry]) -> Row:
-    """Build a row with the latest context and each judge's latest review.
-
-    Args:
-        key: The action and stage of the row.
-        history: The events of the row in chronological order with stable ties.
-
-    Returns:
-        A row whose retained reviews follow their own positions in the history.
-    """
+    """Build a row with the latest context and each judge's latest review."""
     context: Envelope | None = None
     reviews: dict[tuple[str, str], Review] = {}
     for entry in history:

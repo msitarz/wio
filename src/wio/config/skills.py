@@ -65,18 +65,7 @@ class RepositorySkills:
 
 
 def _files_hash(directory: Path, files: FileSystem) -> str:
-    """Hash the files of a skill, as `RepositorySkills` says.
-
-    Args:
-        directory: The skill's directory.
-        files: Lists and reads what is in it.
-
-    Returns:
-        The 64 lower-case hexadecimal digits.
-
-    Raises:
-        OSError: If a file cannot be listed or read.
-    """
+    """Hash the files of a skill, as `RepositorySkills` says."""
     digest = hashlib.sha256()
     named = sorted(
         (path.relative_to(directory).as_posix().encode(errors="surrogateescape"), path)
@@ -88,18 +77,7 @@ def _files_hash(directory: Path, files: FileSystem) -> str:
 
 
 def _regular_files(directory: Path, files: FileSystem) -> Iterator[Path]:
-    """Find every regular file below a directory without following links.
-
-    Args:
-        directory: The directory, which may itself be a link.
-        files: Lists the directories.
-
-    Yields:
-        The files at any depth, in no particular order.
-
-    Raises:
-        OSError: If a directory cannot be listed.
-    """
+    """Find every regular file below a directory without following links."""
     for entry in files.list_dir(directory):
         if files.is_symlink(entry):
             continue

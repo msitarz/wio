@@ -85,14 +85,7 @@ class LogSink:
             self._diagnose(error, path, appending=True)
 
     def _line(self, event: Event) -> str:
-        """Stamp the event with the current session and encode its line.
-
-        Args:
-            event: The event to serialize.
-
-        Returns:
-            One encoded event line including its terminating newline.
-        """
+        """Stamp the event with the current session and encode its line."""
         identity = identify(self.log, self.environment, self.stdio)
         envelope = Envelope(
             time=self.clock.now(),
@@ -106,11 +99,7 @@ class LogSink:
         return encode_line(envelope, event)
 
     def _disabled(self) -> bool:
-        """Read the log switch before consulting the other ports.
-
-        Returns:
-            True when recording is explicitly off.
-        """
+        """Read the log switch before consulting the other ports."""
         switch = self.environment.get("WIO_LOG")
         if switch == "off":
             return True
@@ -122,13 +111,7 @@ class LogSink:
     def _diagnose(
         self, error: Exception, path: Path | None = None, *, appending: bool = False
     ) -> None:
-        """Report a recording failure without affecting the command.
-
-        Args:
-            error: The exception raised by the recording step.
-            path: The events file if location succeeded.
-            appending: Whether the failure came from the append port.
-        """
+        """Report a recording failure without affecting the command."""
         message = _message(error)
         with suppress(Exception):
             if path is None:
@@ -148,15 +131,7 @@ class LogSink:
 
 
 def _message(error: Exception) -> str:
-    """Give the failure message on a single line.
-
-    Args:
-        error: The recording failure, possibly with a system error message.
-
-    Returns:
-        The system message when available, the exception text otherwise, or
-        the exception class name when no usable message is available.
-    """
+    """Give the failure message on a single line."""
     with suppress(Exception):
         system_message = error.strerror if isinstance(error, OSError) else None
         text = system_message or str(error)
@@ -166,14 +141,7 @@ def _message(error: Exception) -> str:
 
 
 def _permission_failure(error: Exception) -> bool:
-    """Tell whether an append failure suggests an unwritable Wio home.
-
-    Args:
-        error: The failure raised by the append.
-
-    Returns:
-        True for permission denied or a read-only filesystem.
-    """
+    """Tell whether an append failure suggests an unwritable Wio home."""
     return isinstance(error, PermissionError) or (
         isinstance(error, OSError) and error.errno == EROFS
     )

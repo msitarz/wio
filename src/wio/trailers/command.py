@@ -48,11 +48,7 @@ class _Stop(Exception):  # noqa: N818 - a private signal, not an error
 
 
 class _FormParser(ArgumentParser):
-    """The parser of a form, which refuses and stops with exceptions, not exits.
-
-    `wio.cli` handles a `WioError` and a returned exit code and nothing else, so a
-    `SystemExit` of argparse inside a command would escape it.
-    """
+    """The parser of a form, which refuses and stops with exceptions, not exits."""
 
     @override
     def error(self, message: str) -> NoReturn:
@@ -147,22 +143,7 @@ def _parse(
     stdio: Stdio,
     prog: str,
 ) -> Namespace | None:
-    """Parse the arguments of one form with the parser that the form configures.
-
-    Args:
-        configure: The `configure_*` of the form, which adds its arguments.
-        arguments: The arguments of the form, after its name for `check` and `fold`
-            and from the Work on for the write form.
-        stdio: Where the usage is written when `-h` asks for it.
-        prog: The name that the usage gives the form, such as `wio trailers check`.
-
-    Returns:
-        The parsed arguments, or `None` after the usage of the form was written
-        because `-h` asked for it.
-
-    Raises:
-        TrailersError: With argparse's message, for any mistake in the arguments.
-    """
+    """Parse the arguments of one form with the parser that the form configures."""
     parser = _FormParser(prog=prog)
     configure(parser)
     try:

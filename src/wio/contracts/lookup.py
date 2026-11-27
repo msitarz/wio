@@ -33,13 +33,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class _Found:
-    """A Work and the view that has it.
-
-    Attributes:
-        work: The Work.
-        files: The view of the working tree, the index or `HEAD` that the Work
-            was found in, which its own file is read through.
-    """
+    """A Work and the view that has it."""
 
     work: Work
     files: FileSystem
@@ -47,14 +41,7 @@ class _Found:
 
 @dataclass(frozen=True)
 class _Reading:
-    """What a Work's template is read through.
-
-    Attributes:
-        catalog: Finds the Work's template.
-        templates: The file system of the working tree, which the template is
-            read from.
-        root: The repository root, which the template's path is relative to.
-    """
+    """What a Work's template is read through."""
 
     catalog: TemplateCatalog
     templates: FileSystem
@@ -180,14 +167,7 @@ class WorkLookup:
         return hierarchy.roots.get(found.work.path, ())
 
     def _discover(self, view: FileSystem) -> WorkDiscovery:
-        """Discover Works in a view, caching the result for this lookup.
-
-        Args:
-            view: The file system view to walk.
-
-        Returns:
-            The Work discovery for `view`.
-        """
+        """Discover Works in a view, caching the result for this lookup."""
         key = id(view)
         cached = self._discoveries.get(key)
         if cached is not None:
@@ -199,26 +179,11 @@ class WorkLookup:
         return discovery
 
     def _reading(self) -> _Reading:
-        """Gather what a Work's template is read through.
-
-        Returns:
-            The catalog, the working tree and the repository root.
-        """
+        """Gather what a Work's template is read through."""
         return _Reading(self.catalog, self.templates, self.repository.root())
 
     def _find(self, work_id: str) -> _Found | None:
-        """Look a Work up in each view in turn.
-
-        Args:
-            work_id: The Work's id.
-
-        Returns:
-            The Work and the view that has it, or `None` when the first view
-            that knows the id has two Works with it, or when no view has it.
-
-        Raises:
-            ConfigurationError: If the config cannot be loaded.
-        """
+        """Look a Work up in each view in turn."""
         for view in self.views:
             match find_work(self._discover(view), work_id):
                 case Work() as work:
@@ -231,17 +196,7 @@ class WorkLookup:
 
 
 def _own_items(found: _Found, reading: _Reading) -> frozenset[str]:
-    """Find the ids that a Work's own sections carry.
-
-    Args:
-        found: The Work and the view its file is read through.
-        reading: What the Work's template is read through.
-
-    Returns:
-        The ids that the template's `pattern` directives give the sections of the
-        Work's own contract, empty for a Work with no template, a template that
-        cannot be used, or a file that cannot be read again.
-    """
+    """Find the ids that a Work's own sections carry."""
     work = found.work
     try:
         block = read_metadata_block(found.files.read_text(reading.root / work.path))
@@ -256,18 +211,7 @@ def _own_items(found: _Found, reading: _Reading) -> frozenset[str]:
 def _stages(
     work: Work, action: str, config: Config, reading: _Reading
 ) -> Sequence[str] | None:
-    """Expand the pipeline of one action of a Work.
-
-    Args:
-        work: The Work.
-        action: The name of the action.
-        config: The config, for the default actions and the stage presets.
-        reading: What the Work's template and its actions are read through.
-
-    Returns:
-        The stages in order, or `None` when the Work has no such action, removed
-        it, or names a stage preset that the config does not declare.
-    """
+    """Expand the pipeline of one action of a Work."""
     actions = shown_actions(
         work, config, reading.catalog, reading.root, reading.templates
     )

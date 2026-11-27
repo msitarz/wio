@@ -118,45 +118,19 @@ def check_gate_results(config: Config, inputs: CheckInputs) -> Iterable[Diagnost
 
 
 def _error(where: str, message: str) -> Diagnostic:
-    """Build an error.
-
-    Args:
-        where: The key path.
-        message: What is wrong and how to fix it.
-
-    Returns:
-        The diagnostic.
-    """
+    """Build an error."""
     return Diagnostic("error", where, message)
 
 
 def _known(kind: str, names: Sequence[str]) -> str:
-    """List what exists, or say that nothing does.
-
-    Args:
-        kind: What the names are, in the plural, such as `stages`.
-        names: The names that exist, in the order to list them.
-
-    Returns:
-        A sentence that lists the names, or says that none is declared.
-    """
+    """List what exists, or say that nothing does."""
     return declared(f"Declared {kind}", f"No {kind} are declared.", names)
 
 
 def _pipeline(
     where: str, names: Sequence[str], stages: Sequence[str]
 ) -> Iterable[Diagnostic]:
-    """Check the stages of one pipeline.
-
-    Args:
-        where: The key path of the list.
-        names: The stages the list names, in order.
-        stages: The declared stages, sorted.
-
-    Returns:
-        An error for each stage that is not declared, and for each later
-        mention of a declared stage.
-    """
+    """Check the stages of one pipeline."""
     seen: set[str] = set()
     for index, name in enumerate(names):
         at = item_path(where, index)
@@ -168,16 +142,7 @@ def _pipeline(
 
 
 def _default_actions(config: Config, stages: Sequence[str]) -> Iterable[Diagnostic]:
-    """Check `works.defaults.actions`.
-
-    Args:
-        config: The settings, whose default actions are read.
-        stages: The declared stages, sorted.
-
-    Returns:
-        An error for an action that is not declared, for a string that is not a
-        stage preset, and for the stages of a list.
-    """
+    """Check `works.defaults.actions`."""
     presets = sorted(config.stage_presets)
     actions = sorted(config.actions)
     for name, value in config.works.defaults.actions.items():
@@ -198,17 +163,7 @@ def _default_actions(config: Config, stages: Sequence[str]) -> Iterable[Diagnost
 
 
 def _after(where: str, entries: Sequence[str], config: Config) -> Iterable[Diagnostic]:
-    """Check the `after` entries of one action.
-
-    Args:
-        where: The key path of the list.
-        entries: The actions it comes after.
-        config: The settings, whose actions are read.
-
-    Returns:
-        An error for an entry that is not a declared action, an `@` entry
-        among them, and for one that is on demand.
-    """
+    """Check the `after` entries of one action."""
     actions = sorted(config.actions)
     for index, entry in enumerate(entries):
         at = item_path(where, index)
@@ -221,17 +176,7 @@ def _after(where: str, entries: Sequence[str], config: Config) -> Iterable[Diagn
 def _invalidated_by(
     where: str, entries: Sequence[str], declared: Sequence[str]
 ) -> Iterable[Diagnostic]:
-    """Check the `invalidated_by` entries of one action.
-
-    Args:
-        where: The key path of the list.
-        entries: The actions, or the `@` forms of them, that invalidate it.
-        declared: The declared actions, sorted.
-
-    Returns:
-        An error for an entry that names no declared action, and a note for an
-        `@` form that v0.2 reserves.
-    """
+    """Check the `invalidated_by` entries of one action."""
     for index, entry in enumerate(entries):
         found = _invalidating(item_path(where, index), entry, declared)
         if found is not None:
@@ -239,17 +184,7 @@ def _invalidated_by(
 
 
 def _invalidating(at: str, entry: str, declared: Sequence[str]) -> Diagnostic | None:
-    """Judge one `invalidated_by` entry.
-
-    Args:
-        at: The key path of the entry.
-        entry: The action, or the `@` form of one.
-        declared: The declared actions, sorted.
-
-    Returns:
-        A note for an `@` form that v0.2 reserves, an error for an entry that
-        names no declared action, and `None` for a valid entry.
-    """
+    """Judge one `invalidated_by` entry."""
     prefix = next((p for p in _PREFIXES if entry.startswith(p)), "")
     if entry.startswith("@") and not prefix:
         return Diagnostic("note", at, f"`{entry}` is reserved for v0.2 and ignored.")
@@ -262,14 +197,7 @@ def _invalidating(at: str, entry: str, declared: Sequence[str]) -> Diagnostic | 
 
 
 def _cycles(config: Config) -> Iterable[Diagnostic]:
-    """Report each cycle of `after` once.
-
-    Args:
-        config: The settings, whose actions are read.
-
-    Returns:
-        An error at the `after` of the least action of each cycle.
-    """
+    """Report each cycle of `after` once."""
     graph = {name: action.after for name, action in config.actions.items()}
     for cycle in find_cycles(graph):
         where = join_path(join_path("actions", cycle[0]), "after")

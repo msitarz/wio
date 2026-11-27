@@ -108,15 +108,7 @@ def build_parser(commands: Sequence[Entry]) -> argparse.ArgumentParser:
 
 
 def _exit_code(code: object) -> int:
-    """Read the code of a `SystemExit`.
-
-    Args:
-        code: The `code` attribute of the exit.
-
-    Returns:
-        The code itself when it is an integer, 0 when there is none, and 1 for
-        a message, which the interpreter treats as a failure.
-    """
+    """Read the code of a `SystemExit`."""
     match code:
         case None:
             return 0
@@ -146,16 +138,7 @@ def parse(
 
 
 def _checked(name: str, code: int, stdio: Stdio) -> int:
-    """Accept only the exit codes a command may return.
-
-    Args:
-        name: The subcommand that returned the code.
-        code: The exit code it returned.
-        stdio: The streams to report a wrong code to.
-
-    Returns:
-        The code itself when it is 0 or 1, and 70 after reporting a bug.
-    """
+    """Accept only the exit codes a command may return."""
     if code in _CODES:
         return code
     stdio.stderr.write(f"error: {name} returned exit code {code}, not 0 or 1\n")
@@ -163,16 +146,7 @@ def _checked(name: str, code: int, stdio: Stdio) -> int:
 
 
 def _run(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
-    """Describe, parse, wire and run, letting any failure escape.
-
-    Args:
-        argv: The arguments after the program name.
-        stdio: The standard streams to write the output to.
-        commands: The entries of the subcommands.
-
-    Returns:
-        The exit code of the chosen command, or of the introduction.
-    """
+    """Describe, parse, wire and run, letting any failure escape."""
     parser = build_parser(commands)
     args = parse(parser, argv)
     if isinstance(args, int):
@@ -186,16 +160,7 @@ def _run(argv: Sequence[str], stdio: Stdio, commands: Sequence[Entry]) -> int:
 
 
 def _report(error: WioError) -> str:
-    """Word a `WioError` for standard error.
-
-    Args:
-        error: What a step raised.
-
-    Returns:
-        `error: <message>`, except for an error that carries diagnostics, whose
-        message is the diagnostics rendered one to a line with their own
-        severity, so it is written as it is.
-    """
+    """Word a `WioError` for standard error."""
     if isinstance(error, DiagnosticsError) and error.diagnostics:
         return str(error)
     return f"error: {error}"

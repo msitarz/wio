@@ -161,19 +161,7 @@ def plan_work(
 def _choose_template(
     arguments: NewArguments, config: Config, catalog: TemplateCatalog
 ) -> Template | None:
-    """Select a usable template, refusing a kind or template mistake.
-
-    Args:
-        arguments: The requested kind and template.
-        config: The declared kinds.
-        catalog: The template catalog.
-
-    Returns:
-        The chosen template, or none for a bare Work.
-
-    Raises:
-        ContractsError: The kind or template cannot be used.
-    """
+    """Select a usable template, refusing a kind or template mistake."""
     name = _template_name(arguments, config)
     if name is None:
         return None
@@ -188,18 +176,7 @@ def _choose_template(
 
 
 def _template_name(arguments: NewArguments, config: Config) -> str | None:
-    """Validate the requested kind and find the requested template name.
-
-    Args:
-        arguments: The requested kind and template.
-        config: The declared kinds.
-
-    Returns:
-        The requested or entry template name, or none for a bare Work.
-
-    Raises:
-        ContractsError: The requested kind is not declared.
-    """
+    """Validate the requested kind and find the requested template name."""
     kinds, kind = config.templates.kinds, arguments.kind
     if kind is not None and not kinds:
         msg = "No kinds are declared in `[templates.kinds]` of the config"
@@ -245,18 +222,7 @@ def find_template(name: str, catalog: TemplateCatalog, *, entry: bool) -> Templa
 
 
 def _validate_roots(roots: tuple[str, ...], config: Config) -> tuple[str, ...]:
-    """Check root names and retain their first appearances.
-
-    Args:
-        roots: The requested root names.
-        config: The declared roots.
-
-    Returns:
-        The names, each once, in order of first appearance.
-
-    Raises:
-        ContractsError: A name is not declared.
-    """
+    """Check root names and retain their first appearances."""
     for root in roots:
         if undeclared_root(root, config.roots):
             msg = f"The root `{root}` is not declared in `[roots]` of the config"
@@ -265,17 +231,7 @@ def _validate_roots(roots: tuple[str, ...], config: Config) -> tuple[str, ...]:
 
 
 def _validate_title(title: str | None) -> str | None:
-    """Trim a title or refuse one that is blank or spans lines.
-
-    Args:
-        title: The requested title, or none.
-
-    Returns:
-        The trimmed title, or none.
-
-    Raises:
-        ContractsError: The title is blank or spans lines.
-    """
+    """Trim a title or refuse one that is blank or spans lines."""
     if title is None:
         return None
     trimmed = title.strip()
@@ -286,15 +242,7 @@ def _validate_title(title: str | None) -> str | None:
 
 
 def _set_title(text: str, title: str) -> str:
-    """Replace the first level-one heading or insert one in the body.
-
-    Args:
-        text: A contract with a metadata block.
-        title: The validated title.
-
-    Returns:
-        The contract with its title set.
-    """
+    """Replace the first level-one heading or insert one in the body."""
     block = read_metadata_block(text)
     assert block is not None
     prefix = text[: -len(block.body)] if block.body else text
@@ -315,14 +263,7 @@ def _set_title(text: str, title: str) -> str:
 
 
 def _heading_comments(line: str) -> list[str]:
-    """Find real inline HTML comments in a Markdown heading.
-
-    Args:
-        line: The original heading line.
-
-    Returns:
-        The comments in their original order, excluding code and escaped text.
-    """
+    """Find real inline HTML comments in a Markdown heading."""
     marker = " wio-comment-boundary"
     while marker in line:
         marker += "-"
@@ -337,14 +278,7 @@ def _heading_comments(line: str) -> list[str]:
 
 
 def _insert_title(lines: list[str], title: str, ending: str, text: str) -> None:
-    """Insert a title before the first nonempty body line.
-
-    Args:
-        lines: The body lines to update.
-        title: The validated title.
-        ending: The template's line ending.
-        text: The skeleton whose final line endings are retained.
-    """
+    """Insert a title before the first nonempty body line."""
     index = next((i for i, line in enumerate(lines) if line.strip()), len(lines))
     if index and not _line_ending(lines[index - 1]):
         lines[index - 1] += ending
@@ -353,27 +287,13 @@ def _insert_title(lines: list[str], title: str, ending: str, text: str) -> None:
 
 
 def _final_endings(text: str) -> str:
-    """Return the sequence of line endings at the end of text.
-
-    Args:
-        text: The skeleton text.
-
-    Returns:
-        Its final line endings, or an empty string.
-    """
+    """Return the sequence of line endings at the end of text."""
     match = re.search(r"(?:(?:\r\n|\n|\r))+$", text)
     return match.group() if match else ""
 
 
 def _heading_title(title: str) -> str:
-    """Protect a title's final hashes from Markdown's closing heading syntax.
-
-    Args:
-        title: The validated title.
-
-    Returns:
-        The title with a closing marker when its hashes need protection.
-    """
+    """Protect a title's final hashes from Markdown's closing heading syntax."""
     prefix = title.rstrip("#")
     if title.endswith("#") and (not prefix or prefix[-1].isspace()):
         return title + " #"
@@ -381,42 +301,19 @@ def _heading_title(title: str) -> str:
 
 
 def _render_heading(title: str, comments: list[str]) -> str:
-    """Write the heading title and any preserved authoring comments.
-
-    Args:
-        title: The validated title.
-        comments: Inline authoring comments to retain.
-
-    Returns:
-        The heading line without its line ending.
-    """
+    """Write the heading title and any preserved authoring comments."""
     if comments:
         return f"# {title} {' '.join(comments)}"
     return f"# {_heading_title(title)}"
 
 
 def _first_title(body: str, start: int) -> Heading | None:
-    """Find the first level-one heading of the body.
-
-    Args:
-        body: The body to inspect.
-        start: Its first line number in the file.
-
-    Returns:
-        The first level-one heading, or none.
-    """
+    """Find the first level-one heading of the body."""
     return next((h for h in read_outline(body, start) if h.level == 1), None)
 
 
 def _line_ending(line: str) -> str:
-    """Return a line's CRLF, LF or absent ending.
-
-    Args:
-        line: The line, including any ending.
-
-    Returns:
-        Its line ending, or an empty string.
-    """
+    """Return a line's CRLF, LF or absent ending."""
     if line.endswith("\r\n"):
         return "\r\n"
     if line.endswith("\n"):

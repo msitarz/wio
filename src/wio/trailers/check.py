@@ -176,18 +176,7 @@ def run_check(services: Services, args: Namespace, stdio: Stdio) -> int:
 def _record_diagnostics(
     reading: Reading, findings: list[Finding], judge: tuple[Contracts, Config]
 ) -> list[Diagnostic]:
-    """Judge the fields of the records that are not malformed.
-
-    Args:
-        reading: The records of the message.
-        findings: What `check_shape` found, which says which records are malformed.
-        judge: The `Contracts` port and the config that `validate_record` judges
-            with.
-
-    Returns:
-        The diagnostics of `validate_record` for each record that has no `malformed`
-        finding, with the line of each field as its place.
-    """
+    """Judge the fields of the records that are not malformed."""
     contracts, config = judge
     malformed = {f.number for f in findings if f.kind == "malformed"}
     sound = [r for r in reading.records if record_lines(r).isdisjoint(malformed)]
@@ -199,16 +188,7 @@ def _record_diagnostics(
 
 
 def _missing_record(message: str, reading: Reading) -> list[Diagnostic]:
-    """Require a record of a message whose subject is not one that git writes.
-
-    Args:
-        message: The commit message.
-        reading: The records that were read from it.
-
-    Returns:
-        The error `no record was found` at line 1 when the reading has no record
-        and the subject is not exempt, and none otherwise.
-    """
+    """Require a record of a message whose subject is not one that git writes."""
     if reading.records or has_exempt_subject(message):
         return []
     return [Diagnostic("error", "1", "no record was found")]

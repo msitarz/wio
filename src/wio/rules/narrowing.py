@@ -83,15 +83,7 @@ def narrow(
 def _kept_by(
     rows: tuple[Row, ...], routes: Mapping[Rule, tuple[Route, ...]]
 ) -> tuple[Row, ...]:
-    """Keep the rows whose rule was delivered, with the routes that delivered it.
-
-    Args:
-        rows: The rows of the listing.
-        routes: Each delivered rule with its routes.
-
-    Returns:
-        The rows of the delivered rules, in their order, each with its `via`.
-    """
+    """Keep the rows whose rule was delivered, with the routes that delivered it."""
     return tuple(
         replace(row, via=routes[row.rule]) for row in rows if row.rule in routes
     )
@@ -100,19 +92,7 @@ def _kept_by(
 def _delivered(
     references: Sequence[str], catalog: RuleCatalog
 ) -> dict[Rule, tuple[Route, ...]]:
-    """Expand the references and join the rules they deliver.
-
-    Args:
-        references: The references as written, in the config's scope.
-        catalog: What they are resolved in.
-
-    Returns:
-        Each rule that any reference delivers, with every route that delivered it,
-        sorted.
-
-    Raises:
-        WioError: A reference cannot be expanded, at any depth.
-    """
+    """Expand the references and join the rules they deliver."""
     found: dict[Rule, set[Route]] = {}
     for reference in references:
         expansion = expand([reference], [], ConfigScope(), catalog)
@@ -124,17 +104,7 @@ def _delivered(
 
 
 def _refusal(reference: str, problem: Problem, catalog: RuleCatalog) -> str:
-    """Say why a reference is refused.
-
-    Args:
-        reference: The reference as written.
-        problem: The first problem of its expansion; one of the reference itself
-            comes before one inside a rule preset that it reaches.
-        catalog: The rulesets, to list what exists.
-
-    Returns:
-        A sentence that names the reference and says why.
-    """
+    """Say why a reference is refused."""
     where = problem.route
     if problem.kind == "cycle":
         return f"`{reference}` closes a cycle: {' -> '.join(where)}."
@@ -150,18 +120,7 @@ def _candidates(
     config: Config,
     rulesets: Mapping[str, LoadedRuleset],
 ) -> frozenset[str]:
-    """Find the rulesets whose rules `--not-selected` considers.
-
-    Args:
-        roots: The roots that the listing applied, or `None` when it applied none.
-        config: The settings.
-        rulesets: The rulesets by name.
-
-    Returns:
-        Every ruleset when no roots were applied; otherwise the rulesets that the
-        roots reach and the root-independent ones. The reach does not depend on
-        the roots or the stage of a view.
-    """
+    """Find the rulesets whose rules `--not-selected` considers."""
     if roots is None:
         return frozenset(rulesets)
     reach = apply_layers(None, None, config, rulesets).reach

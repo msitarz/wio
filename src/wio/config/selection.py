@@ -108,17 +108,7 @@ def read_rulesets(inputs: CheckInputs) -> Rulesets:
 def _without_manifest(
     inputs: CheckInputs, names: Sequence[str]
 ) -> tuple[tuple[str, ...], tuple[tuple[str, str], ...]]:
-    """Find the ruleset directories that show no `ruleset.toml`.
-
-    Args:
-        inputs: The repository root and the port.
-        names: The names of the directories under `.agents/wio/rules`.
-
-    Returns:
-        The names that have no manifest, and the place and the reason of each
-        directory that cannot be listed, whose manifest cannot be seen and so is
-        not said to be missing.
-    """
+    """Find the ruleset directories that show no `ruleset.toml`."""
     bare: list[str] = []
     closed: list[tuple[str, str]] = []
     for name in names:
@@ -135,14 +125,7 @@ def _without_manifest(
 
 
 def _reason(error: OSError) -> str:
-    """Say why the port could not do what it was asked.
-
-    Args:
-        error: What the port raised.
-
-    Returns:
-        The operating system's reason, or the error's own text when it has none.
-    """
+    """Say why the port could not do what it was asked."""
     return error.strerror or str(error)
 
 
@@ -277,16 +260,7 @@ def check_always_include_note(
 
 
 def _known_names(config: Config, rulesets: Rulesets) -> list[str]:
-    """List the names and aliases that a reference may use for a ruleset.
-
-    Args:
-        config: The settings, whose `rulesets` table is read.
-        rulesets: The directories.
-
-    Returns:
-        The sorted directory names in the form of a ruleset name, and the valid
-        alias of each `[rulesets.<name>]` table whose name is a directory.
-    """
+    """List the names and aliases that a reference may use for a ruleset."""
     names = [name for name in rulesets.names if NAME.fullmatch(name)]
     aliases = [
         table.alias
@@ -297,16 +271,7 @@ def _known_names(config: Config, rulesets: Rulesets) -> list[str]:
 
 
 def _judge_bare(name: str, takes: Takes, presets: Sequence[str]) -> str | None:
-    """Judge a bare name in a field.
-
-    Args:
-        name: The rule preset's name.
-        takes: The kinds of reference the field takes.
-        presets: The names of the config's rule presets, sorted.
-
-    Returns:
-        The problem, or `None`.
-    """
+    """Judge a bare name in a field."""
     if takes is Takes.VETO:
         return f"`{name}` is a rule preset; {_VETO}."
     if name in presets:
@@ -318,18 +283,7 @@ def _judge_bare(name: str, takes: Takes, presets: Sequence[str]) -> str | None:
 def _judge_qualified(
     text: str, ruleset: str, item: str, takes: Takes, known: Sequence[str]
 ) -> str | None:
-    """Judge a qualified reference in a field.
-
-    Args:
-        text: The reference as written.
-        ruleset: Its ruleset part.
-        item: Its item part.
-        takes: The kinds of reference the field takes.
-        known: The names and aliases of the rulesets, sorted.
-
-    Returns:
-        The problem, or `None`.
-    """
+    """Judge a qualified reference in a field."""
     kind = item_kind(item)
     if takes is Takes.ROOT and kind != "rule preset":
         return f"a root takes rule presets only; `{text}` is a {kind}."
@@ -346,16 +300,7 @@ def _judge_qualified(
 def _entries(
     where: str, entries: Sequence[str], takes: Takes
 ) -> Iterable[tuple[str, str, Takes]]:
-    """Pair each entry of a list with its key path and what its field takes.
-
-    Args:
-        where: The key path of the list.
-        entries: The references.
-        takes: The kinds of reference the field takes.
-
-    Returns:
-        A key path, a reference and the kinds, for each entry.
-    """
+    """Pair each entry of a list with its key path and what its field takes."""
     for index, text in enumerate(entries):
         yield item_path(where, index), text, takes
 
@@ -363,31 +308,13 @@ def _entries(
 def _selection(
     where: str, include: Sequence[str], exclude: Sequence[str]
 ) -> Iterable[tuple[str, str, Takes]]:
-    """Pair the entries of a table's `rules_include` and `rules_exclude`.
-
-    Args:
-        where: The key path of the table.
-        include: Its `rules_include`.
-        exclude: Its `rules_exclude`.
-
-    Returns:
-        A key path, a reference and `Takes.ANY`, for each entry.
-    """
+    """Pair the entries of a table's `rules_include` and `rules_exclude`."""
     yield from _entries(join_path(where, "rules_include"), include, Takes.ANY)
     yield from _entries(join_path(where, "rules_exclude"), exclude, Takes.ANY)
 
 
 def _references(config: Config) -> Iterable[tuple[str, str, Takes]]:
-    """Find every reference of the config, with its key path and field.
-
-    Args:
-        config: The settings.
-
-    Returns:
-        A key path, a reference and the kinds its field takes, for each entry of
-        the stages, the config's rule presets, the roots and the two always
-        fields.
-    """
+    """Find every reference of the config, with its key path and field."""
     for name, stage in config.stages.items():
         where = join_path("stages", name)
         yield from _selection(where, stage.rules_include, stage.rules_exclude)
@@ -402,16 +329,7 @@ def _references(config: Config) -> Iterable[tuple[str, str, Takes]]:
 
 
 def _table_faults(config: Config, rulesets: Rulesets) -> Iterable[Diagnostic]:
-    """Judge the `[rulesets]` table against the directories.
-
-    Args:
-        config: The settings, whose `rulesets` table is read.
-        rulesets: The directories.
-
-    Returns:
-        An error for a table without a directory, and one for an alias that is
-        not valid.
-    """
+    """Judge the `[rulesets]` table against the directories."""
     names = {*rulesets.names, *config.rulesets}
     taken: dict[str, str] = {}
     for name, table in config.rulesets.items():
@@ -431,18 +349,7 @@ def _table_faults(config: Config, rulesets: Rulesets) -> Iterable[Diagnostic]:
 def _alias_fault(
     name: str, alias: str, taken: dict[str, str], names: set[str]
 ) -> str | None:
-    """Judge the alias of one ruleset.
-
-    Args:
-        name: The ruleset's name.
-        alias: Its alias.
-        taken: Each alias of an earlier table mapped to that table's name.
-        names: Every ruleset name, directory or table.
-
-    Returns:
-        The first problem: not a ruleset name in form, the alias of an earlier
-        table, or the name of another ruleset; `None` when there is none.
-    """
+    """Judge the alias of one ruleset."""
     head = f"alias `{alias}` of `{name}`"
     if not NAME.fullmatch(alias):
         return f"{head} is not a ruleset name; a ruleset name is {NAME_FORM}."

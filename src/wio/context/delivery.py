@@ -16,19 +16,7 @@ if TYPE_CHECKING:
 def _default_path(
     bundle: CompiledBundle, repository: Repository, directories: Directories
 ) -> Path:
-    """Find the clone and bundle's default path.
-
-    Args:
-        bundle: The bundle whose id names the file.
-        repository: Finds the clone's identity.
-        directories: Finds the temporary directory.
-
-    Returns:
-        The default path, possibly relative.
-
-    Raises:
-        WioError: No system temporary directory is usable.
-    """
+    """Find the clone and bundle's default path."""
     try:
         temporary = directories.temp_dir()
     except OSError as error:

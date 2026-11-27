@@ -174,14 +174,7 @@ def choose_slug(arguments: NameArguments) -> str:
 
 
 def _slug_of_title(title: str) -> str:
-    """Apply the rule that turns a title into a slug.
-
-    Args:
-        title: The title as typed.
-
-    Returns:
-        The slug, empty when the title has no usable letter or digit.
-    """
+    """Apply the rule that turns a title into a slug."""
     written = title.lower().translate(_WRITTEN_OUT)
     folded = unicodedata.normalize("NFKD", written).encode("ascii", "ignore")
     dashed = _UNUSABLE.sub("-", folded.decode("ascii")).strip("-")
@@ -237,17 +230,7 @@ def decide_place(
 
 
 def _check_options(arguments: NameArguments, mode: HierarchyMode) -> None:
-    """Refuse a call that names nothing or whose options cannot be combined.
-
-    Args:
-        arguments: The options.
-        mode: The hierarchy mode of the config.
-
-    Raises:
-        ContractsError: No name is given, `--path` comes with `--slug`, or with
-            `--parent` under `nesting`, or `--parent` is given under `flat`; the
-            first that applies.
-    """
+    """Refuse a call that names nothing or whose options cannot be combined."""
     path, parent = arguments.path is not None, arguments.parent is not None
     problems = (
         (
@@ -275,18 +258,7 @@ def _default_place(
     arguments: NameArguments,
     slug: str,
 ) -> Path:
-    """Put a new Work in a directory of its own.
-
-    Args:
-        settings: The `[works]` table.
-        discovery: The Works found, for the parent.
-        arguments: The options, whose `--parent` picks the directory.
-        slug: The name of the Work's directory.
-
-    Returns:
-        `<Works directory>/<slug>/README.md`, or with a parent the same below the
-        directory of its file.
-    """
+    """Put a new Work in a directory of its own."""
     parent = arguments.parent
     base = (
         Path(settings.dir) if parent is None else _parent_directory(discovery, parent)
@@ -295,19 +267,7 @@ def _default_place(
 
 
 def _parent_directory(discovery: WorkDiscovery, parent: str) -> Path:
-    """Find the directory of a parent's file.
-
-    Args:
-        discovery: The Works found.
-        parent: The id given to `--parent`.
-
-    Returns:
-        The directory of the file of the Work with that id.
-
-    Raises:
-        ContractsError: No Work has the id, with the closest id when one is
-            close, or two Works share it.
-    """
+    """Find the directory of a parent's file."""
     found = find_work(discovery, parent)
     if isinstance(found, Work):
         return found.path.parent
@@ -327,22 +287,7 @@ def _checked_path(
     files: FileSystem,
     path: str,
 ) -> Path:
-    """Accept a `--path` that a Work could have.
-
-    Args:
-        root: The repository root.
-        settings: The `[works]` table.
-        discovery: The Works and the marked files found.
-        files: The port that tells what exists and what is a symbolic link.
-        path: The `--path` as typed.
-
-    Returns:
-        The path as a `Path`, relative to the root.
-
-    Raises:
-        ContractsError: The path is not one that a Work could have, with the
-            reason and the path named.
-    """
+    """Accept a `--path` that a Work could have."""
     place = PurePosixPath(path)
     works = PurePosixPath(settings.dir)
     reason = (
@@ -361,16 +306,7 @@ def _checked_path(
 
 
 def _form_problem(place: PurePosixPath, works: PurePosixPath) -> str | None:
-    """Judge the written form of a path and where it lies.
-
-    Args:
-        place: The path as typed.
-        works: The Works directory.
-
-    Returns:
-        The reason, or `None` for a relative path with no `..` that ends in
-        `.md` and lies under the Works directory and below no hidden directory.
-    """
+    """Judge the written form of a path and where it lies."""
     if place.is_absolute() or ".." in place.parts:
         return "it must be relative to the repository root, with no `..`"
     if not place.name.endswith(".md"):
@@ -382,16 +318,7 @@ def _form_problem(place: PurePosixPath, works: PurePosixPath) -> str | None:
 
 
 def _link_problem(root: Path, place: PurePosixPath, files: FileSystem) -> str | None:
-    """Judge whether a path is or runs through a symbolic link.
-
-    Args:
-        root: The repository root, whose own path is not asked about.
-        place: The path, relative to the root.
-        files: The port.
-
-    Returns:
-        The reason naming the link, or `None`.
-    """
+    """Judge whether a path is or runs through a symbolic link."""
     for part in (*reversed(place.parents), place):
         if part.parts and files.is_symlink(root / part):
             return f"it is or runs through the symbolic link `{part.as_posix()}`"
@@ -401,18 +328,7 @@ def _link_problem(root: Path, place: PurePosixPath, files: FileSystem) -> str | 
 def _nesting_problem(
     place: PurePosixPath, works: PurePosixPath, discovery: WorkDiscovery
 ) -> str | None:
-    """Judge a path by the rules of `nesting`.
-
-    Args:
-        place: The path, relative to the root.
-        works: The Works directory.
-        discovery: The Works and the marked files found.
-
-    Returns:
-        The reason when the path is directly in the Works directory, or its
-        directory holds a Work, a file that was left out or a file that was
-        excluded already, and `None` otherwise.
-    """
+    """Judge a path by the rules of `nesting`."""
     if place.parent == works:
         return "a Work cannot sit directly in the Works directory"
     found = (
@@ -431,19 +347,7 @@ def _nesting_problem(
 def _refuse_existing(
     root: Path, place: Path, files: FileSystem, *, whole_directory: bool
 ) -> None:
-    """Refuse a place that is taken.
-
-    Args:
-        root: The repository root.
-        place: The file decided on.
-        files: The port that tells what exists.
-        whole_directory: Whether the directory of the place, empty or not, must
-            not exist, as for the default place, and not only the file.
-
-    Raises:
-        ContractsError: The directory or the file exists, and the message names
-            it.
-    """
+    """Refuse a place that is taken."""
     if whole_directory and files.exists(root / place.parent):
         message = f"The directory `{place.parent.as_posix()}` exists already"
         raise ContractsError(message)

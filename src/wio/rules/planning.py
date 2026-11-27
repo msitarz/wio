@@ -89,15 +89,7 @@ def plan_rule(
 
 
 def _check_unused(ruleset: LoadedRuleset, name: str) -> None:
-    """Check that no rule of a ruleset has a name.
-
-    Args:
-        ruleset: The ruleset.
-        name: The name asked for.
-
-    Raises:
-        WioError: A rule of the ruleset has the name; it names that rule.
-    """
+    """Check that no rule of a ruleset has a name."""
     taken = next((rule for rule in ruleset.rules if rule.name == name), None)
     if taken is not None:
         message = (
@@ -108,17 +100,7 @@ def _check_unused(ruleset: LoadedRuleset, name: str) -> None:
 
 
 def _next(ruleset: LoadedRuleset, family: str) -> tuple[str, PurePosixPath]:
-    """Find the next code of a family and the directory of its file.
-
-    Args:
-        ruleset: The ruleset.
-        family: The family, which the manifest declares.
-
-    Returns:
-        The family's letters and the number after the highest number of the
-        family, with at least three digits and as many as the highest code has,
-        and the directory of that highest rule or of the ruleset.
-    """
+    """Find the next code of a family and the directory of its file."""
     existing = ruleset.rules_of(family)
     last = existing[-1] if existing else None
     digits = len(last.code) - len(family) if last else 0
@@ -128,19 +110,7 @@ def _next(ruleset: LoadedRuleset, family: str) -> tuple[str, PurePosixPath]:
 
 
 def _ruleset(name: str, discovery: Discovery) -> LoadedRuleset:
-    """Find the ruleset that a request names.
-
-    Args:
-        name: The canonical name asked for.
-        discovery: What the walk found.
-
-    Returns:
-        The ruleset.
-
-    Raises:
-        WioError: No ruleset that was read has the name; it lists those that
-            were.
-    """
+    """Find the ruleset that a request names."""
     found = {ruleset.name: ruleset for ruleset in discovery.rulesets}
     if name in found:
         return found[name]
@@ -150,15 +120,7 @@ def _ruleset(name: str, discovery: Discovery) -> LoadedRuleset:
 
 
 def _check_family(ruleset: LoadedRuleset, family: str) -> None:
-    """Check that a ruleset's manifest declares a family.
-
-    Args:
-        ruleset: The ruleset.
-        family: The family asked for.
-
-    Raises:
-        WioError: The family is not declared; it lists those that are.
-    """
+    """Check that a ruleset's manifest declares a family."""
     if family in ruleset.manifest.families:
         return
     names = declared(

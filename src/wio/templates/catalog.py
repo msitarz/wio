@@ -93,28 +93,14 @@ class TemplatesCatalog:
         )
 
     def _load(self) -> Config:
-        """Load the config, once.
-
-        Returns:
-            The config, kept after the first call.
-        """
+        """Load the config, once."""
         if self._config is None:
             self._config = self._settings.load()
         return self._config
 
 
 def _names(where: str) -> set[str]:
-    """Name the template files that a place of a diagnostic points at.
-
-    Args:
-        where: The place: a file with an optional line and column, two such
-            places joined by `, ` for a repeated name, or something else, such as
-            the templates directory or a key path.
-
-    Returns:
-        The names, which are the files' names without `.md`, none for a place
-        that is not a file.
-    """
+    """Name the template files that a place of a diagnostic points at."""
     parts = (_FILE.fullmatch(part) for part in where.split(", "))
     return {
         PurePosixPath(match["file"]).name.removesuffix(".md")

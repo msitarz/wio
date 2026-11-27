@@ -87,20 +87,7 @@ class RuleExplanation:
 
 
 def _reason_text(reason: Reason) -> str:
-    """Write the reason a rule is out.
-
-    Args:
-        reason: The reason of the decision.
-
-    Returns:
-        `not selected`, `excluded by the root's rule preset`,
-        `excluded by the stage`, `vetoed by rules_always_exclude` or
-        `cut by the roots`.
-
-    Raises:
-        ValueError: The reason is of a kind or of a layer that is not known, so
-            that a new one is not explained as something else.
-    """
+    """Write the reason a rule is out."""
     match reason.kind, reason.layer:
         case "not-selected", _:
             return "not selected"
@@ -143,16 +130,7 @@ def explain(listing: Listing, anywhere: SelectedAnywhere) -> Listing:
 
 
 def _explained(row: Row, header: Header, anywhere: SelectedAnywhere) -> Row:
-    """Give one row the explanation of its rule.
-
-    Args:
-        row: The row.
-        header: The header of the listing, whose stage names the stage's label.
-        anywhere: What the excludes of rule presets removed.
-
-    Returns:
-        The row with its explanation.
-    """
+    """Give one row the explanation of its rule."""
     code = row.rule.qualified
     decision = row.decision
     if decision is not None:
@@ -172,18 +150,7 @@ def _explained(row: Row, header: Header, anywhere: SelectedAnywhere) -> Row:
 def _chains(
     effects: Iterable[LayerEffect], action: str, stage: str | None
 ) -> tuple[Chain, ...]:
-    """Write the chains of what the layers added or removed.
-
-    Args:
-        effects: What each layer did to the rule.
-        action: `adds` or `removes`.
-        stage: The name of the stage, which an effect of the stage layer does not
-            hold.
-
-    Returns:
-        One chain for each route of each effect, sorted by layer, then name, then
-        route.
-    """
+    """Write the chains of what the layers added or removed."""
     found = [
         (e.layer, e.root if e.layer == "root" else stage, route)
         for e in effects
@@ -194,25 +161,11 @@ def _chains(
 
 
 def _removals(origins: Iterable[Origin]) -> tuple[Chain, ...]:
-    """Write the chains of what excludes of rule presets removed.
-
-    Args:
-        origins: The include entries that an exclude took the rule out of.
-
-    Returns:
-        One chain for each route of each origin, sorted as `_chains` sorts.
-    """
+    """Write the chains of what excludes of rule presets removed."""
     return _sorted([(o.layer, o.name, r) for o in origins for r in o.routes])
 
 
 def _sorted(found: Iterable[tuple[Layer, str | None, Route]]) -> tuple[Chain, ...]:
-    """Sort and write the chains of layers, names and routes.
-
-    Args:
-        found: A layer, the name of its root or stage, and a route, for each chain.
-
-    Returns:
-        The chains, in the order of layer, name and route.
-    """
+    """Sort and write the chains of layers, names and routes."""
     ordered = sorted(found, key=lambda f: (_RANK[f[0]], f[1] or "", f[2]))
     return tuple(chain_labels(layer_label(f[0], f[1]), f[2]) for f in ordered)

@@ -139,16 +139,7 @@ def check_keep(keep: Sequence[str], keys: Sequence[str]) -> None:
 
 
 def _no_such_key(name: str, keys: Sequence[str]) -> str:
-    """Word the refusal of a key that the Work does not have.
-
-    Args:
-        name: The key that was asked for.
-        keys: The keys of the Work, in its order.
-
-    Returns:
-        The message, which lists the keys that can be kept, or says there are
-        none.
-    """
+    """Word the refusal of a key that the Work does not have."""
     keepable = [key for key in keys if key not in CANNOT_KEEP]
     listed = ", ".join(f"`{key}`" for key in keepable)
     hint = f"; it can keep {listed}" if keepable else "; it has no key to keep"

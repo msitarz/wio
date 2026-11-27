@@ -41,14 +41,7 @@ def render(report: Report, *, as_json: bool) -> str:
 
 
 def _text(report: Report) -> Iterator[str]:
-    """Render Work headings followed by the lines belonging to each row.
-
-    Args:
-        report: The ordered Works and their rows.
-
-    Yields:
-        Each line of the text report, including its terminator.
-    """
+    """Render Work headings followed by the lines belonging to each row."""
     for work, rows in report.works.items():
         yield f"{work}\n"
         for row in rows:
@@ -56,14 +49,7 @@ def _text(report: Report) -> Iterator[str]:
 
 
 def _text_row(row: Row) -> Iterator[str]:
-    """Render the context before the reviews of its action and stage.
-
-    Args:
-        row: The context and retained reviews, either of which can be absent.
-
-    Yields:
-        The entered line when present and one line per review.
-    """
+    """Render the context before the reviews of its action and stage."""
     prefix = f"  {row.action} {row.stage}"
     if row.context is not None:
         time = format_event_time(row.context.time)
@@ -73,15 +59,7 @@ def _text_row(row: Row) -> Iterator[str]:
 
 
 def _review_line(prefix: str, review: Review) -> str:
-    """Render a review with an abbreviated commit and citations in source order.
-
-    Args:
-        prefix: The indented action and stage.
-        review: The retained review with its timestamp.
-
-    Returns:
-        One review line including its terminator.
-    """
+    """Render a review with an abbreviated commit and citations in source order."""
     event = review.event
     time = format_event_time(review.time)
     line = f"{prefix}  {event.judge} {event.result} {event.commit[:12]}  {time}"
@@ -92,14 +70,7 @@ def _review_line(prefix: str, review: Review) -> str:
 
 
 def _session_text(context: Envelope) -> str:
-    """Describe the session, including ambiguity and missing fields.
-
-    Args:
-        context: The context event's envelope.
-
-    Returns:
-        A harness and session label, an ambiguity label, or an unknown session.
-    """
+    """Describe the session, including ambiguity and missing fields."""
     if context.harness is None:
         if len(context.matches) >= 2:
             return f"ambiguous ({', '.join(context.matches)})"
@@ -112,14 +83,7 @@ def _session_text(context: Envelope) -> str:
 
 
 def _json_row(row: Row) -> dict[str, object]:
-    """Build a JSON row with fields in contract order.
-
-    Args:
-        row: The report row for an action and stage.
-
-    Returns:
-        A JSON-ready mapping with null context fields for a review-only row.
-    """
+    """Build a JSON row with fields in contract order."""
     context = row.context
     return {
         "action": row.action,
@@ -131,14 +95,7 @@ def _json_row(row: Row) -> dict[str, object]:
 
 
 def _json_session(context: Envelope) -> dict[str, object]:
-    """Expose the session details selected by the show contract.
-
-    Args:
-        context: The envelope of the latest context event.
-
-    Returns:
-        The session fields in order, with the matches represented as a sequence.
-    """
+    """Expose the session details selected by the show contract."""
     return {
         "harness": context.harness,
         "session": context.session,
@@ -148,14 +105,7 @@ def _json_session(context: Envelope) -> dict[str, object]:
 
 
 def _json_review(review: Review) -> dict[str, object]:
-    """Expose the full commit and citations of the retained review.
-
-    Args:
-        review: The review event and its timestamp.
-
-    Returns:
-        The review fields in order with its cited results left in source order.
-    """
+    """Expose the full commit and citations of the retained review."""
     event = review.event
     return {
         "judge": event.judge,

@@ -104,43 +104,25 @@ def component_entry(package: Component, wire: Callable[[], Command]) -> Entry:
 
 
 def _config() -> Command:
-    """Wire `wio config` to the local disk and the git repository.
-
-    Returns:
-        The command, reading the config file through the adapters.
-    """
+    """Wire `wio config` to the local disk and the git repository."""
     repository = io.GitRepository(env.ProcessEnvironment())
     return ConfigCommand(repository, io.LocalFileSystem())
 
 
 def _templates() -> Command:
-    """Wire `wio templates` to the local disk, the git repository and the config.
-
-    Returns:
-        The command, finding the templates through the adapters.
-    """
+    """Wire `wio templates` to the local disk, the git repository and the config."""
     repository = io.GitRepository(env.ProcessEnvironment())
     files = io.LocalFileSystem()
     return TemplatesCommand(ConfigSettings(repository, files), repository, files)
 
 
 def _contracts() -> Command:
-    """Wire `wio contracts` to the project's ports and the system's randomness.
-
-    Returns:
-        The command, whose subcommands read the project through the adapters, find
-        the templates through the catalog of `wio.templates` and draw ids from the
-        system's randomness.
-    """
+    """Wire `wio contracts` to the project's ports and the system's randomness."""
     return ContractsCommand(_contracts_services())
 
 
 def _contracts_services() -> Services:
-    """Connect contract readers and writers to the current project.
-
-    Returns:
-        The shared contract services for commands that use the working tree.
-    """
+    """Connect contract readers and writers to the current project."""
     environment = env.ProcessEnvironment()
     repository = io.GitRepository(environment)
     files = io.LocalFileSystem()
@@ -152,12 +134,7 @@ def _contracts_services() -> Services:
 
 
 def _rules() -> Command:
-    """Wire `wio rules` to the project's ports.
-
-    Returns:
-        The command, whose subcommands read the project through the adapters and
-        find the roots of a Work in the working tree.
-    """
+    """Wire `wio rules` to the project's ports."""
     environment = env.ProcessEnvironment()
     repository = io.GitRepository(environment)
     files = io.LocalFileSystem()
@@ -169,11 +146,7 @@ def _rules() -> Command:
 
 @dataclass(frozen=True)
 class _ContextEventSink:
-    """Defer `LogSink` construction until `wio context` delivers a bundle.
-
-    Wiring `wio context` does no I/O, so the log settings are read only when a
-    delivered run records its event.
-    """
+    """Defer `LogSink` construction until `wio context` delivers a bundle."""
 
     environment: Environment
     directories: Directories
@@ -232,11 +205,7 @@ class _ContextReviewedCommit:
 
 
 def _context() -> Command:
-    """Wire `wio context` to the project's ports.
-
-    Returns:
-        The command, with input checks and composition over project adapters.
-    """
+    """Wire `wio context` to the project's ports."""
     contracts = _contracts_services()
     settings, repository, files = (
         contracts.settings,
@@ -306,14 +275,7 @@ def trailers_command(events: EventSink | None = None) -> Command:
 
 
 def _trailers_services(events: EventSink | None = None) -> TrailersServices:
-    """Build the shared review and record services over the local adapters.
-
-    Args:
-        events: An optional replacement for the real event sink.
-
-    Returns:
-        The ports for record and review operations, with config validated.
-    """
+    """Build the shared review and record services over the local adapters."""
     environment = env.ProcessEnvironment()
     repository = io.GitRepository(environment)
     history = io.GitHistory(environment)
@@ -342,11 +304,7 @@ def _trailers_services(events: EventSink | None = None) -> TrailersServices:
 
 
 def _log() -> Command:
-    """Wire the log command to the local repository and filesystem.
-
-    Returns:
-        The command, which locates the log only when showing events.
-    """
+    """Wire the log command to the local repository and filesystem."""
     environment = env.ProcessEnvironment()
     return LogCommand(
         io.GitRepository(environment),
@@ -357,27 +315,13 @@ def _log() -> Command:
 
 
 def _review() -> ReviewCommand:
-    """Supply the log review form with the checker and sink used by trailers.
-
-    Returns:
-        The form over the same configuration and Git history as trailers.
-    """
+    """Supply the log review form with the checker and sink used by trailers."""
     services = _trailers_services()
     return ReviewCommand(TrailersReviewChecker(services), services.events)
 
 
 def _root(repository: Repository) -> Path:
-    """Find the root of the repository, or say that there is none.
-
-    Args:
-        repository: The port that finds the root.
-
-    Returns:
-        The root of the repository that the working directory is in.
-
-    Raises:
-        TrailersError: If the working directory is not inside a repository.
-    """
+    """Find the root of the repository, or say that there is none."""
     try:
         return repository.root()
     except RuntimeError as error:

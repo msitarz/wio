@@ -90,20 +90,7 @@ def _refusal(
     *,
     has_result: bool,
 ) -> tuple[str, str] | None:
-    """Say why one `--cite` value is refused, if it is, and remember its key.
-
-    Args:
-        text: The value, `KEY=RESULT`.
-        context: The item ids of the Work with the rules that the stage selects, and
-            the keys of the cites already seen, to which a key that holds is added.
-        config: The config, for `gates.results`.
-        has_result: Whether `--result` was given.
-
-    Returns:
-        The name to print after `error: ` and the message, or `None` for a value
-        that holds. The name is `--cite` for a value that is not `KEY=RESULT` with
-        a key and a result and for a call with no `--result`, and the key otherwise.
-    """
+    """Say why one `--cite` value is refused, if it is, and remember its key."""
     key, _, result = text.partition("=")
     if not has_result:
         return ("--cite", "`--cite` needs a `--result`.")
@@ -120,16 +107,7 @@ def _refusal(
 def _unknown_key(
     key: str, known: tuple[frozenset[str], Mapping[str, str]]
 ) -> tuple[str, str] | None:
-    """Say why a cited key is neither an item of the Work nor a selected rule.
-
-    Args:
-        key: The key of a cite.
-        known: The item ids of the Work and the rules that the stage selects.
-
-    Returns:
-        The name to print after `error: ` and the message, or `None` for an item or a
-        rule that the stage selects.
-    """
+    """Say why a cited key is neither an item of the Work nor a selected rule."""
     items, rules = known
     if key in items or key in rules:
         return None

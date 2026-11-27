@@ -36,14 +36,7 @@ _CLOSING: Final = re.compile(r"\s+#+$")
 
 @dataclass(frozen=True)
 class _Body:
-    """The body of a file as lines, and the real headings in it.
-
-    Attributes:
-        lines: The body's lines, split at CRLF, CR and LF alike, so none ends in
-            a carriage return.
-        headings: The real headings of the body, whose `line` counts from 1 in
-            `lines`.
-    """
+    """The body of a file as lines, and the real headings in it."""
 
     lines: tuple[str, ...]
     headings: tuple[Heading, ...]
@@ -116,17 +109,7 @@ def render_resolved(resolved: ResolvedContract) -> str:
 def _inherited(
     ancestor: Work, catalog: TemplateCatalog, root: Path, files: FileSystem
 ) -> InheritedSections | None:
-    """Gather what one ancestor passes on.
-
-    Args:
-        ancestor: The ancestor.
-        catalog: Finds the ancestor's template and says whether it is rejected.
-        root: The repository root that paths are relative to.
-        files: The port that reads the files.
-
-    Returns:
-        Its title and sections, or `None` when it passes nothing.
-    """
+    """Gather what one ancestor passes on."""
     try:
         text = files.read_text(root / ancestor.path)
     except OSError, UnicodeDecodeError:
@@ -137,16 +120,7 @@ def _inherited(
 
 
 def _own_contract(text: str) -> str:
-    """Take a Work's file down to its own contract as the view starts.
-
-    Args:
-        text: The whole file.
-
-    Returns:
-        The text after the metadata block, with LF endings, comments kept, a
-        readable directive list taken off every real heading and the blank lines
-        at either end removed. A file without a readable block has none.
-    """
+    """Take a Work's file down to its own contract as the view starts."""
     body = _read_body(text)
     if body is None:
         return ""
@@ -163,24 +137,7 @@ def _marked_texts(
     root: Path,
     files: FileSystem,
 ) -> frozenset[str] | None:
-    """Find the `##` sections that an ancestor's source of directives marks.
-
-    A failed read of the template's file, an `OSError` or a `UnicodeDecodeError`
-    of `files`, and a template whose block cannot be read, are swallowed here and
-    give `None`, because the ancestor then passes nothing.
-
-    Args:
-        ancestor: The ancestor, whose `template` names its source.
-        text: The ancestor's whole file, the source when it names no template.
-        catalog: Finds the template and says whether it is rejected.
-        root: The repository root that the template's path is relative to.
-        files: The port that reads the template's file.
-
-    Returns:
-        The key, as `_key` gives it, of each marked section, empty when a
-        readable list marks nothing, and `None` when the template is missing,
-        rejected or cannot be read.
-    """
+    """Find the `##` sections that an ancestor's source of directives marks."""
     if ancestor.template is None:
         return _marked_in(text)
     template = catalog.find(ancestor.template)
@@ -194,19 +151,7 @@ def _marked_texts(
 
 
 def _cut_ancestor(text: str, marked: frozenset[str]) -> tuple[str, tuple[str, ...]]:
-    """Name an ancestor and cut the sections of it that pass, from one outline.
-
-    Args:
-        text: The ancestor's whole file.
-        marked: The matching text of each marked section.
-
-    Returns:
-        The ancestor's title, which is the text of its first real heading at any
-        level with a readable directive list taken off, and each level-2 section
-        whose text matches, in the ancestor's order, as its heading line demoted
-        by one level, never below 6, and its text, without the blank lines that
-        end it. A section with only comments and whitespace is left out.
-    """
+    """Name an ancestor and cut the sections of it that pass, from one outline."""
     body = _read_body(text)
     if body is None or not body.headings:
         return "", ()
@@ -219,15 +164,7 @@ def _cut_ancestor(text: str, marked: frozenset[str]) -> tuple[str, tuple[str, ..
 
 
 def _read_body(text: str) -> _Body | None:
-    """Split a file into the lines of its body and the real headings.
-
-    Args:
-        text: The whole file.
-
-    Returns:
-        The body, or `None` for a file without a metadata block or with one that
-        cannot be read.
-    """
+    """Split a file into the lines of its body and the real headings."""
     try:
         block = read_metadata_block(text)
     except MetadataBlockError:
@@ -239,15 +176,7 @@ def _read_body(text: str) -> _Body | None:
 
 
 def _marked_in(text: str) -> frozenset[str] | None:
-    """Find the `##` headings of a text that carry `inherit`.
-
-    Args:
-        text: A template's file, or an ancestor's own.
-
-    Returns:
-        The key of each such heading, or `None` when the text has no readable
-        body.
-    """
+    """Find the `##` headings of a text that carry `inherit`."""
     body = _read_body(text)
     if body is None:
         return None
@@ -256,15 +185,7 @@ def _marked_in(text: str) -> frozenset[str] | None:
 
 
 def _marked_key(heading: Heading) -> str | None:
-    """Give the key of a heading whose readable list has `inherit`.
-
-    Args:
-        heading: A heading.
-
-    Returns:
-        Its key, or `None` for a heading that is indented, has no list, has a list
-        that cannot be read or has no `inherit` in it.
-    """
+    """Give the key of a heading whose readable list has `inherit`."""
     try:
         parsed = read_directive_heading(heading.raw)
     except DirectiveSyntaxError:
@@ -275,17 +196,7 @@ def _marked_key(heading: Heading) -> str | None:
 
 
 def _key(raw: str) -> str | None:
-    """Give the key that sections are matched by.
-
-    Args:
-        raw: A heading's line.
-
-    Returns:
-        Its text without the `#` marks, any directive list, readable or not, a
-        closing sequence of `#` marks and the whitespace around it, in lowercase
-        for comparison, or `None` for a line that does not start with its marks
-        at column 0.
-    """
+    """Give the key that sections are matched by."""
     if _MARKS.match(raw) is None:
         return None
     text = _MARKS.sub("", remove_directive_list(raw), count=1)
@@ -293,15 +204,7 @@ def _key(raw: str) -> str | None:
 
 
 def _clean(raw: str) -> str:
-    """Take the directive list off a heading line when it can be read.
-
-    Args:
-        raw: A heading's line.
-
-    Returns:
-        The line without a readable list and right-trimmed, and the line as
-        written when it is indented or its list cannot be read.
-    """
+    """Take the directive list off a heading line when it can be read."""
     if _MARKS.match(raw) is None:
         return raw
     try:
@@ -312,15 +215,7 @@ def _clean(raw: str) -> str:
 
 
 def _title(heading: Heading) -> str:
-    """Give the text of a heading without a readable directive list.
-
-    Args:
-        heading: A real heading.
-
-    Returns:
-        Its text as `read_outline` found it, less a list that can be read, so
-        without a closing sequence of `#` marks.
-    """
+    """Give the text of a heading without a readable directive list."""
     try:
         parsed = read_directive_heading(heading.raw)
     except DirectiveSyntaxError:
@@ -329,17 +224,7 @@ def _title(heading: Heading) -> str:
 
 
 def _section(body: _Body, index: int) -> str:
-    """Cut one `##` section out of a body, demoted.
-
-    Args:
-        body: The body.
-        index: The position of the section's heading among its headings.
-
-    Returns:
-        The heading and its text up to the next heading of level 1 or 2, cleaned
-        and demoted by `_demote` and trimmed by `_trim`, or the empty string when
-        nothing but comments and whitespace follows the heading.
-    """
+    """Cut one `##` section out of a body, demoted."""
     heading = body.headings[index]
     start = heading.line - 1
     end = next(
@@ -357,15 +242,7 @@ def _section(body: _Body, index: int) -> str:
 
 
 def _demote(heading: Heading) -> str:
-    """Clean a heading line and put it one level deeper.
-
-    Args:
-        heading: A real heading.
-
-    Returns:
-        The cleaned line with one more `#`, unchanged in level at 6 and as
-        written when it is indented.
-    """
+    """Clean a heading line and put it one level deeper."""
     cleaned = _clean(heading.raw)
     if _MARKS.match(cleaned) is None or heading.level >= _DEEPEST:
         return cleaned
@@ -373,13 +250,6 @@ def _demote(heading: Heading) -> str:
 
 
 def _trim(lines: list[str]) -> list[str]:
-    """Remove the blank lines at both ends.
-
-    Args:
-        lines: Lines of text.
-
-    Returns:
-        The lines from the first to the last that is not blank.
-    """
+    """Remove the blank lines at both ends."""
     kept = [number for number, line in enumerate(lines) if line.strip()]
     return lines[kept[0] : kept[-1] + 1] if kept else []

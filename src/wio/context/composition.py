@@ -115,17 +115,7 @@ class Composition:
         )
 
     def _find_skill(self, name: str | None) -> FoundSkill | None:
-        """Find the configured skill or refuse with its name.
-
-        Args:
-            name: The configured skill name, or None for a stage with a goal.
-
-        Returns:
-            The result of one lookup, or None when no name was supplied.
-
-        Raises:
-            WioError: The configured skill is missing or cannot be read.
-        """
+        """Find the configured skill or refuse with its name."""
         if name is None:
             return None
         try:
@@ -141,18 +131,7 @@ class Composition:
     def _rule_hashes(
         self, selection: Selection, codes: tuple[str, ...]
     ) -> dict[str, str]:
-        """Hash the stored bytes of each printed rule in print order.
-
-        Args:
-            selection: The selection that produced the rules section.
-            codes: Qualified codes in the order the section prints them.
-
-        Returns:
-            A mapping in print order, empty when the section prints no rule.
-
-        Raises:
-            WioError: The file of a printed rule cannot be read.
-        """
+        """Hash the stored bytes of each printed rule in print order."""
         if not codes:
             return {}
         paths = {
@@ -175,11 +154,7 @@ class Composition:
 
 @dataclass(frozen=True)
 class _BundleSettings:
-    """Share the config read by composition with its part builders.
-
-    Attributes:
-        config: The config from which composition took the stage settings.
-    """
+    """Share the config read by composition with its part builders."""
 
     config: Config
 

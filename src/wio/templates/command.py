@@ -131,32 +131,14 @@ class TemplatesCommand:
         return 0
 
     def _check(self, config: Config, root: Path, stdio: Stdio, *, as_json: bool) -> int:
-        """Run `check`: write what the templates' check found, and judge it.
-
-        Args:
-            config: The settings, already loaded.
-            root: The repository root.
-            stdio: Where the output goes.
-            as_json: Whether to write the JSON array instead of the text.
-
-        Returns:
-            1 when a diagnostic is an error, otherwise 0.
-        """
+        """Run `check`: write what the templates' check found, and judge it."""
         found = check_templates(root, config, self._files)
         stdio.stdout.write(render_check(found, as_json=as_json, passes=PASSES))
         return 1 if has_error(found) else 0
 
 
 def _refuse_problems(found: Discovery) -> None:
-    """Refuse to list around a problem in the templates.
-
-    Args:
-        found: What the walk found.
-
-    Raises:
-        TemplatesError: The walk reported a diagnostic. Its message is the
-            diagnostics rendered, then a line that names `wio templates check`.
-    """
+    """Refuse to list around a problem in the templates."""
     if found.diagnostics:
         raise refusal(found.diagnostics)
 
@@ -164,19 +146,7 @@ def _refuse_problems(found: Discovery) -> None:
 def _of_kind(
     templates: Iterable[Template], kind: str | None, settings: Templates
 ) -> tuple[Template, ...]:
-    """Limit the templates to one declared kind, or keep them all.
-
-    Args:
-        templates: The templates the walk found.
-        kind: The kind asked for, or `None` for every kind.
-        settings: The `[templates]` table, which declares the kinds.
-
-    Returns:
-        The templates of the kind, or all of them when no kind was asked for.
-
-    Raises:
-        TemplatesError: The kind is not declared.
-    """
+    """Limit the templates to one declared kind, or keep them all."""
     if kind is None:
         return tuple(templates)
     _require_declared(kind, settings)
@@ -184,16 +154,7 @@ def _of_kind(
 
 
 def _require_declared(kind: str, settings: Templates) -> None:
-    """Check that a kind is one that the config declares.
-
-    Args:
-        kind: The kind asked for.
-        settings: The `[templates]` table, which declares the kinds.
-
-    Raises:
-        TemplatesError: The kind is not declared; the message names it and the
-            declared kinds, or says that none is declared.
-    """
+    """Check that a kind is one that the config declares."""
     if kind in settings.kinds:
         return
     declared = ", ".join(f"`{name}`" for name in sorted(settings.kinds))

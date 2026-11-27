@@ -113,16 +113,7 @@ class _Entry:
 
 
 def _entries(config: Config) -> list[_Entry]:
-    """List the include entries of the config.
-
-    Args:
-        config: The settings.
-
-    Returns:
-        The rule presets of each root, the `rules_include` of each stage and
-        `rules_always_include`, in the order root, stage, always-include and then
-        by name.
-    """
+    """List the include entries of the config."""
     roots = [_Entry("root", n, r.rule_presets) for n, r in config.roots.items()]
     stages = [_Entry("stage", n, s.rules_include) for n, s in config.stages.items()]
     always = _Entry("always-include", None, config.rules_always_include)
@@ -134,17 +125,7 @@ def _entries(config: Config) -> list[_Entry]:
 
 
 def _collect(found: Sequence[tuple[_Entry, Expansion]]) -> SelectedAnywhere:
-    """Gather the expansions of the entries into the rules and their origins.
-
-    Args:
-        found: Each entry with its expansion, in the order that origins are
-            sorted.
-
-    Returns:
-        The rules delivered and the rules taken out, each with one origin for
-        each entry that delivered or took it out, and each mapping in the order
-        of C-2 of `wio rules`.
-    """
+    """Gather the expansions of the entries into the rules and their origins."""
     chosen: dict[Rule, list[Origin]] = {}
     taken: dict[Rule, list[Origin]] = {}
     for entry, expansion in found:
@@ -157,14 +138,6 @@ def _collect(found: Sequence[tuple[_Entry, Expansion]]) -> SelectedAnywhere:
 
 
 def _in_order(found: dict[Rule, list[Origin]]) -> Mapping[Rule, tuple[Origin, ...]]:
-    """Put rules in the order of C-2 of `wio rules` and freeze the mapping.
-
-    Args:
-        found: The origins of each rule, already in the order they are kept.
-
-    Returns:
-        A frozen mapping by ruleset name, family, number of the code and code
-        text.
-    """
+    """Put rules in the order of C-2 of `wio rules` and freeze the mapping."""
     order = sorted(found, key=lambda r: (r.ruleset, r.family, r.number, r.code))
     return freeze({rule: tuple(found[rule]) for rule in order})

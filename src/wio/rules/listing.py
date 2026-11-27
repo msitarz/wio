@@ -107,21 +107,7 @@ def list_view(
 def _roots(
     request: ListRequest, config: Config, work_roots: WorkRoots
 ) -> tuple[str, ...] | None:
-    """Find the roots that a request applies.
-
-    Args:
-        request: The view asked for.
-        config: The settings.
-        work_roots: Gives the roots of a Work.
-
-    Returns:
-        The root, the roots that contain the path, or the Work's roots that the
-        stage selects; `None` when the view names none of them.
-
-    Raises:
-        KeyError: The stage or the Work is not known.
-        ValueError: The Work has no roots that the stage selects.
-    """
+    """Find the roots that a request applies."""
     if request.root is not None:
         return (request.root,)
     if request.path is not None:
@@ -132,14 +118,7 @@ def _roots(
 
 
 def _view(request: ListRequest) -> str:
-    """Name the view of a request.
-
-    Args:
-        request: The view asked for.
-
-    Returns:
-        `root api`, `file src/a.py`, `Work W`, `stage s` or `every rule`.
-    """
+    """Name the view of a request."""
     if request.root is not None:
         return f"root {request.root}"
     if request.path is not None:
@@ -152,30 +131,14 @@ def _view(request: ListRequest) -> str:
 
 
 def _layers(roots: tuple[str, ...] | None, stage: str | None) -> tuple[str, ...]:
-    """Name the layers a view applies.
-
-    Args:
-        roots: The roots applied, or `None`.
-        stage: The stage, if any.
-
-    Returns:
-        `roots`, `stage` and `always fields` as they apply, in that order, and
-        empty when the view applies no layer.
-    """
+    """Name the layers a view applies."""
     names = [("roots", roots is not None), ("stage", stage is not None)]
     found = [name for name, applied in names if applied]
     return (*found, "always fields") if found else ()
 
 
 def _undecided(rulesets: Mapping[str, LoadedRuleset]) -> tuple[Row, ...]:
-    """Make a row with no decision for every rule.
-
-    Args:
-        rulesets: The rulesets by name.
-
-    Returns:
-        The rows in the order of ruleset, family, number and code.
-    """
+    """Make a row with no decision for every rule."""
     return tuple(
         Row(rule, None, (), None)
         for name in sorted(rulesets)
@@ -184,28 +147,12 @@ def _undecided(rulesets: Mapping[str, LoadedRuleset]) -> tuple[Row, ...]:
 
 
 def _order(rule: Rule) -> tuple[str, int, str]:
-    """Order the rules of a ruleset.
-
-    Args:
-        rule: The rule.
-
-    Returns:
-        Its family, number and code.
-    """
+    """Order the rules of a ruleset."""
     return rule.family, rule.number, rule.code
 
 
 def _shown(row: Row, *, marked: bool) -> bool:
-    """Decide whether the renderer shows a row.
-
-    Args:
-        row: The row.
-        marked: Whether the header is marked `not selected`.
-
-    Returns:
-        Whether its rule is included or undecided, or it has an explanation, or
-        the header is marked.
-    """
+    """Decide whether the renderer shows a row."""
     included = row.decision is None or row.decision.included
     return included or row.explanation is not None or marked
 
@@ -237,16 +184,7 @@ def render_listing(listing: Listing, *, as_json: bool) -> str:
 
 
 def _header_lines(header: Header) -> list[str]:
-    """Write the header lines of the text.
-
-    Args:
-        header: The header.
-
-    Returns:
-        `view:`, `layers:` and `roots:`, then `stage:` when a stage was given and
-        is not the view, `references:` and `filter: not selected` when they
-        apply.
-    """
+    """Write the header lines of the text."""
     roots = "not applied" if header.roots is None else ", ".join(header.roots)
     lines = [
         f"view: {header.view}",
@@ -263,16 +201,7 @@ def _header_lines(header: Header) -> list[str]:
 
 
 def _block(row: Row) -> Block:
-    """Lay out one row as a block.
-
-    Args:
-        row: The row.
-
-    Returns:
-        The block of the rule's qualified code and name, with its description or
-        else its summary when it has one, `roots:` when the rule is included by a
-        decision, and the lines of the explanation.
-    """
+    """Lay out one row as a block."""
     rule, decision = row.rule, row.decision
     details = [rule.description or rule.summary, _roots_line(decision)]
     if row.explanation is not None:
@@ -281,16 +210,7 @@ def _block(row: Row) -> Block:
 
 
 def _roots_line(decision: Decision | None) -> str:
-    """Write the `roots:` line of a rule.
-
-    Args:
-        decision: The rule's decision, or `None` when none was made.
-
-    Returns:
-        The line for an included rule, `every root` for one that is independent
-        of roots and `none` for one that no root reaches; empty for a rule that
-        is out or undecided.
-    """
+    """Write the `roots:` line of a rule."""
     if decision is None or not decision.included:
         return ""
     roots = "every root" if decision.root_independent else ", ".join(decision.roots)
@@ -298,15 +218,7 @@ def _roots_line(decision: Decision | None) -> str:
 
 
 def _as_object(header: Header, rows: list[Row]) -> dict[str, object]:
-    """Describe a listing as plain data for JSON.
-
-    Args:
-        header: The header.
-        rows: The rows that are shown.
-
-    Returns:
-        The header keys in order and then `rules`.
-    """
+    """Describe a listing as plain data for JSON."""
     return {
         "view": header.view,
         "work": header.work,
@@ -320,15 +232,7 @@ def _as_object(header: Header, rows: list[Row]) -> dict[str, object]:
 
 
 def _rule_object(row: Row) -> dict[str, object]:
-    """Describe a row as plain data for JSON.
-
-    Args:
-        row: The row.
-
-    Returns:
-        The rule's fields and then those of the explanation. A row with no
-        decision is included, with `roots` and `root_independent` null.
-    """
+    """Describe a row as plain data for JSON."""
     rule, decision = row.rule, row.decision
     found: dict[str, object] = {
         "code": rule.qualified,
@@ -391,23 +295,7 @@ def _refined(
     config: Config,
     rulesets: Mapping[str, LoadedRuleset],
 ) -> Listing:
-    """Narrow and explain a listing as the request asks.
-
-    Args:
-        listing: The listing of the view.
-        request: The references, `--not-selected` and `--explain` asked for.
-        config: The settings.
-        rulesets: The rulesets by name.
-
-    Returns:
-        The listing narrowed by the references and `--not-selected`, and then
-        explained when `--explain` is given; the listing itself when none is
-        asked for. The rules selected anywhere are computed once and given to
-        both steps.
-
-    Raises:
-        WioError: A reference cannot be used.
-    """
+    """Narrow and explain a listing as the request asks."""
     if not (request.references or request.not_selected or request.explain):
         return listing
     anywhere = selected_anywhere(config, rulesets)
@@ -424,19 +312,7 @@ def _refined(
 
 
 def _request(args: Namespace, root: Path, cwd: Path) -> ListRequest:
-    """Read the request from the arguments.
-
-    Args:
-        args: The parsed arguments.
-        root: The repository root.
-        cwd: The working directory, which a path is resolved against.
-
-    Returns:
-        The request, with the path relative to the repository.
-
-    Raises:
-        WioError: The path is outside the repository.
-    """
+    """Read the request from the arguments."""
     path = None if args.path is None else _inside(root, cwd, args.path)
     return ListRequest(
         args.root,
@@ -451,19 +327,7 @@ def _request(args: Namespace, root: Path, cwd: Path) -> ListRequest:
 
 
 def _inside(root: Path, cwd: Path, text: str) -> PurePosixPath:
-    """Make a path relative to the repository root.
-
-    Args:
-        root: The repository root.
-        cwd: The directory a relative path starts from.
-        text: The path as typed.
-
-    Returns:
-        The path from the root, written with `/`.
-
-    Raises:
-        WioError: The path is outside the repository.
-    """
+    """Make a path relative to the repository root."""
     absolute = Path(os.path.normpath(cwd / text))
     if not absolute.is_relative_to(root):
         message = f"The path `{text}` is outside the repository."
@@ -472,15 +336,7 @@ def _inside(root: Path, cwd: Path, text: str) -> PurePosixPath:
 
 
 def _unknown(name: object, request: ListRequest) -> str:
-    """Say which name of the request is not known.
-
-    Args:
-        name: The name that the `KeyError` carries.
-        request: The view asked for.
-
-    Returns:
-        A sentence that names the stage, the Work or the root.
-    """
+    """Say which name of the request is not known."""
     if name == request.stage:
         return f"The config has no stage `{name}`."
     if name == request.work:

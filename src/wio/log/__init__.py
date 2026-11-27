@@ -48,17 +48,7 @@ class LogSpec:
 
 
 def _single_work(work: str) -> str:
-    """Keep the Work argument when it names a single Work.
-
-    Args:
-        work: The argument as typed.
-
-    Returns:
-        The original Work argument for field validation.
-
-    Raises:
-        ArgumentTypeError: The argument contains a comma and represents a list.
-    """
+    """Keep the Work argument when it names a single Work."""
     if "," in work:
         message = "name one Work for a review"
         raise ArgumentTypeError(message)

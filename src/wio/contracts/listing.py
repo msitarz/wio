@@ -66,16 +66,7 @@ def render_list(found: Hierarchy, *, as_json: bool) -> str:
 
 
 def _text_order(found: Hierarchy) -> list[tuple[Work, int]]:
-    """Put the Works in the order of the text, each with its depth.
-
-    Args:
-        found: The hierarchy.
-
-    Returns:
-        Each Work after its parent and before the next sibling of its parent,
-        siblings in the order of their paths, with the number of its ancestors.
-        Under `flat` it is the Works in the order of their paths, all at 0.
-    """
+    """Put the Works in the order of the text, each with its depth."""
     order: list[tuple[Work, int]] = []
     pending = [
         (work, 0) for work in reversed(found.works) if not found.ancestors[work.path]
@@ -88,18 +79,7 @@ def _text_order(found: Hierarchy) -> list[tuple[Work, int]]:
 
 
 def _block(work: Work, depth: int, titles: Mapping[str, str | None]) -> Block:
-    """Describe one Work as a block of the listing.
-
-    Args:
-        work: The Work.
-        depth: How many ancestors it has, each of which indents by two spaces.
-        titles: The title of each Work by id, `None` for a Work with no title,
-            and no key for an id that no Work has.
-
-    Returns:
-        The block, whose key is the id, whose suffix is the template in brackets
-        and whose details are the lines the Work has something to say about.
-    """
+    """Describe one Work as a block of the listing."""
     details = [work.path.as_posix()]
     if work.roots:
         details.append("roots: " + ", ".join(work.roots))
@@ -112,47 +92,21 @@ def _block(work: Work, depth: int, titles: Mapping[str, str | None]) -> Block:
 
 
 def _dependency(work_id: str, titles: Mapping[str, str | None]) -> str:
-    """Write a dependency with the title of the Work it names.
-
-    Args:
-        work_id: The id as listed.
-        titles: The title of each Work by id.
-
-    Returns:
-        The id and its title, `(no title)` for a Work with none, and `(not found)`
-        for an id that no Work has.
-    """
+    """Write a dependency with the title of the Work it names."""
     if work_id not in titles:
         return f"{work_id} (not found)"
     return f"{work_id} {titles[work_id] or _NO_TITLE}"
 
 
 def _value(value: str | tuple[str, ...]) -> str:
-    """Write what an `[actions]` entry says.
-
-    Args:
-        value: A stage preset, or the stages of an action.
-
-    Returns:
-        The preset bare, the stages in brackets joined by `, `, and `none` for no
-        stage.
-    """
+    """Write what an `[actions]` entry says."""
     if isinstance(value, str):
         return value
     return "[" + ", ".join(value) + "]" if value else "none"
 
 
 def _as_object(work: Work, found: Hierarchy) -> dict[str, object]:
-    """Describe a Work as plain data for JSON.
-
-    Args:
-        work: The Work.
-        found: The hierarchy, for its parent.
-
-    Returns:
-        The fields in the order `render_list` gives, with the path written with
-        `/`.
-    """
+    """Describe a Work as plain data for JSON."""
     parent = found.parent[work.path]
     return {
         "id": work.id,

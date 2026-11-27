@@ -89,16 +89,7 @@ def cached_discover() -> Callable[[Path, WorksSettings, FileSystem], WorkDiscove
     def _discover(
         root: Path, settings: WorksSettings, files: FileSystem
     ) -> WorkDiscovery:
-        """Discover Works once per `(root, settings, files)` key.
-
-        Args:
-            root: The repository root.
-            settings: The `[works]` table of the config.
-            files: The file system view to walk.
-
-        Returns:
-            The cached or freshly discovered `WorkDiscovery`.
-        """
+        """Discover Works once per `(root, settings, files)` key."""
         key = (root, settings.dir, settings.hierarchy, id(files))
         cached = cache.get(key)
         if cached is not None:
@@ -168,33 +159,13 @@ def discover_works(
 def _read_tree(
     root: Path, directory: Path, settings: WorksSettings, files: FileSystem
 ) -> tuple[list[_Read], _Collisions]:
-    """Read every file of the walk and apply the nesting rules to them.
-
-    Args:
-        root: The repository root.
-        directory: The Works directory, joined to the root, which can be walked.
-        settings: The `[works]` table.
-        files: The port that lists and reads.
-
-    Returns:
-        The reads in the order of the walk, and what the nesting rules exclude.
-    """
+    """Read every file of the walk and apply the nesting rules to them."""
     reads = [_read_file(root, path, files) for path in walk_markdown(directory, files)]
     return reads, _find_collisions(reads, settings.hierarchy, settings.dir)
 
 
 def _assemble(reads: Sequence[_Read], collisions: _Collisions) -> WorkDiscovery:
-    """Put what the leaves gave into one result.
-
-    Args:
-        reads: Every file of the walk, in the order of the walk.
-        collisions: What the nesting rules exclude.
-
-    Returns:
-        The Works that stay, `left_out` and `excluded` as disjoint lists, and the
-        diagnostics, those that leave the tree incomplete and those of a shared
-        id, each ordered.
-    """
+    """Put what the leaves gave into one result."""
     works = _works_of(reads, collisions.excluded)
     left_out = [read for read in reads if read.left_out]
     excluded = [
@@ -217,34 +188,14 @@ def _assemble(reads: Sequence[_Read], collisions: _Collisions) -> WorkDiscovery:
 
 
 def _works_of(reads: Sequence[_Read], excluded: frozenset[Path]) -> tuple[Work, ...]:
-    """Pick the Works that stay in the tree.
-
-    Args:
-        reads: Every file of the walk.
-        excluded: The files that the nesting rules exclude.
-
-    Returns:
-        The Works of the reads that are not excluded, sorted by their paths.
-    """
+    """Pick the Works that stay in the tree."""
     kept = (read.work for read in reads if read.path not in excluded)
     return tuple(sorted((work for work in kept if work), key=_by_path))
 
 
 @dataclass(frozen=True)
 class _Read:
-    """What reading one file gave.
-
-    Attributes:
-        path: The file, relative to the repository root.
-        marked: Whether the file is known to be marked: its block was found,
-            even if it could not be read. A file that cannot be read or decoded
-            is not.
-        left_out: Whether the file is left out, so that it has no `work`.
-        work: The Work built from the file, or `None` when it is not marked or
-            is left out.
-        problems: The errors of this file alone, whether it is left out or its
-            Work stays with a wrong optional field.
-    """
+    """What reading one file gave."""
 
     path: Path
     marked: bool
@@ -255,18 +206,7 @@ class _Read:
 
 @dataclass(frozen=True)
 class _Collisions:
-    """What the nesting rules exclude.
-
-    Attributes:
-        excluded: The marked files of a directory with two or more, and those
-            directly in the Works directory, counting a file that is left out.
-        diagnostics: The error of each directory and of each such file. Empty
-            under `flat`.
-        groups: The marked files of each directory that holds two or more, each
-            group sorted, so that a reason can name the others without reading a
-            message.
-        direct: The marked files directly in the Works directory.
-    """
+    """What the nesting rules exclude."""
 
     excluded: frozenset[Path]
     diagnostics: tuple[Diagnostic, ...]
@@ -275,85 +215,33 @@ class _Collisions:
 
 
 def _refused(problems: Sequence[Diagnostic]) -> WorkDiscovery:
-    """Build the result of a Works directory that holds no Work.
-
-    Args:
-        problems: The error of a directory that cannot be walked, or none.
-
-    Returns:
-        An empty discovery whose only diagnostics, all of them incomplete, are
-        the problems.
-    """
+    """Build the result of a Works directory that holds no Work."""
     ordered = order_diagnostics(problems)
     return WorkDiscovery((), (), (), ordered, ordered, ())
 
 
 def _by_path(work: Work) -> str:
-    """Give the key that sorts Works by the string of their paths.
-
-    Args:
-        work: A Work.
-
-    Returns:
-        The string of its path.
-    """
+    """Give the key that sorts Works by the string of their paths."""
     return str(work.path)
 
 
 def _paths(reads: Iterable[_Read]) -> tuple[Path, ...]:
-    """List the paths of some reads in the order of their strings.
-
-    Args:
-        reads: The reads.
-
-    Returns:
-        Their paths, sorted as the Works are.
-    """
+    """List the paths of some reads in the order of their strings."""
     return tuple(sorted((read.path for read in reads), key=str))
 
 
 def _place(root: Path, path: Path) -> str:
-    """Write a file's place: its path relative to the root, with `/`.
-
-    Args:
-        root: The repository root.
-        path: The file.
-
-    Returns:
-        The place of a diagnostic about the file.
-    """
+    """Write a file's place: its path relative to the root, with `/`."""
     return PurePosixPath(path.relative_to(root)).as_posix()
 
 
 def _unidentified(path: Path, *, marked: bool, problem: Diagnostic) -> _Read:
-    """Build the read of a file that is left out.
-
-    Args:
-        path: The file, relative to the root.
-        marked: Whether the file is known to be marked.
-        problem: The one error that leaves it out.
-
-    Returns:
-        A read with no Work and that error.
-    """
+    """Build the read of a file that is left out."""
     return _Read(path, marked=marked, left_out=True, work=None, problems=(problem,))
 
 
 def _read_file(root: Path, path: Path, files: FileSystem) -> _Read:
-    """Read one file of the walk into a `_Read`: the leaf of AC-1 to AC-3.
-
-    It reads the block, the title and the optional fields, reports a file that
-    cannot be identified once, and an optional field of a wrong type once, and
-    builds the Work with that field empty.
-
-    Args:
-        root: The repository root, which the places and paths are relative to.
-        path: The file.
-        files: The port that reads it.
-
-    Returns:
-        The read.
-    """
+    """Read one file of the walk into a `_Read`: the leaf of AC-1 to AC-3."""
     place = _place(root, path)
     relative = path.relative_to(root)
     try:
@@ -379,18 +267,7 @@ def _read_file(root: Path, path: Path, files: FileSystem) -> _Read:
 
 
 def _read_block(relative: Path, place: str, block: MetadataBlock) -> _Read:
-    """Build the read of a marked file whose block was read.
-
-    Args:
-        relative: The file, relative to the root.
-        place: The file's place.
-        block: Its metadata block and body.
-
-    Returns:
-        A read that is left out when the `id` is missing, not a string or empty,
-        and else one with the Work, whose wrong optional fields are empty and
-        reported.
-    """
+    """Build the read of a marked file whose block was read."""
     identity = _identity(place, block.data)
     if isinstance(identity, Diagnostic):
         return _unidentified(relative, marked=True, problem=identity)
@@ -410,15 +287,7 @@ def _read_block(relative: Path, place: str, block: MetadataBlock) -> _Read:
 
 
 def _identity(place: str, data: Mapping[str, object]) -> str | Diagnostic:
-    """Judge the `id` of a block.
-
-    Args:
-        place: The file's place.
-        data: The decoded block.
-
-    Returns:
-        The id, or the error for an id that is missing, not a string or empty.
-    """
+    """Judge the `id` of a block."""
     if "id" not in data:
         return _error(place, "A Work needs an `id`")
     value = data["id"]
@@ -429,15 +298,7 @@ def _identity(place: str, data: Mapping[str, object]) -> str | Diagnostic:
 
 @dataclass(frozen=True)
 class _Optional:
-    """The optional keys of a block as a Work holds them.
-
-    Attributes:
-        template: The `template`, or `None`.
-        roots: The `roots`, empty when absent or of a wrong shape.
-        depends_on: The `depends_on`, empty when absent or of a wrong shape.
-        actions: The `[actions]` table, empty when absent or of a wrong shape.
-        problems: One error for each key of a wrong shape.
-    """
+    """The optional keys of a block as a Work holds them."""
 
     template: str | None
     roots: tuple[str, ...]
@@ -447,16 +308,7 @@ class _Optional:
 
 
 def _optional_fields(place: str, data: Mapping[str, object]) -> _Optional:
-    """Read the optional keys of a block, each empty when of a wrong shape.
-
-    Args:
-        place: The file's place.
-        data: The decoded block.
-
-    Returns:
-        The template, the roots, the dependencies and the actions, and one error
-        for each key of a wrong shape.
-    """
+    """Read the optional keys of a block, each empty when of a wrong shape."""
     template, wrong_template = _template_field(place, data)
     roots, wrong_roots = _list_field(place, data, "roots")
     depends_on, wrong_depends = _list_field(place, data, "depends_on")
@@ -499,16 +351,7 @@ def wrong_optional_fields(data: Mapping[str, object]) -> frozenset[str]:
 def _template_field(
     place: str, data: Mapping[str, object]
 ) -> tuple[str | None, tuple[Diagnostic, ...]]:
-    """Read the `template` key.
-
-    Args:
-        place: The file's place.
-        data: The decoded block.
-
-    Returns:
-        The template, or `None` when it is absent or not a string, and the error
-        for a key that is present and not a string.
-    """
+    """Read the `template` key."""
     value = data.get("template")
     if isinstance(value, str):
         return value, ()
@@ -519,17 +362,7 @@ def _template_field(
 def _list_field(
     place: str, data: Mapping[str, object], key: str
 ) -> tuple[tuple[str, ...], tuple[Diagnostic, ...]]:
-    """Read a key that holds an array of strings.
-
-    Args:
-        place: The file's place.
-        data: The decoded block.
-        key: The key, `roots` or `depends_on`.
-
-    Returns:
-        The strings, empty when the key is absent or of a wrong shape, and the
-        error for a key that is present and of a wrong shape.
-    """
+    """Read a key that holds an array of strings."""
     found = _strings(data.get(key))
     if found is not None:
         return found, ()
@@ -540,16 +373,7 @@ def _list_field(
 def _actions_field(
     place: str, data: Mapping[str, object]
 ) -> tuple[frozendict[str, str | tuple[str, ...]], tuple[Diagnostic, ...]]:
-    """Read the `[actions]` key.
-
-    Args:
-        place: The file's place.
-        data: The decoded block.
-
-    Returns:
-        The table, empty when the key is absent or of a wrong shape, and the
-        error for a key that is present and of a wrong shape.
-    """
+    """Read the `[actions]` key."""
     found = read_actions(data.get("actions"))
     if found is not None:
         return freeze(found), ()
@@ -558,14 +382,7 @@ def _actions_field(
 
 
 def _strings(value: object) -> tuple[str, ...] | None:
-    """Read an array of strings.
-
-    Args:
-        value: What the block holds, or `None` for an absent key.
-
-    Returns:
-        The strings, or `None` when the value is not an array of strings only.
-    """
+    """Read an array of strings."""
     if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
         return None
     return tuple(value)
@@ -598,16 +415,7 @@ def read_actions(value: object) -> dict[str, str | tuple[str, ...]] | None:
 def _find_collisions(
     reads: Sequence[_Read], hierarchy: str, works_dir: str
 ) -> _Collisions:
-    """Apply the nesting rules to the files that were read: the leaf of AC-5, AC-6.
-
-    Args:
-        reads: Every file of the walk, in the order of the walk.
-        hierarchy: `flat` or `nesting`.
-        works_dir: The Works directory as written, relative to the root.
-
-    Returns:
-        The excluded files and their errors, none under `flat`.
-    """
+    """Apply the nesting rules to the files that were read: the leaf of AC-5, AC-6."""
     if hierarchy != "nesting":
         return _Collisions(frozenset(), ())
     direct, others = _split_direct(reads, Path(works_dir))
@@ -624,16 +432,7 @@ def _find_collisions(
 def _collision_errors(
     direct: Iterable[_Read], crowded: Mapping[Path, Sequence[_Read]], works_dir: str
 ) -> tuple[Diagnostic, ...]:
-    """Report the files directly in the Works directory and the crowded ones.
-
-    Args:
-        direct: The marked files directly in the Works directory.
-        crowded: The marked files of each directory that holds two or more.
-        works_dir: The Works directory as written.
-
-    Returns:
-        One error for each direct file, then one for each crowded directory.
-    """
+    """Report the files directly in the Works directory and the crowded ones."""
     return (
         *(_direct_error(read, works_dir) for read in direct),
         *(_crowd_error(d, group) for d, group in crowded.items()),
@@ -641,30 +440,14 @@ def _collision_errors(
 
 
 def _split_direct(reads: Iterable[_Read], top: Path) -> tuple[list[_Read], list[_Read]]:
-    """Split the marked files into those directly in the Works directory and the rest.
-
-    Args:
-        reads: Every file of the walk.
-        top: The Works directory, relative to the root.
-
-    Returns:
-        The marked files directly in the Works directory, and the other marked
-        files.
-    """
+    """Split marked files into those directly in the Works directory and the rest."""
     marked = [read for read in reads if read.marked]
     direct = [read for read in marked if read.path.parent == top]
     return direct, [read for read in marked if read not in direct]
 
 
 def _crowded(reads: Iterable[_Read]) -> dict[Path, list[_Read]]:
-    """Group marked files by directory and keep the directories with two or more.
-
-    Args:
-        reads: The marked files that are not directly in the Works directory.
-
-    Returns:
-        The files of each such directory, by the directory.
-    """
+    """Group marked files by directory and keep the directories with two or more."""
     by_directory: dict[Path, list[_Read]] = {}
     for read in reads:
         by_directory.setdefault(read.path.parent, []).append(read)
@@ -672,15 +455,7 @@ def _crowded(reads: Iterable[_Read]) -> dict[Path, list[_Read]]:
 
 
 def _direct_error(read: _Read, works_dir: str) -> Diagnostic:
-    """Report a marked file that sits directly in the Works directory.
-
-    Args:
-        read: The file.
-        works_dir: The Works directory as written.
-
-    Returns:
-        The error at the file.
-    """
+    """Report a marked file that sits directly in the Works directory."""
     return _error(
         read.path.as_posix(),
         f"{_DIRECT} `{works_dir}`",
@@ -688,15 +463,7 @@ def _direct_error(read: _Read, works_dir: str) -> Diagnostic:
 
 
 def _crowd_error(directory: Path, group: Sequence[_Read]) -> Diagnostic:
-    """Report a directory that holds two or more marked files.
-
-    Args:
-        directory: The directory, relative to the root.
-        group: Its marked files.
-
-    Returns:
-        The error at all of them, joined by `, `.
-    """
+    """Report a directory that holds two or more marked files."""
     place = ", ".join(sorted(read.path.as_posix() for read in group))
     return _error(
         place,
@@ -706,17 +473,7 @@ def _crowd_error(directory: Path, group: Sequence[_Read]) -> Diagnostic:
 
 
 def _shared_ids(works: Sequence[Work]) -> tuple[Diagnostic, ...]:
-    """Report the ids that two or more Works share: the leaf of AC-4.
-
-    Args:
-        works: The Works that stay in the tree, sorted by their paths. A Work
-            that a nesting collision excludes is not among them and shares an id
-            with none.
-
-    Returns:
-        One error for each shared id, at the paths of its Works in that order,
-        joined by `, `, which is the place that `find_work` looks for.
-    """
+    """Report the ids that two or more Works share: the leaf of AC-4."""
     by_id: dict[str, list[Work]] = {}
     for work in works:
         by_id.setdefault(work.id, []).append(work)
@@ -728,14 +485,7 @@ def _shared_ids(works: Sequence[Work]) -> tuple[Diagnostic, ...]:
 
 
 def _shared_place(group: Sequence[Work]) -> str:
-    """Write the place of the error of a shared id.
-
-    Args:
-        group: The Works that share it, sorted by their paths.
-
-    Returns:
-        Their paths, written with `/` and joined by `, `.
-    """
+    """Write the place of the error of a shared id."""
     return ", ".join(work.path.as_posix() for work in group)
 
 
@@ -760,15 +510,7 @@ def find_work(discovery: WorkDiscovery, work_id: str) -> Work | Diagnostic | Non
 
 
 def _shown(root: Path, absolute: Path) -> str:
-    """Write a path as a reason names it: relative to the root when it is below.
-
-    Args:
-        root: The repository root.
-        absolute: The absolute path.
-
-    Returns:
-        The path with `/`, relative to the root when it is below it.
-    """
+    """Write a path as a reason names it: relative to the root when it is below."""
     if root in absolute.parents:
         return PurePosixPath(absolute.relative_to(root)).as_posix()
     return PurePosixPath(absolute).as_posix()
@@ -777,19 +519,7 @@ def _shown(root: Path, absolute: Path) -> str:
 def _path_reasons(
     root: Path, absolute: Path, settings: WorksSettings, files: FileSystem
 ) -> Iterator[str | None]:
-    """Judge a path in the order of the list, the cheapest question first.
-
-    Args:
-        root: The repository root.
-        absolute: The path, absolute.
-        settings: The `[works]` table.
-        files: The port that reports what a path is and reads it.
-
-    Yields:
-        For each question of the list up to the block, the reason when it applies
-        and `None` when it does not, one at a time so that a later question reads
-        nothing when an earlier one applies.
-    """
+    """Judge a path in the order of the list, the cheapest question first."""
     shown = _shown(root, absolute)
     works = root / settings.dir
     yield _not_a_file(shown, absolute, files)
@@ -801,31 +531,14 @@ def _path_reasons(
 
 
 def _not_a_file(shown: str, absolute: Path, files: FileSystem) -> str | None:
-    """Judge whether a path is a file that exists.
-
-    Args:
-        shown: The path as a reason writes it.
-        absolute: The path.
-        files: The port.
-
-    Returns:
-        The reason, or `None` for a file.
-    """
+    """Judge whether a path is a file that exists."""
     if files.exists(absolute) and not files.is_dir(absolute):
         return None
     return f"`{shown}` does not exist or is not a file"
 
 
 def _not_markdown(shown: str, absolute: Path) -> str | None:
-    """Judge whether a name ends in `.md`.
-
-    Args:
-        shown: The path as a reason writes it.
-        absolute: The path.
-
-    Returns:
-        The reason, or `None` for a name that ends in `.md`.
-    """
+    """Judge whether a name ends in `.md`."""
     if absolute.name.endswith(_SUFFIX):
         return None
     return f"`{shown}` is not a Markdown file: its name must end in `{_SUFFIX}`"
@@ -834,20 +547,7 @@ def _not_markdown(shown: str, absolute: Path) -> str | None:
 def _through_a_link(
     root: Path, shown: str, absolute: Path, files: FileSystem
 ) -> str | None:
-    """Judge whether a path is or runs through a symbolic link.
-
-    Only the part below the root is asked about, so that a link in the path of
-    the repository itself is not a reason.
-
-    Args:
-        root: The repository root.
-        shown: The path as a reason writes it.
-        absolute: The path.
-        files: The port.
-
-    Returns:
-        The reason, or `None` when no part of the path below the root is a link.
-    """
+    """Judge whether a path is or runs through a symbolic link."""
     inside = root in absolute.parents
     chain_of_parts = (absolute, *absolute.parents) if inside else (absolute,)
     for part in chain_of_parts:
@@ -861,33 +561,14 @@ def _through_a_link(
 
 
 def _outside(shown: str, absolute: Path, works: Path, written: str) -> str | None:
-    """Judge whether a path is below the Works directory.
-
-    Args:
-        shown: The path as a reason writes it.
-        absolute: The path.
-        works: The Works directory, joined to the root.
-        written: The Works directory as written.
-
-    Returns:
-        The reason, or `None` for a path below it.
-    """
+    """Judge whether a path is below the Works directory."""
     if works in absolute.parents:
         return None
     return f"`{shown}` is outside the Works directory `{written}`"
 
 
 def _hidden(shown: str, absolute: Path, works: Path) -> str | None:
-    """Judge whether a path is under a hidden directory below the Works directory.
-
-    Args:
-        shown: The path as a reason writes it.
-        absolute: The path, which is below the Works directory.
-        works: The Works directory, joined to the root.
-
-    Returns:
-        The reason naming the first hidden directory, or `None`.
-    """
+    """Judge whether a path is under a hidden directory below the Works directory."""
     below = absolute.relative_to(works).parent.parts
     hidden = next((name for name in below if name.startswith(".")), None)
     if hidden is None:
@@ -898,18 +579,7 @@ def _hidden(shown: str, absolute: Path, works: Path) -> str | None:
 
 
 def _no_block(shown: str, absolute: Path, files: FileSystem) -> str | None:
-    """Judge whether a file has no metadata block of wio's.
-
-    Args:
-        shown: The path as a reason writes it.
-        absolute: The file.
-        files: The port that reads it.
-
-    Returns:
-        The reason when there is no block on the first line, or the `+++` front
-        matter has no `wio` key, and `None` for a file that cannot be read, whose
-        block cannot be read, or that has a block.
-    """
+    """Judge whether a file has no metadata block of wio's."""
     try:
         text = files.read_text(absolute)
         block = read_metadata_block(text)
@@ -926,22 +596,7 @@ def _no_block(shown: str, absolute: Path, files: FileSystem) -> str | None:
 def _tree_reason(
     root: Path, absolute: Path, settings: WorksSettings, files: FileSystem
 ) -> str | None:
-    """Judge a path that is a Markdown file below the Works directory by the tree.
-
-    The reasons come from what was read and from the nesting rules, and no
-    message of a diagnostic is read, so a file name that holds `:` or `, ` is
-    judged like any other.
-
-    Args:
-        root: The repository root.
-        absolute: The path, below the Works directory.
-        settings: The `[works]` table.
-        files: The port.
-
-    Returns:
-        The reason a collision, the Works directory or an error of its own gives,
-        or `None` for a Work.
-    """
+    """Judge a path that is a Markdown file below the Works directory by the tree."""
     reads, collisions = _read_tree(root, root / settings.dir, settings, files)
     relative = absolute.relative_to(root)
     return (
@@ -952,15 +607,7 @@ def _tree_reason(
 
 
 def _crowd_reason(groups: Iterable[Sequence[Path]], relative: Path) -> str | None:
-    """Say that a file shares its directory with other marked files.
-
-    Args:
-        groups: The marked files of each directory that holds two or more.
-        relative: The file, relative to the root.
-
-    Returns:
-        The reason naming the other files, or `None`.
-    """
+    """Say that a file shares its directory with other marked files."""
     for group in groups:
         if relative in group:
             others = ", ".join(p.as_posix() for p in group if p != relative)
@@ -974,16 +621,7 @@ def _crowd_reason(groups: Iterable[Sequence[Path]], relative: Path) -> str | Non
 def _direct_reason(
     direct: Iterable[Path], relative: Path, works_dir: str
 ) -> str | None:
-    """Say that a marked file sits directly in the Works directory.
-
-    Args:
-        direct: The marked files directly in the Works directory.
-        relative: The file, relative to the root.
-        works_dir: The Works directory as written.
-
-    Returns:
-        The reason naming the directory, or `None`.
-    """
+    """Say that a marked file sits directly in the Works directory."""
     if relative not in direct:
         return None
     return (
@@ -993,15 +631,7 @@ def _direct_reason(
 
 
 def _own_reason(reads: Iterable[_Read], relative: Path) -> str | None:
-    """Say that a file is left out for an error of its own.
-
-    Args:
-        reads: Every file of the walk.
-        relative: The file, relative to the root.
-
-    Returns:
-        The reason naming that error, or `None`.
-    """
+    """Say that a file is left out for an error of its own."""
     for read in reads:
         if read.path == relative and read.left_out:
             return f"`{relative.as_posix()}` is left out: {read.problems[0].message}"

@@ -94,18 +94,7 @@ def discover(root: Path, settings: Templates, files: FileSystem) -> Discovery:
 def _read(
     root: Path, path: Path, kinds: Mapping[str, str], files: FileSystem
 ) -> tuple[list[Template], list[Diagnostic]]:
-    """Read one file and build its template, if it is one.
-
-    Args:
-        root: The repository root.
-        path: The file.
-        kinds: The entry template of each declared kind.
-        files: The port that reads the file.
-
-    Returns:
-        The template as a list of one, or none when the file is not a template
-        or has a problem, and the problems found.
-    """
+    """Read one file and build its template, if it is one."""
     place = PurePosixPath(path.relative_to(root)).as_posix()
     try:
         block = read_metadata_block(files.read_text(path))
@@ -134,16 +123,7 @@ def _read(
 
 
 def _key_problems(place: str, data: Mapping[str, object]) -> list[Diagnostic]:
-    """Judge the keys a template needs to be built.
-
-    Args:
-        place: The file's place.
-        data: The decoded metadata of the template.
-
-    Returns:
-        An error for a `kind` that is missing or not a string, and for a `shape`
-        or `description` that is present and not a string.
-    """
+    """Judge the keys a template needs to be built."""
     problems: list[Diagnostic] = []
     if "kind" not in data:
         problems.append(_error(place, "A template needs a `kind`"))
@@ -158,15 +138,7 @@ def _key_problems(place: str, data: Mapping[str, object]) -> list[Diagnostic]:
 
 
 def _text(data: Mapping[str, object], key: str) -> str | None:
-    """Read an optional text key.
-
-    Args:
-        data: The decoded metadata.
-        key: The key.
-
-    Returns:
-        The text, or `None` when the key is absent.
-    """
+    """Read an optional text key."""
     value = data.get(key)
     return value if isinstance(value, str) else None
 
@@ -174,15 +146,7 @@ def _text(data: Mapping[str, object], key: str) -> str | None:
 def _split_duplicates(
     templates: list[Template],
 ) -> tuple[list[Template], list[Diagnostic]]:
-    """Set aside the templates whose names are shared.
-
-    Args:
-        templates: The templates built.
-
-    Returns:
-        The templates with a unique name, and one error for each shared name
-        that names every file with it.
-    """
+    """Set aside the templates whose names are shared."""
     by_name: dict[str, list[Template]] = {}
     for template in templates:
         by_name.setdefault(template.name, []).append(template)

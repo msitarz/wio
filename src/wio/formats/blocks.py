@@ -54,15 +54,7 @@ def render_blocks(blocks: Sequence[Block], *, spaced: bool = False) -> str:
 
 
 def _lines(block: Block, width: int) -> list[str]:
-    """Lay out one block.
-
-    Args:
-        block: The block.
-        width: The width that its key is padded to.
-
-    Returns:
-        Its first line and then one line for each detail, without newlines.
-    """
+    """Lay out one block."""
     indent = "  " * block.depth
     suffix = f"  {block.suffix}" if block.suffix else ""
     first = f"{indent}{block.key.ljust(width)}  {block.title}{suffix}"

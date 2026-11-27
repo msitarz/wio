@@ -76,19 +76,7 @@ def show_skeleton(name: str, found: Discovery, root: Path, files: FileSystem) ->
 
 
 def _named(name: str, found: Discovery) -> Template:
-    """Find the template with a name.
-
-    Args:
-        name: The name asked for, matched exactly.
-        found: What the walk found.
-
-    Returns:
-        The template.
-
-    Raises:
-        TemplatesError: No template has the name; the message names it and lists
-            the names that exist, or says that none exists.
-    """
+    """Find the template with a name."""
     for template in found.templates:
         if template.name == name:
             return template

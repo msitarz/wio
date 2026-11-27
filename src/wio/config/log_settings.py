@@ -42,16 +42,7 @@ def check_log_settings(config: Config, _inputs: CheckInputs) -> Iterator[Diagnos
 
 
 def _check_harness(name: str, harness: Harness) -> Iterator[Diagnostic]:
-    """Judge a harness name and its variable lists.
-
-    Args:
-        name: The key of the harness entry.
-        harness: The parsed session and parent lists. The shape reader reports
-            missing or empty required lists.
-
-    Yields:
-        Errors at the harness entry or its affected list.
-    """
+    """Judge a harness name and its variable lists."""
     path = join_path("log.harnesses", name)
     if name == "none":
         yield Diagnostic("error", path, "`none` is reserved by `WIO_PREFER_HARNESS`.")
@@ -62,15 +53,7 @@ def _check_harness(name: str, harness: Harness) -> Iterator[Diagnostic]:
 
 
 def _variables(path: str, names: tuple[str, ...]) -> Iterator[Diagnostic]:
-    """Judge the names in one variable list.
-
-    Args:
-        path: The key path of the whole list.
-        names: The parsed variable names in the list.
-
-    Yields:
-        One error for invalid names and one for repeated names when present.
-    """
+    """Judge the names in one variable list."""
     invalid = sorted({name for name in names if not _VARIABLE.fullmatch(name)})
     if invalid:
         yield Diagnostic("error", path, f"invalid environment names {quoted(invalid)}.")
@@ -78,15 +61,7 @@ def _variables(path: str, names: tuple[str, ...]) -> Iterator[Diagnostic]:
 
 
 def _repeats(path: str, names: tuple[str, ...]) -> Iterator[Diagnostic]:
-    """Find repeated names in one list.
-
-    Args:
-        path: The key path of the whole list.
-        names: The names to count.
-
-    Yields:
-        One error listing each repeated name, when any repeats exist.
-    """
+    """Find repeated names in one list."""
     repeated = sorted(name for name, count in Counter(names).items() if count > 1)
     if repeated:
         yield Diagnostic("error", path, f"repeated names {quoted(repeated)}.")

@@ -69,27 +69,13 @@ def header(
 
 
 def _gate(stage: Stage) -> str:
-    """Say whether a stage is a gate, and who judges it when a person does.
-
-    Args:
-        stage: The stage's settings.
-
-    Returns:
-        The text of the gate line, which names a judge only for a gate.
-    """
+    """Say whether a stage is a gate, and who judges it when a person does."""
     if not stage.gate:
         return "no"
     return "yes" if stage.judge is None else "yes, judged by a person"
 
 
 def _session(stage: Stage) -> str:
-    """Give a stage's advice on the session that runs it.
-
-    Args:
-        stage: The stage's settings.
-
-    Returns:
-        The text of the session line.
-    """
+    """Give a stage's advice on the session that runs it."""
     advice = "" if stage.continuable else ", do not continue it"
     return f"{stage.session}{advice}"
