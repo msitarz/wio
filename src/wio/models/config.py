@@ -128,7 +128,8 @@ class Bundle:
         default=None,
         metadata={
             "description": (
-                "The size above which a bundle is warned about; none by default."
+                "The bundle body size in UTF-8 bytes above which a warning is "
+                "reported; none by default."
             )
         },
     )
