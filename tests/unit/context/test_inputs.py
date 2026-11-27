@@ -9,7 +9,7 @@ import pytest
 
 from tests.fakes import FakeEnvironment
 from tests.unit.cli.fakes import FakeStdio
-from tests.unit.context.fakes import SettingsStub
+from tests.unit.context.fakes import EventSinkFake, SettingsStub
 from tests.unit.fakes import ROOT, FakeDirectories, FakeRepository, MemoryFileSystem
 from wio.context import CompiledBundle, Compiler, ContextCommand, Services
 from wio.context.inputs import KnownInputs
@@ -189,6 +189,7 @@ def test_unselected_work_root_allows_the_fixed_bundle() -> None:
         FakeEnvironment(ROOT),
         FakeDirectories(ROOT),
         SettingsStub(Config()),
+        EventSinkFake(),
     )
     command = ContextCommand(services, Compiler(_ComposerStub(), (check,)).compile)
     out, err = io.StringIO(), io.StringIO()

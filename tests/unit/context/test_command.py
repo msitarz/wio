@@ -8,7 +8,7 @@ import pytest
 
 from tests.fakes import FakeEnvironment, value_or_raise
 from tests.unit.cli.fakes import run_main
-from tests.unit.context.fakes import SettingsStub
+from tests.unit.context.fakes import EventSinkFake, SettingsStub
 from tests.unit.fakes import ROOT, FakeDirectories, FakeRepository, MemoryFileSystem
 from wio.cli.table import COMMANDS, Entry
 from wio.context import (
@@ -79,6 +79,7 @@ def _command(
         FakeEnvironment(ROOT),
         FakeDirectories(ROOT),
         SettingsStub(Config()),
+        EventSinkFake(),
     )
     return ContextCommand(services, compiler)
 
@@ -303,6 +304,7 @@ def test_partial_write_failure_is_reported_without_bundle_output(
         FakeEnvironment(ROOT),
         FakeDirectories(ROOT),
         SettingsStub(Config()),
+        EventSinkFake(),
     )
     command = ContextCommand(services, lambda *_args: _compiled())
     entry = _entry(lambda: command)
@@ -349,6 +351,7 @@ def test_the_size_boundary_receives_the_compiled_size_and_settings(
         FakeEnvironment(ROOT),
         FakeDirectories(ROOT),
         SettingsStub(Config(bundle=Bundle(size_threshold=9))),
+        EventSinkFake(),
     )
     command = ContextCommand(services, lambda *_args: _compiled())
 

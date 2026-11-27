@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from tests.acceptance.drivers.in_process import MemoryStdio
+from tests.fakes import EventSinkFake
 from tests.support import enter, git
 from wio.cli.table import _contracts_services
 from wio.context import CompiledBundle, Compiler, ContextCommand
@@ -90,6 +91,7 @@ def _command(
         project.environment,
         ProcessDirectories(project.environment),
         project.settings,
+        EventSinkFake(),
     )
     return (
         ContextCommand(services, Compiler(_Composer(), checks).compile),

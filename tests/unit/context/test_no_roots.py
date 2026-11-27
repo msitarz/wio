@@ -10,7 +10,7 @@ import pytest
 from tests.fakes import FakeEnvironment
 from tests.unit import fakes as unit_fakes
 from tests.unit.cli.fakes import FakeStdio
-from tests.unit.context.fakes import SettingsStub
+from tests.unit.context.fakes import EventSinkFake, SettingsStub
 from wio import context
 from wio.context.no_roots import NoRootsWarning
 from wio.models.config import Config, Stage
@@ -88,6 +88,7 @@ def test_selected_empty_roots_warn_and_still_print_bundle(
         FakeEnvironment(unit_fakes.ROOT),
         unit_fakes.FakeDirectories(unit_fakes.ROOT),
         SettingsStub(Config()),
+        EventSinkFake(),
     )
     compiler = context.Compiler(_Composer(), (check,))
     command = context.ContextCommand(services, compiler.compile)
