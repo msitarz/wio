@@ -29,7 +29,6 @@ class _DirtyRepository(FakeRepository):
         return value_or_raise(self.dirty_result)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_non_gate_stage_reads_nothing() -> None:
     """A stage without `gate = true` skips both history and repository reads."""
     # Given a non-gate stage and ports that record calls
@@ -50,7 +49,6 @@ def test_non_gate_stage_reads_nothing() -> None:
     assert (reviewed.calls, repository.dirty_calls) == ([], 0)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_gate_stage_reads_start_commit_and_dirty_flag() -> None:
     """AC-1, AC-2: a gate reads both the reviewed commit and the dirty flag."""
     # Given a gate stage with a start commit and a dirty working tree
@@ -72,7 +70,6 @@ def test_gate_stage_reads_start_commit_and_dirty_flag() -> None:
     assert repository.dirty_calls == 1
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_gate_with_no_start_commit_omits_start_without_warning() -> None:
     """AC-3: an empty or pure-gate history returns `start=None` with no warning."""
     # Given a gate whose reviewed commit finder returns None
@@ -92,7 +89,6 @@ def test_gate_with_no_start_commit_omits_start_without_warning() -> None:
     assert result == GateStart(start=None, dirty=False, warnings=())
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 @pytest.mark.parametrize("error", [ValueError("bad rev"), RuntimeError("no repo")])
 def test_history_failure_drops_only_start_and_warns(error: Exception) -> None:
     """AC-6: a history read failure drops `start`, keeps `dirty`, and warns."""
@@ -115,7 +111,6 @@ def test_history_failure_drops_only_start_and_warns(error: Exception) -> None:
     assert "start" in result.warnings[0]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 @pytest.mark.parametrize("error", [RuntimeError("no repo"), ValueError("git failed")])
 def test_repository_failure_drops_only_dirty_and_warns(error: Exception) -> None:
     """AC-6: a repository read failure drops `dirty`, keeps `start`, and warns."""
@@ -138,15 +133,14 @@ def test_repository_failure_drops_only_dirty_and_warns(error: Exception) -> None
     assert "dirty" in result.warnings[0]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_unexpected_error_propagates_as_bug() -> None:
     """A-6: errors other than ValueError/RuntimeError are not caught."""
     # Given a reviewed-commit port that raises an unexpected TypeError
     reviewed = ReviewedCommitFake(TypeError("unexpected"))
     repository = _DirtyRepository(dirty_result=False)
 
-    # When gate start is read, Then TypeError propagates
-    with pytest.raises(TypeError, match="unexpected"):
+    # When gate start is read
+    with pytest.raises(TypeError, match="unexpected") as caught:
         read_gate_start(
             "deliver",
             "review",
@@ -154,3 +148,6 @@ def test_unexpected_error_propagates_as_bug() -> None:
             reviewed=reviewed,
             repository=repository,
         )
+
+    # Then the unexpected error propagates untouched
+    assert isinstance(caught.value, TypeError)

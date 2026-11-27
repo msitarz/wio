@@ -51,4 +51,17 @@ def read_gate_start(
     Returns:
         The `GateStart` carrying `start`, `dirty`, and any warnings.
     """
-    raise NotImplementedError
+    if not is_gate:
+        return GateStart()
+    warnings: list[str] = []
+    start: str | None = None
+    try:
+        start = reviewed.find(action, stage)
+    except (ValueError, RuntimeError) as error:
+        warnings.append(f"could not read gate start commit: {error}")
+    dirty: bool | None = None
+    try:
+        dirty = repository.is_dirty()
+    except (ValueError, RuntimeError) as error:
+        warnings.append(f"could not read gate dirty state: {error}")
+    return GateStart(start=start, dirty=dirty, warnings=tuple(warnings))
