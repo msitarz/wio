@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from tests.fakes import FakeEnvironment
+from tests.fakes import FakeEnvironment, ReviewedCommitFake
 from tests.unit.cli.fakes import FakeStdio
 from tests.unit.context.fakes import EventSinkFake, SettingsStub
 from tests.unit.fakes import ROOT, FakeDirectories, FakeRepository, MemoryFileSystem
@@ -190,6 +190,7 @@ def test_unselected_work_root_allows_the_fixed_bundle() -> None:
         FakeDirectories(ROOT),
         SettingsStub(Config()),
         EventSinkFake(),
+        ReviewedCommitFake(),
     )
     command = ContextCommand(services, Compiler(_ComposerStub(), (check,)).compile)
     out, err = io.StringIO(), io.StringIO()

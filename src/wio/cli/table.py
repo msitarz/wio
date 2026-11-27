@@ -31,6 +31,7 @@ lazy from wio.templates import TemplatesCatalog, TemplatesCommand
 lazy from wio.trailers import Services as TrailersServices
 lazy from wio.trailers import TrailersCommand
 lazy from wio.trailers.errors import TrailersError
+lazy from wio.trailers.reviewed import reviewed_commit
 lazy from wio.trailers.write import TrailersReviewChecker
 
 if TYPE_CHECKING:
@@ -38,7 +39,7 @@ if TYPE_CHECKING:
 
     from wio.cli.ports import Command, CommandSpec
     from wio.env.ports import Directories, Environment
-    from wio.io.ports import FileSystem, Repository
+    from wio.io.ports import FileSystem, History, Repository
     from wio.models.events import Event
     from wio.ports import EventSink, Settings
 
@@ -202,6 +203,28 @@ class _ContextEventSink:
         sink.write(event)
 
 
+@dataclass(frozen=True)
+class _ContextReviewedCommit:
+    """Close `wio.trailers.reviewed.reviewed_commit` over history and settings."""
+
+    history: History
+    settings: Settings
+
+    def find(self, action: str, stage: str) -> str | None:
+        """Find the first commit from `HEAD` down that is not a pure gate commit.
+
+        Args:
+            action: The action of the gate.
+            stage: The stage of the gate.
+
+        Returns:
+            The full commit id, or `None` when none exists.
+        """
+        return reviewed_commit(
+            action, stage, self.history, self.settings.load().trailers.reader
+        )
+
+
 def _context() -> Command:
     """Wire `wio context` to the project's ports.
 
@@ -229,6 +252,7 @@ def _context() -> Command:
     events = _ContextEventSink(
         contracts.environment, directories, repository, files, settings
     )
+    reviewed = _ContextReviewedCommit(io.GitHistory(contracts.environment), settings)
     services = ContextServices(
         repository,
         files,
@@ -236,6 +260,7 @@ def _context() -> Command:
         directories,
         settings,
         events,
+        reviewed,
     )
     return ContextCommand(
         services,

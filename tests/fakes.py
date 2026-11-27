@@ -100,3 +100,29 @@ class EventSinkFake:
             event: The event to record.
         """
         self.recorded.append(event)
+
+
+@dataclass
+class ReviewedCommitFake:
+    """Supply a fixed reviewed commit or failure without running git.
+
+    Attributes:
+        result: The commit id, `None`, or exception to return/raise.
+        calls: The `(action, stage)` pairs requested.
+    """
+
+    result: str | Exception | None = None
+    calls: list[tuple[str, str]] = field(default_factory=list)
+
+    def find(self, action: str, stage: str) -> str | None:
+        """Record the call and return the configured commit id or raise.
+
+        Args:
+            action: The action of the gate.
+            stage: The stage of the gate.
+
+        Returns:
+            The configured commit id or `None`.
+        """
+        self.calls.append((action, stage))
+        return value_or_raise(self.result)

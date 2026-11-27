@@ -1,35 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of reading the starting commit and dirty flag for a gate stage."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import override
 
 import pytest
 
-from tests.fakes import value_or_raise
+from tests.fakes import ReviewedCommitFake, value_or_raise
 from tests.unit.fakes import FakeRepository
 from wio.context.gate_start import GateStart, read_gate_start
-
-
-@dataclass
-class _ReviewedStub:
-    """Supply a fixed reviewed commit or failure and record calls."""
-
-    result: str | Exception | None
-    calls: list[tuple[str, str]] = field(default_factory=list)
-
-    def find(self, action: str, stage: str) -> str | None:
-        """Record the call and return the configured commit id or raise.
-
-        Args:
-            action: The action of the gate.
-            stage: The stage of the gate.
-
-        Returns:
-            The configured commit id or `None`.
-        """
-        self.calls.append((action, stage))
-        return value_or_raise(self.result)
 
 
 @dataclass
@@ -54,7 +33,7 @@ class _DirtyRepository(FakeRepository):
 def test_non_gate_stage_reads_nothing() -> None:
     """A stage without `gate = true` skips both history and repository reads."""
     # Given a non-gate stage and ports that record calls
-    reviewed = _ReviewedStub("a" * 40)
+    reviewed = ReviewedCommitFake("a" * 40)
     repository = _DirtyRepository(dirty_result=True)
 
     # When gate start is read for a non-gate stage
@@ -75,7 +54,7 @@ def test_non_gate_stage_reads_nothing() -> None:
 def test_gate_stage_reads_start_commit_and_dirty_flag() -> None:
     """AC-1, AC-2: a gate reads both the reviewed commit and the dirty flag."""
     # Given a gate stage with a start commit and a dirty working tree
-    reviewed = _ReviewedStub("b" * 40)
+    reviewed = ReviewedCommitFake("b" * 40)
     repository = _DirtyRepository(dirty_result=True)
 
     # When gate start is read
@@ -97,7 +76,7 @@ def test_gate_stage_reads_start_commit_and_dirty_flag() -> None:
 def test_gate_with_no_start_commit_omits_start_without_warning() -> None:
     """AC-3: an empty or pure-gate history returns `start=None` with no warning."""
     # Given a gate whose reviewed commit finder returns None
-    reviewed = _ReviewedStub(None)
+    reviewed = ReviewedCommitFake(None)
     repository = _DirtyRepository(dirty_result=False)
 
     # When gate start is read
@@ -118,7 +97,7 @@ def test_gate_with_no_start_commit_omits_start_without_warning() -> None:
 def test_history_failure_drops_only_start_and_warns(error: Exception) -> None:
     """AC-6: a history read failure drops `start`, keeps `dirty`, and warns."""
     # Given a failing reviewed-commit port and a working repository port
-    reviewed = _ReviewedStub(error)
+    reviewed = ReviewedCommitFake(error)
     repository = _DirtyRepository(dirty_result=True)
 
     # When gate start is read
@@ -141,7 +120,7 @@ def test_history_failure_drops_only_start_and_warns(error: Exception) -> None:
 def test_repository_failure_drops_only_dirty_and_warns(error: Exception) -> None:
     """AC-6: a repository read failure drops `dirty`, keeps `start`, and warns."""
     # Given a working reviewed-commit port and a failing repository port
-    reviewed = _ReviewedStub("c" * 40)
+    reviewed = ReviewedCommitFake("c" * 40)
     repository = _DirtyRepository(dirty_result=error)
 
     # When gate start is read
@@ -163,7 +142,7 @@ def test_repository_failure_drops_only_dirty_and_warns(error: Exception) -> None
 def test_unexpected_error_propagates_as_bug() -> None:
     """A-6: errors other than ValueError/RuntimeError are not caught."""
     # Given a reviewed-commit port that raises an unexpected TypeError
-    reviewed = _ReviewedStub(TypeError("unexpected"))
+    reviewed = ReviewedCommitFake(TypeError("unexpected"))
     repository = _DirtyRepository(dirty_result=False)
 
     # When gate start is read, Then TypeError propagates

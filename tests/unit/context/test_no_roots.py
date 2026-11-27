@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from tests.fakes import FakeEnvironment
+from tests.fakes import FakeEnvironment, ReviewedCommitFake
 from tests.unit import fakes as unit_fakes
 from tests.unit.cli.fakes import FakeStdio
 from tests.unit.context.fakes import EventSinkFake, SettingsStub
@@ -89,6 +89,7 @@ def test_selected_empty_roots_warn_and_still_print_bundle(
         unit_fakes.FakeDirectories(unit_fakes.ROOT),
         SettingsStub(Config()),
         EventSinkFake(),
+        ReviewedCommitFake(),
     )
     compiler = context.Compiler(_Composer(), (check,))
     command = context.ContextCommand(services, compiler.compile)

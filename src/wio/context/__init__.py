@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser
     from collections.abc import Callable, Sequence
 
+    from wio.context.ports import ReviewedCommit
     from wio.env.ports import Directories, Environment
     from wio.io.ports import FileSystem, Repository
     from wio.ports import EventSink, Settings
@@ -47,6 +48,7 @@ class Services:
         directories: Finds the temporary directory for default file delivery.
         settings: Gives the configured bundle size threshold.
         events: Records the stage-entry event after delivery.
+        reviewed: Finds the starting commit for a gate stage.
     """
 
     repository: Repository
@@ -55,6 +57,7 @@ class Services:
     directories: Directories
     settings: Settings
     events: EventSink
+    reviewed: ReviewedCommit
 
 
 @dataclass(frozen=True)
