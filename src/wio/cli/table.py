@@ -6,6 +6,7 @@ and `component_entry` are required as written.
 """
 
 import importlib
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Literal
@@ -176,18 +177,29 @@ class _ContextEventSink:
     def write(self, event: Event) -> None:
         """Forward the event to `LogSink` using the current project's log config.
 
+        Any failure while loading settings or constructing the sink is reported
+        as a warning and never raised, matching the `EventSink` port contract.
+
         Args:
             event: The `context` event to record.
         """
-        LogSink(
-            self.environment,
-            env.SystemClock(),
-            self.directories,
-            self.repository,
-            self.files,
-            io.SystemStdio(),
-            self.settings.load().log,
-        ).write(event)
+        try:
+            sink = LogSink(
+                self.environment,
+                env.SystemClock(),
+                self.directories,
+                self.repository,
+                self.files,
+                io.SystemStdio(),
+                self.settings.load().log,
+            )
+        except Exception as error:  # noqa: BLE001 - EventSink never raises
+            with suppress(Exception):
+                io.SystemStdio().stderr.write(
+                    f"warning: the event log could not be written: {error}\n"
+                )
+            return
+        sink.write(event)
 
 
 def _context() -> Command:

@@ -9,19 +9,19 @@ from wio.models.events import ContextEvent
 
 def test_records_one_context_event_with_bundle_metadata_and_rule_order() -> None:
     """AC-1, AC-3: one run records one event with ordered rules and no gate fields."""
-    # Given a compiled bundle with two rules in bundle order and an event sink
+    # Given a compiled bundle with two rules in non-alphabetical bundle order
     bundle = CompiledBundle(
         text="bundle: 7a2383bc4098\n",
         id="7a2383bc4098",
         size=139,
-        rules={"mp.ARC001": "hash-1", "mp.ERR002": "hash-2"},
+        rules={"mp.ERR002": "hash-2", "mp.ARC001": "hash-1"},
     )
     sink = EventSinkFake()
 
     # When the stage entry is recorded
     record_entry("k3m9xq", "deliver", "architecture", bundle, sink)
 
-    # Then one ContextEvent is written with matching fields, ordered rules, and no gate
+    # Then one ContextEvent is written with matching fields, bundle order, and no gate
     assert sink.recorded == [
         ContextEvent(
             work="k3m9xq",
@@ -29,14 +29,14 @@ def test_records_one_context_event_with_bundle_metadata_and_rule_order() -> None
             stage="architecture",
             bundle="7a2383bc4098",
             size=139,
-            rules={"mp.ARC001": "hash-1", "mp.ERR002": "hash-2"},
+            rules={"mp.ERR002": "hash-2", "mp.ARC001": "hash-1"},
             start=None,
             dirty=None,
         )
     ]
     event = sink.recorded[0]
     assert isinstance(event, ContextEvent)
-    assert list(event.rules) == ["mp.ARC001", "mp.ERR002"]
+    assert list(event.rules) == ["mp.ERR002", "mp.ARC001"]
 
 
 def test_records_empty_rules_when_bundle_has_none() -> None:
