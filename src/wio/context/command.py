@@ -36,10 +36,14 @@ class ContextCommand:
         """Deliver the bundle, report its warnings, and record the stage entry.
 
         Compilation warnings come first, followed by any size warning, before
-        delivery, so a delivery error does not hide them. Standard output holds
-        the bundle or the requested file path and a newline. Each warning is one
-        line on standard error that begins `warning: `. After delivery succeeds,
-        one `context` event is written through `services.events`.
+        delivery, so a delivery error does not hide them. For a gate stage, the
+        starting commit and dirty flag are read before delivery so a bundle
+        written inside the worktree is not counted; any gate-read warnings are
+        reported after delivery succeeds and are omitted if delivery fails.
+        Standard output holds the bundle or the requested file path and a
+        newline. Each warning is one line on standard error that begins
+        `warning: `. After delivery succeeds, one `context` event is written
+        through `services.events`.
 
         Args:
             args: The parsed `work`, `action`, `stage` and optional `output`.
@@ -55,12 +59,21 @@ class ContextCommand:
         """
         compiled = self._compiler(args.work, args.action, args.stage)
         stdio.stderr.writelines(f"warning: {text}\n" for text in compiled.warnings)
+        from wio.context.gate_start import read_gate_start
         from wio.context.size_warning import size_warning
 
-        threshold = self._services.settings.load().bundle.size_threshold
-        warning = size_warning(compiled.bundle.size, threshold)
+        config = self._services.settings.load()
+        warning = size_warning(compiled.bundle.size, config.bundle.size_threshold)
         if warning is not None:
             stdio.stderr.write(f"warning: {warning}\n")
+        stage_config = config.stages.get(args.stage)
+        gate = read_gate_start(
+            args.action,
+            args.stage,
+            is_gate=bool(stage_config and stage_config.gate),
+            reviewed=self._services.reviewed,
+            repository=self._services.repository,
+        )
         output = getattr(args, "output", False)
         if output is False:
             stdio.stdout.write(compiled.bundle.text)
@@ -76,6 +89,7 @@ class ContextCommand:
             )
             stdio.stderr.writelines(f"warning: {text}\n" for text in warnings)
             stdio.stdout.write(f"{path}\n")
+        stdio.stderr.writelines(f"warning: {text}\n" for text in gate.warnings)
         from wio.context.entry import record_entry
 
         record_entry(
@@ -84,5 +98,7 @@ class ContextCommand:
             args.stage,
             compiled.bundle,
             self._services.events,
+            start=gate.start,
+            dirty=gate.dirty,
         )
         return 0

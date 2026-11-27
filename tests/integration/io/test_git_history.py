@@ -434,3 +434,55 @@ def test_a_name_with_a_space_or_a_non_ascii_letter_is_read_whole(
     assert Path("my file.txt") in files
     assert Path("é.txt") in files
     assert (spaced, accent) == ("spaced\n", "accent\n")
+
+
+@pytest.mark.slow
+def test_unborn_head_returns_empty_and_bad_refs_raise(
+    sandbox: Sandbox, tmp_path: Path
+) -> None:
+    """AC-4: unborn HEAD gives an empty sequence; every other bad ref raises."""
+    # Given an empty repo, a repo with a commit, and three repos with bad refs
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    git_empty = Sandbox(empty, sandbox.env)
+    git(git_empty, "init", "-q", "-b", "main", check=True)
+    empty_history = adapters.GitHistory(FakeEnvironment(empty))
+
+    populated = tmp_path / "populated"
+    populated.mkdir()
+    git_pop = Sandbox(populated, sandbox.env)
+    git(git_pop, "init", "-q", "-b", "main", check=True)
+    (populated / "a.txt").write_text("hi\n", encoding="utf-8")
+    git(git_pop, "add", "a.txt", check=True)
+    git(git_pop, "commit", "-q", "-m", "init", check=True)
+    pop_history = adapters.GitHistory(FakeEnvironment(populated))
+
+    missing_id = "0" * 40 + "\n"
+    bad_cases = [
+        ("detached-missing", ".git/HEAD", missing_id),
+        ("branch-missing", ".git/refs/heads/main", missing_id),
+        ("branch-garbage", ".git/refs/heads/main", "garbage\n"),
+    ]
+    bad_histories: list[adapters.GitHistory] = []
+    for name, rel_path, content in bad_cases:
+        repo = tmp_path / name
+        repo.mkdir()
+        git(Sandbox(repo, sandbox.env), "init", "-q", "-b", "main", check=True)
+        target = repo / rel_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+        bad_histories.append(adapters.GitHistory(FakeEnvironment(repo)))
+
+    # When first_parents is called on each repository and revision
+    unborn = empty_history.first_parents("HEAD")
+    commits = pop_history.first_parents("HEAD")
+
+    # Then unborn HEAD is empty, populated returns its commit, and bad refs raise
+    assert list(unborn) == []
+    assert len(commits) == 1
+    for bad_rev in ("nosuch", "--all"):
+        with pytest.raises(ValueError):  # noqa: PT011
+            empty_history.first_parents(bad_rev)
+    for bad_history in bad_histories:
+        with pytest.raises(ValueError):  # noqa: PT011
+            bad_history.first_parents("HEAD")

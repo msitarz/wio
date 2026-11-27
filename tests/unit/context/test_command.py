@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, override
 
 import pytest
 
-from tests.fakes import FakeEnvironment, value_or_raise
+from tests.fakes import FakeEnvironment, ReviewedCommitFake, value_or_raise
 from tests.unit.cli.fakes import run_main
 from tests.unit.context.fakes import EventSinkFake, SettingsStub
 from tests.unit.fakes import ROOT, FakeDirectories, FakeRepository, MemoryFileSystem
@@ -80,6 +80,7 @@ def _command(
         FakeDirectories(ROOT),
         SettingsStub(Config()),
         EventSinkFake(),
+        ReviewedCommitFake(),
     )
     return ContextCommand(services, compiler)
 
@@ -305,6 +306,7 @@ def test_partial_write_failure_is_reported_without_bundle_output(
         FakeDirectories(ROOT),
         SettingsStub(Config()),
         EventSinkFake(),
+        ReviewedCommitFake(),
     )
     command = ContextCommand(services, lambda *_args: _compiled())
     entry = _entry(lambda: command)
@@ -352,6 +354,7 @@ def test_the_size_boundary_receives_the_compiled_size_and_settings(
         FakeDirectories(ROOT),
         SettingsStub(Config(bundle=Bundle(size_threshold=9))),
         EventSinkFake(),
+        ReviewedCommitFake(),
     )
     command = ContextCommand(services, lambda *_args: _compiled())
 

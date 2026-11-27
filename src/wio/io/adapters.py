@@ -320,6 +320,7 @@ class GitRepository(_InWorkingDirectory):
         Raises:
             RuntimeError: If the working directory is not inside a repository,
                 as the other members do.
+            ValueError: If git status fails.
         """
         status = _git_text(
             self._environment,
@@ -380,17 +381,26 @@ class GitHistory(_InWorkingDirectory):
     def first_parents(self, revision: str) -> Sequence[Commit]:
         """List a revision's ancestors along first parents.
 
+        For `HEAD` in a repository with no commit (an unborn branch), returns
+        an empty sequence without an extra git call on the normal path.
+
         Args:
             revision: The revision to start from, such as `HEAD`.
 
         Returns:
-            The commits newest first, starting with the revision's own; the
-            commits that a merge brought in are not in it.
+            The commits newest first, starting with the revision's own, or an
+            empty sequence for an unborn `HEAD`; the commits that a merge
+            brought in are not in it.
 
         Raises:
             ValueError: If git rejects the revision.
         """
-        return _commits(self._environment, revision, "--first-parent")
+        try:
+            return _commits(self._environment, revision, "--first-parent")
+        except ValueError:
+            if revision == "HEAD" and _is_unborn_head(self._environment):
+                return []
+            raise
 
     def list_files(self, revision: str) -> Sequence[Path]:
         """List the files of a revision's tree.
@@ -446,6 +456,24 @@ def _git_text(environment: Environment, *arguments: str) -> str:
         message = f"{reason} (git {' '.join(arguments)})"
         raise ValueError(message)
     return done.stdout.removesuffix("\n")
+
+
+def _is_unborn_head(environment: Environment) -> bool:
+    """Tell whether `HEAD` is a symbolic reference to an absent branch.
+
+    Args:
+        environment: Reports the working directory git runs in.
+
+    Returns:
+        True only when `git symbolic-ref -q HEAD` prints a full reference and
+        `git show-ref --verify --quiet` exits 1 for that reference.
+    """
+    sym = _run_git(environment, ["symbolic-ref", "-q", "HEAD"])
+    ref = sym.stdout.strip()
+    if sym.returncode != 0 or not ref:
+        return False
+    check = _run_git(environment, ["show-ref", "--verify", "--quiet", ref])
+    return check.returncode == 1
 
 
 def _commits(environment: Environment, revision: str, *options: str) -> list[Commit]:

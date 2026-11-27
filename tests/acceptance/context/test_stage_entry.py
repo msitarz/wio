@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 _ARGS = ["context", "k3m9xq", "deliver", "implementation"]
 
 
-def _events(log_home: Path) -> list[dict[str, Any]]:
+def read_events(log_home: Path) -> list[dict[str, Any]]:
     """Read every recorded JSON event line under a Wio home directory.
 
     Args:
@@ -55,7 +55,7 @@ def test_a_run_records_one_event_with_what_it_gave(
     # Then the log holds one context event with matching metadata, ordered rules,
     # and neither `start` nor `dirty`
     assert (result.exit_code, result.stdout, result.stderr) == (0, "bundle body\n", "")
-    (event,) = _events(log_home)
+    (event,) = read_events(log_home)
     assert event["type"] == "context"
     assert event["work"] == "k3m9xq"
     assert event["action"] == "deliver"
@@ -86,7 +86,7 @@ def test_a_result_with_no_rule_records_empty_rules(
 
     # Then the first event holds that rule and the second has empty rules
     assert (first.exit_code, second.exit_code) == (0, 0)
-    first_event, second_event = _events(log_home)
+    first_event, second_event = read_events(log_home)
     assert first_event["rules"] == {"mp.A": "h1"}
     assert second_event["rules"] == {}
 
@@ -144,7 +144,7 @@ def test_a_failed_delivery_records_no_event(
     # Then both fail with exit 2 and no event is written
     assert (bad_path.exit_code, bad_path.stdout) == (2, "")
     assert (no_tmp.exit_code, no_tmp.stdout) == (2, "")
-    assert _events(log_home) == []
+    assert read_events(log_home) == []
 
 
 @pytest.mark.channels(Channel.IN_PROCESS)
@@ -171,8 +171,8 @@ def test_each_run_that_delivers_writes_its_own_event(
 
     # Then the first leaves two events and the second writes one
     assert (first.exit_code, second.exit_code, warned.exit_code) == (0, 0, 0)
-    assert len(_events(repeated_home)) == 2
-    assert len(_events(warned_home)) == 1
+    assert len(read_events(repeated_home)) == 2
+    assert len(read_events(warned_home)) == 1
     assert warned.stderr == "warning: a warning\n"
 
 
@@ -194,4 +194,4 @@ def test_a_switched_off_log_writes_no_event(
     assert result.exit_code == 0
     assert result.stdout != ""
     assert result.stderr == ""
-    assert _events(log_home) == []
+    assert read_events(log_home) == []

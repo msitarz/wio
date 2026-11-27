@@ -13,6 +13,7 @@ from tests.acceptance.drivers.base import RunResult, SandboxedDriver
 from wio import cli
 from wio.context import Compiled
 from wio.models.bundle import CompiledBundle
+from wio.models.commits import Commit
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping, Sequence
@@ -196,5 +197,62 @@ def fixed_compiler(
     bundle = CompiledBundle(text=text, id=bundle_id, size=size, rules=dict(rules or {}))
     with mock.patch(
         "wio.context.Compiler.compile", return_value=Compiled(bundle, warnings)
+    ):
+        yield
+
+
+@contextlib.contextmanager
+def gate_port_states(
+    *,
+    commits: Sequence[tuple[str, str]] | Exception,
+    dirty: bool | Exception,
+) -> Iterator[None]:
+    """Configure `GitHistory.first_parents` and `SandboxRepository.is_dirty`.
+
+    Args:
+        commits: `(sha, message)` pairs returned by `first_parents`, or an
+            exception to raise.
+        dirty: Boolean returned by `is_dirty`, or an exception to raise.
+
+    Yields:
+        Control while both ports return or raise the configured values.
+    """
+
+    def first_parents(_self: object, _revision: str) -> list[Commit]:
+        """Return configured commits or raise the configured error.
+
+        Args:
+            _self: The history adapter instance.
+            _revision: The requested revision.
+
+        Returns:
+            The configured commits.
+
+        Raises:
+            Exception: The configured error.
+        """
+        if isinstance(commits, Exception):
+            raise commits
+        return [Commit(sha, message) for sha, message in commits]
+
+    def is_dirty(_self: object) -> bool:
+        """Return configured dirty flag or raise the configured error.
+
+        Args:
+            _self: The repository instance.
+
+        Returns:
+            The configured dirty flag.
+
+        Raises:
+            Exception: The configured error.
+        """
+        if isinstance(dirty, Exception):
+            raise dirty
+        return dirty
+
+    with (
+        mock.patch("wio.io.adapters.GitHistory.first_parents", new=first_parents),
+        mock.patch.object(SandboxRepository, "is_dirty", new=is_dirty),
     ):
         yield

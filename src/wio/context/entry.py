@@ -16,13 +16,16 @@ def record_entry(
     stage: str,
     bundle: CompiledBundle,
     events: EventSink,
+    *,
+    start: str | None = None,
+    dirty: bool | None = None,
 ) -> None:
     """Record one `context` event for a delivered bundle.
 
     Builds a `ContextEvent` with the Work, action, stage, bundle id, body size,
-    and included rule hashes in bundle order, with `start` and `dirty` omitted
-    (`None`), and writes it to `events`. Any recording failure is handled by
-    the sink as a warning and never raised.
+    included rule hashes in bundle order, and optional gate `start` and `dirty`
+    fields, and writes it to `events`. Any recording failure is handled by the
+    sink as a warning and never raised.
 
     Args:
         work_id: The id of the Work entering the stage.
@@ -31,6 +34,8 @@ def record_entry(
         bundle: The delivered bundle whose metadata and rule hashes are
             recorded.
         events: The event sink to write the `context` event to.
+        start: Full commit id where a gate review starts, or `None`.
+        dirty: Whether the working tree was dirty for a gate, or `None`.
     """
     events.write(
         ContextEvent(
@@ -40,7 +45,7 @@ def record_entry(
             bundle=bundle.id,
             size=bundle.size,
             rules=dict(bundle.rules),
-            start=None,
-            dirty=None,
+            start=start,
+            dirty=dirty,
         )
     )

@@ -63,6 +63,7 @@ def test_context_reads_the_project_through_the_adapters() -> None:
         type(services.files).__name__,
         type(services.environment).__name__,
         type(services.events).__name__,
+        type(services.reviewed).__name__,
     ]
 
     # Then they are the real adapters
@@ -71,6 +72,7 @@ def test_context_reads_the_project_through_the_adapters() -> None:
         "LocalFileSystem",
         "ProcessEnvironment",
         "_ContextEventSink",
+        "_ContextReviewedCommit",
     ]
 
 
