@@ -5,7 +5,7 @@ Bundle composition uses the same lookup and rendering rules as the contracts
 command, with the resolved contract available separately for rule selection.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from wio.contracts.discovery import discover_works
@@ -28,9 +28,14 @@ class ContractViews:
     """
 
     services: Services
+    _resolved: dict[str, ResolvedContract] = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )
 
     def resolved(self, work_id: str) -> ResolvedContract:
         """Resolve a Work against its ancestors in the current tree.
+
+        Results are cached by `work_id` for the lifetime of this view.
 
         Args:
             work_id: The Work's id.
@@ -45,6 +50,9 @@ class ContractViews:
             OSError: The Work's own file cannot be read.
             UnicodeDecodeError: The Work's own file is not UTF-8.
         """
+        cached = self._resolved.get(work_id)
+        if cached is not None:
+            return cached
         settings = self.services.settings.load().works
         root = self.services.repository.root()
         files = self.services.files
@@ -52,9 +60,11 @@ class ContractViews:
         refuse_tree(discovery, shared=False)
         work = find_by_id(discovery, work_id)
         hierarchy = build_hierarchy(discovery.works, settings.hierarchy)
-        return resolve_work(
+        result = resolve_work(
             work, hierarchy.ancestors[work.path], self.services.catalog, root, files
         )
+        self._resolved[work_id] = result
+        return result
 
     def view(self, contract: ResolvedContract) -> str:
         """Write the resolved view without looking up the Work again.

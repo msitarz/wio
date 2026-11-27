@@ -9,11 +9,11 @@ component, which run on any `FileSystem`, so a Work is found the way the other
 commands find one.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from wio.contracts.body import BodyChecker
-from wio.contracts.discovery import discover_works, find_work
+from wio.contracts.discovery import WorkDiscovery, discover_works, find_work
 from wio.contracts.hierarchy import build_hierarchy
 from wio.contracts.showing import shown_actions
 from wio.formats import read_metadata_block
@@ -96,6 +96,9 @@ class WorkLookup:
     catalog: TemplateCatalog
     templates: FileSystem
     views: Sequence[FileSystem]
+    _discoveries: dict[int, WorkDiscovery] = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )
 
     def items(self, work_id: str) -> frozenset[str] | None:
         """Find the item ids of a Work.
@@ -168,9 +171,28 @@ class WorkLookup:
         if found is None:
             return None
         config = self.settings.load()
-        discovery = discover_works(self.repository.root(), config.works, found.files)
+        discovery = self._discover(found.files)
         hierarchy = build_hierarchy(discovery.works, config.works.hierarchy)
         return hierarchy.roots.get(found.work.path, ())
+
+    def _discover(self, view: FileSystem) -> WorkDiscovery:
+        """Discover Works in a view, caching the result for this lookup.
+
+        Args:
+            view: The file system view to walk.
+
+        Returns:
+            The Work discovery for `view`.
+        """
+        key = id(view)
+        cached = self._discoveries.get(key)
+        if cached is not None:
+            return cached
+        discovery = discover_works(
+            self.repository.root(), self.settings.load().works, view
+        )
+        self._discoveries[key] = discovery
+        return discovery
 
     def _reading(self) -> _Reading:
         """Gather what a Work's template is read through.
@@ -193,10 +215,8 @@ class WorkLookup:
         Raises:
             ConfigurationError: If the config cannot be loaded.
         """
-        works = self.settings.load().works
-        root = self.repository.root()
         for view in self.views:
-            match find_work(discover_works(root, works, view), work_id):
+            match find_work(self._discover(view), work_id):
                 case Work() as work:
                     return _Found(work, view)
                 case None:
