@@ -85,3 +85,27 @@ def test_describe_works_outside_any_repository_without_config(wio: Wio) -> None:
     # Then both exit 0 without errors
     assert overview.exit_code == 0
     assert config.exit_code == 0
+
+
+@pytest.mark.channels(Channel.IN_PROCESS, Channel.CLI)
+def test_describe_succeeds_deterministically_for_every_registered_command(
+    wio: Wio,
+) -> None:
+    """AC-1 (4t3yaf): every registered command describes cleanly in text and JSON."""
+    # Given an empty directory outside any git repo and the live command list
+    overview = wio.run(["describe", "--json"])
+    assert overview.exit_code == 0
+    commands = [item["name"] for item in json.loads(overview.stdout)["commands"]]
+
+    # When `wio describe <command>` and `--json` run for every registered command
+    for name in commands:
+        text_first = wio.run(["describe", name])
+        text_second = wio.run(["describe", name])
+        json_run = wio.run(["describe", name, "--json"])
+
+        # Then each exits 0, is deterministic and decodes with the command's name
+        assert text_first.exit_code == 0
+        assert text_first.stdout == text_second.stdout
+        assert text_first.stdout.endswith("\n")
+        assert json_run.exit_code == 0
+        assert json.loads(json_run.stdout)["name"] == name
