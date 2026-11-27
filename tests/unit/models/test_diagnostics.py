@@ -28,9 +28,9 @@ def test_diagnostics_sort_by_place_then_severity_then_message() -> None:
     indexes = sort_diagnostics([narrow, wide])
 
     # Then the order is the error at `a`, the warning at `a`, the error at `b`,
-    # the note at `b`, and `x[10]` sorts before `x[2]`
+    # the note at `b`, and `x[2]` sorts before `x[10]`
     assert ordered == (error_a, warning_a, error_b, note_b)
-    assert indexes == (wide, narrow)
+    assert indexes == (narrow, wide)
 
 
 def test_a_diagnostic_is_immutable() -> None:

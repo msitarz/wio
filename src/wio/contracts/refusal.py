@@ -27,7 +27,7 @@ def refuse(errors: Sequence[Diagnostic]) -> NoReturn:
             rendered as `error: <where>: <message>` on a line of its own, then
             `HINT`.
     """
-    message = f"{render_text(errors, keep_order=True)}\n{HINT}"
+    message = f"{render_text(errors)}\n{HINT}"
     raise ContractsError(message, list(errors))
 
 

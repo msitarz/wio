@@ -29,62 +29,50 @@ class Diagnostic:
 
 
 _RANK: dict[Severity, int] = {"error": 0, "warning": 1, "note": 2}
-_FILE_PLACE = re.compile(
-    r"^(?P<file>[^,]*\.md)(?::(?P<line>\d+))?(?::(?P<column>\d+))?$"
-)
-"""A place that is a file, with the line and the column that may follow it."""
+_FILE_PLACE = re.compile(r"^[^,]+\.(?:md|toml)(?::\d+){0,2}$")
+_DIGITS = re.compile(r"(\d+)")
 
 
-def _key(diagnostic: Diagnostic) -> tuple[str, int, str]:
-    """Give the sort key of a diagnostic."""
-    return (diagnostic.where, _RANK[diagnostic.severity], diagnostic.message)
+def _natural_parts(text: str) -> tuple[tuple[int, int | str], ...]:
+    """Split text into comparable text and integer chunks."""
+    return tuple(
+        (0, int(part)) if part.isdigit() else (1, part)
+        for part in _DIGITS.split(text)
+        if part
+    )
+
+
+def _is_single_path(where: str) -> bool:
+    """Return whether `where` names a single file or directory path."""
+    if ", " in where:
+        return False
+    return "/" in where or _FILE_PLACE.match(where) is not None
+
+
+def _order_key(
+    diagnostic: Diagnostic,
+) -> tuple[bool, tuple[tuple[int, int | str], ...], int, str]:
+    """Give the natural sort key of a diagnostic."""
+    return (
+        not _is_single_path(diagnostic.where),
+        _natural_parts(diagnostic.where),
+        _RANK[diagnostic.severity],
+        diagnostic.message,
+    )
 
 
 def sort_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ...]:
-    """Put diagnostics in the one order every renderer prints them.
+    """Put diagnostics in the one natural order every renderer prints them.
 
-    Args:
-        diagnostics: The findings, in any order.
-
-    Returns:
-        The findings sorted by `where`, then error, warning and note, then
-        `message`, as plain strings (so `x[10]` sorts before `x[2]`).
+    Numbers in `where` compare numerically (`file:4` before `file:12`, `x[2]`
+    before `x[10]`). Equal places sort by error, warning, note, then message.
     """
-    return tuple(sorted(diagnostics, key=_key))
+    return tuple(sorted(diagnostics, key=_order_key))
 
 
 def order_diagnostics(diagnostics: Iterable[Diagnostic]) -> tuple[Diagnostic, ...]:
-    """Put diagnostics in the order that a check of files prints them.
-
-    It is not `sort_diagnostics`, which compares `where` as a plain string, and
-    it keeps the rank of severities that this module already holds.
-
-    Args:
-        diagnostics: The findings, in any order.
-
-    Returns:
-        The findings by file, then by line and column as numbers, so that line 4
-        precedes line 12. A `where` is read as a file with an optional line and
-        an optional column, and a file alone precedes its lines. Any other
-        `where`, such as a key path or two files joined by `, `, is compared as
-        text and follows every place that is a file. Equal places are ordered by
-        error, warning and note, then by message.
-    """
-    ordered = sorted(diagnostics, key=_order_key)
-    return tuple(ordered)
-
-
-def _order_key(diagnostic: Diagnostic) -> tuple[bool, str, int, int, int, str]:
-    """Give the key by which a check of files orders a diagnostic."""
-    match = _FILE_PLACE.match(diagnostic.where)
-    place: tuple[str, int, int] = (
-        (match["file"], int(match["line"] or 0), int(match["column"] or 0))
-        if match
-        else (diagnostic.where, 0, 0)
-    )
-    file, line, column = place
-    rank = _RANK[diagnostic.severity]
-    return (match is None, file, line, column, rank, diagnostic.message)
+    """Alias for `sort_diagnostics`."""
+    return sort_diagnostics(diagnostics)
 
 
 def has_error(diagnostics: Iterable[Diagnostic]) -> bool:
