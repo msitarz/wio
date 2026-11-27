@@ -15,7 +15,7 @@ from wio.context import Compiled
 from wio.models.bundle import CompiledBundle
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Iterator, Mapping, Sequence
     from pathlib import Path
 
 
@@ -173,16 +173,28 @@ def unavailable_temporary_directory() -> Iterator[None]:
 
 
 @contextlib.contextmanager
-def fixed_compiler(text: str, size: int) -> Iterator[None]:
+def fixed_compiler(
+    text: str,
+    size: int,
+    *,
+    bundle_id: str = "fixed",
+    rules: Mapping[str, str] | None = None,
+    warnings: tuple[str, ...] = (),
+) -> Iterator[None]:
     """Supply a fixed compiler result to the command in this channel.
 
     Args:
         text: The bundle delivered by the command.
         size: The body size reported by the compiler.
+        bundle_id: The bundle id reported by the compiler.
+        rules: The ordered rule hashes reported by the compiler.
+        warnings: Compilation warnings reported by the compiler.
 
     Yields:
         Control while the compiler returns the fixed result.
     """
-    bundle = CompiledBundle(text=text, id="fixed", size=size, rules={})
-    with mock.patch("wio.context.Compiler.compile", return_value=Compiled(bundle, ())):
+    bundle = CompiledBundle(text=text, id=bundle_id, size=size, rules=dict(rules or {}))
+    with mock.patch(
+        "wio.context.Compiler.compile", return_value=Compiled(bundle, warnings)
+    ):
         yield

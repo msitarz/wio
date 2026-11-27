@@ -3,6 +3,8 @@
 
 from typing import TYPE_CHECKING
 
+from wio.models.events import ContextEvent
+
 if TYPE_CHECKING:
     from wio.models.bundle import CompiledBundle
     from wio.ports import EventSink
@@ -30,4 +32,15 @@ def record_entry(
             recorded.
         events: The event sink to write the `context` event to.
     """
-    raise NotImplementedError
+    events.write(
+        ContextEvent(
+            work=work_id,
+            action=action,
+            stage=stage,
+            bundle=bundle.id,
+            size=bundle.size,
+            rules=dict(bundle.rules),
+            start=None,
+            dirty=None,
+        )
+    )

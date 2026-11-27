@@ -1,15 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests of recording a stage entry `context` event."""
 
-import pytest
-
 from tests.unit.context.fakes import EventSinkFake
 from wio.context.entry import record_entry
 from wio.models.bundle import CompiledBundle
 from wio.models.events import ContextEvent
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_records_one_context_event_with_bundle_metadata_and_rule_order() -> None:
     """AC-1, AC-3: one run records one event with ordered rules and no gate fields."""
     # Given a compiled bundle with two rules in bundle order and an event sink
@@ -42,7 +39,6 @@ def test_records_one_context_event_with_bundle_metadata_and_rule_order() -> None
     assert list(event.rules) == ["mp.ARC001", "mp.ERR002"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_records_empty_rules_when_bundle_has_none() -> None:
     """AC-2: a bundle with no included rules records an empty `rules` mapping."""
     # Given a compiled bundle with no rules and an event sink
@@ -61,7 +57,6 @@ def test_records_empty_rules_when_bundle_has_none() -> None:
     assert event.rules == {}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError)
 def test_repeated_calls_record_separate_events() -> None:
     """AC-6: each call writes its own event to the sink."""
     # Given a compiled bundle and an event sink
