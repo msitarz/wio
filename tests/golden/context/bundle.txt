@@ -1,0 +1,34 @@
+bundle: ea37a129b2a0
+
+work: k3m9xq (Demo)
+action: deliver
+stage: goal
+gate: no
+session: any
+rules: 2
+size: 308 bytes, 23 lines (body)
+command: wio context k3m9xq deliver goal
+
+--- stage ---
+
+Write the code.
+
+--- contract ---
+
+# Demo
+
+Deliver the feature.
+
+--- rules ---
+
+Rules for root api (src):
+
+demo: Architecture (ARC)
+
+demo.ARC001 use-ports
+Keep ports typed.
+
+demo.ARC002 small-functions
+Keep functions small.
+
+If your context was compacted, run the command in the header again.

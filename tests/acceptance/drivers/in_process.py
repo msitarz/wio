@@ -128,6 +128,7 @@ class InProcessDriver(SandboxedDriver):
             mock.patch(
                 "wio.io.adapters.GitRepository", partial(SandboxRepository, top=root)
             ),
+            mock.patch("wio.io.adapters.SystemStdio", return_value=stdio),
         ):
             code = cli.main(list(args), stdio)
         return RunResult(out.getvalue(), err.getvalue(), code)
