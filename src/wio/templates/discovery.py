@@ -42,36 +42,7 @@ class Discovery:
 
 
 def discover(root: Path, settings: Templates, files: FileSystem) -> Discovery:
-    """Walk the templates directory and build a template for each marked file.
-
-    The walk is that of the Works directory: it reads files ending in `.md` with
-    their case, skips directories whose names start with `.`, follows no
-    symbolic link, and takes a file for a template when its metadata block starts
-    on its first line. A template is named by its file. It reads files only
-    through `files` and writes none.
-
-    A missing directory is no problem when `settings.dir` is the default
-    `.agents/wio/templates`, and holds no templates. Any other directory that is
-    missing, is not a directory or is a symbolic link is an error, and nothing
-    is walked. A file that cannot be read or decoded, a block that cannot be
-    read, a `kind` that is missing or not a string, a `shape` or `description`
-    that is not a string and a name that two files share are errors too, and the
-    other templates are still found.
-
-    Every diagnostic names its place as the file's path relative to `root`,
-    written with `/` and followed by `:<line>` when the problem has a line, or as
-    the directory's path. A duplicate name names both files, joined by `, `.
-
-    Args:
-        root: The repository root, which `settings.dir` and the templates' paths
-            are relative to.
-        settings: The `[templates]` table of the config, normalized and checked
-            in its shape.
-        files: The port that lists directories and reads files.
-
-    Returns:
-        The templates and the diagnostics.
-    """
+    """Walk the templates directory and build a template for each marked file."""
     directory = root / settings.dir
     refusal = refuse_directory(
         directory, settings.dir, files, noun="templates", default=_DEFAULT_DIR

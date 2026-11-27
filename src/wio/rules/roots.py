@@ -24,25 +24,6 @@ def stage_roots(
 ) -> tuple[str, ...]:
     """Find the roots that a stage selects for a Work.
 
-    A stage with no `roots`, and a call with no stage, select the Work's roots.
-    A stage with `roots` selects exactly those, where `@work` stands for the
-    Work's roots and `[]` selects none. The names are sorted and each is once.
-    It does no input or output, and the result does not depend on the order of
-    the roots of the config or of a stage's `roots`.
-
-    The stage is checked first, then its own roots, and the Work is looked up and
-    its roots checked against the config only when the stage selects them, so a
-    stage with only its own roots never fails for the Work.
-
-    Args:
-        config: The settings, whose roots and stages are read.
-        stage: The stage's name, or `None` for the roots of the Work.
-        work_id: The Work's id.
-        work_roots: Gives the roots of the Work.
-
-    Returns:
-        The names of the roots that count.
-
     Raises:
         KeyError: The stage, the Work, a root of the Work or a root of the stage
             is not known. Its first argument is the name that was not found.

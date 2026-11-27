@@ -73,28 +73,6 @@ class Skeleton:
 def run_skeleton(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Run `wio contracts skeleton`.
 
-    It writes the skeleton to `stdio.stdout` and the note to `stdio.stderr`, and
-    writes no file. A mistake is found before anything is written, so it prints
-    nothing on standard output. When several apply the first of these is
-    reported: a usage error, an incomplete tree, the Work, the template, then
-    `--keep`. The usage error is a missing `--work`, which points to
-    `wio templates show` and is refused before any file is read. Every error of
-    finding the Works but a shared id refuses the command, with the pointer to
-    `wio contracts check`, and a shared id refuses only its own lookup. The Work
-    and the template are found as `show` and `new` find theirs, so the messages
-    are the same.
-
-    Args:
-        services: What the command reads the project through.
-        args: What the parser read: `template`, the name of the template, `work`,
-            the id or `None` when it was not given, and `keep`, the keys to carry
-            in the order given.
-        stdio: Where the skeleton and the note go.
-
-    Returns:
-        0 after the skeleton is written. A note is written only when the Work
-        has keys that the skeleton does not carry.
-
     Raises:
         ContractsError: A mistake of the user, as the functions it calls say.
             The command line writes it to standard error and exits 2.

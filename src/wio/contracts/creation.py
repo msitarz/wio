@@ -95,35 +95,6 @@ def plan_work(
 ) -> NewWork:
     """Plan a new Work without writing a file.
 
-    Choose the requested template, the kind's entry template, or none for a
-    bare contract. A template used with a kind must have that kind. Validate
-    the template, roots and title before deciding the place: report the first
-    error in that order, followed by errors from `decide_place`. A rejected template or
-    missing entry template points to `wio templates check`; another unknown
-    template name points to `wio templates list`.
-
-    Build the text from the template's skeleton or a bare metadata block and
-    `# Title`. Add the new id and, if requested, replace the roots with declared
-    roots or `@descendants`, deduplicated in first-seen order. Preserve the
-    other metadata values and skeleton, except for TOML comments in the block.
-    A supplied title must be one non-blank line; trim it and replace the first
-    level-1 heading, or insert it before the first non-empty body line (or at
-    the end), followed by an empty line in the template's line ending.
-    Determine the parent from the chosen path using `parent_of`; under `flat`
-    there is none.
-
-    Args:
-        arguments: The requested kind, template, roots, title and place.
-        config: The declared kinds, roots and hierarchy mode.
-        discovery: The existing Works.
-        catalog: Finds templates and reports whether they are rejected.
-        files: Reads templates and checks paths.
-        root: The repository root.
-        generator: Draws candidate ids.
-
-    Returns:
-        The planned Work, including its text and place.
-
     Raises:
         ContractsError: An invalid request or an error from `decide_place` or
             `new_id`.

@@ -43,28 +43,6 @@ def plan_rule(
 ) -> NewRule:
     """Plan the next rule of a family in a ruleset.
 
-    The code is the family's letters and the number after the highest number of
-    the family, so a free number below it is not reused. The number has at least
-    three digits and at least as many as the highest code of the family. The file
-    is `<code>-<name>.md` in the directory of the rule with the highest code of
-    the family, or in the ruleset's directory when the family has none, and its
-    block is written in the comment form, whatever form the other rules have,
-    with a quote, a backslash and `-->` of the description escaped. The text is
-    read back with `read_rule`, so the plan is a valid rule. It does no input or
-    output.
-
-    Args:
-        ruleset: The canonical name of a ruleset of the discovery.
-        family: The upper-case letters of a family that the ruleset's manifest
-            declares.
-        name: The rule's name, in the form of a rule name.
-        description: The one-line description, or `None` for none.
-        discovery: What the walk of the rules found; its rulesets are those that
-            were read whole.
-
-    Returns:
-        The path, the text and the rule.
-
     Raises:
         WioError: The ruleset is not one that was read, the family is not
             declared by its manifest, the name or the description is not of the

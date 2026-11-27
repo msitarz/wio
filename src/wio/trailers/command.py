@@ -91,25 +91,6 @@ class TrailersCommand:
     def run(self, args: Namespace, stdio: Stdio) -> int:
         """Run the form that the arguments choose.
 
-        `check` runs the check form, `fold` the fold form and `none` the form for no
-        Work, each with the parser of its own `configure_*`, and any other first
-        argument runs the write form with the arguments from that Work on. The exit
-        code is the form's, 0 for what it printed or passed and 1 for a record or a
-        message that does not hold, and 0 after the usage of a form that `-h` asked
-        for. A call with no argument, an unknown option, a form with a missing or
-        unknown argument and a form's own parse error are usage mistakes, written as
-        `error: <message>` to standard error, with nothing on standard output; an
-        option before the first argument is refused by the parser of `wio trailers`
-        itself.
-
-        Args:
-            args: What the parser read, of which `forms` holds the arguments after
-                `trailers`.
-            stdio: Where the forms read and write.
-
-        Returns:
-            The exit code of the form: 0, or 1 for a failed check.
-
         Raises:
             TrailersError: For a usage mistake of any form, which exits 2.
             ConfigurationError: If a form loads a config that has an error.

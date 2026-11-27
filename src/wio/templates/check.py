@@ -70,35 +70,7 @@ class Reading:
 def check_templates(
     root: Path, config: Config, files: FileSystem
 ) -> tuple[Diagnostic, ...]:
-    """Find every problem of the templates of a project.
-
-    It walks the templates directory with `discover`, reads each template that
-    discovery built, and runs the checks below on all of them, so a problem in
-    one template never hides another. It reads files only through `files` and
-    writes none. The diagnostics of `discover` are errors of the check as they
-    are. A templates directory that discovery refuses, because it is missing,
-    is not a directory or is a symbolic link, is that one error: the check
-    returns it alone and runs nothing else, so no entry template is reported
-    missing because of it. An entry template whose file discovery reported an
-    error is not reported missing either: the check passes `check_kinds` the
-    names of those files, taken from the places of discovery's errors, and one
-    whose second read failed is still in `check_kinds`' input, so it is judged
-    as a template and not reported missing. A default templates directory that
-    does not exist holds no templates, so each entry template is reported
-    missing.
-
-    Args:
-        root: The repository root, which `config.templates.dir` and the
-            templates' paths are relative to.
-        config: The settings, whose declared actions, stage presets, stages and
-            kinds the templates are judged against.
-        files: The port that lists directories and reads files.
-
-    Returns:
-        Every diagnostic, in the order of `order_diagnostics`; empty when the
-        templates pass. A file that cannot be read a second time is one error
-        for the file, worded as discovery words it.
-    """
+    """Find every problem of the templates of a project."""
     found = discover(root, config.templates, files)
     if _directory_refused(found, config.templates):
         return order_diagnostics(found.diagnostics)

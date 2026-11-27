@@ -64,21 +64,6 @@ class ConfigCommand:
     def run(self, args: Namespace, stdio: Stdio) -> int:
         """Run the chosen view.
 
-        Args:
-            args: The parsed arguments, with the attributes of `Arguments`.
-            stdio: The streams to write to.
-
-        Returns:
-            The exit code: 0, or for `check` the code that `report` gives, 1 when
-            any diagnostic is an error. Bare `wio config` writes its help and
-            reads no config file. `list` and `show` write to `stdio.stdout` only,
-            one line per setting. A single setting shown by `show` is followed by
-            a line that holds its description.
-
-            `check` writes every diagnostic that `report` renders, a warning as
-            well as an error, to `stdio.stdout` after running the checks that
-            `wio.config.CHECKS` holds when `run` is called.
-
         Raises:
             ConfigurationError: For `list` and `show`, the config has an error:
                 it carries every error and renders them as its message, as

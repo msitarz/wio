@@ -18,36 +18,7 @@ def render_reference(
     *,
     as_json: bool,
 ) -> str:
-    """Render the table of directives and how they combine.
-
-    It prints the fields of the entries as they are and adds no text of its own
-    but the two section headers, in the order given, without sorting or
-    filtering. It reads nothing of the project, and it imports `json` only for
-    the JSON form.
-
-    Args:
-        directives: The entries of the table, in its fixed order.
-        combining: The entries that say how directives combine in one comment,
-            of the same shape as those of the table.
-        as_json: Whether to render one JSON object instead of the indented list.
-
-    Returns:
-        The text for standard output. The human form has a section `directives:`
-        and then a section `combining:`, each a header line, an empty line and
-        one block for each entry. A block has the name on a line and, indented by
-        two spaces, a `Syntax:` line, the meaning with each of its lines indented
-        by two spaces, an empty line of it left empty without trailing spaces,
-        and an `Example:` line for each example, `Example: ` followed by the
-        example heading as the table has it. One empty line separates blocks and
-        sections and none follows the last, so the text ends in exactly one line
-        ending. A section with no entry is left out, so the text is empty when
-        both are empty. The JSON form is one compact object, as `list --json`
-        writes its array, ending in a line ending, with the keys `directives`
-        and `combining` in that order, each an array of objects holding `name`,
-        `syntax`, `meaning` and `examples` in that order, the last an array that
-        is empty for an entry with no example; both keys are present even when
-        their arrays are empty. The same entries always give the same text.
-    """
+    """Render the table of directives and how they combine."""
     sections = (("directives", directives), ("combining", combining))
     return _as_json(sections) if as_json else _as_text(sections)
 

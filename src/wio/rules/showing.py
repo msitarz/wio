@@ -91,23 +91,6 @@ def render_rule(rule: Rule, *, as_json: bool) -> str:
 def run_show(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Run `wio rules show`: discover, resolve the alias, find and print a rule.
 
-    It runs the discovery and refuses an error of it anywhere in the repository
-    before it looks at the reference, resolves the ruleset part of the reference,
-    which may be an alias, to the canonical name where the reference has one that
-    names a ruleset, and leaves the text as it is otherwise, so that `show_rule`
-    judges every malformed or unknown reference and words its refusal. It then
-    finds the rule with `show_rule` and writes it with `render_rule`. A warning
-    of the discovery refuses nothing. It writes nothing to the repository, and
-    nothing to standard output for a request that is refused.
-
-    Args:
-        services: What the command reads the project through.
-        args: The parsed arguments: `reference` and `json`.
-        stdio: Where the rule goes.
-
-    Returns:
-        0 after the rule was printed.
-
     Raises:
         WioError: The reference does not name one rule. It names the cause, so
             the command exits 2.

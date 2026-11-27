@@ -79,43 +79,7 @@ class Folded:
 
 
 def fold_commits(commits: Sequence[Commit], reader: Reader) -> Folded:
-    """Fold the records of a range of commits.
-
-    The reverts are settled first. The id on a line `This reverts commit <id>.` names
-    a commit of the range when it is a prefix of the commit's id, so an abbreviated
-    id counts, and a revert is a commit that has such a line. A revert is taken back
-    by a later revert that names it, and a commit that an untaken revert names is
-    taken back too, and the commits taken back and the reverts are dropped, whatever
-    records their messages hold, before anything is folded, so that the neighbors of
-    a dropped commit become consecutive. A revert of a commit outside the range is
-    kept in `reverts` as the id was written, unless a later revert in the range takes
-    that revert back.
-
-    Then the records of each remaining commit are read with `reader`, a list of
-    Works is expanded to one record for each Work in the order written, and a
-    `Wio-Work: none` record is dropped. The fold takes two steps, in this order.
-    Consecutive records of the same Work, action and stage, with no other record
-    between them, become one at the later position, with the items united in order
-    of appearance and the result and the judge of the later record, or the earlier
-    one's when the later has none. Then consecutive records that differ only in the
-    Work, which have the same action, stage, items, result and judge, become one
-    record for a list of Works, unless the list already names the Work, which starts
-    the next record, because a list names no Work twice. Records that are not
-    consecutive stay apart, because a record between two others can make the earlier
-    one stale.
-
-    The fold is a function of the commits, so folding the same range again gives
-    the same value. It judges no record: a record that the check would refuse has
-    no defined fold.
-
-    Args:
-        commits: The commits of the range, oldest first, as the `History` port
-            gives them.
-        reader: The reader of the config, which finds the records of a message.
-
-    Returns:
-        The folded records and the reverts of work outside the range.
-    """
+    """Fold the records of a range of commits."""
     kept, reverts = _apply_reverts(commits)
     expanded = [record for commit in kept for record in _expand(commit, reader)]
     return Folded(reverts, tuple(_merge(expanded)))

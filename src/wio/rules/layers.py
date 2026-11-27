@@ -74,37 +74,6 @@ def apply_layers(
 ) -> Layered:
     """Apply the four layers in their order to the rulesets.
 
-    A layer is applied only when its input is given: the root layer for the
-    roots, the stage layer for the stage, and the two always fields in every
-    call. A layer works on the set that the layers before it built. The roots
-    add together, in the order of their names; the stage adds its includes and
-    then removes what its excludes name; the always includes add over any earlier
-    exclude; and the always excludes remove last, over the always includes. An
-    exclude records an effect for every rule it names, whether or not the rule
-    was in the set. An exclude inside the rule preset that an include entry names
-    takes rules out of that entry's includes only: it records a `removes` effect
-    in the layer of the entry and unselects nothing that another entry or layer
-    added. Every reference is expanded by `expand` over the catalog that
-    `build_rule_catalog` gives, and a reference that cannot be expanded is a
-    problem of the result that selects nothing.
-
-    It does no input or output, and the result does not depend on the order of
-    the tables of the config, of the entries of a list or of `roots`. A root that
-    `roots` names more than once is applied once.
-
-    Args:
-        roots: The names of the roots that the stage selects, or `None` for none.
-        stage: The name of the stage, or `None` for none.
-        config: The settings, whose roots, stages and always fields are read.
-        rulesets: The rulesets by canonical name, as `ruleset_map` gives them.
-
-    Returns:
-        The rules with their effects, the rulesets that each root of the config
-        reaches whether or not it was given, so a call for no roots and no stage
-        still has them, and the problems of the expansions that were applied. A
-        problem that two expansions share, such as a bad entry of a rule preset
-        that two roots include, is listed once.
-
     Raises:
         KeyError: A name of `roots` is not a root of the config, or `stage` is not
             a stage of it. It names what was not found.

@@ -75,25 +75,6 @@ def _as_object(new: NewRule, chains: list[tuple[str, ...]]) -> dict[str, object]
 def run_new(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Run `wio rules new`: plan, check, write, read back and report one rule.
 
-    It runs the discovery and refuses an error of it anywhere in the repository,
-    resolves an alias to the canonical name of the ruleset, plans the rule with
-    `plan_rule`, and refuses when the file exists, or is a symbolic link even a
-    dangling one, because writing would overwrite it or go through the link,
-    whether or not that file is a rule. Only then does it write the
-    file, run the discovery again to read it back, and ask `selected_anywhere`
-    whether any entry of the config delivers the rule, whatever the roots. A
-    warning of the discovery refuses nothing. Nothing is written for a request
-    that is refused, and exactly one file is written otherwise.
-
-    Args:
-        services: What the command reads and writes the project through.
-        args: The parsed arguments: `ruleset`, `family`, `name`, `description`
-            and `json`.
-        stdio: Where the result goes.
-
-    Returns:
-        0 after the rule was created.
-
     Raises:
         WioError: The request cannot be met, or the file exists. It names the
             cause, so the command exits 2.

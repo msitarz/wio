@@ -190,32 +190,6 @@ def decide_place(
 ) -> Path:
     """Decide the file of a new Work, and write nothing.
 
-    The default place is `<Works directory>/<slug>/README.md`, and under
-    `nesting` with a parent it is `<the directory of the parent's file>/<slug>/
-    README.md`. A `--path` is used as it is when a Work could have it: relative
-    to the root without `..`, ending in `.md`, under the Works directory, below
-    no hidden directory, through no symbolic link, and under `nesting` neither
-    directly in the Works directory nor in a directory that holds a marked file
-    already, one left out or excluded included. The directory of the default
-    place, empty or not, and the file of any place must not exist.
-
-    There is one error for each call, the first that applies: no name, options
-    that exclude each other, `--parent` under `flat`, a slug that is not valid
-    or empty, a parent that has no Work, with the closest id, or is shared, a
-    path that is not a Work's, and a directory or a file that exists.
-
-    Args:
-        root: The repository root.
-        settings: The `[works]` table of the config.
-        discovery: What one walk of the Works directory found: the Works and the
-            marked files that were left out or excluded.
-        files: The port that tells whether a path exists, is a directory or is a
-            symbolic link. It is not written.
-        arguments: The options that name the Work.
-
-    Returns:
-        The path of the new file, relative to the root, written with `/`.
-
     Raises:
         ContractsError: One of the errors above.
     """

@@ -130,31 +130,7 @@ def expand(
     scope: Scope,
     catalog: RuleCatalog,
 ) -> Expansion:
-    """Expand a list of includes and excludes into the rules it selects.
-
-    The includes are expanded, then the excludes are expanded and removed from
-    them. An entry is a family, a code or a rule preset, and a rule preset takes
-    its own includes and then removes its own excludes; its entries are read in
-    the scope of its own ruleset, or of the config. A ruleset has a rule preset
-    `all` that holds all its rules, whatever its manifest says of that name. A
-    family that its manifest declares and that holds no rule selects nothing and
-    is no problem. The grammar of an entry is that of `wio.formats.grammar`: a
-    bare upper-case name is malformed in the config's scope, and
-    `parse_own_item` reads the entries of a manifest.
-
-    It does no input or output and raises nothing for an entry or a cycle, and
-    the result does not depend on the order of the tables of the catalog or of
-    the entries of a list.
-
-    Args:
-        include: The references to select, as written.
-        exclude: The references to remove from what the includes select.
-        scope: What a bare name is.
-        catalog: The rulesets, aliases and rule presets to resolve them in.
-
-    Returns:
-        The expansion.
-    """
+    """Expand a list of includes and excludes into the rules it selects."""
     expander = _Expander(catalog)
     result = _run(expander.level(include, exclude, scope, (), (), named=True))
     return Expansion(

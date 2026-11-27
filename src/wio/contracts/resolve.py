@@ -51,25 +51,6 @@ def resolve_work(
 ) -> ResolvedContract:
     """Resolve a Work against its ancestors.
 
-    It reads through `files` and writes nothing, and the same files give the same
-    value. The Work's own contract is cleaned by `_own_contract`, and each
-    ancestor passes what `_marked_texts` and `_cut_ancestor` say. An ancestor
-    that cannot be used passes nothing, without an error, and the walk goes on to
-    the ancestors above it.
-
-    Args:
-        work: The Work to resolve, whose contract is read from `root / work.path`.
-        ancestors: Its ancestors, nearest first, as the hierarchy gives them,
-            empty for a Work without a parent and under `flat`.
-        catalog: Finds an ancestor's template and says whether it is rejected.
-        root: The repository root, which a Work's and a template's `path` are
-            relative to.
-        files: The port that reads the files.
-
-    Returns:
-        The Work's own contract and, for each ancestor that passes anything, its
-        sections, nearest ancestor first.
-
     Raises:
         OSError: The Work's own file cannot be read.
         UnicodeDecodeError: The Work's own file is not UTF-8.

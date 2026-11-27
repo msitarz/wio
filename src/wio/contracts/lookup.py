@@ -50,34 +50,7 @@ class _Reading:
 
 @dataclass(frozen=True)
 class WorkLookup:
-    """Finds the items and the pipelines of a Work by its id.
-
-    It is built once for the working tree and once for the index, each with the
-    view of `HEAD` after it, so a Work that the commit being made deletes is
-    still found. The views are tried in order and the first that has the id
-    answers, so a Work that differs between two views answers as the first does.
-    The config and the templates are always those of the working tree. It reads
-    and writes nothing else. A view reads its listing of files once, so a change
-    made after the first call is seen by a new lookup and not by the same one.
-
-    A Work is found when exactly one Work of a view has the id. An id that two
-    Works of a view share makes the answer absent, and the next view is not
-    asked, because discovery cannot say which Work is meant and a record must not
-    be checked against an older copy; the contracts component reports the shared
-    id. A file that cannot be read or decoded, a malformed contract and a missing
-    template are the contracts component's to report, and the lookup finds what
-    it can.
-
-    Attributes:
-        settings: Loads the config, for the Works directory, the hierarchy, the
-            default actions and the stage presets.
-        repository: Finds the repository root.
-        catalog: Finds a Work's template.
-        templates: The file system of the working tree, which the template's
-            actions and sections are read from.
-        views: The file systems that a Work is looked up in, in order: the
-            working tree or the index, then `HEAD`.
-    """
+    """Finds the items and the pipelines of a Work by its id."""
 
     settings: Settings
     repository: Repository

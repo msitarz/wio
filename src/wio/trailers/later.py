@@ -102,25 +102,6 @@ def check_range(commits: Sequence[Commit], config: Config) -> list[Diagnostic]:
 def run_later(services: Services, args: Namespace, stdio: Stdio) -> int:
     """Check a body or a range and report each diagnostic.
 
-    With `--ref-range` the commits of the range come from the `History` port,
-    oldest first, and otherwise the body is read from the file `path`, or from
-    standard input when it is `-` or absent. Each diagnostic is written to standard
-    error as `<severity>: <where>: <message>`, one to a line, in the order of
-    `check_afterwards` for a body and of `check_range` for a range, and nothing is
-    written to standard output.
-
-    Args:
-        services: The ports the form reads the config, the body and the history
-            through.
-        args: The arguments that `configure_check` parsed, of which `ref_range` and
-            `path` are read here.
-        stdio: Where the body is read when it is not in a file and where the
-            diagnostics are written.
-
-    Returns:
-        The exit code of the check: 1 for a body or a range with an error, and 0 for
-        one with only warnings or none.
-
     Raises:
         TrailersError: If both a path and a range are given, if the file cannot be
             read or decoded, or if the `History` port refuses the range with a

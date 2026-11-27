@@ -68,41 +68,7 @@ def has_exempt_subject(message: str) -> bool:
 def check_commit_message(
     message: str, contracts: Contracts, config: Config
 ) -> list[Diagnostic]:
-    """Judge a commit message as it is committed.
-
-    The records are read with the reader of the config and judged in three steps.
-    `check_shape` judges each record's own form: a `malformed` or `invisible` finding
-    is an error, and an `unknown-key` finding is a warning, deliberately, because a
-    key that the engine no longer defines is no reason to refuse a commit. A finding
-    belongs to the record whose lines hold its `number`, and an `invisible` finding
-    belongs to no record, since its lines are not read as one. Every record that has
-    no `malformed` finding is then judged by `validate_record` against the config and
-    the Works, with the fields carrying their lines in the message, so a record with
-    only an `unknown-key` warning is validated too, and a name that the config lacks,
-    a Work or an item that does not exist and a result that does not fit its stage
-    are errors, and a stage outside the Work's pipeline is a warning. A record that
-    is malformed is not validated, because its fields cannot be trusted, and a
-    `Wio-Work: none` record has nothing to check. Last, a message that has no record,
-    which is a reading with no record, whatever its findings, and whose subject is
-    not one that git writes, has the error `no record was found` at line 1. A message
-    with no subject, such as an empty one or one of comments, is not exempt.
-
-    The order is a local sort and not `sort_diagnostics`, which compares `where` as
-    text, so that line 10 follows line 9.
-
-    Args:
-        message: The commit message.
-        contracts: Finds the Works in the index and then in `HEAD`, so that a Work
-            that the commit being made deletes is still found.
-        config: The config, for the reader, the names and the results.
-
-    Returns:
-        The diagnostics, each with the 1-based line number in the message as its
-        `where`, or `1` for the record that was not found, sorted by that number as
-        a number, then errors before warnings, then by message. This is the check of
-        the commit-time mode only: the later check judges the same findings with other
-        severities, so `run_check` dispatches on the mode.
-    """
+    """Judge a commit message as it is committed."""
     reader = config.trailers.reader
     reading, findings = read(message, reader), check_shape(message, reader)
     found = [

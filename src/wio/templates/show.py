@@ -28,27 +28,6 @@ if TYPE_CHECKING:
 def show_skeleton(name: str, found: Discovery, root: Path, files: FileSystem) -> str:
     """Prepare the template with a name as the skeleton of a contract.
 
-    The name is matched exactly, with its case, against the names of the
-    templates that were found, and a kind is not a name. The template's text is
-    read through `files`, and the skeleton function of `wio.formats` prepares it.
-    That function knows no file, so an error it raises is given the file of the
-    template here, as a diagnostic whose place is the file's path relative to
-    `root` with `/`, followed by `:<line>` and, for a directive list, `:<column>`.
-    A text with no block has no line, so its place is the bare path. A failure to
-    read the file after the walk found it, an `OSError` or a `UnicodeDecodeError`,
-    is worded the way the walk words it, as one diagnostic for the file.
-
-    Args:
-        name: The template's name, which is its file's name without `.md`.
-        found: What the walk of the templates directory found. Its diagnostics
-            are empty, since the caller refuses a project with a template error
-            before it shows anything.
-        root: The repository root, which the template's path is relative to.
-        files: The port that reads the template.
-
-    Returns:
-        The skeleton's text, exactly as the skeleton function prepares it.
-
     Raises:
         TemplatesError: No template has the name, and the message names what was
             given and lists the names that exist in the order the walk returns

@@ -20,35 +20,7 @@ def header(
     size_lines: int,
     skill: tuple[str, str, str] | None,
 ) -> str:
-    """Build the header of a bundle.
-
-    Its first three lines name the Work, with its title when it has one, the
-    action and the stage, so a wrong stage is caught at once. It then says
-    whether the stage is a gate and, for a gate, whether a person judges it,
-    which session the stage advises, the number of rules, the size of the body,
-    the command that gives this bundle again and, for a stage with a skill,
-    where the skill was found. The command names the Work, the action and the
-    stage and no option that only changes where the bundle goes. The header
-    states what it is given and looks nothing up. It escapes the displayed
-    skill name and directory in the same way as stage guidance.
-
-    Args:
-        work_id: The Work's id.
-        title: The Work's title, if it has one.
-        action: The action, as parsed.
-        stage_name: The stage, as parsed.
-        stage: The stage's settings.
-        rules: The number of rules that the bundle prints.
-        size_bytes: The size of the body in UTF-8 bytes.
-        size_lines: The number of lines of the body.
-        skill: For a stage with a skill, its name, the directory it was found
-            in, relative to the repository, and the hash of its files. The
-            caller passes it exactly when the stage has a skill.
-
-    Returns:
-        The lines joined by newlines, with no blank line and no newline at the
-        end.
-    """
+    """Build the header of a bundle."""
     named = f"{work_id} ({title})" if title else work_id
     lines = [
         f"work: {named}",
