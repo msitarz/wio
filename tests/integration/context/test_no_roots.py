@@ -89,6 +89,7 @@ def _command(
         project.files,
         project.environment,
         ProcessDirectories(project.environment),
+        project.settings,
     )
     return (
         ContextCommand(services, Compiler(_Composer(), checks).compile),

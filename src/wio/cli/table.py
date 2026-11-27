@@ -185,6 +185,7 @@ def _context() -> Command:
         files,
         contracts.environment,
         env.ProcessDirectories(contracts.environment),
+        settings,
     )
     return ContextCommand(
         services,

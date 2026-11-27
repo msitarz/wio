@@ -52,6 +52,12 @@ class ContextCommand:
         """
         compiled = self._compiler(args.work, args.action, args.stage)
         stdio.stderr.writelines(f"warning: {text}\n" for text in compiled.warnings)
+        from wio.context.size_warning import size_warning
+
+        threshold = self._services.settings.load().bundle.size_threshold
+        warning = size_warning(compiled.bundle.size, threshold)
+        if warning is not None:
+            stdio.stderr.write(f"warning: {warning}\n")
         output = getattr(args, "output", False)
         if output is False:
             stdio.stdout.write(compiled.bundle.text)
