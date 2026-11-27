@@ -88,6 +88,10 @@ path = "wio.context"
 depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
 
 [[modules]]
+path = "wio.describe"
+depends_on = ["wio.models", "wio.formats", "wio.io", "wio.env", "wio.ports", "wio.errors"]
+
+[[modules]]
 path = "wio.cli"
 depends_on = [
     "wio.errors",
@@ -164,6 +168,7 @@ depends_on = [
     "wio.config",
     "wio.context",
     "wio.contracts",
+    "wio.describe",
     "wio.env",
     "wio.env.adapters",
     "wio.formats",
@@ -186,6 +191,7 @@ depends_on = [
     "wio.config",
     "wio.context",
     "wio.contracts",
+    "wio.describe",
     "wio.env",
     "wio.env.adapters",
     "wio.errors",
@@ -206,4 +212,4 @@ depends_on = [
 # and the test setup, such as the channel marker of the acceptance tests.
 [[modules]]
 path = "tests.tooling"
-depends_on = ["tests.acceptance", "wio.cli", "wio.models"]
+depends_on = ["tests.acceptance", "wio.cli", "wio.describe", "wio.models"]
