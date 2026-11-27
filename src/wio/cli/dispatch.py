@@ -3,9 +3,10 @@
 
 import argparse
 import contextlib
-import importlib.metadata
+import sys
 import traceback
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
+lazy import importlib.metadata
 
 from wio.errors import DiagnosticsError, WioError
 
@@ -21,6 +22,66 @@ _NAME = "wio_command"
 _CODES = (0, 1)
 
 
+class _LazyParser(argparse.ArgumentParser):
+    """Argument parser that loads distribution metadata only when formatting help."""
+
+    @override
+    def format_help(self, formatter: argparse.HelpFormatter | None = None) -> str:
+        """Populate the description from package metadata on first help render.
+
+        Args:
+            formatter: Optional formatter passed through to `ArgumentParser`.
+
+        Returns:
+            The formatted help text.
+        """
+        if self.description is None:
+            self.description = importlib.metadata.metadata(_DISTRIBUTION)["Summary"]
+        return super().format_help(formatter)
+
+
+class _VersionAction(argparse.Action):
+    """Print the package version only when `--version` is passed."""
+
+    def __init__(self, option_strings: Sequence[str], dest: str) -> None:
+        """Register `--version` with zero arguments.
+
+        Args:
+            option_strings: The flag names.
+            dest: The attribute name on the namespace.
+        """
+        super().__init__(
+            option_strings=option_strings,
+            dest=dest,
+            default=argparse.SUPPRESS,
+            nargs=0,
+            help="show program's version number and exit",
+        )
+
+    @override
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: object,
+        option_string: str | None = None,
+    ) -> None:
+        """Print `wio <version>` and exit with status 0.
+
+        Args:
+            parser: The owning parser.
+            namespace: The parsed namespace (unused).
+            values: The option values (unused).
+            option_string: The flag that triggered the action (unused).
+        """
+        del namespace, values, option_string
+        version = importlib.metadata.version(_DISTRIBUTION)
+        formatter = parser._get_formatter()  # noqa: SLF001
+        formatter.add_text(f"wio {version}")
+        parser._print_message(formatter.format_help(), sys.stdout)  # noqa: SLF001
+        parser.exit()
+
+
 def build_parser(commands: Sequence[Entry]) -> argparse.ArgumentParser:
     """Build the parser of `wio`, with one subparser for each entry.
 
@@ -32,12 +93,8 @@ def build_parser(commands: Sequence[Entry]) -> argparse.ArgumentParser:
     Returns:
         The parser, whose parsed arguments carry the chosen entry, if any.
     """
-    parser = argparse.ArgumentParser(
-        prog="wio",
-        description=importlib.metadata.metadata(_DISTRIBUTION)["Summary"],
-    )
-    version = importlib.metadata.version(_DISTRIBUTION)
-    parser.add_argument("--version", action="version", version=f"wio {version}")
+    parser = _LazyParser(prog="wio")
+    parser.add_argument("--version", action=_VersionAction)
     subparsers = parser.add_subparsers(title="subcommands", metavar="<subcommand>")
     for entry, spec in sorted(
         ((entry, entry.describe()) for entry in commands), key=lambda pair: pair[1].name
